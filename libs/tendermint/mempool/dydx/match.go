@@ -2,11 +2,9 @@ package dydx
 
 import (
 	"container/list"
-	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
@@ -39,17 +37,22 @@ type MatchEngine struct {
 	from      common.Address
 	nonce     uint64
 	chainID   *big.Int
-	ethCli    *ethclient.Client
 	httpCli   *ethclient.Client
+	txOps     *bind.TransactOpts
 
 	config DydxConfig
-
-	sub ethereum.Subscription
 
 	pubsub   PubSub
 	pubsubID string
 
 	logger log.Logger
+
+	logFilter             ethereum.FilterQuery
+	topicLogOrderCanceled common.Hash
+	topicLogOrderFilled   common.Hash
+	logHandler            LogHandler
+
+	frozenOrders *list.List
 }
 
 type DydxConfig struct {
@@ -61,12 +64,11 @@ type DydxConfig struct {
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
 	P1MarginAddress            string
-	VMode                      bool
 }
 
 type LogHandler interface {
 	HandleOrderFilled(*contracts.P1OrdersLogOrderFilled)
-	SubErr(error)
+	HandleOrderCanceled(*contracts.P1OrdersLogOrderCanceled)
 }
 
 func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
@@ -75,6 +77,8 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		config:    config,
 		logger:    logger,
 		pubsub:    api,
+
+		frozenOrders: list.New(),
 	}
 	if engine.logger == nil {
 		engine.logger = log.NewNopLogger()
@@ -90,18 +94,12 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 	if engine.chainID == nil {
 		return nil, fmt.Errorf("invalid chain id")
 	}
-	if !config.VMode || api == nil {
-		engine.ethCli, err = ethclient.Dial(config.EthWsRpcUrl)
-		if err != nil {
-			return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthWsRpcUrl, err)
-		}
-	}
 
 	engine.httpCli, err = ethclient.Dial(config.EthHttpRpcUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthHttpRpcUrl, err)
 	}
-	txOps, err := bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
+	engine.txOps, err = bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create txOps, err: %w", err)
 	}
@@ -110,7 +108,7 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		common.HexToAddress(config.P1OrdersContractAddress),
 		common.HexToAddress(config.P1MakerOracleAddress),
 		common.HexToAddress(config.P1MarginAddress),
-		txOps,
+		engine.txOps,
 		engine.httpCli,
 	)
 
@@ -120,51 +118,20 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 			return nil, fmt.Errorf("failed to get orders abi, err: %w", err)
 		}
 
+		engine.topicLogOrderCanceled = ordersAbi.Events["LogOrderCanceled"].ID
+		engine.topicLogOrderFilled = ordersAbi.Events["LogOrderFilled"].ID
+
 		var query = ethereum.FilterQuery{
 			Addresses: []common.Address{
 				common.HexToAddress(config.P1OrdersContractAddress),
 			},
 			Topics: [][]common.Hash{
-				{ordersAbi.Events["LogOrderFilled"].ID},
+				{engine.topicLogOrderFilled, engine.topicLogOrderCanceled},
 			},
 		}
 
-		if config.VMode && api != nil {
-			ch := make(chan *ethtypes.Log, 32)
-			id, err := api.SubscribeLogs(ch, query)
-			if err != nil {
-				return nil, fmt.Errorf("failed to subscribe local logs, err: %w", err)
-			}
-			engine.pubsubID = string(id)
-			go func() {
-				for log := range ch {
-					filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(*log)
-					if err == nil {
-						handler.HandleOrderFilled(filledLog)
-					}
-				}
-			}()
-		} else {
-			ch := make(chan ethtypes.Log, 32)
-			engine.sub, err = engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
-			if err != nil {
-				return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
-			}
-
-			go func() {
-				for {
-					select {
-					case err := <-engine.sub.Err():
-						handler.SubErr(err)
-					case log := <-ch:
-						filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(log)
-						if err == nil {
-							handler.HandleOrderFilled(filledLog)
-						}
-					}
-				}
-			}()
-		}
+		engine.logFilter = query
+		engine.logHandler = handler
 	}
 
 	return engine, nil
@@ -174,11 +141,28 @@ type MatchResult struct {
 	MatchedRecords []*MatchRecord
 	TakerOrder     *WrapOrder
 
-	OnChain chan bool
-	Tx      *ethtypes.Transaction
-	NoSend  bool
-
+	Tx       *ethtypes.Transaction
 	tradeOps *dydxlib.TradeOperation
+}
+
+func (r *MatchResult) IsEmpty() bool {
+	if r == nil {
+		return true
+	}
+	return len(r.MatchedRecords) == 0
+}
+
+func (r *MatchResult) Unfreeze() {
+	if r == nil {
+		return
+	}
+	for _, record := range r.MatchedRecords {
+		if record == nil {
+			continue
+		}
+		record.Maker.Unfrozen(record.Fill.Amount)
+		record.Taker.Unfrozen(record.Fill.Amount)
+	}
 }
 
 func (r *MatchResult) AddMatchedRecord(fill *contracts.P1OrdersFill, makerOrder *WrapOrder) {
@@ -195,35 +179,45 @@ type MatchRecord struct {
 	Maker *WrapOrder
 }
 
-func (m *MatchEngine) Stop() {
-	if m.sub != nil {
-		m.sub.Unsubscribe()
+func (record MatchRecord) String() string {
+	return fmt.Sprintf("taker %s maker %s,price, %s, amount %s;", record.Taker.Hash(), record.Maker.Hash(), record.Fill.Price, record.Fill.Amount)
+}
+
+func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
+	if len(txsResps) == 0 {
+		return
 	}
-	if m.pubsubID != "" {
-		m.pubsub.Unsubscribe(rpc.ID(m.pubsubID))
+	logsSlice := m.pubsub.ParseLogsFromTxs(txsResps, m.logFilter)
+	for _, logs := range logsSlice {
+		for _, evmLog := range logs {
+			if evmLog.Topics[0] == m.topicLogOrderFilled {
+				filledLog, err := m.contracts.P1Orders.ParseLogOrderFilled(*evmLog)
+				if err == nil {
+					m.logHandler.HandleOrderFilled(filledLog)
+				}
+			} else if evmLog.Topics[0] == m.topicLogOrderCanceled {
+				canceledLog, err := m.contracts.P1Orders.ParseLogOrderCanceled(*evmLog)
+				if err == nil {
+					m.logHandler.HandleOrderCanceled(canceledLog)
+				}
+			}
+		}
 	}
 }
 
-func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult, error) {
-	m.logger.Debug("start match", "order", order.P1Order, "marketPrice", maketPrice)
+func (m *MatchEngine) Match(order *WrapOrder, marketPrice *big.Int) (*MatchResult, error) {
+	m.logger.Debug("start match", "order", order, "marketPrice", marketPrice)
 
 	if order.Type() == BuyOrderType {
-		return processOrder(order, m.depthBook.sellOrders, m.depthBook, maketPrice)
+		return processOrder(order, m.depthBook.sellOrders, m.depthBook, marketPrice)
 	} else if order.Type() == SellOrderType {
-		return processOrder(order, m.depthBook.buyOrders, m.depthBook, maketPrice)
+		return processOrder(order, m.depthBook.buyOrders, m.depthBook, marketPrice)
 	} else {
 		return nil, fmt.Errorf("invalid order type")
 	}
 }
 
-func (m *MatchEngine) Rollback(matchResult *MatchResult) {
-	for _, record := range matchResult.MatchedRecords {
-		record.Maker.Unfrozen(record.Fill.Amount)
-		record.Taker.Unfrozen(record.Fill.Amount)
-	}
-}
-
-func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult, error) {
+func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
 		From: m.contracts.PerpetualV1Address,
 	})
@@ -232,20 +226,24 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 	}
 	matched, err := m.Match(order, marketPrice)
 	if err != nil {
-		return nil, err
+		m.logger.Error("failed to match order", "err", err)
+		return nil, fmt.Errorf("failed to match order, err: %w", err)
 	}
 
-	if len(matched.MatchedRecords) == 0 {
+	if matched.IsEmpty() {
+		m.logger.Debug("no match", "order", order.Hash())
 		return nil, nil
 	}
-	matched.NoSend = noSend
 
-	m.logger.Debug("match result", "matched", matched.MatchedRecords)
+	for i, record := range matched.MatchedRecords {
+		m.logger.Debug("match result", "index", i, "record", record)
+	}
 
 	var needRollback bool
 	defer func() {
 		if needRollback {
-			m.Rollback(matched)
+			m.logger.Debug("match and trade rollback", "order", order.Hash())
+			matched.Unfreeze()
 		}
 	}()
 
@@ -274,54 +272,8 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
 	}
-	if !noSend {
-		matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: noSend})
-		if err != nil {
-			needRollback = true
-			return matched, fmt.Errorf("failed to commit, err: %w", err)
-		}
-		m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
-	} else {
-		matched.tradeOps = op
-	}
-
-	matched.OnChain = make(chan bool, 1)
-	if noSend {
-		return matched, nil
-	}
-
-	go func(txHash common.Hash) {
-		m.logger.Debug("wait tx", "tx", txHash.Hex())
-		count := 0
-		for {
-			if count == 10 {
-				m.logger.Error("wait tx timeout", "tx", txHash.Hex())
-				matched.OnChain <- false
-				return
-			}
-			select {
-			case <-time.After(5 * time.Second):
-				receipt, err := m.httpCli.TransactionReceipt(context.Background(), txHash)
-				if err == nil {
-					m.logger.Debug("tx receipt received", "hash", txHash, "status", receipt.Status)
-					if receipt.Status == 1 {
-						matched.OnChain <- true
-					} else {
-						matched.OnChain <- false
-					}
-					return
-				} else {
-					m.logger.Error("failed to get receipt", "hash", txHash, "err", err)
-				}
-			}
-			count += 1
-		}
-	}(matched.Tx.Hash())
+	matched.tradeOps = op
 	return matched, nil
-}
-
-func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	return m.matchAndTrade(order, m.config.VMode)
 }
 
 func WrapOrderToSignedSolOrder(order *WrapOrder) *dydxlib.SignedSolOrder {
@@ -345,6 +297,11 @@ func (m *MatchEngine) trade(order1, order2 *dydxlib.SignedSolOrder, fill *contra
 		return nil, fmt.Errorf("failed to commit, err: %w", err)
 	}
 	return tx, nil
+}
+
+func (m *MatchEngine) Rollback(matched *MatchResult) {
+	matched.Unfreeze()
+	m.depthBook.Delete(matched.TakerOrder.Hash())
 }
 
 func IsIntNilOrZero(i *big.Int) bool {

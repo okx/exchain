@@ -5,15 +5,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/gorilla/mux"
-	"github.com/okex/exchain/libs/tendermint/mempool/placeorder"
 	"log"
 	"math/big"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/gorilla/mux"
+	"github.com/okex/exchain/libs/tendermint/mempool/placeorder"
 )
 
 const (

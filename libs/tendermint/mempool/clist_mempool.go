@@ -153,11 +153,11 @@ func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 	mem.eventBus = eventBus
 }
 
-func (mem *CListMempool) SetLocalPubSub(api PubSub) {
+func (mem *CListMempool) EnableOrderBook(api PubSub, logger log.Logger) {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
 
-	mem.orderManager = dydx.NewOrderManager(api, mem.accountRetriever, true)
+	mem.orderManager = dydx.NewOrderManager(api, mem.accountRetriever, logger)
 }
 
 // SetLogger sets the Logger.
@@ -766,7 +766,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	memTxsLen := mem.txs.Len()
-	txs := make([]types.Tx, 0, tmmath.MinInt(memTxsLen+mem.orderManager.TxsLen(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	txs := make([]types.Tx, 0, tmmath.MinInt(memTxsLen+mem.orderManager.OrderQueueLen(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
@@ -923,6 +923,9 @@ func (mem *CListMempool) Update(
 	if mem.pendingPool != nil {
 		addressNonce = make(map[string]uint64)
 	}
+
+	mem.orderManager.Update(deliverTxResponses)
+
 	for i, tx := range txs {
 		if order := dydx.ExtractOrderToCancel(tx); len(order) != 0 {
 			mem.orderManager.CancelOrder(order)
@@ -939,13 +942,12 @@ func (mem *CListMempool) Update(
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
 				addr = txInfo.Sender
 				nonce = txInfo.Nonce
-
-				mem.orderManager.UpdateAddress(addr, nonce, txCode)
 			}
 
 			// remove tx signature cache
 			types.SignatureCache().Remove(tx.Hash(height))
 		}
+		mem.orderManager.UpdateAddress(addr, nonce, txCode)
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
@@ -1053,11 +1055,7 @@ func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clis
 	// Mempool after:
 	//   100
 	// https://github.com/tendermint/tendermint/issues/3322.
-	ele := mem.removeTxByKey(txKey)
-	if ele == nil {
-		_ = mem.orderManager.RemoveTradeTx(txHash, txCode)
-	}
-	return ele
+	return mem.removeTxByKey(txKey)
 }
 
 func (mem *CListMempool) updateSealed(height int64, txs types.Txs, deliverTxResponses []*abci.ResponseDeliverTx) error {

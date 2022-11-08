@@ -1,20 +1,16 @@
 package dydx
 
 import (
-	"container/list"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethcmm "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/dydx/contracts"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -50,7 +46,6 @@ var (
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
 		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
-		VMode:                      true,
 	}
 
 	//Config = DydxConfig{
@@ -78,38 +73,50 @@ type OrderManager struct {
 	engine           *MatchEngine
 	gServer          *OrderBookServer
 
-	TradeTxs    *list.List
-	tradeTxsMap map[ethcmm.Hash]*list.Element
-	tradeTxsMtx sync.Mutex
+	orderQueue   *OrderQueue
+	waitUnfreeze []*MatchResult
+
+	currentBlockTxs []types.Tx
+	totalBytes      int64
+	totalGas        int64
+
+	filledOrCanceledOrders sync.Map
+
+	logger log.Logger
 }
 
-func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *OrderManager {
+func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logger) *OrderManager {
+	if logger == nil {
+		logger = log.NewNopLogger()
+	}
 	manager := &OrderManager{
 		trades:           make(map[[32]byte]*FilledP1Order),
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
 		orders:           clist.New(),
 		book:             NewDepthBook(),
-		TradeTxs:         list.New(),
-		tradeTxsMap:      make(map[ethcmm.Hash]*list.Element),
+		orderQueue:       NewOrderQueue(),
+		logger:           logger,
 	}
 
-	me, err := NewMatchEngine(api, manager.book, Config, manager, log.NewTMLogger(os.Stdout))
+	me, err := NewMatchEngine(api, manager.book, Config, manager, manager.logger)
 	if err != nil {
 		panic(err)
 	}
 	if accRetriever != nil {
 		me.nonce = accRetriever.GetAccountNonce(me.from.String())
 	} else {
-		me.nonce, _ = me.httpCli.NonceAt(context.Background(), me.from, nil)
+		me.nonce, err = me.httpCli.NonceAt(context.Background(), me.from, nil)
+		if err != nil {
+			manager.logger.Error("get nonce failed", "err", err)
+		}
 	}
 	me.nonce--
+	manager.logger.Info("init operator nonce", "addr", me.from, "nonce", me.nonce)
 	manager.engine = me
 
-	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
-	err = manager.gServer.Start("7070")
-	if err != nil {
-		panic(err)
-	}
+	manager.gServer = NewOrderBookServer(manager.book, manager.logger)
+	port := "7070"
+	_ = manager.gServer.Start(port)
 	go manager.ServeWeb()
 	return manager
 }
@@ -130,21 +137,19 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	ele := d.orders.PushBack(memOrder)
 	d.ordersMap.Store(memOrder.Key(), ele)
 
-	result, err := d.engine.MatchAndTrade(&wrapOdr)
-	d.gServer.UpdateClient()
-	if err != nil {
-		return err
+	d.logger.Debug("pre enqueue", "order", &wrapOdr)
+
+	// TODO
+	// should check order's filled amount from chain
+
+	hash := wrapOdr.Hash()
+	if _, ok := d.filledOrCanceledOrders.Load([32]byte(hash)); ok {
+		d.logger.Debug("order is filled or canceled", "order", hash)
+		return nil
 	}
 
-	if result != nil {
-		if result.NoSend {
-			d.tradeTxsMtx.Lock()
-			// d.tradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result)
-			d.TradeTxs.PushBack(result)
-			d.tradeTxsMtx.Unlock()
-		}
-		go d.book.Update(result)
-	}
+	ok := d.orderQueue.Enqueue(&wrapOdr)
+	d.logger.Debug("enqueue", "order", wrapOdr.Hash(), "ok", ok)
 
 	return nil
 }
@@ -185,7 +190,26 @@ func (d *OrderManager) Front() *clist.CElement {
 	return d.orders.Front()
 }
 
+func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled) bool {
+	if o := d.orderQueue.Get(filled.OrderHash); o != nil {
+		o.LeftAmount.Sub(o.LeftAmount, filled.Fill.Amount)
+		return true
+	}
+	return false
+}
+
+func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderCanceled) {
+	if canceled != nil {
+		d.filledOrCanceledOrders.Store(canceled.OrderHash, nil)
+		d.orderQueue.Delete(canceled.OrderHash)
+	}
+}
+
 func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFilled) {
+	if d.updateOrderQueue(filled) {
+		return
+	}
+
 	var orderList *OrderList
 	if filled.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
 		orderList = d.book.buyOrders
@@ -236,11 +260,6 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
 }
 
-func (d *OrderManager) SubErr(err error) {
-	//TODO
-	fmt.Println("OrderManager SubErr:", err)
-}
-
 func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
 	if d == nil {
 		return
@@ -248,85 +267,153 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	if !types.HigherThanVenus(global.GetGlobalHeight()) {
 		return
 	}
-	d.tradeTxsMtx.Lock()
-	defer d.tradeTxsMtx.Unlock()
 
-	if int64(d.TradeTxs.Len()) < maxNum {
-		maxNum = int64(d.TradeTxs.Len())
+	if len(d.currentBlockTxs) > 0 {
+		return d.currentBlockTxs, d.totalBytes, d.totalGas
+	}
+
+	if d.orderQueue.Len() == 0 {
+		return
+	}
+
+	var canceledOrders = make(map[common.Hash]struct{})
+	iterCount := 0
+
+	d.orderQueue.RLock()
+	defer func() {
+		d.orderQueue.RUnlock()
+
+		for i := 0; i < iterCount; i++ {
+			d.orderQueue.Dequeue()
+		}
+
+		for k := range canceledOrders {
+			d.orderQueue.Delete(k)
+		}
+		d.gServer.UpdateClient()
+	}()
+
+	d.logger.Debug("start reap order tx", "queue-size", d.orderQueue.Len())
+
+	ordersHashes := d.orderQueue.GetAllOrderHashes()
+	ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
+	if err == nil {
+		for i, status := range ordersStatus {
+			orderHash := ordersHashes[i]
+			if status.Status == 2 {
+				canceledOrders[orderHash] = struct{}{}
+				continue
+			}
+			if status.FilledAmount.Sign() > 0 {
+				order := d.orderQueue.Get(orderHash)
+				order.LeftAmount.Sub(order.Amount, status.FilledAmount)
+				if order.LeftAmount.Sign() == 0 {
+					canceledOrders[orderHash] = struct{}{}
+				}
+			}
+		}
+	}
+
+	if orderQueueLen := int64(d.orderQueue.Len()); orderQueueLen < maxNum {
+		maxNum = orderQueueLen
 	}
 	tradeTxs = make([]types.Tx, 0, maxNum)
 
-	var elementsToClean []*list.Element
-	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
-		mre := ele.Value.(*MatchResult)
+	nonce := d.engine.nonce + 1
+
+	iter := d.orderQueue.NewIterator()
+	for order := iter.Next(); order != nil; order = iter.Next() {
+		iterCount++
+		if _, ok := canceledOrders[order.Hash()]; ok {
+			continue
+		}
+		mre, err := d.engine.MatchAndTrade(order)
+		if err != nil || mre == nil {
+			continue
+		}
+
 		if mre.Tx == nil {
-			nonce := d.engine.nonce + 1
-			var err error
 			mre.Tx, err = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
 			if err != nil {
-				elementsToClean = append(elementsToClean, ele)
+				d.logger.Error("commit trade tx failed", "err", err)
+			}
+			if mre.Tx == nil {
+				mre.Unfreeze()
 				continue
 			}
-			d.engine.nonce++
-			d.tradeTxsMap[mre.Tx.Hash()] = ele
 			d.engine.logger.Debug("reap tx", "tx", mre.Tx.Hash().String())
 		}
 		tx := mre.Tx
 		txBz, err := tx.MarshalBinary()
 		if err != nil {
+			mre.Unfreeze()
 			continue
 		}
+
 		if maxBytes > -1 && totalBytes+int64(len(txBz)) > maxBytes {
+			iterCount--
+			d.engine.Rollback(mre)
 			break
 		}
 		newTotalGas := totalGas + int64(tx.Gas())
 		if maxGas > -1 && newTotalGas > maxGas {
+			iterCount--
+			d.engine.Rollback(mre)
 			break
 		}
 		if len(tradeTxs) >= cap(tradeTxs) {
+			iterCount--
+			d.engine.Rollback(mre)
 			break
 		}
 		totalGas = newTotalGas
 		tradeTxs = append(tradeTxs, txBz)
+		d.waitUnfreeze = append(d.waitUnfreeze, mre)
+		nonce++
 	}
-	for _, ele := range elementsToClean {
-		d.TradeTxs.Remove(ele)
-	}
+	d.currentBlockTxs = tradeTxs
+	d.totalBytes = totalBytes
+	d.totalGas = totalGas
 	return
 }
 
-func (d *OrderManager) TxsLen() int {
-	if d == nil {
-		return 0
-	}
-	d.tradeTxsMtx.Lock()
-	defer d.tradeTxsMtx.Unlock()
-	return d.TradeTxs.Len()
-}
-
-func (d *OrderManager) RemoveTradeTx(txhash []byte, code uint32) *ethtypes.Transaction {
-	if d == nil {
-		return nil
-	}
-	if !types.HigherThanVenus(global.GetGlobalHeight()) {
-		return nil
-	}
-	evmHash := ethcmm.BytesToHash(txhash)
-
-	d.tradeTxsMtx.Lock()
-	defer d.tradeTxsMtx.Unlock()
-	ele, ok := d.tradeTxsMap[evmHash]
-	if !ok {
-		return nil
-	}
-	mr := d.TradeTxs.Remove(ele).(*MatchResult)
-	mr.OnChain <- code == abci.CodeTypeOK
-	delete(d.tradeTxsMap, evmHash)
-	return mr.Tx
-}
-
 func (d *OrderManager) UpdateAddress(sender string, nonce uint64, code uint32) {
-	if sender == d.engine.from.String() && code == abci.CodeTypeOK {
+	if sender == d.engine.from.String() &&
+		(code == abci.CodeTypeOK || code > abci.CodeTypeNonceInc) {
 		d.engine.nonce = nonce
 	}
 }
+
+func (d *OrderManager) Update(txsResps []*abci.ResponseDeliverTx) {
+	if d == nil {
+		return
+	}
+
+	if len(d.currentBlockTxs) > 0 {
+		d.currentBlockTxs = d.currentBlockTxs[:0]
+		d.totalBytes = 0
+		d.totalGas = 0
+	}
+
+	for _, mre := range d.waitUnfreeze {
+		mre.Unfreeze()
+	}
+	d.waitUnfreeze = d.waitUnfreeze[:0]
+
+	d.engine.UpdateState(txsResps)
+
+	d.gServer.UpdateClient()
+}
+
+func (d *OrderManager) OrderQueueLen() int {
+	if d == nil {
+		return 0
+	}
+	return d.orderQueue.Len()
+}
+
+// order -> (check) fifo (broadcast)
+
+// block -> mempool.Update(tx resp) -> fifo + orderBook
+
+// propose foreach fifo -> match -> orderbook -> txs -> block

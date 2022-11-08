@@ -108,7 +108,7 @@ func main() {
 	// Tendermint node base commands
 	server.AddCommands(ctx, codecProxy, registry, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
 		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc, func(node *node.Node) {
-			node.Mempool().SetLocalPubSub(localclient.NewAPI(local.New(node), node.Logger))
+			node.Mempool().EnableOrderBook(localclient.NewAPI(local.New(node), node.Logger), node.Logger.With("module", "dydx"))
 		})
 
 	// prepare and add flags
