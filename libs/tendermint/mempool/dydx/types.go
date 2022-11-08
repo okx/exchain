@@ -88,6 +88,11 @@ type P1Order struct {
 	contracts.P1OrdersOrder
 }
 
+func (p *P1Order) String() string {
+	return fmt.Sprintf("%x - Order{isBuy:%v, Price:%s, Amount:%s, Maker:%s}",
+		p.Hash(), p.isBuy(), p.LimitPrice, p.Amount, p.Maker)
+}
+
 func (p *P1Order) VerifySignature(sig []byte) error {
 	orderHash := p.Hash()
 	addr, err := ecrecover(orderHash, sig)
@@ -237,6 +242,14 @@ type WrapOrder struct {
 	orderHash    common.Hash
 }
 
+func (w *WrapOrder) String() string {
+	act := "sell"
+	if w.isBuy() {
+		act = "buy"
+	}
+	return fmt.Sprintf("hash: %s, %s price: %s, amount: %s, left: %s, maker: %s", w.Hash(), act, w.LimitPrice, w.Amount, w.LeftAmount, w.Maker)
+}
+
 func (w *WrapOrder) DecodeFrom(data []byte) error {
 	if len(data) < NUM_SIGNATURE_BYTES {
 		return ErrInvalidSignedOrder
@@ -302,17 +315,7 @@ func (w *WrapOrder) Unfrozen(amount *big.Int) {
 func (w *WrapOrder) Done(amount *big.Int) {
 	w.Lock()
 	defer w.Unlock()
-	if w.FrozenAmount.Cmp(amount) >= 0 {
-		w.FrozenAmount.Sub(w.FrozenAmount, amount)
-	} else {
-		diff := new(big.Int).Sub(amount, w.FrozenAmount)
-		w.FrozenAmount = big.NewInt(0)
-		w.LeftAmount.Sub(w.LeftAmount, diff)
-	}
-
-	if w.FrozenAmount.Sign() < 0 {
-		fmt.Println("WrapOrder Done error", w.orderHash, w.Amount, w.LeftAmount, w.FrozenAmount, amount)
-	}
+	w.LeftAmount.Sub(w.LeftAmount, amount)
 }
 
 type MempoolOrder struct {

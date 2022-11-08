@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+
 	"github.com/ethereum/go-ethereum"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -86,7 +88,7 @@ type Mempool interface {
 
 	SetEventBus(eventBus types.TxEventPublisher)
 
-	SetLocalPubSub(PubSub)
+	EnableOrderBook(PubSub, log.Logger)
 
 	GetConfig() *cfg.MempoolConfig
 	GetTxByHash(hash [sha256.Size]byte) (types.Tx, error)
