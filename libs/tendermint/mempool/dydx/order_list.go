@@ -41,13 +41,20 @@ type OrderQueue struct {
 	list *list.List
 	mtx  sync.RWMutex
 	m    map[common.Hash]*list.Element
+
+	book *DepthBook
 }
 
 func NewOrderQueue() *OrderQueue {
 	return &OrderQueue{
 		list: list.New(),
 		m:    make(map[common.Hash]*list.Element),
+		book: NewDepthBook(),
 	}
+}
+
+func (q *OrderQueue) Book() *DepthBook {
+	return q.book
 }
 
 func (q *OrderQueue) RLock() {
@@ -73,6 +80,13 @@ func (q *OrderQueue) Enqueue(v *WrapOrder) bool {
 		return false
 	}
 	q.m[v.Hash()] = q.list.PushBack(v)
+
+	if v.Type() == BuyOrderType {
+		_ = q.book.buyOrders.Insert(v)
+	} else if v.Type() == SellOrderType {
+		_ = q.book.sellOrders.Insert(v)
+	}
+
 	return true
 }
 
@@ -84,6 +98,7 @@ func (q *OrderQueue) Dequeue() *WrapOrder {
 	if e != nil {
 		o := q.list.Remove(e).(*WrapOrder)
 		delete(q.m, o.Hash())
+		q.book.Delete(o.Hash())
 		return o
 	}
 	return nil
@@ -123,6 +138,7 @@ func (q *OrderQueue) Delete(hash common.Hash) *WrapOrder {
 		return nil
 	}
 	delete(q.m, hash)
+	q.book.Delete(hash)
 	return q.list.Remove(e).(*WrapOrder)
 }
 
