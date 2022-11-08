@@ -143,13 +143,29 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 
 	d.logger.Debug("pre enqueue", "order", &wrapOdr)
 
-	// TODO
-	// should check order's filled amount from chain
-
-	hash := wrapOdr.Hash()
-	if _, ok := d.filledOrCanceledOrders.Load([32]byte(hash)); ok {
+	hash := [32]byte(wrapOdr.Hash())
+	if _, ok := d.filledOrCanceledOrders.Load(hash); ok {
 		d.logger.Debug("order is filled or canceled", "order", hash)
 		return nil
+	}
+
+	ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, [][32]byte{hash})
+	if err == nil {
+		status := ordersStatus[0]
+		if status.Status == 2 {
+			d.filledOrCanceledOrders.Store(hash, struct{}{})
+			d.logger.Debug("order is canceled", "order", hash)
+			return nil
+		}
+		if status.FilledAmount.Sign() > 0 {
+			wrapOdr.LeftAmount.Sub(wrapOdr.Amount, status.FilledAmount)
+			if wrapOdr.LeftAmount.Sign() == 0 {
+				d.filledOrCanceledOrders.Store(hash, struct{}{})
+				d.logger.Debug("order is full filled", "order", hash)
+				return nil
+			}
+			d.logger.Debug("order is partially filled", "order", hash, "left", wrapOdr.LeftAmount)
+		}
 	}
 
 	ok := d.orderQueue.Enqueue(&wrapOdr)
@@ -197,6 +213,11 @@ func (d *OrderManager) Front() *clist.CElement {
 func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled) bool {
 	if o := d.orderQueue.Get(filled.OrderHash); o != nil {
 		o.LeftAmount.Sub(o.LeftAmount, filled.Fill.Amount)
+		d.logger.Debug("update order queue", "order", o.Hash(), "filled", filled.Fill.Amount, "left", o.LeftAmount)
+		if o.LeftAmount.Sign() == 0 {
+			d.orderQueue.Delete(filled.OrderHash)
+			d.logger.Debug("delete order queue", "order", o.Hash())
+		}
 		return true
 	}
 	return false
@@ -299,24 +320,24 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 
 	d.logger.Debug("start reap order tx", "queue-size", d.orderQueue.Len())
 
-	ordersHashes := d.orderQueue.GetAllOrderHashes()
-	ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
-	if err == nil {
-		for i, status := range ordersStatus {
-			orderHash := ordersHashes[i]
-			if status.Status == 2 {
-				canceledOrders[orderHash] = struct{}{}
-				continue
-			}
-			if status.FilledAmount.Sign() > 0 {
-				order := d.orderQueue.Get(orderHash)
-				order.LeftAmount.Sub(order.Amount, status.FilledAmount)
-				if order.LeftAmount.Sign() == 0 {
-					canceledOrders[orderHash] = struct{}{}
-				}
-			}
-		}
-	}
+	//ordersHashes := d.orderQueue.GetAllOrderHashes()
+	//ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
+	//if err == nil {
+	//	for i, status := range ordersStatus {
+	//		orderHash := ordersHashes[i]
+	//		if status.Status == 2 {
+	//			canceledOrders[orderHash] = struct{}{}
+	//			continue
+	//		}
+	//		if status.FilledAmount.Sign() > 0 {
+	//			order := d.orderQueue.Get(orderHash)
+	//			order.LeftAmount.Sub(order.Amount, status.FilledAmount)
+	//			if order.LeftAmount.Sign() == 0 {
+	//				canceledOrders[orderHash] = struct{}{}
+	//			}
+	//		}
+	//	}
+	//}
 
 	if orderQueueLen := int64(d.orderQueue.Len()); orderQueueLen < maxNum {
 		maxNum = orderQueueLen
