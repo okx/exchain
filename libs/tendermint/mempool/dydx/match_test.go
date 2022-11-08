@@ -79,7 +79,8 @@ func TestTransfer(t *testing.T) {
 		addrAlice, addrBob, addrCaptain, addrTuring,
 	}
 
-	nonce := me.nonce + 1
+	nonce, err := me.httpCli.NonceAt(context.Background(), me.from, nil)
+	require.NoError(t, err)
 
 	gp, err := me.httpCli.SuggestGasPrice(context.Background())
 	require.NoError(t, err)
