@@ -169,6 +169,18 @@ func (d *OrderManager) Remove(order OrderRaw) {
 	d.orders.Remove(ele.(*clist.CElement))
 }
 
+func (d *OrderManager) CancelOrder(order OrderRaw) {
+	d.Remove(order)
+	var p1Order P1Order
+	err := p1Order.DecodeFrom(order)
+	if err != nil {
+		fmt.Println("decode order error:", err)
+		return
+	}
+	d.book.DeleteByHash(p1Order.Hash())
+	//TODO
+}
+
 func (d *OrderManager) Load(order OrderRaw) *clist.CElement {
 	v, ok := d.ordersMap.Load(order.Key())
 	if !ok {
