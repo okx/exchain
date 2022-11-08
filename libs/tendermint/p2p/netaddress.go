@@ -22,12 +22,6 @@ type NetAddress struct {
 	ID   ID     `json:"id"`
 	IP   net.IP `json:"ip"`
 	Port uint16 `json:"port"`
-
-	// TODO:
-	// Name string `json:"name"` // optional DNS name
-
-	// memoize .String()
-	str string
 }
 
 // IDAddressString returns id@hostPort. It strips the leading
@@ -165,14 +159,12 @@ func (na *NetAddress) String() string {
 	if na == nil {
 		return "<nil-NetAddress>"
 	}
-	if na.str == "" {
-		addrStr := na.DialString()
-		if na.ID != "" {
-			addrStr = IDAddressString(na.ID, addrStr)
-		}
-		na.str = addrStr
+	addrStr := na.DialString()
+	if na.ID != "" {
+		addrStr = IDAddressString(na.ID, addrStr)
 	}
-	return na.str
+
+	return addrStr
 }
 
 func (na *NetAddress) DialString() string {
