@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"time"
 
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/ethereum/go-ethereum"
@@ -24,6 +26,7 @@ import (
 type PubSub interface {
 	Unsubscribe(id rpc.ID) bool
 	SubscribeLogs(conn chan<- *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error)
+	ParseLogsFromTxs(txResults []*abci.ResponseDeliverTx, query ethereum.FilterQuery) [][]*ethtypes.Log
 }
 
 type MatchEngine struct {

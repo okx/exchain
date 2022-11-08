@@ -5,18 +5,17 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum"
-
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
+	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -56,6 +55,64 @@ func (api *PubSubAPI) Unsubscribe(id rpc.ID) bool {
 	delete(api.filters, id)
 	api.logger.Debug("close client channel & delete client from filters", "ID", id)
 	return true
+}
+
+func (api *PubSubAPI) ConvertQuery(query ethereum.FilterQuery) filters.FilterCriteria {
+	return filters.FilterCriteria{
+		Addresses: query.Addresses,
+		Topics:    query.Topics,
+	}
+}
+
+func (api *PubSubAPI) ParseLogsFromTxs(txResults []*abci.ResponseDeliverTx, query ethereum.FilterQuery) [][]*ethtypes.Log {
+	crit := api.ConvertQuery(query)
+
+	var ret [][]*ethtypes.Log
+
+	for _, txResult := range txResults {
+		if !evmtypes.IsEvmEvent(txResult) {
+			continue
+		}
+
+		//decode txResult data
+		var resultData evmtypes.ResultData
+		resultData, err := evmtypes.DecodeResultData(txResult.Data)
+		if err != nil {
+			api.logger.Error("failed to decode result data", "error", err)
+			continue
+		}
+
+		//filter logs
+		logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+		if len(logs) == 0 {
+			continue
+		}
+
+		ret = append(ret, logs)
+	}
+	return ret
+}
+
+func (api *PubSubAPI) ParseLogs(txResult *abci.ResponseDeliverTx, crit filters.FilterCriteria) ([]*ethtypes.Log, error) {
+	if !evmtypes.IsEvmEvent(txResult) {
+		return nil, nil
+	}
+
+	//decode txResult data
+	var resultData evmtypes.ResultData
+	resultData, err := evmtypes.DecodeResultData(txResult.Data)
+	if err != nil {
+		api.logger.Error("failed to decode result data", "error", err)
+		return nil, err
+	}
+
+	//filter logs
+	logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+	if len(logs) == 0 {
+		return nil, nil
+	}
+
+	return logs, nil
 }
 
 func (api *PubSubAPI) SubscribeLogs(conn chan<- *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error) {

@@ -31,11 +31,12 @@ var (
 )
 
 var (
-	privHex string
-	amount  int64
-	price   string
-	isBuy   bool
-	debug   bool
+	privHex   string
+	amount    int64
+	price     string
+	isBuy     bool
+	debug     bool
+	debugOnly bool
 )
 
 func main() {
@@ -44,12 +45,14 @@ func main() {
 	flag.StringVar(&price, "price", "18200000000000000000000", "limit price of the order")
 	flag.BoolVar(&isBuy, "buy", true, "")
 	flag.BoolVar(&debug, "debug", false, "")
+	flag.BoolVar(&debugOnly, "debug-only", false, "")
 	flag.Parse()
 	priv, err := crypto.HexToECDSA(privHex)
 	if err != nil {
 		panic(err)
 	}
 	addr := crypto.PubkeyToAddress(priv.PublicKey)
+	fmt.Println("addr:", addr)
 
 	client, err := ethclient.Dial(localNode)
 	if err != nil {
@@ -74,12 +77,15 @@ func main() {
 		panic(err)
 	}
 	data := append(orderBytes, sig...)
-	if debug {
-		fmt.Println(hex.EncodeToString(data))
+	if debug || debugOnly {
+		fmt.Println(hex.EncodeToString(orderBytes))
+		fmt.Println(hex.EncodeToString(sig))
+	}
+	if debugOnly {
 		return
 	}
 
-	unsignedTx := types.NewTransaction(0, orderContractAddr, big.NewInt(0), GasLimit, big.NewInt(GasPrice), data)
+	unsignedTx := types.NewTransaction(0, common.HexToAddress(dydx.AddressForOrder), big.NewInt(0), GasLimit, big.NewInt(GasPrice), data)
 
 	err = client.SendTransaction(context.Background(), unsignedTx)
 	if err != nil {
