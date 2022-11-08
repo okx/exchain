@@ -11,8 +11,6 @@ type EVMKeeper interface {
 	GetChainConfig(ctx sdk.Context) (evmtypes.ChainConfig, bool)
 	GenerateCSDBParams() evmtypes.CommitStateDBParams
 	GetParams(ctx sdk.Context) evmtypes.Params
-	AddInnerTx(...interface{})
-	AddContract(...interface{})
 }
 
 type WASMKeeper interface {
