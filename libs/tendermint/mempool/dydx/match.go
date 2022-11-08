@@ -153,7 +153,13 @@ func (r *MatchResult) IsEmpty() bool {
 }
 
 func (r *MatchResult) Unfreeze() {
+	if r == nil {
+		return
+	}
 	for _, record := range r.MatchedRecords {
+		if record == nil {
+			continue
+		}
 		record.Maker.Unfrozen(record.Fill.Amount)
 		record.Taker.Unfrozen(record.Fill.Amount)
 	}
