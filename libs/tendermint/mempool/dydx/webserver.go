@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -23,10 +24,11 @@ const (
 	addrKey    = "addr"
 	timeFormat = "15:04:05"
 
-	placeOrderContractAddr = "0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5"
+	placeOrderContractAddr = "0x2594E83A94F89Ffb923773ddDfF723BbE017b80D" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
+var exp18, _ = new(big.Int).SetString("1000000000000000000", 10)
 
 type Response struct {
 	Succeed  bool   `json:"succeed"`
@@ -70,8 +72,9 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 		fmt.Fprintf(w, "invalid limitPrice")
 		return
 	}
+	LimitPrice = LimitPrice.Mul(LimitPrice, exp18)
+
 	maker := vars["maker"]
-	fmt.Println("debug maker", maker)
 	isBuy := vars["isBuy"]
 	caller, err := placeorder.NewPlaceorderCaller(common.HexToAddress(placeOrderContractAddr), o.engine.httpCli)
 	if err != nil {
@@ -89,12 +92,12 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 	if isBuy == "true" {
 		order.Flags[31] = 1
 	}
-	msg, err := caller.GetOrderMessage(&bind.CallOpts{From: common.HexToAddress(maker)}, order)
+	msg, err := caller.GetOrderMessage(&bind.CallOpts{From: common.HexToAddress(maker), Context: context.Background()}, order)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
-	hash, err := caller.GetOrderHash(&bind.CallOpts{From: common.HexToAddress(maker)}, order)
+	hash, err := caller.GetOrderHash(&bind.CallOpts{From: common.HexToAddress(maker), Context: context.Background()}, order)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
@@ -161,7 +164,7 @@ func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
 	for _, t := range o.tradeHistory {
 		trade := &Trade{
 			Size:  t.Filled.Int64(),
-			Price: t.LimitPrice.String(),
+			Price: new(big.Int).Div(t.LimitPrice, exp18).String(),
 			Time:  t.Time.Format(timeFormat),
 		}
 		if t.Flags[31] == 1 {
@@ -210,6 +213,7 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 
 type WebOrder struct {
 	Order        string `json:"order"`
+	OrderHash    string `json:"orderHash"`
 	Status       string `json:"status"`
 	IsBuy        bool   `json:"isBuy"`
 	Amount       int64  `json:"amount"`
@@ -217,6 +221,17 @@ type WebOrder struct {
 	Price        string `json:"price"`
 	TriggerPrice string `json:"triggerPrice"`
 	Expiration   string `json:"expiration"`
+}
+
+type ExportP1Order struct {
+	Flags        [32]byte `json:"flags"`
+	Amount       string   `json:"amount"`
+	LimitPrice   string   `json:"limitPrice"`
+	TriggerPrice string   `json:"triggerPrice"`
+	LimitFee     string   `json:"limitFee"`
+	Maker        string   `json:"maker"`
+	Taker        string   `json:"taker"`
+	Expiration   string   `json:"expiration"`
 }
 
 func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
@@ -229,13 +244,25 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	orders := make([]*WebOrder, 0)
 	o.book.addrMtx.RLock()
 	for _, order := range o.book.addrOrders[addr] {
+		exportOrder := ExportP1Order{
+			Flags:        order.Flags,
+			Amount:       order.Amount.String(),
+			LimitPrice:   order.LimitPrice.String(),
+			TriggerPrice: order.TriggerPrice.String(),
+			LimitFee:     order.LimitFee.String(),
+			Maker:        order.Maker.String(),
+			Taker:        order.Taker.String(),
+			Expiration:   order.Expiration.String(),
+		}
+		data, _ := json.Marshal(exportOrder)
 		orders = append(orders, &WebOrder{
-			Order:        hex.EncodeToString(order.Raw),
+			Order:        string(data),
+			OrderHash:    order.orderHash.String(),
 			Status:       "limit",
 			IsBuy:        order.Flags[31] == 1,
 			Amount:       order.Amount.Int64(),
 			FilledAmount: new(big.Int).Sub(order.Amount, order.LeftAndFrozen()).Int64(),
-			Price:        order.LimitPrice.String(),
+			Price:        new(big.Int).Div(order.LimitPrice, exp18).String(),
 			TriggerPrice: order.TriggerPrice.String(),
 			Expiration:   fmt.Sprintf("%d hours", (order.Expiration.Int64()-time.Now().Unix())/3600),
 		})
@@ -277,7 +304,7 @@ func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
 			IsBuy:  t.P1OrdersOrder.Flags[31] == 1,
 			Amount: t.Amount.Int64(),
 			Filled: t.Filled.Int64(),
-			Price:  t.LimitPrice.String(),
+			Price:  new(big.Int).Div(t.LimitPrice, exp18).String(),
 		})
 	}
 	data, err := json.Marshal(fills)
