@@ -228,16 +228,6 @@ func TestMatch(t *testing.T) {
 }
 
 func TestBalance(t *testing.T) {
-	var config = DydxConfig{
-		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
-		ChainID:                    "64",
-		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
-		EthHttpRpcUrl:              "http://52.199.88.250:26659",
-		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
-		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
-		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
-	}
 	book := NewDepthBook()
 	me, err := NewMatchEngine(nil, book, config, nil, nil)
 	require.NoError(t, err)
