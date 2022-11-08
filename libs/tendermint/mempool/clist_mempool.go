@@ -924,6 +924,9 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	for i, tx := range txs {
+		if order := dydx.ExtractOrderToCancel(tx); len(order) != 0 {
+			mem.orderManager.CancelOrder(order)
+		}
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
