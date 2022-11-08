@@ -48,14 +48,14 @@ var addrAlice = privKeyToAddress(privKeyAlice)
 
 var config = DydxConfig{
 	// PrivKeyHex:                 "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5",
-	PrivKeyHex:                 privKeyTuring,
-	ChainID:                    "65",
-	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
-	EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
-	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
-	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
-	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
-	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
+	PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
+	ChainID:                    "8",
+	EthWsRpcUrl:                "ws://localhost:8546",
+	EthHttpRpcUrl:              "http://localhost:8545",
+	PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
+	P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
+	P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
+	P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 }
 
 func privKeyToAddress(privKeyHex string) common.Address {
@@ -72,15 +72,17 @@ type testTool struct {
 
 func TestTransfer(t *testing.T) {
 	config := config
+	config.PrivKeyHex = privKeyAlice // super acc
 	book := NewDepthBook()
 	me, err := NewMatchEngine(nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	toAddrs := []common.Address{
-		addrAlice, addrBob, addrCaptain, addrTuring,
+		addrBob, addrCaptain, addrTuring,
 	}
 
-	nonce := me.nonce + 1
+	nonce, err := me.httpCli.NonceAt(context.Background(), me.from, nil)
+	require.NoError(t, err)
 
 	gp, err := me.httpCli.SuggestGasPrice(context.Background())
 	require.NoError(t, err)
