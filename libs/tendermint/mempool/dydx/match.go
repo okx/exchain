@@ -38,6 +38,7 @@ type MatchEngine struct {
 	nonce     uint64
 	chainID   *big.Int
 	httpCli   *ethclient.Client
+	txOps     *bind.TransactOpts
 
 	config DydxConfig
 
@@ -98,7 +99,7 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthHttpRpcUrl, err)
 	}
-	txOps, err := bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
+	engine.txOps, err = bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create txOps, err: %w", err)
 	}
@@ -107,7 +108,7 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		common.HexToAddress(config.P1OrdersContractAddress),
 		common.HexToAddress(config.P1MakerOracleAddress),
 		common.HexToAddress(config.P1MarginAddress),
-		txOps,
+		engine.txOps,
 		engine.httpCli,
 	)
 
