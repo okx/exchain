@@ -138,7 +138,7 @@ func (o *OrderManager) BookHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("content-type", "application/json")
-	levels := bookToLevel(o.book)
+	levels := bookToLevel(o.orderQueue.book)
 	data, err := json.Marshal(levels)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
@@ -242,8 +242,8 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	addr := common.HexToAddress(vars[addrKey])
 
 	orders := make([]*WebOrder, 0)
-	o.book.addrMtx.RLock()
-	for _, order := range o.book.addrOrders[addr] {
+	o.orderQueue.book.addrMtx.RLock()
+	for _, order := range o.orderQueue.book.addrOrders[addr] {
 		exportOrder := ExportP1Order{
 			Flags:        order.Flags,
 			Amount:       order.Amount.String(),
@@ -267,7 +267,7 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 			Expiration:   fmt.Sprintf("%d hours", (order.Expiration.Int64()-time.Now().Unix())/3600),
 		})
 	}
-	o.book.addrMtx.RUnlock()
+	o.orderQueue.book.addrMtx.RUnlock()
 
 	data, err := json.Marshal(orders)
 	if err != nil {

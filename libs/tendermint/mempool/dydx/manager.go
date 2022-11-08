@@ -206,17 +206,18 @@ func (d *OrderManager) Front() *clist.CElement {
 	return d.orders.Front()
 }
 
-func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled) bool {
-	if o := d.orderQueue.Get(filled.OrderHash); o != nil {
+func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled) *WrapOrder {
+	var o *WrapOrder
+	if o = d.orderQueue.Get(filled.OrderHash); o != nil {
 		o.LeftAmount.Sub(o.LeftAmount, filled.Fill.Amount)
 		d.logger.Debug("update order queue", "order", o.Hash(), "filled", filled.Fill.Amount, "left", o.LeftAmount)
 		if o.LeftAmount.Sign() == 0 {
 			d.orderQueue.Delete(filled.OrderHash)
 			d.logger.Debug("delete order queue", "order", o.Hash())
 		}
-		return true
+		return o
 	}
-	return false
+	return o
 }
 
 func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderCanceled) {
@@ -227,23 +228,38 @@ func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderC
 }
 
 func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFilled) {
-	if d.updateOrderQueue(filled) {
-		return
+	wodr := d.updateOrderQueue(filled)
+	if wodr == nil {
+		var orderList *OrderList
+		if filled.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
+			orderList = d.book.buyOrders
+		} else {
+			orderList = d.book.sellOrders
+		}
+		ele := orderList.Get(filled.OrderHash)
+		if ele == nil {
+			fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
+			return
+		}
+		wodr = ele.Value.(*WrapOrder)
+		wodr.Done(filled.Fill.Amount)
+
+		if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
+			orderList.Remove(ele)
+			d.book.addrMtx.Lock()
+			addrOrders := d.book.addrOrders[wodr.Maker]
+			for i, order := range addrOrders {
+				if order.Hash() == wodr.Hash() {
+					addrOrders = append(addrOrders[:i], addrOrders[i+1:]...)
+					break
+				}
+			}
+			d.book.addrOrders[wodr.Maker] = addrOrders
+			d.book.addrMtx.Unlock()
+			//TODO delete broadcast queue
+		}
 	}
 
-	var orderList *OrderList
-	if filled.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
-		orderList = d.book.buyOrders
-	} else {
-		orderList = d.book.sellOrders
-	}
-	ele := orderList.Get(filled.OrderHash)
-	if ele == nil {
-		fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
-		return
-	}
-	wodr := ele.Value.(*WrapOrder)
-	wodr.Done(filled.Fill.Amount)
 	d.historyMtx.Lock()
 	defer d.historyMtx.Unlock()
 	d.tradeHistory = append(d.tradeHistory, &FilledP1Order{
@@ -264,20 +280,6 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 		d.trades[filled.OrderHash] = filledOrder
 	}
 
-	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
-		orderList.Remove(ele)
-		d.book.addrMtx.Lock()
-		addrOrders := d.book.addrOrders[wodr.Maker]
-		for i, order := range addrOrders {
-			if order.Hash() == wodr.Hash() {
-				addrOrders = append(addrOrders[:i], addrOrders[i+1:]...)
-				break
-			}
-		}
-		d.book.addrOrders[wodr.Maker] = addrOrders
-		d.book.addrMtx.Unlock()
-		//TODO delete broadcast queue
-	}
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
 }
 
