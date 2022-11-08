@@ -2,6 +2,7 @@ package dydx
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -63,11 +64,12 @@ func bookToLevel(book *DepthBook) *OrderBookLevel {
 		if order.LeftAndFrozen().Sign() == 0 {
 			continue
 		}
-		if order.GetLimitPrice().String() == buyLevels[len(buyLevels)-1].Price {
+		precisionLimitPrice := new(big.Int).Div(order.GetLimitPrice(), exp18).String()
+		if precisionLimitPrice == buyLevels[len(buyLevels)-1].Price {
 			buyLevels[len(buyLevels)-1].Amount += int64(order.LeftAndFrozen().Uint64())
 		} else {
 			buyLevels = append(buyLevels, &OrderLevel{
-				Price:  order.GetLimitPrice().String(),
+				Price:  precisionLimitPrice,
 				Amount: int64(order.LeftAndFrozen().Uint64()),
 			})
 		}
@@ -76,11 +78,12 @@ func bookToLevel(book *DepthBook) *OrderBookLevel {
 		if order.LeftAndFrozen().Sign() == 0 {
 			continue
 		}
-		if order.GetLimitPrice().String() == sellLevels[len(sellLevels)-1].Price {
+		precisionLimitPrice := new(big.Int).Div(order.GetLimitPrice(), exp18).String()
+		if precisionLimitPrice == sellLevels[len(sellLevels)-1].Price {
 			sellLevels[len(sellLevels)-1].Amount += int64(order.LeftAndFrozen().Uint64())
 		} else {
 			sellLevels = append(sellLevels, &OrderLevel{
-				Price:  order.GetLimitPrice().String(),
+				Price:  precisionLimitPrice,
 				Amount: int64(order.LeftAndFrozen().Uint64()),
 			})
 		}

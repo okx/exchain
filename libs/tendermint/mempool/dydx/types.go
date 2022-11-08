@@ -298,7 +298,7 @@ func (w *WrapOrder) Frozen(amount *big.Int) {
 	w.LeftAmount.Sub(w.LeftAmount, amount)
 	w.FrozenAmount.Add(w.FrozenAmount, amount)
 	if w.LeftAmount.Sign() < 0 {
-		fmt.Println("WrapOrder Frozen error")
+		fmt.Println("WrapOrder Frozen error", w.orderHash, w.Amount, w.LeftAmount, w.FrozenAmount, amount)
 	}
 }
 
@@ -308,7 +308,7 @@ func (w *WrapOrder) Unfrozen(amount *big.Int) {
 	w.LeftAmount.Add(w.LeftAmount, amount)
 	w.FrozenAmount.Sub(w.FrozenAmount, amount)
 	if w.FrozenAmount.Sign() < 0 {
-		fmt.Println("WrapOrder Unfrozen error")
+		fmt.Println("WrapOrder Unfrozen error", w.orderHash, w.Amount, w.LeftAmount, w.FrozenAmount, amount)
 	}
 }
 
@@ -375,7 +375,7 @@ func ExtractOrder(tx types.Tx) []byte {
 	if err := rlp.DecodeBytes(tx, &evmTx); err != nil {
 		return nil
 	}
-	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == ContractAddress {
+	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == AddressForOrder {
 		return evmTx.Payload
 	}
 	return nil

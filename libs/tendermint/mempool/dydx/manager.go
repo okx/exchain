@@ -24,6 +24,7 @@ type AccountRetriever interface {
 }
 
 var (
+	AddressForOrder = "0xF1730217Bd65f86d2F0000000000000000000000"
 	//Config = DydxConfig{
 	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
 	//	ChainID:                    "65",
@@ -138,13 +139,28 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 
 	d.logger.Debug("pre enqueue", "order", &wrapOdr)
 
-	// TODO
-	// should check order's filled amount from chain
-
-	hash := wrapOdr.Hash()
-	if _, ok := d.filledOrCanceledOrders.Load([32]byte(hash)); ok {
+	hash := [32]byte(wrapOdr.Hash())
+	if _, ok := d.filledOrCanceledOrders.Load(hash); ok {
 		d.logger.Debug("order is filled or canceled", "order", hash)
 		return nil
+	}
+
+	ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, [][32]byte{hash})
+	if err == nil {
+		status := ordersStatus[0]
+		if status.Status == 2 {
+			d.filledOrCanceledOrders.Store(hash, struct{}{})
+			d.logger.Debug("order is canceled", "order", hash)
+			return nil
+		}
+		if status.FilledAmount.Sign() > 0 {
+			wrapOdr.LeftAmount.Sub(wrapOdr.Amount, status.FilledAmount)
+			if wrapOdr.LeftAmount.Sign() == 0 {
+				d.filledOrCanceledOrders.Store(hash, struct{}{})
+				d.logger.Debug("order is filled", "order", hash)
+				return nil
+			}
+		}
 	}
 
 	ok := d.orderQueue.Enqueue(&wrapOdr)
@@ -282,24 +298,24 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 
 	d.logger.Debug("start reap order tx", "queue-size", d.orderQueue.Len())
 
-	ordersHashes := d.orderQueue.GetAllOrderHashes()
-	ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
-	if err == nil {
-		for i, status := range ordersStatus {
-			orderHash := ordersHashes[i]
-			if status.Status == 2 {
-				canceledOrders[orderHash] = struct{}{}
-				continue
-			}
-			if status.FilledAmount.Sign() > 0 {
-				order := d.orderQueue.Get(orderHash)
-				order.LeftAmount.Sub(order.Amount, status.FilledAmount)
-				if order.LeftAmount.Sign() == 0 {
-					canceledOrders[orderHash] = struct{}{}
-				}
-			}
-		}
-	}
+	//ordersHashes := d.orderQueue.GetAllOrderHashes()
+	//ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
+	//if err == nil {
+	//	for i, status := range ordersStatus {
+	//		orderHash := ordersHashes[i]
+	//		if status.Status == 2 {
+	//			canceledOrders[orderHash] = struct{}{}
+	//			continue
+	//		}
+	//		if status.FilledAmount.Sign() > 0 {
+	//			order := d.orderQueue.Get(orderHash)
+	//			order.LeftAmount.Sub(order.Amount, status.FilledAmount)
+	//			if order.LeftAmount.Sign() == 0 {
+	//				canceledOrders[orderHash] = struct{}{}
+	//			}
+	//		}
+	//	}
+	//}
 
 	if orderQueueLen := int64(d.orderQueue.Len()); orderQueueLen < maxNum {
 		maxNum = orderQueueLen
