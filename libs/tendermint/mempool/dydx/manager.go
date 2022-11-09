@@ -37,16 +37,16 @@ var (
 	//	VMode:                      false,
 	//}
 
-	//Config = DydxConfig{
-	//	PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
-	//	ChainID:                    "64",
-	//	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
-	//	EthHttpRpcUrl:              "http://52.199.88.250:26659",
-	//	PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
-	//	P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
-	//	P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-	//	P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
-	//}
+	Config = DydxConfig{
+		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
+		ChainID:                    "64",
+		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
+		EthHttpRpcUrl:              "http://52.199.88.250:26659",
+		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
+		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
+		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
+		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
+	}
 
 	//Config = DydxConfig{
 	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
@@ -59,18 +59,6 @@ var (
 	//	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
 	//	VMode:                      true,
 	//}
-
-	//devnet
-	Config = DydxConfig{
-		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
-		ChainID:                    "64",
-		EthWsRpcUrl:                "ws://localhost:8546",
-		EthHttpRpcUrl:              "http://52.199.88.250:26659",
-		PerpetualV1ContractAddress: "0xcc8A13B8C7eC4Fe06516a4aB3E141390e67e9A42",
-		P1OrdersContractAddress:    "0xC2D46Ddf17DD0e58F10F7Ccf3761A27f535A3688",
-		P1MakerOracleAddress:       "0x84f1362b3f66E5e04a927530FD044f57106bf0e6",
-		P1MarginAddress:            "0xBEA0894448436273266362AB25f5Ad791B39d5F4",
-	}
 )
 
 type OrderManager struct {
