@@ -109,7 +109,7 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 			return
 		}
 		cosmosAny := types.WrapCosmosAny(pubkey[:])
-		cosmosVal := types.WrapCosmosValidator(val, &cosmosAny)
+		cosmosVal := types.WrapCM45Validator(val, &cosmosAny)
 		wrappedValidator := types.NewWrappedValidator(cosmosVal)
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, wrappedValidator)

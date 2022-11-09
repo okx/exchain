@@ -23,8 +23,8 @@ func WrapCosmosAny(v []byte) CosmosAny {
 	}
 }
 
-// CosmosValidator is constructed to be compatible with ATOMScan returning the latest cosmos REST API response
-type CosmosValidator struct {
+// CM45Validator is constructed to be compatible with ATOMScan returning the latest cosmos REST API response
+type CM45Validator struct {
 	// address of the validator's operator; bech encoded in JSON
 	OperatorAddress sdktypes.ValAddress `json:"operator_address" yaml:"operator_address"`
 	// the consensus public key of the validator; bech encoded in JSON
@@ -49,8 +49,8 @@ type CosmosValidator struct {
 	MinSelfDelegation sdktypes.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
 }
 
-func WrapCosmosValidator(v Validator, ca *CosmosAny) CosmosValidator {
-	return CosmosValidator{
+func WrapCM45Validator(v Validator, ca *CosmosAny) CM45Validator {
+	return CM45Validator{
 		OperatorAddress:         v.OperatorAddress,
 		ConsPubKey:              ca,
 		Jailed:                  v.Jailed,
@@ -66,20 +66,20 @@ func WrapCosmosValidator(v Validator, ca *CosmosAny) CosmosValidator {
 }
 
 type WrappedValidators struct {
-	Vs []CosmosValidator `json:"result" yaml:"result"`
+	Vs []CM45Validator `json:"result" yaml:"result"`
 }
 
-func NewWrappedValidators(vs []CosmosValidator) WrappedValidators {
+func NewWrappedValidators(vs []CM45Validator) WrappedValidators {
 	return WrappedValidators{
 		Vs: vs,
 	}
 }
 
 type WrappedValidator struct {
-	V CosmosValidator `json:"result" yaml:"result"`
+	V CM45Validator `json:"result" yaml:"result"`
 }
 
-func NewWrappedValidator(v CosmosValidator) WrappedValidator {
+func NewWrappedValidator(v CM45Validator) WrappedValidator {
 	return WrappedValidator{
 		V: v,
 	}
