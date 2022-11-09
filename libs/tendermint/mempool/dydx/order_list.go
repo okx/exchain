@@ -96,12 +96,48 @@ func (q *OrderQueue) Dequeue() *WrapOrder {
 
 	e := q.list.Front()
 	if e != nil {
-		o := q.list.Remove(e).(*WrapOrder)
-		delete(q.m, o.Hash())
-		q.book.Delete(o.Hash())
-		return o
+		return q.deleteElement(e)
 	}
 	return nil
+}
+
+func (q *OrderQueue) DequeueN(target []*WrapOrder) (i int) {
+	q.mtx.Lock()
+	defer q.mtx.Unlock()
+
+	count := len(target)
+
+	for i = 0; i < count; i++ {
+		e := q.list.Front()
+		if e != nil {
+			target[i] = q.deleteElement(e)
+		} else {
+			return
+		}
+	}
+	return
+}
+
+func (q *OrderQueue) deleteElement(e *list.Element) *WrapOrder {
+	o := q.list.Remove(e).(*WrapOrder)
+	hash := o.Hash()
+	delete(q.m, hash)
+	q.book.Delete(hash)
+	return o
+}
+
+func (q *OrderQueue) Foreach(f func(o *WrapOrder, index int, count int) bool) {
+	q.mtx.RLock()
+	defer q.mtx.RUnlock()
+
+	i, count := 0, q.list.Len()
+	for e := q.list.Front(); e != nil; e = e.Next() {
+		ok := f(e.Value.(*WrapOrder), i, count)
+		if !ok {
+			return
+		}
+		i++
+	}
 }
 
 func (q *OrderQueue) Get(hash common.Hash) *WrapOrder {
@@ -137,9 +173,7 @@ func (q *OrderQueue) Delete(hash common.Hash) *WrapOrder {
 	if !ok {
 		return nil
 	}
-	delete(q.m, hash)
-	q.book.Delete(hash)
-	return q.list.Remove(e).(*WrapOrder)
+	return q.deleteElement(e)
 }
 
 func (q *OrderQueue) Len() int {
