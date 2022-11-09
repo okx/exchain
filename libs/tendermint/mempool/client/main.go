@@ -28,6 +28,7 @@ const (
 var (
 	orderContractAddr = common.HexToAddress(dydx.Config.P1OrdersContractAddress)
 	chainID           = int64(67)
+	exp18, _          = new(big.Int).SetString("1000000000000000000", 10)
 )
 
 var (
@@ -42,7 +43,7 @@ var (
 func main() {
 	flag.StringVar(&privHex, "priv", "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", "")
 	flag.Int64Var(&amount, "amount", 1, "")
-	flag.StringVar(&price, "price", "18200000000000000000000", "limit price of the order")
+	flag.StringVar(&price, "price", "18200", "limit price of the order")
 	flag.BoolVar(&isBuy, "buy", true, "")
 	flag.BoolVar(&debug, "debug", false, "")
 	flag.BoolVar(&debugOnly, "debug-only", false, "")
@@ -66,7 +67,7 @@ func main() {
 	if !ok {
 		panic(0)
 	}
-	order.LimitPrice = limitPrice
+	order.LimitPrice = new(big.Int).Mul(limitPrice, exp18)
 	sig, err := signOrder(order, privHex, chainID, orderContractAddr.String())
 	if err != nil {
 		panic(err)

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"log"
 	"math/big"
 	"net/http"
@@ -25,7 +26,7 @@ const (
 	addrKey    = "addr"
 	timeFormat = "15:04:05"
 
-	placeOrderContractAddr = "0x2594E83A94F89Ffb923773ddDfF723BbE017b80D" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
+	placeOrderContractAddr = "0x293a0231e57ee599DB33745bEF9Bfcc320B43de1" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
@@ -185,8 +186,9 @@ func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type Balance struct {
-	Margin   *big.Int `json:"margin"`
-	Position *big.Int `json:"position"`
+	Margin       *big.Int `json:"margin"`
+	Position     *big.Int `json:"position"`
+	Erc20Balance *big.Int `json:"erc20Balance"`
 }
 
 func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
@@ -200,9 +202,21 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
+	token, err := contracts.NewTestToken(o.engine.contracts.P1MarginAddress, o.engine.httpCli)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	balance, err := token.BalanceOf(nil, addr)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
 	data, err := json.Marshal(&Balance{
-		Margin:   p1Balance.Margin,
-		Position: p1Balance.Position,
+		Margin:       p1Balance.Margin,
+		Position:     p1Balance.Position,
+		Erc20Balance: balance,
 	})
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
