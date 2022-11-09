@@ -2,9 +2,60 @@ package baseapp
 
 import (
 	"container/list"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"sync"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
+
+type cacheRWSetList struct {
+	mtx sync.Mutex
+	mps *list.List
+}
+
+func newCacheRWSetList() *cacheRWSetList {
+	return &cacheRWSetList{
+		mtx: sync.Mutex{},
+		mps: list.New(),
+	}
+}
+
+func (c *cacheRWSetList) Len() int {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	return c.mps.Len()
+}
+
+func (c *cacheRWSetList) PutRwSet(rw types.MsRWSet) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	c.mps.PushBack(rw)
+}
+
+func (c *cacheRWSetList) GetRWSet() types.MsRWSet {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	if c.mps.Len() > 0 {
+		front := c.mps.Remove(c.mps.Front())
+		return front.(types.MsRWSet)
+	}
+
+	return make(types.MsRWSet)
+}
+
+func (c *cacheRWSetList) Range(cb func(c types.MsRWSet)) {
+	c.mtx.Lock()
+	for i := c.mps.Front(); i != nil; i = i.Next() {
+		cb(i.Value.(types.MsRWSet))
+	}
+	c.mtx.Unlock()
+}
+
+func (c *cacheRWSetList) Clear() {
+	c.mtx.Lock()
+	c.mps.Init()
+	c.mtx.Unlock()
+}
 
 type cacheMultiStoreList struct {
 	mtx    sync.Mutex

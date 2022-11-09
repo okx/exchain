@@ -218,10 +218,11 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	} else if mode == runTxModeDeliverInAsync {
 		anteCtx = info.ctx
 		info.msCacheAnte = nil
-		msCacheAnte := app.parallelTxManage.getTxResult(info.txIndex)
+		msCacheAnte, useCurrentState := app.parallelTxManage.getMs(info.txIndex)
 		if msCacheAnte == nil {
 			return errors.New("Need Skip:txIndex smaller than currentIndex")
 		}
+		info.ctx.ParaMsg().UseCurrentState = useCurrentState
 		info.msCacheAnte = msCacheAnte
 		anteCtx.SetMultiStore(info.msCacheAnte)
 	} else {
@@ -397,13 +398,10 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(txIndex int) {
-	pmWorkGroup := app.parallelTxManage.workgroup
-	if !pmWorkGroup.isReady {
-		return
-	}
+func (app *BaseApp) asyncDeliverTx(txIndex int) *executeResult {
+	pm := app.parallelTxManage
 	if app.deliverState == nil { // runTxs already finish
-		return
+		return nil
 	}
 
 	blockHeight := app.deliverState.ctx.BlockHeight()
@@ -412,20 +410,18 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 
 	if txStatus.stdTx == nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
-			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil)
-		pmWorkGroup.Push(asyncExe)
-		return
+			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage)
+		return asyncExe
 	}
 
 	if !txStatus.isEvm {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil,
-			blockHeight, sdk.EmptyWatcher{}, nil)
-		pmWorkGroup.Push(asyncExe)
-		return
+			blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage)
+		return asyncExe
 	}
 
 	var resp abci.ResponseDeliverTx
-	info, errM := app.runTxWithIndex(txIndex, runTxModeDeliverInAsync, pmWorkGroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
+	info, errM := app.runTxWithIndex(txIndex, runTxModeDeliverInAsync, pm.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
@@ -439,9 +435,9 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	}
 
 	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
-		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
-	pmWorkGroup.Push(asyncExe)
+		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs(), app.parallelTxManage)
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
+	return asyncExe
 }
 
 func useCache(mode runTxMode) bool {
