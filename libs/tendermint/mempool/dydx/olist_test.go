@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -71,4 +72,29 @@ func newRawSignedOrder(odr P1Order, hexPriv string) ([]byte, error) {
 		return nil, err
 	}
 	return append(orderBytes, sig...), nil
+}
+
+// DeadLock
+func testLock(t *testing.T) {
+	mtx := &sync.RWMutex{}
+
+	mtx.RLock()
+
+	go func() {
+		for i := 0; i < 10; i++ {
+			time.Sleep(time.Millisecond)
+			mtx.Lock()
+			defer mtx.Unlock()
+			time.Sleep(time.Millisecond)
+		}
+	}()
+
+	func() {
+		defer mtx.RUnlock()
+		for i := 0; i < 10; i++ {
+			mtx.RLock()
+			time.Sleep(time.Millisecond)
+			mtx.RUnlock()
+		}
+	}()
 }
