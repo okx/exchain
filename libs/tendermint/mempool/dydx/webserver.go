@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"log"
 	"math/big"
 	"net/http"
@@ -184,8 +185,9 @@ func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type Balance struct {
-	Margin   *big.Int `json:"margin"`
-	Position *big.Int `json:"position"`
+	Margin       *big.Int `json:"margin"`
+	Position     *big.Int `json:"position"`
+	Erc20Balance *big.Int `json:"erc20Balance"`
 }
 
 func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
@@ -199,9 +201,21 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
+	token, err := contracts.NewTestToken(o.engine.contracts.P1MarginAddress, o.engine.httpCli)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	balance, err := token.BalanceOf(nil, addr)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
 	data, err := json.Marshal(&Balance{
-		Margin:   p1Balance.Margin,
-		Position: p1Balance.Position,
+		Margin:       p1Balance.Margin,
+		Position:     p1Balance.Position,
+		Erc20Balance: balance,
 	})
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
