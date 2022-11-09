@@ -78,9 +78,7 @@ func (cs CoinAdapter) ToCoin() Coin {
 	if cs.Denom == DefaultIbcWei {
 		cs.Denom = DefaultBondDenom
 	}
-	transferAmountDec := NewDecFromIntWithPrec(cs.Amount, Precision)
-	token := NewCoin(cs.Denom, transferAmountDec)
-	return token
+	return CoinAdapterToCoin(cs)
 }
 func (cs CoinAdapters) ToCoins() Coins {
 	ret := make([]Coin, 0)
@@ -312,18 +310,6 @@ func (coins CoinAdapters) Copy() CoinAdapters {
 	}
 
 	return copyCoins
-}
-
-func FromCoins(coins Coins) CoinAdapters {
-	ret := make([]CoinAdapter, 0)
-	for _, c := range coins {
-		ret = append(ret, FromCoin(c))
-	}
-	return ret
-}
-
-func FromCoin(coin Coin) CoinAdapter {
-	return NewCoinAdapter(coin.Denom, NewIntFromBigInt(coin.Amount.BigInt()))
 }
 
 func ConvWei2TOkt(adapters CoinAdapters) (CoinAdapters, error) {

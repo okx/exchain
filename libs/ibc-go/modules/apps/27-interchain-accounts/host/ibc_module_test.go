@@ -436,7 +436,7 @@ func (suite *InterchainAccountsTestSuite) TestOnRecvPacket() {
 			// send 100stake to interchain account wallet
 			amount, _ := sdk.ParseCoinsNormalized("1000wei")
 			interchainAccountAddr, _ := suite.chainB.GetSimApp().ICAHostKeeper.GetInterchainAccountAddress(suite.chainB.GetContext(), ibctesting.FirstConnectionID, path.EndpointA.ChannelConfig.PortID)
-			bankMsg := &banktypes.MsgSendAdapter{FromAddress: suite.chainB.SenderAccount().GetAddress().String(), ToAddress: interchainAccountAddr, Amount: sdk.FromCoins(amount)}
+			bankMsg := &banktypes.MsgSendAdapter{FromAddress: suite.chainB.SenderAccount().GetAddress().String(), ToAddress: interchainAccountAddr, Amount: sdk.CoinsToCoinAdapters(amount)}
 
 			_, err = suite.chainB.SendMsgs(bankMsg)
 			suite.Require().NoError(err)
@@ -445,7 +445,7 @@ func (suite *InterchainAccountsTestSuite) TestOnRecvPacket() {
 			msg := &banktypes.MsgSendAdapter{
 				FromAddress: interchainAccountAddr,
 				ToAddress:   suite.chainB.SenderAccount().GetAddress().String(),
-				Amount:      sdk.FromCoins(amount),
+				Amount:      sdk.CoinsToCoinAdapters(amount),
 			}
 			data, err := icatypes.SerializeCosmosTx(suite.chainA.Codec(), []sdk.MsgAdapter{msg})
 			suite.Require().NoError(err)
@@ -613,7 +613,7 @@ func (suite *InterchainAccountsTestSuite) fundICAWallet(ctx sdk.Context, portID 
 	msgBankSend := &banktypes.MsgSendAdapter{
 		FromAddress: suite.chainB.SenderAccount().GetAddress().String(),
 		ToAddress:   interchainAccountAddr,
-		Amount:      sdk.FromCoins(amount),
+		Amount:      sdk.CoinsToCoinAdapters(amount),
 	}
 
 	res, err := suite.chainB.SendMsgs(msgBankSend)
@@ -639,7 +639,7 @@ func (suite *InterchainAccountsTestSuite) TestControlAccountAfterChannelClose() 
 	msg := &banktypes.MsgSendAdapter{
 		FromAddress: interchainAccountAddr,
 		ToAddress:   suite.chainB.SenderAccount().GetAddress().String(),
-		Amount:      sdk.FromCoins(tokenAmt),
+		Amount:      sdk.CoinsToCoinAdapters(tokenAmt),
 	}
 
 	data, err := icatypes.SerializeCosmosTx(suite.chainA.GetSimApp().AppCodec(), []sdk.MsgAdapter{msg})
