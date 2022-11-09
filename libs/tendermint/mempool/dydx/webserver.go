@@ -26,7 +26,7 @@ const (
 	addrKey    = "addr"
 	timeFormat = "15:04:05"
 
-	placeOrderContractAddr = "0x41815e7c60b9ad7718D7AdF0d3eCbECAc8122076" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
+	placeOrderContractAddr = "0x2594E83A94F89Ffb923773ddDfF723BbE017b80D" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
