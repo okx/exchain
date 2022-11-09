@@ -602,6 +602,9 @@ func (mem *CListMempool) resCbFirstTime(
 		txkey := txOrTxHashToKey(tx, txHash, mem.height)
 
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
+			if order := dydx.ExtractOrderToCancel(tx); len(order) != 0 {
+				mem.orderManager.CancelOrder(order)
+			}
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
@@ -924,6 +927,9 @@ func (mem *CListMempool) Update(
 	mem.orderManager.Update(deliverTxResponses)
 
 	for i, tx := range txs {
+		if order := dydx.ExtractOrderToCancel(tx); len(order) != 0 {
+			mem.orderManager.CancelOrder(order)
+		}
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)

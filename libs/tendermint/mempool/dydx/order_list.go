@@ -73,12 +73,7 @@ func (q *OrderQueue) Enqueue(v *WrapOrder) bool {
 	}
 	q.m[v.Hash()] = q.list.PushBack(v)
 
-	if v.Type() == BuyOrderType {
-		_ = q.book.buyOrders.Insert(v)
-	} else if v.Type() == SellOrderType {
-		_ = q.book.sellOrders.Insert(v)
-	}
-
+	_ = q.book.Insert(v)
 	return true
 }
 
@@ -114,7 +109,7 @@ func (q *OrderQueue) deleteElement(e *list.Element) *WrapOrder {
 	o := q.list.Remove(e).(*WrapOrder)
 	hash := o.Hash()
 	delete(q.m, hash)
-	q.book.Delete(hash)
+	q.book.DeleteByHash(hash)
 	return o
 }
 

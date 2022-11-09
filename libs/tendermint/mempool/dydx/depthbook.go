@@ -51,14 +51,53 @@ func (d *DepthBook) SellFront() *WrapOrder {
 	return wodr
 }
 
-func (d *DepthBook) Delete(hash common.Hash) *list.Element {
-	if ele := d.buyOrders.Get(hash); ele != nil {
-		return d.buyOrders.Remove(ele)
+func (d *DepthBook) Delete(order *WrapOrder) *list.Element {
+	var ele *list.Element
+	if order.Flags[31] == 1 {
+		if ele = d.buyOrders.Get(order.Hash()); ele != nil {
+			d.buyOrders.Remove(ele)
+		}
+	} else {
+		if ele = d.sellOrders.Get(order.Hash()); ele != nil {
+			d.sellOrders.Remove(ele)
+		}
 	}
-	if ele := d.sellOrders.Get(hash); ele != nil {
-		return d.sellOrders.Remove(ele)
+	if ele != nil {
+		maker := ele.Value.(*WrapOrder).Maker
+		hash := ele.Value.(*WrapOrder).Hash()
+		orders := d.addrOrders[maker]
+		for i, order := range orders {
+			if order.Hash() == hash {
+				d.addrOrders[maker] = append(orders[:i], orders[i+1:]...)
+			}
+		}
 	}
-	return nil
+	return ele
+
+}
+
+func (d *DepthBook) DeleteByHash(hash common.Hash) *list.Element {
+	var ele *list.Element
+	if ele == nil {
+		if ele = d.buyOrders.Get(hash); ele != nil {
+			d.buyOrders.Remove(ele)
+		}
+	}
+	if ele == nil {
+		if ele = d.sellOrders.Get(hash); ele != nil {
+			d.sellOrders.Remove(ele)
+		}
+	}
+	if ele != nil {
+		maker := ele.Value.(*WrapOrder).Maker
+		orders := d.addrOrders[maker]
+		for i, order := range orders {
+			if order.Hash() == hash {
+				d.addrOrders[maker] = append(orders[:i], orders[i+1:]...)
+			}
+		}
+	}
+	return ele
 }
 
 type OrderList struct {

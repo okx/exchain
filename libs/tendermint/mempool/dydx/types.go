@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"math/big"
@@ -376,6 +377,15 @@ func ExtractOrder(tx types.Tx) []byte {
 	}
 	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == AddressForOrder {
 		return evmTx.Payload
+	}
+	return nil
+}
+
+var cancelOrderIndicator = []byte{121, 70, 200, 144, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+func ExtractOrderToCancel(tx types.Tx) []byte {
+	if index := bytes.Index(tx, cancelOrderIndicator); index != -1 {
+		return tx[index+4 : index+4+256]
 	}
 	return nil
 }
