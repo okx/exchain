@@ -719,7 +719,7 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	pm.deliverTxs = make([]*abci.ResponseDeliverTx, txSize)
 }
 
-func (pm *parallelTxManager) getMs(txIndex int) (sdk.CacheMultiStore, bool) {
+func (pm *parallelTxManager) getBaseMs(txIndex int) (sdk.CacheMultiStore, bool) {
 
 	if txIndex <= pm.upComingTxIndex-1 {
 		return nil, false
