@@ -7,17 +7,34 @@ import (
 )
 
 var (
-	_ types.CM40AccountKeeper = Keeper{}
+	_ types.CM40AccountKeeper = SupplyKeerAdapter{}
+	_ types.CM40BankKeeper    = SupplyKeerAdapter{}
 )
 
-func (k Keeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
+type SupplyKeerAdapter struct {
+	Keeper
+}
+
+func NewSupplyKeerAdapter(keeper Keeper) *SupplyKeerAdapter {
+	return &SupplyKeerAdapter{Keeper: keeper}
+}
+
+func (k SupplyKeerAdapter) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
 	return k.bk.SendCoins(ctx, fromAddr, toAddr, amt)
 }
 
-func (k Keeper) NewAccount(ctx sdk.Context, acc authtypes.Account) authtypes.Account {
+func (k SupplyKeerAdapter) NewAccount(ctx sdk.Context, acc authtypes.Account) authtypes.Account {
 	return k.ak.NewAccount(ctx, acc)
 }
 
-func (k Keeper) SetAccount(ctx sdk.Context, acc authtypes.Account) {
+func (k SupplyKeerAdapter) SetAccount(ctx sdk.Context, acc authtypes.Account) {
 	k.ak.SetAccount(ctx, acc)
+}
+
+func (k SupplyKeerAdapter) HasBalance(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coin) bool {
+	return k.bk.HasBalance(ctx, addr, amt)
+}
+
+func (k SupplyKeerAdapter) BlockedAddr(address sdk.AccAddress) bool {
+	return k.bk.BlockedAddr(address)
 }

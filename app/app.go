@@ -386,7 +386,7 @@ func NewOKExChainApp(
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
-		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
+		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, bank.NewBankKeeperAdapter(app.BankKeeper), maccPerms,
 	)
 
 	stakingKeeper := staking.NewKeeper(
@@ -454,18 +454,18 @@ func NewOKExChainApp(
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
 	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
-
+	supplyKeeperAdapter := supply.NewSupplyKeeperAdapter(app.SupplyKeeper)
 	// Create Transfer Keepers
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		codecProxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		v2keeper.ChannelKeeper, &v2keeper.PortKeeper,
-		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
+		app.SupplyKeeper, supplyKeeperAdapter, scopedTransferKeeper, interfaceReg,
 	)
 	ibctransfertypes.SetMarshal(codecProxy)
 	app.IBCFeeKeeper = ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
 		v2keeper.ChannelKeeper, // may be replaced with IBC middleware
 		v2keeper.ChannelKeeper,
-		&v2keeper.PortKeeper, app.SupplyKeeper, app.SupplyKeeper,
+		&v2keeper.PortKeeper, app.SupplyKeeper, supplyKeeperAdapter,
 	)
 
 	// ICA Controller keeper
@@ -480,7 +480,7 @@ func NewOKExChainApp(
 	app.ICAHostKeeper = icahostkeeper.NewKeeper(
 		codecProxy, keys[icahosttypes.StoreKey], app.GetSubspace(icahosttypes.SubModuleName),
 		app.IBCKeeper.V2Keeper.ChannelKeeper, &app.IBCKeeper.V2Keeper.PortKeeper,
-		app.SupplyKeeper, scopedICAHostKeeper, app.MsgServiceRouter(),
+		supplyKeeperAdapter, scopedICAHostKeeper, app.MsgServiceRouter(),
 	)
 
 	app.ICAMauthKeeper = icamauthkeeper.NewKeeper(

@@ -188,11 +188,3 @@ func (k Keeper) deflate(ctx sdk.Context, tokenSymbol string, deflationAmount sdk
 	k.setTokenSupplyAmount(ctx, tokenSymbol, supplyAmount)
 	return nil
 }
-
-func (k Keeper) HasBalance(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coin) bool {
-	return k.bk.HasBalance(ctx, addr, amt)
-}
-
-func (k Keeper) BlockedAddr(address sdk.AccAddress) bool {
-	return k.bk.BlockedAddr(address)
-}

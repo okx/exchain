@@ -22,20 +22,21 @@ const (
 
 var (
 	// functions aliases
-	RegisterInvariants    = keeper.RegisterInvariants
-	AllInvariants         = keeper.AllInvariants
-	TotalSupply           = keeper.TotalSupply
-	NewKeeper             = keeper.NewKeeper
-	NewQuerier            = keeper.NewQuerier
-	SupplyKey             = keeper.SupplyKey
-	NewModuleAddress      = types.NewModuleAddress
-	NewEmptyModuleAccount = types.NewEmptyModuleAccount
-	NewModuleAccount      = types.NewModuleAccount
-	RegisterCodec         = types.RegisterCodec
-	NewGenesisState       = types.NewGenesisState
-	DefaultGenesisState   = types.DefaultGenesisState
-	NewSupply             = types.NewSupply
-	DefaultSupply         = types.DefaultSupply
+	RegisterInvariants     = keeper.RegisterInvariants
+	AllInvariants          = keeper.AllInvariants
+	TotalSupply            = keeper.TotalSupply
+	NewKeeper              = keeper.NewKeeper
+	NewSupplyKeeperAdapter = keeper.NewSupplyKeerAdapter
+	NewQuerier             = keeper.NewQuerier
+	SupplyKey              = keeper.SupplyKey
+	NewModuleAddress       = types.NewModuleAddress
+	NewEmptyModuleAccount  = types.NewEmptyModuleAccount
+	NewModuleAccount       = types.NewModuleAccount
+	RegisterCodec          = types.RegisterCodec
+	NewGenesisState        = types.NewGenesisState
+	DefaultGenesisState    = types.DefaultGenesisState
+	NewSupply              = types.NewSupply
+	DefaultSupply          = types.DefaultSupply
 
 	NewQueryTotalSupplyParams = types.NewQueryTotalSupplyParams
 	QueryTotalSupply          = types.QueryTotalSupply
