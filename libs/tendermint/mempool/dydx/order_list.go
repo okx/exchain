@@ -57,14 +57,6 @@ func (q *OrderQueue) Book() *DepthBook {
 	return q.book
 }
 
-func (q *OrderQueue) RLock() {
-	q.mtx.RLock()
-}
-
-func (q *OrderQueue) RUnlock() {
-	q.mtx.RUnlock()
-}
-
 func (q *OrderQueue) NewIterator() OrderQueueIterator {
 	return &orderQueueIterator{q: q}
 }

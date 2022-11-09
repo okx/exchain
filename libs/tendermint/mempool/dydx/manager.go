@@ -280,65 +280,37 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	if len(d.currentBlockTxs) > 0 {
 		return d.currentBlockTxs, d.totalBytes, d.totalGas
 	}
-
-	if d.orderQueue.Len() == 0 {
+	queueLen := d.orderQueue.Len()
+	if queueLen == 0 {
 		return
 	}
 
-	var canceledOrders = make(map[common.Hash]struct{})
 	iterCount := 0
-
-	d.orderQueue.RLock()
 	defer func() {
-		d.orderQueue.RUnlock()
-
+		d.logger.Debug("finish reap order", "iterCount", iterCount, "totalBytes", totalBytes, "totalGas", totalGas)
 		for i := 0; i < iterCount; i++ {
 			d.orderQueue.Dequeue()
-		}
-
-		for k := range canceledOrders {
-			d.orderQueue.Delete(k)
 		}
 		d.gServer.UpdateClient()
 	}()
 
-	d.logger.Debug("start reap order tx", "queue-size", d.orderQueue.Len())
+	d.logger.Debug("start reap order", "queue-size", queueLen)
 
-	//ordersHashes := d.orderQueue.GetAllOrderHashes()
-	//ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
-	//if err == nil {
-	//	for i, status := range ordersStatus {
-	//		orderHash := ordersHashes[i]
-	//		if status.Status == 2 {
-	//			canceledOrders[orderHash] = struct{}{}
-	//			continue
-	//		}
-	//		if status.FilledAmount.Sign() > 0 {
-	//			order := d.orderQueue.Get(orderHash)
-	//			order.LeftAmount.Sub(order.Amount, status.FilledAmount)
-	//			if order.LeftAmount.Sign() == 0 {
-	//				canceledOrders[orderHash] = struct{}{}
-	//			}
-	//		}
-	//	}
-	//}
-
-	if orderQueueLen := int64(d.orderQueue.Len()); orderQueueLen < maxNum {
-		maxNum = orderQueueLen
+	preMakeCap := maxNum
+	if orderQueueLen := int64(queueLen); orderQueueLen < maxNum {
+		preMakeCap = orderQueueLen
 	}
-	tradeTxs = make([]types.Tx, 0, maxNum)
-
+	tradeTxs = make([]types.Tx, 0, preMakeCap)
 	nonce := d.engine.nonce + 1
 
-	iter := d.orderQueue.NewIterator()
-	for order := iter.Next(); order != nil; order = iter.Next() {
-		iterCount++
-		if _, ok := canceledOrders[order.Hash()]; ok {
-			continue
+	d.orderQueue.Foreach(func(order *WrapOrder, index int, count int) bool {
+		if int64(index) == maxNum {
+			return false
 		}
+		iterCount++
 		mre, err := d.engine.MatchAndTrade(order)
 		if err != nil || mre == nil {
-			continue
+			return true
 		}
 
 		if mre.Tx == nil {
@@ -348,7 +320,7 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 			}
 			if mre.Tx == nil {
 				mre.Unfreeze()
-				continue
+				return true
 			}
 			d.engine.logger.Debug("reap tx", "tx", mre.Tx.Hash().String())
 		}
@@ -356,30 +328,31 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		txBz, err := tx.MarshalBinary()
 		if err != nil {
 			mre.Unfreeze()
-			continue
+			return true
 		}
 
 		if maxBytes > -1 && totalBytes+int64(len(txBz)) > maxBytes {
 			iterCount--
 			d.engine.Rollback(mre)
-			break
+			return false
 		}
 		newTotalGas := totalGas + int64(tx.Gas())
 		if maxGas > -1 && newTotalGas > maxGas {
 			iterCount--
 			d.engine.Rollback(mre)
-			break
+			return false
 		}
 		if len(tradeTxs) >= cap(tradeTxs) {
 			iterCount--
 			d.engine.Rollback(mre)
-			break
+			return false
 		}
 		totalGas = newTotalGas
 		tradeTxs = append(tradeTxs, txBz)
 		d.waitUnfreeze = append(d.waitUnfreeze, mre)
 		nonce++
-	}
+		return true
+	})
 	d.currentBlockTxs = tradeTxs
 	d.totalBytes = totalBytes
 	d.totalGas = totalGas
