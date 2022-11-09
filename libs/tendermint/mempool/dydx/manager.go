@@ -318,9 +318,6 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	nonce := d.engine.nonce + 1
 
 	d.orderQueue.Foreach(func(order *WrapOrder, index int, count int) bool {
-		if int64(index) == maxNum {
-			return false
-		}
 		iterCount++
 		mre, err := d.engine.MatchAndTrade(order)
 		if err != nil || mre == nil {
@@ -345,18 +342,20 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 			return true
 		}
 
-		if maxBytes > -1 && totalBytes+int64(len(txBz)) > maxBytes {
+		aminoOverhead := types.ComputeAminoOverhead(txBz, 1)
+		if maxBytes > -1 && totalBytes+int64(len(txBz))+aminoOverhead > maxBytes {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
 		}
+		totalBytes += int64(len(txBz)) + aminoOverhead
 		newTotalGas := totalGas + int64(tx.Gas())
 		if maxGas > -1 && newTotalGas > maxGas {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
 		}
-		if len(tradeTxs) >= cap(tradeTxs) {
+		if len(tradeTxs) >= int(maxNum) {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
