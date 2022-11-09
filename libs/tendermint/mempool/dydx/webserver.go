@@ -213,8 +213,8 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err := json.Marshal(&Balance{
-		Margin:       p1Balance.Margin,
-		Position:     p1Balance.Position,
+		Margin:       negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
+		Position:     negBig(p1Balance.Position, p1Balance.PositionIsPositive),
 		Erc20Balance: balance,
 	})
 	if err != nil {
@@ -222,7 +222,13 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, string(data))
+}
 
+func negBig(n *big.Int, positive bool) *big.Int {
+	if positive {
+		return n
+	}
+	return n.Neg(n)
 }
 
 type WebOrder struct {
