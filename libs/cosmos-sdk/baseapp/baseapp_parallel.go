@@ -161,7 +161,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 
 	app.calGroup()
 
-	return app.runTxs(txSize)
+	return app.runTxs()
 }
 
 func (app *BaseApp) fixFeeCollector() {
@@ -174,7 +174,7 @@ func (app *BaseApp) fixFeeCollector() {
 	}
 }
 
-func (app *BaseApp) runTxs(txSize int) []*abci.ResponseDeliverTx {
+func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -237,9 +237,9 @@ func (app *BaseApp) runTxs(txSize int) []*abci.ResponseDeliverTx {
 			}
 			pm.upComingTxIndex++
 
-			if pm.upComingTxIndex == txSize {
-				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", txSize,
-					"Parallel run", txSize-rerunIdx, "ReRun", rerunIdx, "len(group)", len(pm.groupList))
+			if pm.upComingTxIndex == pm.txSize {
+				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", pm.txSize,
+					"Parallel run", pm.txSize-rerunIdx, "ReRun", rerunIdx, "len(group)", len(pm.groupList))
 				signal <- 0
 				return
 			}
@@ -268,7 +268,7 @@ func (app *BaseApp) runTxs(txSize int) []*abci.ResponseDeliverTx {
 	// fix logs
 	app.feeChanged = true
 	app.feeCollector = app.parallelTxManage.currTxFee
-	receiptsLogs := app.endParallelTxs(txSize)
+	receiptsLogs := app.endParallelTxs(pm.txSize)
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result
 			pm.deliverTxs[index].Data = v
@@ -425,15 +425,6 @@ type parallelTxManager struct {
 	deliverTxs   []*abci.ResponseDeliverTx
 }
 
-func calNum(rw types.MsRWSet) (int, int) {
-	read := 0
-	dirty := 0
-	for _, v := range rw {
-		dirty += len(v.Write)
-		read += len(v.Read)
-	}
-	return dirty, read
-}
 func (pm *parallelTxManager) putResult(txIndex int, res *executeResult) {
 	if pm.alreadyEnd {
 		return
