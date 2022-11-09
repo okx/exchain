@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	comm "github.com/okex/exchain/x/common"
@@ -177,6 +179,14 @@ func contractHandlerFnV2(cliCtx context.CLIContext) http.HandlerFunc {
 			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
 			return
 		}
+		// convert ex to 0x
+		if addr, err := sdk.AccAddressFromBech32(result.FeeSplit.DeployerAddress); err == nil {
+			result.FeeSplit.DeployerAddress = ethcmn.BytesToAddress(addr.Bytes()).String()
+		}
+		if addr, err := sdk.AccAddressFromBech32(result.FeeSplit.WithdrawerAddress); err == nil {
+			result.FeeSplit.WithdrawerAddress = ethcmn.BytesToAddress(addr.Bytes()).String()
+		}
+
 		resultJson, err := json.Marshal(comm.GetBaseResponse(result.FeeSplit))
 		if err != nil {
 			comm.HandleErrorMsg(w, cliCtx, comm.CodeMarshalJSONFailed, err.Error())
@@ -225,6 +235,16 @@ func deployerHandlerFnV2(cliCtx context.CLIContext) http.HandlerFunc {
 			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
 			return
 		}
+		// convert ex to 0x
+		for i, fs := range result.FeeSplits {
+			if addr, err := sdk.AccAddressFromBech32(fs.DeployerAddress); err == nil {
+				result.FeeSplits[i].DeployerAddress = ethcmn.BytesToAddress(addr.Bytes()).String()
+			}
+			if addr, err := sdk.AccAddressFromBech32(fs.WithdrawerAddress); err == nil {
+				result.FeeSplits[i].WithdrawerAddress = ethcmn.BytesToAddress(addr.Bytes()).String()
+			}
+		}
+
 		resultJson, err := json.Marshal(comm.GetBaseResponse(result))
 		if err != nil {
 			comm.HandleErrorMsg(w, cliCtx, comm.CodeMarshalJSONFailed, err.Error())

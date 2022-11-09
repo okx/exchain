@@ -179,7 +179,7 @@ func TestAppImportExport(t *testing.T) {
 
 	normalizeContractInfo := func(ctx sdk.Context, app *OKExChainApp) {
 		var index uint64
-		app.wasmKeeper.IterateContractInfo(ctx, func(address sdk.AccAddress, info wasmtypes.ContractInfo) bool {
+		app.WasmKeeper.IterateContractInfo(ctx, func(address sdk.AccAddress, info wasmtypes.ContractInfo) bool {
 			created := &wasmtypes.AbsoluteTxPosition{
 				BlockHeight: uint64(0),
 				TxIndex:     index,
