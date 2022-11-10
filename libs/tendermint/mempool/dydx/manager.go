@@ -327,7 +327,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 		}
 		ele := orderList.Get(filled.OrderHash)
 		if ele == nil {
-			fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
+			d.logger.Debug("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
 			return
 		}
 		wodr = ele.Value.(*WrapOrder)
@@ -347,6 +347,18 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 			d.book.addrMtx.Unlock()
 			//TODO delete broadcast queue
 		}
+	}
+	balance := d.getBalance(wodr.Maker)
+	total := new(big.Int).Mul(filled.Fill.Amount, filled.Fill.Price)
+	total.Div(total, exp18)
+	if wodr.isBuy() {
+		balance.Position.Add(balance.Position, filled.Fill.Amount)
+		balance.Margin.Sub(balance.Margin, total)
+		balance.MarginIsPositive = balance.Margin.Sign() >= 0
+	} else {
+		balance.Position.Sub(balance.Position, filled.Fill.Amount)
+		balance.Margin.Add(balance.Margin, total)
+		balance.PositionIsPositive = balance.Position.Sign() >= 0
 	}
 
 	d.historyMtx.Lock()
