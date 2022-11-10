@@ -8,4 +8,5 @@ var (
 	ErrExpiredOrder       = fmt.Errorf("expired order")
 	ErrInvalidSignature   = fmt.Errorf("invalid signature")
 	ErrRepeatedOrder      = fmt.Errorf("repeated order")
+	ErrMarginNotEnough    = fmt.Errorf("margin not enough")
 )

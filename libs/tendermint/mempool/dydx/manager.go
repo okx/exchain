@@ -66,6 +66,10 @@ type OrderManager struct {
 	orders    *clist.CList
 	ordersMap sync.Map // orderKey => *clist.CElement
 
+	signals          chan struct{}
+	balancesMtx      sync.RWMutex
+	marketPrice      *big.Int
+	balances         map[common.Address]*contracts.P1TypesBalance
 	historyMtx       sync.RWMutex
 	addrTradeHistory map[common.Address][]*FilledP1Order
 	tradeHistory     []*FilledP1Order
@@ -91,6 +95,8 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		logger = log.NewNopLogger()
 	}
 	manager := &OrderManager{
+		signals:          make(chan struct{}, 3),
+		balances:         make(map[common.Address]*contracts.P1TypesBalance),
 		trades:           make(map[[32]byte]*FilledP1Order),
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
 		orders:           clist.New(),
@@ -114,6 +120,8 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 	me.nonce--
 	manager.logger.Info("init operator nonce", "addr", me.from, "nonce", me.nonce)
 	manager.engine = me
+	go manager.updateMarketPriceRoutine()
+	manager.SendSignal()
 
 	manager.gServer = NewOrderBookServer(manager.book, manager.logger)
 	err = manager.gServer.Start(viper.GetString("dydx.grpc-port"))
@@ -168,9 +176,76 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 		}
 	}
 
+	err = d.checkBalance(&wrapOdr)
+	if err != nil {
+		return err
+	}
+
 	ok := d.orderQueue.Enqueue(&wrapOdr)
 	d.logger.Debug("enqueue", "order", wrapOdr.Hash(), "ok", ok)
 
+	return nil
+}
+
+func (d *OrderManager) SendSignal() {
+	d.signals <- struct{}{}
+}
+
+func (d *OrderManager) GetMarketPrice() *big.Int {
+	d.balancesMtx.RLock()
+	defer d.balancesMtx.RUnlock()
+	return new(big.Int).Set(d.marketPrice)
+}
+
+func (d *OrderManager) updateMarketPriceRoutine() {
+	for range d.signals {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
+			From:    d.engine.contracts.PerpetualV1Address,
+			Context: ctx,
+		})
+		cancel()
+		if err != nil {
+			d.logger.Error("UpdateMarketPrice", "GetPrice error", err)
+			return
+		}
+		d.balancesMtx.Lock()
+		d.marketPrice = marketPrice
+		d.balancesMtx.Unlock()
+	}
+}
+
+func (d *OrderManager) checkBalance(order *WrapOrder) error {
+	d.balancesMtx.Lock()
+	defer d.balancesMtx.Unlock()
+	balance := d.balances[order.Maker]
+	if balance == nil {
+		p1Balance, err := d.engine.contracts.PerpetualV1.GetAccountBalance(nil, order.Maker)
+		if err != nil {
+			d.logger.Error("checkBalance", "GetAccountBalance error", err, "addr", order.Maker)
+			return nil
+		}
+		balance = &p1Balance
+		d.balances[order.Maker] = balance
+	}
+	marketPrice := d.GetMarketPrice()
+	margin := negBig(new(big.Int).Mul(balance.Margin, exp18), balance.MarginIsPositive)
+	position := negBig(new(big.Int).Mul(balance.Position, marketPrice), balance.PositionIsPositive)
+	perpetualBalance := new(big.Int).Add(margin, position)
+	if perpetualBalance.Sign() < 0 {
+		return ErrMarginNotEnough
+	}
+
+	cost := new(big.Int).Sub(order.LimitPrice, marketPrice)
+	cost.Mul(cost, order.LeftAmount)
+	if !order.isBuy() {
+		cost.Neg(cost)
+
+	}
+
+	if perpetualBalance.Cmp(cost) < 0 {
+		return ErrMarginNotEnough
+	}
 	return nil
 }
 
@@ -322,9 +397,6 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	nonce := d.engine.nonce + 1
 
 	d.orderQueue.Foreach(func(order *WrapOrder, index int, count int) bool {
-		if int64(index) == maxNum {
-			return false
-		}
 		iterCount++
 		mre, err := d.engine.MatchAndTrade(order)
 		if err != nil || mre == nil {
@@ -349,18 +421,20 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 			return true
 		}
 
-		if maxBytes > -1 && totalBytes+int64(len(txBz)) > maxBytes {
+		aminoOverhead := types.ComputeAminoOverhead(txBz, 1)
+		if maxBytes > -1 && totalBytes+int64(len(txBz))+aminoOverhead > maxBytes {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
 		}
+		totalBytes += int64(len(txBz)) + aminoOverhead
 		newTotalGas := totalGas + int64(tx.Gas())
 		if maxGas > -1 && newTotalGas > maxGas {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
 		}
-		if len(tradeTxs) >= cap(tradeTxs) {
+		if len(tradeTxs) >= int(maxNum) {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
