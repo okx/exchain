@@ -188,9 +188,11 @@ func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type Balance struct {
-	Margin       *big.Int `json:"margin"`
-	Position     *big.Int `json:"position"`
-	Erc20Balance *big.Int `json:"erc20Balance"`
+	Margin        *big.Int `json:"margin"`
+	Position      *big.Int `json:"position"`
+	Erc20Balance  *big.Int `json:"erc20Balance"`
+	MarginCache   *big.Int `json:"marginCache"`
+	PositionCache *big.Int `json:"positionCache"`
 }
 
 func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
@@ -215,10 +217,14 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p1BalanceCache := o.getBalance(addr)
+
 	data, err := json.Marshal(&Balance{
-		Margin:       negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
-		Position:     negBig(p1Balance.Position, p1Balance.PositionIsPositive),
-		Erc20Balance: balance,
+		Margin:        negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
+		Position:      negBig(p1Balance.Position, p1Balance.PositionIsPositive),
+		Erc20Balance:  balance,
+		MarginCache:   p1BalanceCache.Margin,
+		PositionCache: p1BalanceCache.Position,
 	})
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
