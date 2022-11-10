@@ -69,6 +69,12 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 		"/distribution/validators/{validatorAddr}/rewards",
 		validatorRewardsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
+
+	// Query delegator's validators
+	r.HandleFunc(
+		"/distribution/delegators/{delegatorAddr}/validators",
+		delegatorValidatorsHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
 }
 
 // HTTP request handler to query a delegation rewards
@@ -79,7 +85,7 @@ func delegatorWithdrawalAddrHandlerFn(cliCtx context.CLIContext, queryRoute stri
 			return
 		}
 
-		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
@@ -149,7 +155,7 @@ func accumulatedCommissionHandlerFn(cliCtx context.CLIContext, queryRoute string
 			return
 		}
 
-		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
@@ -183,14 +189,15 @@ func delegatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) htt
 		params := types.NewQueryDelegatorParams(delegatorAddr)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("failed to marshal params: %s", err))
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
 		route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryDelegatorTotalRewards)
 		res, height, err := cliCtx.QueryWithData(route, bz)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := comm.ParseSDKError(err.Error())
+			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -207,7 +214,7 @@ func outstandingRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) h
 			return
 		}
 
-		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
@@ -215,7 +222,8 @@ func outstandingRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) h
 		bin := cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorOutstandingRewardsParams(validatorAddr))
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/validator_outstanding_rewards", queryRoute), bin)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			sdkErr := comm.ParseSDKError(err.Error())
+			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
 
@@ -272,7 +280,7 @@ func validatorInfoHandlerFn(cliCtx context.CLIContext, queryRoute string) http.H
 			return
 		}
 
-		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
@@ -280,13 +288,13 @@ func validatorInfoHandlerFn(cliCtx context.CLIContext, queryRoute string) http.H
 		// query commission
 		bz, err := common.QueryValidatorCommission(cliCtx, queryRoute, valAddr)
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeInternalError, err.Error())
 			return
 		}
 
 		var commission types.ValidatorAccumulatedCommission
 		if err := cliCtx.Codec.UnmarshalJSON(bz, &commission); err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
 			return
 		}
 
@@ -299,13 +307,13 @@ func validatorInfoHandlerFn(cliCtx context.CLIContext, queryRoute string) http.H
 
 		var rewards sdk.DecCoins
 		if err := cliCtx.Codec.UnmarshalJSON(bz, &rewards); err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
 			return
 		}
 
 		bz, err = cliCtx.Codec.MarshalJSON(NewValidatorDistInfo(delAddr, rewards, commission))
 		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeMarshalJSONFailed, err.Error())
 			return
 		}
 
@@ -323,7 +331,7 @@ func validatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) htt
 			return
 		}
 
-		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
@@ -339,13 +347,39 @@ func validatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) htt
 	}
 }
 
+// HTTP request handler to query delegator's validators
+func delegatorValidatorsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		delegatorAddr, ok := checkDelegatorAddressVar(w, r)
+		if !ok {
+			return
+		}
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		bz := cliCtx.Codec.MustMarshalJSON(types.NewQueryDelegatorWithdrawAddrParams(delegatorAddr))
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryDelegatorValidators), bz)
+		if err != nil {
+			sdkErr := comm.ParseSDKError(err.Error())
+			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
 func checkResponseQueryDelegationRewards(
 	w http.ResponseWriter, cliCtx context.CLIContext, queryRoute, delAddr, valAddr string,
 ) (res []byte, height int64, ok bool) {
 
 	res, height, err := common.QueryDelegationRewards(cliCtx, queryRoute, delAddr, valAddr)
 	if err != nil {
-		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		comm.HandleErrorMsg(w, cliCtx, comm.CodeInternalError, err.Error())
 		return nil, 0, false
 	}
 

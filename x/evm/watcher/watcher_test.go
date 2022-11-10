@@ -3,6 +3,9 @@ package watcher_test
 import (
 	"encoding/hex"
 	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"math/big"
 	"os"
 	"strings"
@@ -26,6 +29,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/status-im/keycard-go/hexutils"
@@ -419,7 +423,73 @@ func TestWriteLatestMsg(t *testing.T) {
 	m := watcher.NewMsgAccount(a1)
 	v, err := store.Get(m.GetKey())
 	require.NoError(t, err)
+	has := store.Has(m.GetKey())
+	require.Equal(t, has, true)
 	ethAccount, err := watcher.DecodeAccount(v)
 	require.NoError(t, err)
+	//test decode error
+	vv := v[:1]
+	_, err = watcher.DecodeAccount(vv)
+	require.Error(t, err)
 	require.Equal(t, uint64(3), ethAccount.GetSequence())
+	p := store.GetEvmParams()
+	expectedParams := evmtypes.Params{
+		EnableCreate:                      false,
+		EnableCall:                        false,
+		EnableContractDeploymentWhitelist: false,
+		EnableContractBlockedList:         false,
+		MaxGasLimitPerTx:                  30000000,
+	}
+	err = ParamsDeepEqual(expectedParams, p)
+	require.NoError(t, err)
+	expectedParams2 := evmtypes.Params{
+		EnableCreate:                      true,
+		EnableCall:                        true,
+		EnableContractDeploymentWhitelist: true,
+		EnableContractBlockedList:         true,
+		MaxGasLimitPerTx:                  20000000,
+	}
+	store.SetEvmParams(expectedParams2)
+	p = store.GetEvmParams()
+	err = ParamsDeepEqual(p, expectedParams2)
+	require.NoError(t, err)
+}
+
+func ParamsDeepEqual(src, dst evmtypes.Params) error {
+	if src.EnableCreate != dst.EnableCreate ||
+		src.EnableCall != dst.EnableCall ||
+		src.EnableContractDeploymentWhitelist != dst.EnableContractDeploymentWhitelist ||
+		src.EnableContractBlockedList != dst.EnableContractBlockedList {
+		return fmt.Errorf("params not fit")
+	}
+	return nil
+}
+
+func TestDeliverRealTx(t *testing.T) {
+	w := setupTest()
+	bytecode := ethcommon.FromHex("0x12")
+	tx := evmtypes.NewMsgEthereumTx(0, nil, big.NewInt(0), uint64(1000000), big.NewInt(10000), bytecode)
+	privKey, _ := ethsecp256k1.GenerateKey()
+	err := tx.Sign(big.NewInt(3), privKey.ToECDSA())
+	require.NoError(t, err)
+	codecProxy, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
+	w.app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(tx, nil, evm.TxDecoder(codecProxy))
+}
+
+func TestBaiscDBOpt(t *testing.T) {
+	viper.Set(watcher.FlagFastQuery, true)
+	viper.Set(sdk.FlagDBBackend, "memdb")
+	store := watcher.InstanceOfWatchStore()
+	store.Set([]byte("test01"), []byte("value01"))
+	v, err := store.Get([]byte("test01"))
+	require.NoError(t, err)
+	require.Equal(t, v, []byte("value01"))
+	v, err = store.Get([]byte("test no key"))
+	require.Equal(t, v, []byte(nil))
+	require.NoError(t, err)
+	r, err := store.GetUnsafe([]byte("test01"), func(value []byte) (interface{}, error) {
+		return nil, nil
+	})
+	require.Equal(t, r, nil)
+	require.NoError(t, err)
 }

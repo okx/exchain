@@ -31,3 +31,8 @@ type Subspace interface {
 type BankKeeper interface {
 	BlacklistedAddr(addr sdk.AccAddress) bool
 }
+
+// StakingKeeper for validator verify
+type StakingKeeper interface {
+	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
+}

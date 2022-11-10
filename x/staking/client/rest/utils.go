@@ -153,3 +153,46 @@ func queryBonds(ctx context.CLIContext, endpoint string) http.HandlerFunc {
 		rest.PostProcessResponse(w, clientCtx, res)
 	}
 }
+
+func queryBondsInfo(cliCtx context.CLIContext, endpoint string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		bech32delegator := vars["delegatorAddr"]
+		bech32validator := vars["validatorAddr"]
+
+		delegatorAddr, err := sdk.AccAddressFromBech32(bech32delegator)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, types.CodeNoDelegatorExisted, err.Error())
+			return
+		}
+
+		validatorAddr, err := sdk.ValAddressFromBech32(bech32validator)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, types.CodeNoValidatorFound, err.Error())
+			return
+		}
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		params := types.NewQueryBondsParams(delegatorAddr, validatorAddr)
+
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(endpoint, bz)
+		if err != nil {
+			sdkErr := common.ParseSDKError(err.Error())
+			common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}

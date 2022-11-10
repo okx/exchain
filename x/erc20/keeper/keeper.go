@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -196,4 +197,16 @@ func (k Keeper) SetTemplateContract(ctx sdk.Context, typeStr string, str string)
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.ConstructContractKey(typeStr), []byte(str))
 	return nil
+}
+
+// GetEthAccount returns an eth account.
+func (k Keeper) GetEthAccount(ctx sdk.Context, addr common.Address) (*ethermint.EthAccount, bool) {
+	cosmosAddr := sdk.AccAddress(addr.Bytes())
+	acct := k.accountKeeper.GetAccount(ctx, cosmosAddr)
+	if acct == nil {
+		return nil, false
+	}
+
+	ethAcct, _ := acct.(*ethermint.EthAccount)
+	return ethAcct, true
 }

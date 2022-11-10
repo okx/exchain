@@ -2,6 +2,7 @@ package evm
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/types"
 	govTypes "github.com/okex/exchain/x/gov/types"
@@ -17,6 +18,11 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 			return handleManageContractBlockedlListProposal(ctx, k, content)
 		case types.ManageContractMethodBlockedListProposal:
 			return handleManageContractMethodBlockedlListProposal(ctx, k, content)
+		case types.ManageSysContractAddressProposal:
+			if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+				return handleManageSysContractAddressProposal(ctx, k, content)
+			}
+			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -61,4 +67,15 @@ func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper,
 
 	// remove contract method from blocked list
 	return csdb.DeleteContractMethodBlockedList(p.ContractList)
+}
+
+func handleManageSysContractAddressProposal(ctx sdk.Context, k *Keeper,
+	p types.ManageSysContractAddressProposal) sdk.Error {
+	if p.IsAdded {
+		// add system contract address
+		return k.SetSysContractAddress(ctx, p.ContractAddr)
+	}
+
+	// remove system contract address
+	return k.DelSysContractAddress(ctx)
 }

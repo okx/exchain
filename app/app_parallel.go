@@ -55,11 +55,6 @@ func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 	return func(ctx sdk.Context, tx sdk.Tx, onlyVerifySig bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			if evmTx.BaseTx.From == "" {
-				if ctx.From() != "" {
-					evmTx.BaseTx.From = ctx.From()
-				}
-			}
-			if evmTx.BaseTx.From == "" {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			}
 
@@ -137,9 +132,14 @@ type feeSplitInfo struct {
 }
 
 func updateFeeSplitHandler(txFeesplit *sync.Map) sdk.UpdateFeeSplitHandler {
-	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins) {
-		// For rerun tx of parallel, feeSplitInfo is rewritten
-		txFeesplit.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
+	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins, isDelete bool) {
+		if isDelete {
+			// For rerun tx of parallel, feeSplitInfo is deleted when EnableFeeSplit is false
+			txFeesplit.Delete(txHash.String())
+		} else {
+			// For rerun tx of parallel, feeSplitInfo is rewritten
+			txFeesplit.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
+		}
 	}
 }
 
