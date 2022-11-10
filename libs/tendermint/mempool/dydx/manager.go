@@ -66,8 +66,9 @@ type OrderManager struct {
 	ordersMap sync.Map // orderKey => *clist.CElement
 
 	signals          chan struct{}
-	balancesMtx      sync.RWMutex
+	marketPriceMtx   sync.RWMutex
 	marketPrice      *big.Int
+	balancesMtx      sync.RWMutex
 	balances         map[common.Address]*contracts.P1TypesBalance
 	historyMtx       sync.RWMutex
 	addrTradeHistory map[common.Address][]*FilledP1Order
@@ -188,9 +189,9 @@ func (d *OrderManager) SendSignal() {
 }
 
 func (d *OrderManager) GetMarketPrice() *big.Int {
-	d.balancesMtx.RLock()
-	defer d.balancesMtx.RUnlock()
-	return new(big.Int).Set(d.marketPrice)
+	d.marketPriceMtx.RLock()
+	defer d.marketPriceMtx.RUnlock()
+	return d.marketPrice
 }
 
 func (d *OrderManager) updateMarketPriceRoutine() {
@@ -205,30 +206,32 @@ func (d *OrderManager) updateMarketPriceRoutine() {
 			d.logger.Error("UpdateMarketPrice", "GetPrice error", err)
 			return
 		}
-		d.balancesMtx.Lock()
+		d.marketPriceMtx.Lock()
 		d.marketPrice = marketPrice
-		d.balancesMtx.Unlock()
+		d.marketPriceMtx.Unlock()
 	}
 }
 
 func (d *OrderManager) checkBalance(order *WrapOrder) error {
-	d.balancesMtx.Lock()
-	defer d.balancesMtx.Unlock()
-	balance := d.balances[order.Maker]
+	balance := d.getBalance(order.Maker)
 	if balance == nil {
 		p1Balance, err := d.engine.contracts.PerpetualV1.GetAccountBalance(nil, order.Maker)
 		if err != nil {
 			d.logger.Error("checkBalance", "GetAccountBalance error", err, "addr", order.Maker)
 			return nil
 		}
+		d.setBalance(order.Maker, &p1Balance)
 		balance = &p1Balance
-		d.balances[order.Maker] = balance
 	}
 	marketPrice := d.GetMarketPrice()
+	if marketPrice == nil {
+		return nil
+	}
 	margin := negBig(new(big.Int).Mul(balance.Margin, exp18), balance.MarginIsPositive)
 	position := negBig(new(big.Int).Mul(balance.Position, marketPrice), balance.PositionIsPositive)
 	perpetualBalance := new(big.Int).Add(margin, position)
 	if perpetualBalance.Sign() < 0 {
+		d.logger.Debug("checkBalance", "addr", order.Maker, "perpetualBalance:", perpetualBalance)
 		return ErrMarginNotEnough
 	}
 
@@ -236,13 +239,24 @@ func (d *OrderManager) checkBalance(order *WrapOrder) error {
 	cost.Mul(cost, order.LeftAmount)
 	if !order.isBuy() {
 		cost.Neg(cost)
-
 	}
-
 	if perpetualBalance.Cmp(cost) < 0 {
+		d.logger.Debug("checkBalance", "addr", order.Maker, "perpetualBalance:", perpetualBalance, "marketPrice", marketPrice, "cost", cost)
 		return ErrMarginNotEnough
 	}
 	return nil
+}
+
+func (d *OrderManager) getBalance(addr common.Address) *contracts.P1TypesBalance {
+	d.balancesMtx.RLock()
+	defer d.balancesMtx.RUnlock()
+	return d.balances[addr]
+}
+
+func (d *OrderManager) setBalance(addr common.Address, balance *contracts.P1TypesBalance) {
+	d.balancesMtx.Lock()
+	defer d.balancesMtx.Unlock()
+	d.balances[addr] = balance
 }
 
 func (d *OrderManager) Remove(order OrderRaw) {
