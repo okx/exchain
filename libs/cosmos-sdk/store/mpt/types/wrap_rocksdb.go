@@ -59,12 +59,10 @@ func (db *WrapRocksDB) Compact(start []byte, limit []byte) error {
 
 func (db *WrapRocksDB) NewBatchWithSize(size int) ethdb.Batch {
 	panic(fmt.Errorf("not support NewBatchWithSize"))
-	return nil
 }
 
 func (db *WrapRocksDB) NewSnapshot() (ethdb.Snapshot, error) {
 	panic(fmt.Errorf("not support NewSnapshot"))
-	return nil, nil
 }
 
 // BytesPrefix returns key range that satisfy the given prefix.
