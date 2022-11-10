@@ -25,7 +25,7 @@ const (
 	addrKey    = "addr"
 	timeFormat = "15:04:05"
 
-	placeOrderContractAddr = "0x293a0231e57ee599DB33745bEF9Bfcc320B43de1" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
+	placeOrderContractAddr = "0x41815e7c60b9ad7718D7AdF0d3eCbECAc8122076" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
@@ -213,8 +213,8 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err := json.Marshal(&Balance{
-		Margin:       p1Balance.Margin,
-		Position:     p1Balance.Position,
+		Margin:       negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
+		Position:     negBig(p1Balance.Position, p1Balance.PositionIsPositive),
 		Erc20Balance: balance,
 	})
 	if err != nil {
@@ -222,7 +222,13 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, string(data))
+}
 
+func negBig(n *big.Int, positive bool) *big.Int {
+	if positive {
+		return n
+	}
+	return n.Neg(n)
 }
 
 type WebOrder struct {
