@@ -1,6 +1,7 @@
 package transfer
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,7 +21,8 @@ import (
 )
 
 var (
-	_ porttypes.Middleware = IBCModule{}
+	_                  porttypes.Middleware = IBCModule{}
+	errNotSupportICS20                      = errors.New("not support by ics-20")
 )
 
 // NewIBCModule creates a new IBCModule given the keeper
@@ -288,18 +290,17 @@ type IBCModule struct {
 }
 
 func (im IBCModule) SendPacket(ctx sdk.Context, chanCap *capabilitytypes.Capability, packet ibcexported.PacketI) error {
-	panic("not support by ics-720")
+	return errNotSupportICS20
 }
 
 func (im IBCModule) WriteAcknowledgement(ctx sdk.Context, chanCap *capabilitytypes.Capability, packet ibcexported.PacketI, ack ibcexported.Acknowledgement) error {
-	panic("not support by ics-720")
+	return errNotSupportICS20
 }
 
 func (im IBCModule) GetAppVersion(ctx sdk.Context, portID, channelID string) (string, bool) {
-	panic("not support by ics-720")
+	panic(errNotSupportICS20.Error())
 }
 
 func (im IBCModule) NegotiateAppVersion(ctx sdk.Context, order channeltypes.Order, connectionID string, portID string, counterparty channeltypes.Counterparty, proposedVersion string) (version string, err error) {
-	//TODO implement me
-	panic("implement me")
+	return "", errNotSupportICS20
 }

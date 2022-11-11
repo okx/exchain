@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"errors"
 
 	"github.com/okex/exchain/libs/ibc-go/modules/core/common"
 
@@ -13,8 +12,6 @@ import (
 )
 
 var _ IBCServerKeeper = (*FacadedKeeper)(nil)
-
-var errMisSpecificKeeper = errors.New("mis ")
 
 type Checkable interface {
 	GetIbcEnabled(ctx sdk.Context) bool
