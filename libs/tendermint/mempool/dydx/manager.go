@@ -353,16 +353,24 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 		}
 	}
 	balance := d.getBalance(wodr.Maker)
-	total := new(big.Int).Mul(filled.Fill.Amount, filled.Fill.Price)
-	total.Div(total, exp18)
+	positionDiff := negBig(filled.Fill.Amount, balance.PositionIsPositive)
+	marginDiff := negBig(new(big.Int).Mul(filled.Fill.Amount, filled.Fill.Price), balance.MarginIsPositive)
+	marginDiff.Div(marginDiff, exp18)
+
 	if wodr.isBuy() {
-		balance.Position.Add(balance.Position, filled.Fill.Amount)
-		balance.Margin.Sub(balance.Margin, total)
-		balance.MarginIsPositive = balance.Margin.Sign() >= 0
+		balance.Position.Add(balance.Position, positionDiff)
+		balance.Margin.Sub(balance.Margin, marginDiff)
 	} else {
-		balance.Position.Sub(balance.Position, filled.Fill.Amount)
-		balance.Margin.Add(balance.Margin, total)
-		balance.PositionIsPositive = balance.Position.Sign() >= 0
+		balance.Position.Sub(balance.Position, positionDiff)
+		balance.Margin.Add(balance.Margin, marginDiff)
+	}
+	if balance.Position.Sign() < 0 {
+		balance.Position.Neg(balance.Position)
+		balance.PositionIsPositive = !balance.PositionIsPositive
+	}
+	if balance.Margin.Sign() < 0 {
+		balance.Margin.Neg(balance.Margin)
+		balance.MarginIsPositive = !balance.MarginIsPositive
 	}
 
 	d.historyMtx.Lock()
@@ -478,6 +486,9 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 }
 
 func (d *OrderManager) UpdateAddress(sender string, nonce uint64, code uint32) {
+	if d == nil {
+		return
+	}
 	if sender == d.engine.from.String() &&
 		(code == abci.CodeTypeOK || code > abci.CodeTypeNonceInc) {
 		d.engine.nonce = nonce

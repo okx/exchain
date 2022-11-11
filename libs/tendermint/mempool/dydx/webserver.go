@@ -218,13 +218,20 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p1BalanceCache := o.getBalance(addr)
+	if p1BalanceCache == nil {
+		p1BalanceCache = &contracts.P1TypesBalance{
+			Margin:   big.NewInt(0),
+			Position: big.NewInt(0),
+		}
+	}
+	fmt.Println("p1 balance cache", p1BalanceCache)
 
 	data, err := json.Marshal(&Balance{
 		Margin:        negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
 		Position:      negBig(p1Balance.Position, p1Balance.PositionIsPositive),
 		Erc20Balance:  balance,
-		MarginCache:   p1BalanceCache.Margin,
-		PositionCache: p1BalanceCache.Position,
+		MarginCache:   negBig(p1BalanceCache.Margin, p1BalanceCache.MarginIsPositive),
+		PositionCache: negBig(p1BalanceCache.Position, p1Balance.PositionIsPositive),
 	})
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
@@ -237,7 +244,7 @@ func negBig(n *big.Int, positive bool) *big.Int {
 	if positive {
 		return n
 	}
-	return n.Neg(n)
+	return new(big.Int).Neg(n)
 }
 
 type WebOrder struct {
