@@ -576,7 +576,7 @@ func NewOKExChainApp(
 	left := common.NewDisaleProxyMiddleware()
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper, transferModule)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
-	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
+	transferStack := ibcporttypes.NewFacadedMiddleware(left,
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
 
