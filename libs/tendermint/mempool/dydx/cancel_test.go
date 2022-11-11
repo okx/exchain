@@ -91,6 +91,22 @@ func TestWithdraw(t *testing.T) {
 	log.Printf("balance of %s: %v\n", addr, balance)
 }
 
+func TestMint(t *testing.T) {
+	cli, err := ethclient.Dial(Config.EthHttpRpcUrl)
+	require.NoError(t, err)
+	token, err := contracts.NewTestToken(common.HexToAddress(Config.P1MarginAddress), cli)
+	require.NoError(t, err)
+
+	privAdmin, err := crypto.HexToECDSA(Config.PrivKeyHex)
+	chainID, _ := new(big.Int).SetString(Config.ChainID, 10)
+	adminTxOps, _ := bind.NewKeyedTransactorWithChainID(privAdmin, chainID)
+	adminTxOps.GasLimit = 1000000
+
+	tx, err := token.Mint(adminTxOps, common.HexToAddress("0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044"), big.NewInt(1000000))
+	require.NoError(t, err)
+	t.Logf("mint tx: %v", tx.Hash().Hex())
+}
+
 func TestPlaceOrder(t *testing.T) {
 	cli, err := ethclient.Dial(Config.EthHttpRpcUrl) //"http://3.113.237.222:26659"
 	require.NoError(t, err)
