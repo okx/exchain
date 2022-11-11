@@ -482,6 +482,9 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 }
 
 func (d *OrderManager) UpdateAddress(sender string, nonce uint64, code uint32) {
+	if d == nil {
+		return
+	}
 	if sender == d.engine.from.String() &&
 		(code == abci.CodeTypeOK || code > abci.CodeTypeNonceInc) {
 		d.engine.nonce = nonce
