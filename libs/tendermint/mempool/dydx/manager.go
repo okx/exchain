@@ -96,7 +96,7 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		logger = log.NewNopLogger()
 	}
 	manager := &OrderManager{
-		signals:          make(chan struct{}, 3),
+		signals:          make(chan struct{}, 10),
 		balances:         make(map[common.Address]*contracts.P1TypesBalance),
 		trades:           make(map[[32]byte]*FilledP1Order),
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
@@ -200,7 +200,7 @@ func (d *OrderManager) GetMarketPrice() *big.Int {
 
 func (d *OrderManager) updateMarketPriceRoutine() {
 	for range d.signals {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
 			From:    d.engine.contracts.PerpetualV1Address,
 			Context: ctx,
@@ -208,7 +208,7 @@ func (d *OrderManager) updateMarketPriceRoutine() {
 		cancel()
 		if err != nil {
 			d.logger.Error("UpdateMarketPrice", "GetPrice error", err)
-			return
+			continue
 		}
 		d.marketPriceMtx.Lock()
 		d.marketPrice = marketPrice

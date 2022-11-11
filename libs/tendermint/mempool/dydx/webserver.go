@@ -5,10 +5,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/libs/dydx/contracts"
 	"log"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,6 +51,7 @@ func (o *OrderManager) ServeWeb() {
 	r.HandleFunc("/position", o.PositionHandler).Methods(GET).Queries("addr", "{addr}")
 	r.HandleFunc("/orders", o.OrdersHandler).Methods(GET).Queries("addr", "{addr}")
 	r.HandleFunc("/fills", o.FillsHandler).Methods(GET).Queries("addr", "{addr}")
+	r.HandleFunc("/drop", o.DropHandler).Methods(GET).Queries("amount", "{amount}", "addr", "{addr}")
 
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":"+viper.GetString("dydx.web-port"), r))
@@ -349,4 +352,35 @@ func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, string(data))
+}
+
+func (o *OrderManager) DropHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
+	vars := mux.Vars(r)
+	addr := common.HexToAddress(vars[addrKey])
+	amount, err := strconv.ParseInt(vars["amount"], 10, 64)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
+	token, err := contracts.NewTestToken(common.HexToAddress(Config.P1MarginAddress), o.engine.httpCli)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
+	privAdmin, _ := crypto.HexToECDSA(Config.PrivKeyHex)
+	chainID, _ := new(big.Int).SetString(Config.ChainID, 10)
+	adminTxOps, _ := bind.NewKeyedTransactorWithChainID(privAdmin, chainID)
+	adminTxOps.GasLimit = 1000000
+
+	tx, err := token.Mint(adminTxOps, addr, big.NewInt(amount))
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	fmt.Fprintf(w, tx.Hash().String())
 }
