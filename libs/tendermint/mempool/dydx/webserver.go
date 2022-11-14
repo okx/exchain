@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"log"
 	"math/big"
 	"net/http"
@@ -24,7 +25,7 @@ const (
 	addrKey    = "addr"
 	timeFormat = "15:04:05"
 
-	placeOrderContractAddr = "0x2594E83A94F89Ffb923773ddDfF723BbE017b80D" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
+	placeOrderContractAddr = "0x41815e7c60b9ad7718D7AdF0d3eCbECAc8122076" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
@@ -138,7 +139,7 @@ func (o *OrderManager) BookHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("content-type", "application/json")
-	levels := bookToLevel(o.book)
+	levels := bookToLevel(o.orderQueue.book)
 	data, err := json.Marshal(levels)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
@@ -184,8 +185,9 @@ func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type Balance struct {
-	Margin   *big.Int `json:"margin"`
-	Position *big.Int `json:"position"`
+	Margin       *big.Int `json:"margin"`
+	Position     *big.Int `json:"position"`
+	Erc20Balance *big.Int `json:"erc20Balance"`
 }
 
 func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
@@ -199,16 +201,34 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
+	token, err := contracts.NewTestToken(o.engine.contracts.P1MarginAddress, o.engine.httpCli)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	balance, err := token.BalanceOf(nil, addr)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
 	data, err := json.Marshal(&Balance{
-		Margin:   p1Balance.Margin,
-		Position: p1Balance.Position,
+		Margin:       negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
+		Position:     negBig(p1Balance.Position, p1Balance.PositionIsPositive),
+		Erc20Balance: balance,
 	})
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
 	fmt.Fprintf(w, string(data))
+}
 
+func negBig(n *big.Int, positive bool) *big.Int {
+	if positive {
+		return n
+	}
+	return n.Neg(n)
 }
 
 type WebOrder struct {
@@ -242,8 +262,8 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	addr := common.HexToAddress(vars[addrKey])
 
 	orders := make([]*WebOrder, 0)
-	o.book.addrMtx.RLock()
-	for _, order := range o.book.addrOrders[addr] {
+	o.orderQueue.book.addrMtx.RLock()
+	for _, order := range o.orderQueue.book.addrOrders[addr] {
 		exportOrder := ExportP1Order{
 			Flags:        order.Flags,
 			Amount:       order.Amount.String(),
@@ -267,7 +287,7 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 			Expiration:   fmt.Sprintf("%d hours", (order.Expiration.Int64()-time.Now().Unix())/3600),
 		})
 	}
-	o.book.addrMtx.RUnlock()
+	o.orderQueue.book.addrMtx.RUnlock()
 
 	data, err := json.Marshal(orders)
 	if err != nil {

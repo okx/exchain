@@ -73,12 +73,7 @@ func (q *OrderQueue) Enqueue(v *WrapOrder) bool {
 	}
 	q.m[v.Hash()] = q.list.PushBack(v)
 
-	if v.Type() == BuyOrderType {
-		_ = q.book.buyOrders.Insert(v)
-	} else if v.Type() == SellOrderType {
-		_ = q.book.sellOrders.Insert(v)
-	}
-
+	_ = q.book.Insert(v)
 	return true
 }
 
@@ -88,7 +83,7 @@ func (q *OrderQueue) Dequeue() *WrapOrder {
 
 	e := q.list.Front()
 	if e != nil {
-		return q.deleteElement(e)
+		return q.deleteElementAndKeepInBook(e)
 	}
 	return nil
 }
@@ -102,7 +97,7 @@ func (q *OrderQueue) DequeueN(target []*WrapOrder) (i int) {
 	for i = 0; i < count; i++ {
 		e := q.list.Front()
 		if e != nil {
-			target[i] = q.deleteElement(e)
+			target[i] = q.deleteElementAndKeepInBook(e)
 		} else {
 			return
 		}
@@ -114,7 +109,13 @@ func (q *OrderQueue) deleteElement(e *list.Element) *WrapOrder {
 	o := q.list.Remove(e).(*WrapOrder)
 	hash := o.Hash()
 	delete(q.m, hash)
-	q.book.Delete(hash)
+	q.book.DeleteByHash(hash)
+	return o
+}
+
+func (q *OrderQueue) deleteElementAndKeepInBook(e *list.Element) *WrapOrder {
+	o := q.list.Remove(e).(*WrapOrder)
+	delete(q.m, o.Hash())
 	return o
 }
 

@@ -178,6 +178,18 @@ func (d *OrderManager) Remove(order OrderRaw) {
 	d.orders.Remove(ele.(*clist.CElement))
 }
 
+func (d *OrderManager) CancelOrder(order OrderRaw) {
+	d.Remove(order)
+	var p1Order P1Order
+	err := p1Order.DecodeFrom(order)
+	if err != nil {
+		fmt.Println("decode order error:", err)
+		return
+	}
+	d.book.DeleteByHash(p1Order.Hash())
+	//TODO
+}
+
 func (d *OrderManager) Load(order OrderRaw) *clist.CElement {
 	v, ok := d.ordersMap.Load(order.Key())
 	if !ok {
@@ -194,17 +206,18 @@ func (d *OrderManager) Front() *clist.CElement {
 	return d.orders.Front()
 }
 
-func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled) bool {
-	if o := d.orderQueue.Get(filled.OrderHash); o != nil {
+func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled) *WrapOrder {
+	var o *WrapOrder
+	if o = d.orderQueue.Get(filled.OrderHash); o != nil {
 		o.LeftAmount.Sub(o.LeftAmount, filled.Fill.Amount)
 		d.logger.Debug("update order queue", "order", o.Hash(), "filled", filled.Fill.Amount, "left", o.LeftAmount)
 		if o.LeftAmount.Sign() == 0 {
 			d.orderQueue.Delete(filled.OrderHash)
 			d.logger.Debug("delete order queue", "order", o.Hash())
 		}
-		return true
+		return o
 	}
-	return false
+	return o
 }
 
 func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderCanceled) {
@@ -215,23 +228,38 @@ func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderC
 }
 
 func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFilled) {
-	if d.updateOrderQueue(filled) {
-		return
+	wodr := d.updateOrderQueue(filled)
+	if wodr == nil {
+		var orderList *OrderList
+		if filled.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
+			orderList = d.book.buyOrders
+		} else {
+			orderList = d.book.sellOrders
+		}
+		ele := orderList.Get(filled.OrderHash)
+		if ele == nil {
+			fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
+			return
+		}
+		wodr = ele.Value.(*WrapOrder)
+		wodr.Done(filled.Fill.Amount)
+
+		if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
+			orderList.Remove(ele)
+			d.book.addrMtx.Lock()
+			addrOrders := d.book.addrOrders[wodr.Maker]
+			for i, order := range addrOrders {
+				if order.Hash() == wodr.Hash() {
+					addrOrders = append(addrOrders[:i], addrOrders[i+1:]...)
+					break
+				}
+			}
+			d.book.addrOrders[wodr.Maker] = addrOrders
+			d.book.addrMtx.Unlock()
+			//TODO delete broadcast queue
+		}
 	}
 
-	var orderList *OrderList
-	if filled.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
-		orderList = d.book.buyOrders
-	} else {
-		orderList = d.book.sellOrders
-	}
-	ele := orderList.Get(filled.OrderHash)
-	if ele == nil {
-		fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
-		return
-	}
-	wodr := ele.Value.(*WrapOrder)
-	wodr.Done(filled.Fill.Amount)
 	d.historyMtx.Lock()
 	defer d.historyMtx.Unlock()
 	d.tradeHistory = append(d.tradeHistory, &FilledP1Order{
@@ -252,20 +280,6 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 		d.trades[filled.OrderHash] = filledOrder
 	}
 
-	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
-		orderList.Remove(ele)
-		d.book.addrMtx.Lock()
-		addrOrders := d.book.addrOrders[wodr.Maker]
-		for i, order := range addrOrders {
-			if order.Hash() == wodr.Hash() {
-				addrOrders = append(addrOrders[:i], addrOrders[i+1:]...)
-				break
-			}
-		}
-		d.book.addrOrders[wodr.Maker] = addrOrders
-		d.book.addrMtx.Unlock()
-		//TODO delete broadcast queue
-	}
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
 }
 
@@ -304,9 +318,6 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	nonce := d.engine.nonce + 1
 
 	d.orderQueue.Foreach(func(order *WrapOrder, index int, count int) bool {
-		if int64(index) == maxNum {
-			return false
-		}
 		iterCount++
 		mre, err := d.engine.MatchAndTrade(order)
 		if err != nil || mre == nil {
@@ -331,18 +342,20 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 			return true
 		}
 
-		if maxBytes > -1 && totalBytes+int64(len(txBz)) > maxBytes {
+		aminoOverhead := types.ComputeAminoOverhead(txBz, 1)
+		if maxBytes > -1 && totalBytes+int64(len(txBz))+aminoOverhead > maxBytes {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
 		}
+		totalBytes += int64(len(txBz)) + aminoOverhead
 		newTotalGas := totalGas + int64(tx.Gas())
 		if maxGas > -1 && newTotalGas > maxGas {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false
 		}
-		if len(tradeTxs) >= cap(tradeTxs) {
+		if len(tradeTxs) >= int(maxNum) {
 			iterCount--
 			d.engine.Rollback(mre)
 			return false

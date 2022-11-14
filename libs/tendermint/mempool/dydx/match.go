@@ -301,7 +301,7 @@ func (m *MatchEngine) trade(order1, order2 *dydxlib.SignedSolOrder, fill *contra
 
 func (m *MatchEngine) Rollback(matched *MatchResult) {
 	matched.Unfreeze()
-	m.depthBook.Delete(matched.TakerOrder.Hash())
+	m.depthBook.DeleteByHash(matched.TakerOrder.Hash())
 }
 
 func IsIntNilOrZero(i *big.Int) bool {
