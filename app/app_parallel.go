@@ -2,9 +2,11 @@ package app
 
 import (
 	"encoding/hex"
+	"sort"
 	"strings"
+	"sync"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/ethereum/go-ethereum/common"
 
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -12,6 +14,7 @@ import (
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -19,8 +22,25 @@ import (
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins) error {
-		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit *sync.Map) error {
+		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+		if err != nil {
+			return err
+		}
+
+		// split fee
+		// come from feesplit module
+		if txFeesplit != nil {
+			feesplits, sortAddrs := groupByAddrAndSortFeeSplits(txFeesplit)
+			for _, addr := range sortAddrs {
+				acc := sdk.MustAccAddressFromBech32(addr)
+				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
 	}
 }
 
@@ -34,11 +54,6 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 	return func(ctx sdk.Context, tx sdk.Tx, onlyVerifySig bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-			if evmTx.BaseTx.From == "" {
-				if ctx.From() != "" {
-					evmTx.BaseTx.From = ctx.From()
-				}
-			}
 			if evmTx.BaseTx.From == "" {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			}
@@ -109,4 +124,50 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 
 		return
 	}
+}
+
+type feeSplitInfo struct {
+	addr string
+	fee  sdk.Coins
+}
+
+func updateFeeSplitHandler(txFeesplit *sync.Map) sdk.UpdateFeeSplitHandler {
+	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins, isDelete bool) {
+		if isDelete {
+			// For rerun tx of parallel, feeSplitInfo is deleted when EnableFeeSplit is false
+			txFeesplit.Delete(txHash.String())
+		} else {
+			// For rerun tx of parallel, feeSplitInfo is rewritten
+			txFeesplit.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
+		}
+	}
+}
+
+// groupByAddrAndSortFeeSplits
+// feesplits must be ordered, not map(random),
+// to ensure that the account number of the withdrawer(new account) is consistent
+func groupByAddrAndSortFeeSplits(txFeesplit *sync.Map) (feesplits map[string]sdk.Coins, sortAddrs []string) {
+	feesplits = make(map[string]sdk.Coins)
+	txFeesplit.Range(func(key, value interface{}) bool {
+		feeInfo := value.(feeSplitInfo)
+
+		orgFee := feesplits[feeInfo.addr]
+		feesplits[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
+
+		txFeesplit.Delete(key)
+		return true
+	})
+	if len(feesplits) == 0 {
+		return
+	}
+
+	sortAddrs = make([]string, len(feesplits))
+	index := 0
+	for key := range feesplits {
+		sortAddrs[index] = key
+		index++
+	}
+	sort.Strings(sortAddrs)
+
+	return
 }

@@ -102,6 +102,14 @@ func IsWasmAddress(acc AccAddress) bool {
 	return len(acc) == WasmContractAddrLen
 }
 
+func IsETHAddress(addr string) bool {
+	return strings.HasPrefix(addr, "0x")
+}
+
+func IsOKCAddress(addr string) bool {
+	return strings.HasPrefix(addr, GetConfig().GetBech32AccountAddrPrefix())
+}
+
 // AccAddressFromHex creates an AccAddress from a hex string.
 func AccAddressFromHex(address string) (addr AccAddress, err error) {
 	if len(address) == 0 {
@@ -128,6 +136,16 @@ func VerifyAddressFormat(bz []byte) error {
 		return errors.New("incorrect address length")
 	}
 	return nil
+}
+
+// MustAccAddressFromBech32 calls AccAddressFromBech32 and panics on error.
+func MustAccAddressFromBech32(address string) AccAddress {
+	addr, err := AccAddressFromBech32(address)
+	if err != nil {
+		panic(err)
+	}
+
+	return addr
 }
 
 // AccAddressFromBech32 creates an AccAddress from a Bech32 string.

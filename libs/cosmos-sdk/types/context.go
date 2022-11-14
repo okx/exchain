@@ -374,11 +374,7 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 var emptyWatcher IWatcher = EmptyWatcher{}
 
 func (c *Context) ResetWatcher() {
-	if c.watcher != nil {
-		*c.watcher = TxWatcher{emptyWatcher}
-	} else {
-		c.watcher = &TxWatcher{emptyWatcher}
-	}
+	c.watcher = &TxWatcher{emptyWatcher}
 }
 
 func (c *Context) SetWatcher(w IWatcher) {
@@ -391,7 +387,7 @@ func (c *Context) SetWatcher(w IWatcher) {
 
 func (c *Context) GetWatcher() IWatcher {
 	if c.watcher == nil {
-		return EmptyWatcher{}
+		return emptyWatcher
 	}
 	return c.watcher.IWatcher
 }
