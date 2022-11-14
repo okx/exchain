@@ -19,6 +19,8 @@ var (
 	ParamStoreKeyDistributionType        = []byte("distributiontype")
 	ParamStoreKeyWithdrawRewardEnabled   = []byte("withdrawrewardenabled")
 	ParamStoreKeyRewardTruncatePrecision = []byte("rewardtruncateprecision")
+
+	IgnoreInitGenesisList = [][]byte{ParamStoreKeyDistributionType, ParamStoreKeyWithdrawRewardEnabled, ParamStoreKeyRewardTruncatePrecision}
 )
 
 // Params defines the set of distribution parameters.
@@ -49,8 +51,11 @@ func DefaultParams() Params {
 func (p Params) String() string {
 	return fmt.Sprintf(`Distribution Params:
   Community Tax:          %s
-  Withdraw Addr Enabled:  %t`,
-		p.CommunityTax, p.WithdrawAddrEnabled)
+  Withdraw Addr Enabled:  %t
+  Distribution Type: %d
+  Withdraw Reward Enabled: %t
+  Reward Truncate Precision: %d`,
+		p.CommunityTax, p.WithdrawAddrEnabled, p.DistributionType, p.WithdrawRewardEnabled, p.RewardTruncatePrecision)
 }
 
 // ParamSetPairs returns the parameter set pairs.
@@ -58,7 +63,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 	return params.ParamSetPairs{
 		params.NewParamSetPair(ParamStoreKeyCommunityTax, &p.CommunityTax, validateCommunityTax),
 		params.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
-		//TODO, Check the first block of the older version is not compatible
+		//new params for distribution proposal
 		params.NewParamSetPair(ParamStoreKeyDistributionType, &p.DistributionType, validateDistributionType),
 		params.NewParamSetPair(ParamStoreKeyWithdrawRewardEnabled, &p.WithdrawRewardEnabled, validateWithdrawRewardEnabled),
 		params.NewParamSetPair(ParamStoreKeyRewardTruncatePrecision, &p.RewardTruncatePrecision, validateRewardTruncatePrecision),
