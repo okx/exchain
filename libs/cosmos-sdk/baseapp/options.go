@@ -6,6 +6,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -162,12 +163,17 @@ func (app *BaseApp) SetRouter(router sdk.Router) {
 	app.router = router
 }
 
-// SetParallelTxHandler some resources for parallel txs
-func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccHandler, fixLog sdk.LogFix) {
+func (app *BaseApp) SetUpdateFeeCollectorAccHandler(handler sdk.UpdateFeeCollectorAccHandler) {
 	if app.sealed {
-		panic("SetPallTxHandler() on sealed BaseApp")
+		panic("SetUpdateFeeCollectorAccHandler() on sealed BaseApp")
 	}
-	app.updateFeeCollectorAccHandler = feeCollectt
+	app.updateFeeCollectorAccHandler = handler
+}
+
+func (app *BaseApp) SetParallelTxLogHandlers(fixLog sdk.LogFix) {
+	if app.sealed {
+		panic("SetPallTxLogHandler() on sealed BaseApp")
+	}
 	app.logFix = fixLog
 }
 
@@ -211,4 +217,8 @@ func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler) {
 		panic("SetGetTxFeeHandler() on sealed BaseApp")
 	}
 	app.getTxFeeHandler = handler
+}
+
+func (app *BaseApp) SetTmClient(client client.Client) {
+	app.tmClient = client
 }

@@ -4,11 +4,14 @@ import (
 	"log"
 
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,12 +38,13 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolVar(&types2.TrieUseCompositeKey, types2.FlagTrieUseCompositeKey, true, "Use composite key to store contract state")
 	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableFastStorage, false, "Enable fast storage")
-	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 100000, "Max size of iavl fast storage cache")
+	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 
 	return cmd
 }
 
 func setExternalPackageValue() {
-	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
-	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
+	enableFastStorage := viper.GetBool(tmiavl.FlagIavlEnableFastStorage) ||
+		appstatus.IsFastStorageStrategy()
+	tmiavl.SetEnableFastStorage(enableFastStorage)
 }

@@ -45,6 +45,7 @@ func TestCommissionValidateNewRate(t *testing.T) {
 	c1 := NewCommission(sdk.MustNewDecFromStr("0.40"), sdk.MustNewDecFromStr("0.80"), sdk.MustNewDecFromStr("0.10"))
 	c1.UpdateTime = now
 
+	//maxChangeRate 0.8
 	testCases := []struct {
 		input     Commission
 		newRate   sdk.Dec
@@ -55,14 +56,26 @@ func TestCommissionValidateNewRate(t *testing.T) {
 		{c1, sdk.MustNewDecFromStr("0.50"), now, true},
 		// invalid new commission rate; new rate < 0%
 		{c1, sdk.MustNewDecFromStr("-1.00"), now.Add(48 * time.Hour), true},
-		// invalid new commission rate; new rate > max rate
+		// invalid commission
+		{c1, sdk.MustNewDecFromStr("0.81"), now.Add(48 * time.Hour), true},
+		// invalid new commission rate
 		{c1, sdk.MustNewDecFromStr("0.90"), now.Add(48 * time.Hour), true},
-		// invalid new commission rate; new rate > max change rate
-		{c1, sdk.MustNewDecFromStr("0.60"), now.Add(48 * time.Hour), true},
+		// invalid new commission rate;
+		{c1, sdk.MustNewDecFromStr("0.60"), now.Add(48 * time.Hour), false},
 		// valid commission
 		{c1, sdk.MustNewDecFromStr("0.50"), now.Add(48 * time.Hour), false},
 		// valid commission
 		{c1, sdk.MustNewDecFromStr("0.10"), now.Add(48 * time.Hour), false},
+		// valid commission, maxChangeRate 0.8
+		{c1, sdk.MustNewDecFromStr("0.80"), now.Add(48 * time.Hour), false},
+		// valid commission,
+		{c1, sdk.MustNewDecFromStr("0.00"), now.Add(48 * time.Hour), false},
+		// valid commission
+		{c1, sdk.MustNewDecFromStr("0.000000001"), now.Add(48 * time.Hour), false},
+		// valid commission
+		{c1, sdk.MustNewDecFromStr("-0.000000001"), now.Add(48 * time.Hour), true},
+		// valid commission, maxChangeRate 0.8
+		{c1, sdk.MustNewDecFromStr("0.8000000001"), now.Add(48 * time.Hour), true},
 	}
 
 	for i, tc := range testCases {

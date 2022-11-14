@@ -14,6 +14,10 @@ const (
 	expectedOutput = `Address List:
 ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc
 ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc`
+	expectedBlockListOutput = `BlockedContractList List:
+Address: ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc
+Method List:
+Sign: aaaaExtra: aaaa()`
 )
 
 func TestAddressList_String(t *testing.T) {
@@ -22,6 +26,26 @@ func TestAddressList_String(t *testing.T) {
 
 	addrList := AddressList{accAddr, accAddr}
 	require.Equal(t, expectedOutput, addrList.String())
+}
+
+func TestBlockContractList_String(t *testing.T) {
+	accAddr, err := sdk.AccAddressFromBech32(addr)
+	require.NoError(t, err)
+	bcMethod := BlockedContract{
+		Address: accAddr,
+		BlockMethods: ContractMethods{
+			ContractMethod{
+				Sign:  "aaaa",
+				Extra: "aaaa()",
+			},
+		},
+	}
+	var blockContractList BlockedContractList
+	blockContractList = []BlockedContract{
+		bcMethod,
+	}
+
+	require.Equal(t, expectedBlockListOutput, blockContractList.String())
 }
 
 func TestBlockMethod(t *testing.T) {
@@ -61,8 +85,10 @@ func TestContractMethodBlockedCache_SetContractMethod(t *testing.T) {
 	bc := BlockedContract{Address: accAddr, BlockMethods: cmm}
 
 	data := ModuleCdc.MustMarshalJSON(bc.BlockMethods)
-	cmbl.SetContractMethod(data, bc.BlockMethods)
 	resultBc, ok := cmbl.GetContractMethod(data)
+	require.False(t, ok)
+	cmbl.SetContractMethod(data, bc.BlockMethods)
+	resultBc, ok = cmbl.GetContractMethod(data)
 	require.True(t, ok)
 	atcalData := ModuleCdc.MustMarshalJSON(resultBc)
 	require.Equal(t, data, atcalData)

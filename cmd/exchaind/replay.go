@@ -14,6 +14,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -59,6 +60,12 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 		Short: "Replay blocks from local db",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// set external package flags
+			log.Println("--------- replay preRun ---------")
+			err := sanity.CheckStart()
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
 			server.SetExternalPackageValue(cmd)
 			types.InitSignatureCache()
 			return nil
@@ -137,7 +144,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 	if tmNode != nil {
 		stateStoreDB = tmNode.StateDB()
 	} else {
-		stateStoreDB, err = openDB(stateDB, dataDir)
+		stateStoreDB, err = sdk.NewDB(stateDB, dataDir)
 	}
 	panicError(err)
 
@@ -184,14 +191,10 @@ func panicError(err error) {
 	}
 }
 
-func openDB(dbName string, dataDir string) (db dbm.DB, err error) {
-	return sdk.NewLevelDB(dbName, dataDir)
-}
-
 func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	db, err := openDB(applicationDB, dataDir)
+	db, err := sdk.NewDB(applicationDB, dataDir)
 	panicError(err)
 	app := newApp(ctx.Logger, db, nil)
 	clientCreator := proxy.NewLocalClientCreator(app)
@@ -258,7 +261,7 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 	if !alreadyInit {
 		alreadyInit = true
 		dataDir := filepath.Join(ctx.Config.RootDir, "data")
-		blockStoreDB, err := openDB(blockStoreDB, dataDir)
+		blockStoreDB, err := sdk.NewDB(blockStoreDB, dataDir)
 		panicError(err)
 		stateStoreDb = store.NewBlockStore(blockStoreDB)
 	}
@@ -296,7 +299,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 	var originBlockStore *store.BlockStore
 	var err error
 	if blockStore == nil {
-		originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
+		originBlockStoreDB, err := sdk.NewDB(blockStoreDB, originDataDir)
 		panicError(err)
 		originBlockStore = store.NewBlockStore(originBlockStoreDB)
 	} else {
