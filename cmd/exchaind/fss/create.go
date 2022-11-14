@@ -3,6 +3,7 @@ package fss
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/cmd/exchaind/base"
@@ -46,7 +47,7 @@ func outputModules(storeKeys []string) {
 func createIndex(storeKeys []string) error {
 	dataDir := viper.GetString(flagDataDir)
 	dbBackend := viper.GetString(sdk.FlagDBBackend)
-	db, err := base.OpenDB(dataDir+base.AppDBName, dbm.BackendType(dbBackend))
+	db, err := base.OpenDB(filepath.Join(dataDir, base.AppDBName), dbm.BackendType(dbBackend))
 	if err != nil {
 		return fmt.Errorf("error opening dir %v backend %v DB: %w", dataDir, dbBackend, err)
 	}
