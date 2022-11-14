@@ -174,6 +174,13 @@ func (b BankKeeperProxy) BlacklistedAddr(addr sdk.AccAddress) bool {
 	return b.blacklistedAddrs[addr.String()]
 }
 
+type StakingKeeperProxy struct {
+}
+
+func (s StakingKeeperProxy) IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool {
+	return true
+}
+
 type InternalDba struct {
 	dbPrefix []byte
 	ocProxy  QueryOnChainProxy
