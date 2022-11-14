@@ -3,14 +3,15 @@ package fss
 import (
 	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 const (
-	flagDataDir   = "data_dir"
-	flagDBBackend = "db_backend"
+	flagDataDir = "data_dir"
 )
 
 func Command(ctx *server.Context) *cobra.Command {
@@ -33,9 +34,9 @@ include create sub command`,
 
 func init() {
 	fssCmd.PersistentFlags().StringP(flagDataDir, "d", "./", "The chain data file location")
-	fssCmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	fssCmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	viper.BindPFlag(flagDataDir, fssCmd.PersistentFlags().Lookup(flagDataDir))
-	viper.BindPFlag(flagDBBackend, fssCmd.PersistentFlags().Lookup(flagDBBackend))
+	viper.BindPFlag(sdk.FlagDBBackend, fssCmd.PersistentFlags().Lookup(sdk.FlagDBBackend))
 }
 
 func outputModules(storeKeys []string) {
