@@ -226,7 +226,6 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 			Position: big.NewInt(0),
 		}
 	}
-	fmt.Println("p1 balance cache", p1BalanceCache)
 
 	data, err := json.Marshal(&Balance{
 		Margin:        negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
