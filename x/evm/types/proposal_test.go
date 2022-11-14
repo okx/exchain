@@ -507,3 +507,45 @@ func (suite *ProposalTestSuite) TestProposal_ManageSysContractAddressProposal() 
 		})
 	}
 }
+
+func (suite *ProposalTestSuite) TestFixShortAddr() {
+	testCases := []struct {
+		msg           string
+		shouldFix     bool
+		contractList  BlockedContractList
+		expectedFixed bool
+	}{
+		{
+			"pass after fix",
+			true,
+			[]BlockedContract{{Address: []byte{0x3}}},
+			true,
+		},
+		{
+			"not pass if not fix",
+			false,
+			[]BlockedContract{{Address: []byte{0x3}}},
+			false,
+		},
+	}
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+
+			proposal := NewManageContractMethodBlockedListProposal(
+				"default title",
+				"default description",
+				tc.contractList,
+				true,
+			)
+			if tc.shouldFix {
+				proposal.FixShortAddr()
+			}
+
+			if tc.expectedFixed {
+				suite.Require().Equal(len(proposal.ContractList[0].Address), 20)
+			} else {
+				suite.Require().NotEqual(len(proposal.ContractList[0].Address), 20)
+			}
+		})
+	}
+}

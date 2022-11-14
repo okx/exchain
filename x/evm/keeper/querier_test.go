@@ -2,14 +2,11 @@ package keeper_test
 
 import (
 	"fmt"
-	"math/big"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
-
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/exchain/x/evm/types"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/evm/types"
+	"math/big"
 )
 
 func (suite *KeeperTestSuite) TestQuerier() {
@@ -54,6 +51,12 @@ func (suite *KeeperTestSuite) TestQuerier() {
 		}, true},
 		{"unknown request", []string{"other"}, func() {}, false},
 		{"parameters", []string{types.QueryParameters}, func() {}, true},
+		{"storage by key", []string{types.QueryStorageByKey, "0xE3Db5e3cfDbBa56FfdDED5792DaAB8A2DC9c52c4", "key"}, func() {}, true},
+		{"storage height to hash", []string{types.QueryHeightToHash, "1"}, func() {}, true},
+		//{"storage section", []string{types.QuerySection, "1"}, func() {}, true},
+		{"contract deploy white list", []string{types.QueryContractDeploymentWhitelist}, func() {}, true},
+		{"contract blocked list", []string{types.QueryContractBlockedList}, func() {}, true},
+		{"contract method blocked list", []string{types.QueryContractMethodBlockedList}, func() {}, true},
 	}
 
 	for i, tc := range testCases {
