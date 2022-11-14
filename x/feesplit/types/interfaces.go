@@ -30,4 +30,5 @@ type GovKeeper interface {
 
 type EvmKeeper interface {
 	AddInnerTx(...interface{})
+	DeleteInnerTx(...interface{})
 }

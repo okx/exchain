@@ -3,13 +3,23 @@ package keeper_test
 import (
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"github.com/okex/exchain/x/erc20/keeper"
 )
 
+const CorrectIbcDenom2 = "ibc/3EF3B49764DB0E2284467F8BF7A08C18EACACB30E1AD7ABA8E892F1F679443F9"
 const CorrectIbcDenom = "ibc/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 func (suite *KeeperTestSuite) TestSendToIbcHandler() {
@@ -40,6 +50,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 					"recipient",
 					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
@@ -61,6 +72,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 					"recipient",
 					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
@@ -68,6 +80,60 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 		},
 		{
 			"success send to ibc",
+			func() {
+				amount := sdk.NewInt(100)
+				suite.app.TransferKeeper.SetParams(suite.ctx, types2.Params{
+					true, true,
+				})
+				channelA := "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+				suite.app.TransferKeeper.SetDenomTrace(suite.ctx, types2.DenomTrace{
+					BaseDenom: "ibc/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", Path: "",
+				})
+				suite.app.TransferKeeper.BindPort(suite.ctx, "transfer")
+				cap, _ := suite.app.ScopedTransferKeeper.NewCapability(suite.ctx, host.ChannelCapabilityPath("transfer", channelA))
+				suite.app.ScopedIBCKeeper.ClaimCapability(suite.ctx, cap, host.ChannelCapabilityPath("transfer", channelA))
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, CorrectIbcDenom2, contract)
+				c := channeltypes.Channel{
+					State:    channeltypes.OPEN,
+					Ordering: channeltypes.UNORDERED,
+					Counterparty: channeltypes.Counterparty{
+						PortId:    "transfer",
+						ChannelId: channelA,
+					},
+					ConnectionHops: []string{"one"},
+					Version:        "version",
+				}
+
+				suite.app.IBCKeeper.ChannelKeeper.SetNextSequenceSend(suite.ctx, "transfer", channelA, 1)
+				suite.app.IBCKeeper.ChannelKeeper.SetChannel(suite.ctx, "transfer", channelA, c)
+				counterparty := connectiontypes.NewCounterparty("client-1", "one", commitmenttypes.NewMerklePrefix([]byte("ibc")))
+				conn1 := connectiontypes.NewConnectionEnd(connectiontypes.OPEN, "client-1", counterparty, connectiontypes.ExportedVersionsToProto(connectiontypes.GetCompatibleVersions()), 0)
+				period := time.Hour * 24 * 7 * 2
+				clientState := ibctmtypes.NewClientState("testChainID", ibctmtypes.DefaultTrustLevel, period, period, period, types.NewHeight(0, 5), commitmenttypes.GetSDKSpecs(), ibctesting.UpgradePath, false, false)
+				suite.app.IBCKeeper.ClientKeeper.SetClientState(suite.ctx, "client-1", clientState)
+				consensusState := ibctmtypes.NewConsensusState(time.Now(), commitmenttypes.NewMerkleRoot([]byte("root")), []byte("nextValsHash"))
+				suite.app.IBCKeeper.ClientKeeper.SetClientConsensusState(suite.ctx, "client-1", types.NewHeight(0, 5), consensusState)
+				suite.app.IBCKeeper.ConnectionKeeper.SetConnection(suite.ctx, "one", conn1)
+				coin := sdk.NewCoin(CorrectIbcDenom2, amount)
+				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
+				suite.Require().NoError(err)
+
+				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), CorrectIbcDenom2)
+				suite.Require().Equal(coin, balance)
+
+				input, err := keeper.SendToIbcEvent.Inputs.Pack(
+					sender,
+					"recipient",
+					coin.Amount.BigInt(),
+				)
+				suite.Require().NoError(err)
+				data = input
+			},
+			func() {},
+			nil,
+		},
+		{
+			"denomination trace not found",
 			func() {
 				amount := sdk.NewInt(100)
 				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, validDenom, contract)
@@ -81,12 +147,13 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 				input, err := keeper.SendToIbcEvent.Inputs.Pack(
 					sender,
 					"recipient",
-					amount,
+					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
-			nil,
+			errors.New("denomination trace not found: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 		},
 	}
 
@@ -135,6 +202,7 @@ func (suite *KeeperTestSuite) TestSendNative20ToIbcHandler() {
 					"recipient",
 					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
@@ -155,12 +223,40 @@ func (suite *KeeperTestSuite) TestSendNative20ToIbcHandler() {
 				input, err := keeper.SendToIbcEvent.Inputs.Pack(
 					sender,
 					"recipient",
-					amount,
+					amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
 			nil,
+		},
+		{
+			"portid channel error",
+			func() {
+
+				amount := sdk.NewInt(100)
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, validDenom, contract)
+				coin := sdk.NewCoin(validDenom, amount)
+				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
+				suite.Require().NoError(err)
+				suite.ctx.SetIsCheckTx(false)
+				suite.ctx.SetIsTraceTx(false)
+				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), validDenom)
+				suite.Require().Equal(coin, balance)
+				suite.app.TransferKeeper.SetParams(suite.ctx, types2.Params{true, true})
+				input, err := keeper.SendNative20ToIbcEvent.Inputs.Pack(
+					sender,
+					"recipient",
+					coin.Amount.BigInt(),
+					"transfer",
+					"channel-0",
+				)
+				suite.Require().NoError(err)
+				data = input
+			},
+			func() {},
+			errors.New("channel not found: port ID (transfer) channel ID (channel-0)"),
 		},
 	}
 
