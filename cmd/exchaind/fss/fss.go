@@ -1,10 +1,9 @@
 package fss
 
 import (
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/x/evm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -27,7 +26,7 @@ This command include a set of command of the IAVL fast storage.
 include create sub command`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		iavl.SetEnableFastStorage(true)
-		storeKeys := getStoreKeys()
+		storeKeys := appstatus.GetAllStoreKeys()
 		outputModules(storeKeys)
 	},
 }
@@ -37,13 +36,6 @@ func init() {
 	fssCmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
 	viper.BindPFlag(flagDataDir, fssCmd.PersistentFlags().Lookup(flagDataDir))
 	viper.BindPFlag(flagDBBackend, fssCmd.PersistentFlags().Lookup(flagDBBackend))
-}
-
-func getStoreKeys() []string {
-	return []string{
-		auth.StoreKey,
-		evm.StoreKey,
-	}
 }
 
 func outputModules(storeKeys []string) {

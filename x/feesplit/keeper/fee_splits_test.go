@@ -180,7 +180,7 @@ func (suite *KeeperTestSuite) TestGetFeeSplit() {
 			if tc.found {
 				feeSplit := types.NewFeeSplit(tc.contract, tc.deployer, tc.withdraw)
 				if tc.deployer.Equals(tc.withdraw) {
-					feeSplit.WithdrawerAddress = ""
+					feeSplit.WithdrawerAddress = nil
 				}
 
 				suite.app.FeeSplitKeeper.SetFeeSplit(suite.ctx, feeSplit)
@@ -197,16 +197,16 @@ func (suite *KeeperTestSuite) TestGetFeeSplit() {
 
 			if tc.found {
 				suite.Require().True(found, tc.name)
-				suite.Require().Equal(tc.deployer.String(), feeSplit.DeployerAddress, tc.name)
-				suite.Require().Equal(tc.contract.Hex(), feeSplit.ContractAddress, tc.name)
+				suite.Require().Equal(tc.deployer, feeSplit.DeployerAddress, tc.name)
+				suite.Require().Equal(tc.contract, feeSplit.ContractAddress, tc.name)
 
 				suite.Require().True(foundD, tc.name)
 
 				if tc.expWithdraw {
-					suite.Require().Equal(tc.withdraw.String(), feeSplit.WithdrawerAddress, tc.name)
+					suite.Require().Equal(tc.withdraw, feeSplit.WithdrawerAddress, tc.name)
 					suite.Require().True(foundW, tc.name)
 				} else {
-					suite.Require().Equal("", feeSplit.WithdrawerAddress, tc.name)
+					suite.Require().Equal(tc.deployer, feeSplit.WithdrawerAddress, tc.name)
 					suite.Require().False(foundW, tc.name)
 				}
 			} else {

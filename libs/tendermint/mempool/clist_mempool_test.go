@@ -418,7 +418,7 @@ func TestMempoolMaxMsgSize(t *testing.T) {
 
 		tx := tmrand.Bytes(testCase.len)
 		err := mempl.CheckTx(tx, nil, TxInfo{})
-		msg := &TxMessage{tx}
+		msg := &TxMessage{tx, ""}
 		encoded := cdc.MustMarshalBinaryBare(msg)
 		require.Equal(t, len(encoded), txMessageSize(tx), caseString)
 		if !testCase.err {
@@ -984,4 +984,30 @@ func TestTxOrTxHashToKey(t *testing.T) {
 	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
 
 	types.UnittestOnlySetMilestoneVenusHeight(old)
+}
+
+func TestConsumePendingtxConcurrency(t *testing.T) {
+
+	app := kvstore.NewApplication()
+	cc := proxy.NewLocalClientCreator(app)
+	mem, cleanup := newMempoolWithApp(cc)
+	defer cleanup()
+	mem.pendingPool = newPendingPool(500000, 3, 10, 500000)
+
+	for i := 0; i < 10000; i++ {
+		mem.pendingPool.addTx(&mempoolTx{height: 1, gasWanted: 1, tx: []byte(strconv.Itoa(i)), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(3780), Nonce: uint64(i)}})
+	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	startWg := &sync.WaitGroup{}
+	startWg.Add(1)
+	go func() {
+		startWg.Wait()
+		mem.consumePendingTx("1", 0)
+		wg.Done()
+	}()
+	startWg.Done()
+	mem.consumePendingTx("1", 5000)
+	wg.Wait()
+	require.Equal(t, 0, mem.pendingPool.Size())
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/cmd/exchaind/base"
 	"github.com/okex/exchain/libs/iavl"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -25,9 +26,13 @@ This command is a tool to generate the IAVL fast index.
 It will take long based on the original database size.
 When the create lunched, it will show Upgrade to Fast IAVL...`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		storeKeys := getStoreKeys()
+		storeKeys := appstatus.GetAllStoreKeys()
 		return createIndex(storeKeys)
 	},
+}
+
+func init() {
+	fssCmd.AddCommand(createCmd)
 }
 
 func createIndex(storeKeys []string) error {

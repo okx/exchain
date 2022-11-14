@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/cmd/exchaind/base"
 	"github.com/okex/exchain/libs/iavl"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -24,7 +25,7 @@ var checkCmd = &cobra.Command{
 	Long: `Check fast index with IAVL original nodes:
 This command is a tool to check the IAVL fast index.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		storeKeys := getStoreKeys()
+		storeKeys := appstatus.GetAllStoreKeys()
 		return check(storeKeys)
 	},
 }
@@ -38,12 +39,13 @@ func check(storeKeys []string) error {
 	}
 	defer db.Close()
 
+	if !appstatus.IsFastStorageStrategy() {
+		return fmt.Errorf("db haven't upgraded to fast IAVL")
+	}
+
 	for _, key := range storeKeys {
 		prefix := []byte(fmt.Sprintf("s/k:%s/", key))
 		prefixDB := dbm.NewPrefixDB(db, prefix)
-		if !isFastStorageStorage(prefixDB) {
-			return fmt.Errorf("db %v haven't upgraded to fast IAVL", key)
-		}
 		log.Printf("Checking.... %v\n", key)
 
 		mutableTree, err := iavl.NewMutableTree(prefixDB, 0)
@@ -95,8 +97,4 @@ func checkIndex(mutableTree *iavl.MutableTree) error {
 	}
 
 	return nil
-}
-
-func isFastStorageStorage(prefixDB dbm.DB) bool {
-	return true
 }

@@ -50,12 +50,17 @@ func (k Keeper) PostTxProcessing(
 	currentGasMeter := ctx.GasMeter()
 	infGasMeter := sdk.GetReusableInfiniteGasMeter()
 	ctx.SetGasMeter(infGasMeter)
+	defer func() {
+		ctx.SetGasMeter(currentGasMeter)
+		sdk.ReturnInfiniteGasMeter(infGasMeter)
+	}()
 
-	params := k.GetParams(ctx)
-	ctx.SetGasMeter(currentGasMeter)
-	sdk.ReturnInfiniteGasMeter(infGasMeter)
 	// check if the fees are globally enabled
+	params := k.GetParamsWithCache(ctx)
 	if !params.EnableFeeSplit {
+		// delete feesplit info
+		k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
+		k.deleteFeesplitInnertx(receipt.TxHash.Hex())
 		return nil
 	}
 
@@ -65,19 +70,19 @@ func (k Keeper) PostTxProcessing(
 	}
 
 	// if the contract is not registered to receive fees, do nothing
-	feeSplit, found := k.GetFeeSplit(ctx, *contract)
+	feeSplit, found := k.GetFeeSplitWithCache(ctx, *contract)
 	if !found {
 		return nil
 	}
 
-	withdrawer := feeSplit.GetWithdrawerAddr()
-	if len(withdrawer) == 0 {
-		withdrawer = feeSplit.GetDeployerAddr()
+	withdrawer := feeSplit.WithdrawerAddress
+	if withdrawer.Empty() {
+		withdrawer = feeSplit.DeployerAddress
 	}
 
 	developerShares := params.DeveloperShares
 	// if the contract shares is set by proposal
-	shares, found := k.GetContractShare(ctx, *contract)
+	shares, found := k.GetContractShareWithCache(ctx, *contract)
 	if found {
 		developerShares = shares
 	}
@@ -85,7 +90,7 @@ func (k Keeper) PostTxProcessing(
 		return nil
 	}
 
-	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(ctx.GasMeter().GasConsumed()))
+	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(currentGasMeter.GasConsumed()))
 	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(developerShares)
 	if developerFee.LTE(sdk.ZeroDec()) {
 		return nil
@@ -93,7 +98,7 @@ func (k Keeper) PostTxProcessing(
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
 	// distribute the fees to the contract deployer / withdraw address
-	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
+	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees, false)
 
 	// add innertx
 	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())

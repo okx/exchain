@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	"github.com/okex/exchain/x/wasm/proxy"
@@ -29,6 +30,7 @@ import (
 	evmrest "github.com/okex/exchain/x/evm/client/rest"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	farmrest "github.com/okex/exchain/x/farm/client/rest"
+	fsrest "github.com/okex/exchain/x/feesplit/client/rest"
 	govrest "github.com/okex/exchain/x/gov/client/rest"
 	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
@@ -77,6 +79,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
 	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
+	fsrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
@@ -87,6 +90,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),
+			evmclient.ManageSysContractAddressProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
@@ -103,4 +107,5 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
+	fsrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }
