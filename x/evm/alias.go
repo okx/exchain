@@ -26,8 +26,9 @@ var (
 
 //nolint
 type (
-	Keeper       = keeper.Keeper
-	GenesisState = types.GenesisState
+	Keeper        = keeper.Keeper
+	GenesisState  = types.GenesisState
+	EvmLogHandler = types.EvmLogHandler
 )
 
 func WithMoreDeocder(cdc *codec.Codec, cc sdk.TxDecoder) sdk.TxDecoder {
