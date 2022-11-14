@@ -29,7 +29,7 @@ const (
 
 	// 0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
 	// 0x2594E83A94F89Ffb923773ddDfF723BbE017b80D localnet
-	placeOrderContractAddr = "0xc337F8F91B2b803dA19263792E3e52157bEF8B4B"
+	placeOrderContractAddr = "0x9a59ae3Fc0948717F94242fc170ac1d5dB3f0D5D"
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
