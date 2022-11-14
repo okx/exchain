@@ -218,7 +218,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	} else if mode == runTxModeDeliverInAsync {
 		anteCtx = info.ctx
 		info.msCacheAnte = nil
-		msCacheAnte, useCurrentState := app.parallelTxManage.getBaseMs(info.txIndex)
+		msCacheAnte, useCurrentState := app.parallelTxManage.getParentMsByTxIndex(info.txIndex)
 		if msCacheAnte == nil {
 			return errors.New("Need Skip:txIndex smaller than currentIndex")
 		}

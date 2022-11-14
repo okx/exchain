@@ -206,7 +206,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 				break
 			}
 			isReRun := false
-			if pm.newIsConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
+			if pm.isConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
 				isReRun = true
 				// conflict rerun tx
@@ -249,7 +249,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	pm.resultCb = asyncCb
 	pm.StartResultHandle()
 	for index := 0; index < len(pm.groupList); index++ {
-		pm.groupTasks = append(pm.groupTasks, newGroupTask(pm.addMultiCache, pm.nextTxIn, app.asyncDeliverTx, pm.putResult))
+		pm.groupTasks = append(pm.groupTasks, newGroupTask(pm.addMultiCache, pm.nextTxInThisGroup, app.asyncDeliverTx, pm.putResult))
 		pm.groupTasks[index].addTask(pm.groupList[index][0])
 	}
 	if len(pm.groupList) == 0 {
@@ -279,7 +279,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	return pm.deliverTxs
 }
 
-func (pm *parallelTxManager) nextTxIn(txindex int) (int, bool) {
+func (pm *parallelTxManager) nextTxInThisGroup(txindex int) (int, bool) {
 	if pm.alreadyEnd {
 		return 0, false
 	}
@@ -351,7 +351,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 type executeResult struct {
 	resp        abci.ResponseDeliverTx
 	ms          sdk.CacheMultiStore
-	msIsNil     bool
+	msIsNil     bool // TODO delete it
 	counter     uint32
 	paraMsg     *sdk.ParaMsg
 	blockHeight int64
@@ -640,7 +640,7 @@ func (pm *parallelTxManager) addBlockCacheToChainCache() {
 	pm.blockMultiStores.Clear()
 }
 
-func (pm *parallelTxManager) newIsConflict(e *executeResult) bool {
+func (pm *parallelTxManager) isConflict(e *executeResult) bool {
 	if e.msIsNil {
 		return true //TODO fix later
 	}
@@ -710,7 +710,7 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	pm.deliverTxs = make([]*abci.ResponseDeliverTx, txSize)
 }
 
-func (pm *parallelTxManager) getBaseMs(txIndex int) (sdk.CacheMultiStore, bool) {
+func (pm *parallelTxManager) getParentMsByTxIndex(txIndex int) (sdk.CacheMultiStore, bool) {
 
 	if txIndex <= pm.upComingTxIndex-1 {
 		return nil, false
