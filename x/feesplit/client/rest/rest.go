@@ -21,16 +21,37 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/feesplit/contract/{contract}", contractHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/feesplit/deployer/{deployer}", deployerHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/feesplit/withdrawer/{withdrawer}", withdrawerHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/feesplit/parameters", queryParamsHandlerFn(cliCtx)).Methods("GET")
 }
 
 func RegisterRoutesV2(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/feesplit/contract/{contract}", contractHandlerFnV2(cliCtx)).Methods("GET")
 	r.HandleFunc("/feesplit/deployer/{deployer}", deployerHandlerFnV2(cliCtx)).Methods("GET")
+	r.HandleFunc("/feesplit/parameters", queryParamsHandlerFnV2(cliCtx)).Methods("GET")
 }
 
 // FeeSplitSharesProposalRESTHandler defines feesplit proposal handler
 func FeeSplitSharesProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
+}
+
+func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s",
+			types.RouterKey, types.QueryParameters), nil)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
 }
 
 func contractHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -243,6 +264,37 @@ func deployerHandlerFnV2(cliCtx context.CLIContext) http.HandlerFunc {
 			if addr, err := sdk.AccAddressFromBech32(fs.WithdrawerAddress); err == nil {
 				result.FeeSplits[i].WithdrawerAddress = ethcmn.BytesToAddress(addr.Bytes()).String()
 			}
+		}
+
+		resultJson, err := json.Marshal(comm.GetBaseResponse(result))
+		if err != nil {
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, resultJson)
+	}
+}
+
+func queryParamsHandlerFnV2(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s",
+			types.RouterKey, types.QueryParameters), nil)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		var result types.QueryParamsResponse
+		if err := cliCtx.Codec.UnmarshalJSON(res, &result); err != nil {
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
+			return
 		}
 
 		resultJson, err := json.Marshal(comm.GetBaseResponse(result))
