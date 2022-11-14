@@ -2,13 +2,14 @@ package fss
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 )
 
 const (
-	flagDataDir   = "data_dir"
-	flagDBBackend = "db_backend"
+	flagDataDir = "data_dir"
 )
 
 func Command(ctx *server.Context) *cobra.Command {
@@ -26,5 +27,5 @@ include create sub command`,
 
 func init() {
 	fssCmd.PersistentFlags().StringP(flagDataDir, "d", "./", "The chain data file location")
-	fssCmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	fssCmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 }
