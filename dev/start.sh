@@ -29,7 +29,7 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --enable-dynamic-gp=false \
-      --consensus.timeout_commit 2000ms \
+      --consensus.timeout_commit 200ms \
       --enable-preruntx=false \
       --iavl-enable-async-commit \
       --enable-gid \
@@ -37,8 +37,7 @@ run() {
       --iavl-output-modules evm=0,acc=0 \
       --commit-gap-height 3 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
-      --elapsed Round=1,CommitRound=1,Produce=1 \
-      --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &
+      --elapsed Round=1,CommitRound=1,Produce=1 > okc.txt 2>&1 &
 
 # --iavl-commit-interval-height \
 # --iavl-enable-async-commit \

@@ -58,7 +58,8 @@ func Serve(listener net.Listener, handler http.Handler, logger log.Logger, confi
 		WriteTimeout:   config.WriteTimeout,
 		MaxHeaderBytes: config.MaxHeaderBytes,
 	}
-	err := s.Serve(listener)
+	//err := s.Serve(listener)
+	err := s.ServeTLS(listener, "./cert/cert.pem", "./cert/privkey.pem")
 	logger.Info("RPC HTTP server stopped", "err", err)
 	return err
 }
