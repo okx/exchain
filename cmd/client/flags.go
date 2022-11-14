@@ -1,6 +1,8 @@
 package client
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
@@ -19,7 +21,6 @@ import (
 	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
-	"github.com/spf13/cobra"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
@@ -56,6 +57,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Uint64(config.FlagGasLimitBuffer, 50, "Percentage to increase gas limit")
 	cmd.Flags().String(rpc.FlagDisableAPI, "", "Set the RPC API to be disabled, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
 	cmd.Flags().Int(config.FlagDynamicGpWeight, 80, "The recommended weight of dynamic gas price [1,100])")
+	cmd.Flags().Int(config.FlagDynamicGpCheckBlocks, 5, "The recommended number of blocks checked of dynamic gas price [1,100])")
 	cmd.Flags().Bool(config.FlagEnableDynamicGp, true, "Enable node to dynamic support gas price suggest")
 	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")

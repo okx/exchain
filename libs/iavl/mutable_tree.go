@@ -817,7 +817,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 	}
 
 	// apply state delta
-	if useDeltas {
+	if useDeltas && tree.hasNewNode() {
 		tree.root = tree.savedNodes["root"]
 	}
 
@@ -841,7 +841,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	} else {
 		tree.log(IavlDebug, "SAVE TREE", "version", version)
-		if useDeltas {
+		if useDeltas && tree.hasNewNode() {
 			tree.SaveBranch(batch, tree.root)
 			if hex.EncodeToString(tree.root.hash) != hex.EncodeToString(tree.savedNodes["root"].hash) {
 				return nil, version, fmt.Errorf("wrong deltas. get hash %X (want hash %X)", tree.savedNodes["root"].hash, tree.root.hash)
@@ -851,8 +851,10 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 		// generate state delta
 		if produceDelta {
-			delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
-			tree.savedNodes["root"] = tree.root
+			if tree.hasNewNode() {
+				delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
+				tree.savedNodes["root"] = tree.root
+			}
 			tree.GetDelta()
 		}
 
@@ -1253,4 +1255,8 @@ func (tree *MutableTree) SetUpgradeVersion(version int64) {
 
 func (tree *MutableTree) GetUpgradeVersion() int64 {
 	return tree.upgradeVersion
+}
+
+func (tree *MutableTree) hasNewNode() bool {
+	return len(tree.savedNodes) > 0
 }

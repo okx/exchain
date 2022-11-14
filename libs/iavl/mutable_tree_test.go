@@ -12,14 +12,96 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/okex/exchain/libs/iavl/mock"
+	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )
 
+var (
+	// FIXME: enlarge maxIterator to 100000
+	maxIterator = 100
+)
+
 func init() {
 	SetEnableFastStorage(true)
+}
+
+func setupMutableTree(t *testing.T) *MutableTree {
+	memDB := db.NewMemDB()
+	tree, err := NewMutableTree(memDB, 0)
+	require.NoError(t, err)
+	return tree
+}
+
+// TestIterateConcurrency throws "fatal error: concurrent map writes" when fast node is enabled
+func TestIterateConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	wg := new(sync.WaitGroup)
+	for i := 0; i < 100; i++ {
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		tree.Iterate(func(key []byte, value []byte) bool {
+			return false
+		})
+	}
+	wg.Wait()
+}
+
+// TestConcurrency throws "fatal error: concurrent map iteration and map write" and
+// also sometimes "fatal error: concurrent map writes" when fast node is enabled
+func TestIteratorConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	tree.LoadVersion(0)
+	// So much slower
+	wg := new(sync.WaitGroup)
+	for i := 0; i < 100; i++ {
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		itr := tree.Iterator(nil, nil, true)
+		for ; itr.Valid(); itr.Next() {
+		}
+	}
+	wg.Wait()
+}
+
+// TestNewIteratorConcurrency throws "fatal error: concurrent map writes" when fast node is enabled
+func TestNewIteratorConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	for i := 0; i < 100; i++ {
+		wg := new(sync.WaitGroup)
+		it := NewIterator(nil, nil, true, tree.ImmutableTree)
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		for ; it.Valid(); it.Next() {
+		}
+		wg.Wait()
+	}
 }
 
 func TestDelete(t *testing.T) {
@@ -271,7 +353,6 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{0x01})
-
 	// not use delta and not produce delta
 	h, v, delta, err := tree.SaveVersion(false)
 	require.NoError(t, err)
@@ -279,6 +360,7 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	assert.EqualValues(t, 9, v)
 	assert.Equal(t, delta, emptyDelta)
 
+	tree.Set([]byte("a"), []byte{0x01})
 	// not use delta and produce delta
 	SetProduceDelta(true)
 	h1, v1, delta1, err := tree.SaveVersion(false)
@@ -288,22 +370,12 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	// delta is empty or not depends on SetProduceDelta()
 	assert.NotEqual(t, delta1, emptyDelta)
 
-	// use delta and produce delta
-	tree.Set([]byte("b"), []byte{0x02})
-	tree.SetDelta(&delta1)
-	h2, v2, delta2, err := tree.SaveVersion(true)
-	require.NoError(t, err)
-	assert.NotEmpty(t, h2)
-	assert.EqualValues(t, 11, v2)
-	assert.NotEqual(t, delta2, emptyDelta)
-	assert.Equal(t, delta1, delta2)
-
 	// not produce delta
 	SetProduceDelta(false)
 	h3, v3, delta3, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	assert.NotEmpty(t, h3)
-	assert.EqualValues(t, 12, v3)
+	assert.EqualValues(t, 11, v3)
 	assert.Equal(t, delta3, emptyDelta)
 
 	// use delta and not produce delta
@@ -311,7 +383,7 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	h4, v4, delta4, err := tree.SaveVersion(true)
 	require.NoError(t, err)
 	assert.NotEmpty(t, h4)
-	assert.EqualValues(t, 13, v4)
+	assert.EqualValues(t, 12, v4)
 	assert.Equal(t, delta4, emptyDelta)
 }
 
@@ -871,7 +943,7 @@ func TestFastStorageReUpgradeProtection_ForceUpgradeFirstTime_NoForceSecondTime_
 	iterMock.EXPECT().Next().Return().Times(1)
 	iterMock.EXPECT().Error().Return(nil).Times(1)
 	iterMock.EXPECT().Valid().Return(false).Times(1)
-	// Call Valid after first iteraton
+	// Call Valid after first iteration
 	iterMock.EXPECT().Valid().Return(false).Times(1)
 	iterMock.EXPECT().Close().Return().Times(1)
 

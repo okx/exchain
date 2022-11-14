@@ -22,6 +22,7 @@ const (
 	EventPendingTx           = "PendingTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 	EventBlockTime           = "BlockTime"
+	EventTxs                 = "Txs"
 
 	// Internal consensus events.
 	// These are used for testing the consensus state machine.
@@ -87,6 +88,12 @@ type EventDataNewBlockHeader struct {
 // All txs fire EventDataTx
 type EventDataTx struct {
 	TxResult
+}
+
+type EventDataTxs struct {
+	Height int64
+	//Txs     Txs
+	Results []*abci.ResponseDeliverTx
 }
 
 // latest blockTime
@@ -180,6 +187,7 @@ type BlockEventPublisher interface {
 	PublishEventNewBlock(block EventDataNewBlock) error
 	PublishEventNewBlockHeader(header EventDataNewBlockHeader) error
 	PublishEventTx(EventDataTx) error
+	PublishEventTxs(EventDataTxs) error
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
 	PublishEventLatestBlockTime(time EventDataBlockTime) error

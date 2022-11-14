@@ -248,9 +248,11 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch msg := msg.(type) {
 	case *TxMessage:
 		tx = msg.Tx
-		msg.Tx = nil
+		if _, isInWhiteList := memR.nodeKeyWhitelist[string(src.ID())]; isInWhiteList && msg.From != "" {
+			txInfo.from = msg.From
+		}
+		*msg = TxMessage{}
 		txMessageDeocdePool.Put(msg)
-
 	case *WtxMessage:
 		tx = msg.Wtx.Payload
 		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
@@ -283,6 +285,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	if !memR.config.Broadcast {
 		return
 	}
+	_, isInWhiteList := memR.nodeKeyWhitelist[string(peer.ID())]
 
 	peerID := memR.ids.GetForPeer(peer)
 	var next *clist.CElement
@@ -326,7 +329,10 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 
 		// ensure peer hasn't already sent us this tx
-		if _, ok := memTx.senders.Load(peerID); !ok {
+		memTx.senderMtx.RLock()
+		_, ok = memTx.senders[peerID]
+		memTx.senderMtx.RUnlock()
+		if !ok {
 			var getFromPool bool
 			// send memTx
 			var msg Message
@@ -348,6 +354,11 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			} else {
 				txMsg := txMessageDeocdePool.Get().(*TxMessage)
 				txMsg.Tx = memTx.tx
+				if isInWhiteList {
+					txMsg.From = memTx.from
+				} else {
+					txMsg.From = ""
+				}
 				msg = txMsg
 				getFromPool = true
 			}
@@ -461,13 +472,17 @@ func (memR *Reactor) encodeMsg(msg Message) []byte {
 
 // TxMessage is a Message containing a transaction.
 type TxMessage struct {
-	Tx types.Tx
+	Tx   types.Tx
+	From string
 }
 
 func (m TxMessage) AminoSize(_ *amino.Codec) int {
 	size := 0
 	if len(m.Tx) > 0 {
 		size += 1 + amino.ByteSliceSize(m.Tx)
+	}
+	if m.From != "" {
+		size += 1 + amino.EncodedStringSize(m.From)
 	}
 	return size
 }
@@ -490,34 +505,70 @@ func (m TxMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 			return err
 		}
 	}
+	if m.From != "" {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		err := amino.EncodeStringWithKeyToBuffer(buf, m.From, pbKey)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (m *TxMessage) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
-	if len(data) == 0 {
-		return nil
-	}
+	const fieldCount = 2
+	var currentField int
+	var currentType amino.Typ3
+	var err error
 
-	if data[0] != 1<<3|byte(amino.Typ3_ByteLength) {
-		return fmt.Errorf("error pb type")
+	for cur := 1; cur <= fieldCount; cur++ {
+		if len(data) != 0 && (currentField == 0 || currentField < cur) {
+			var nextField int
+			if nextField, currentType, err = amino.ParseProtoPosAndTypeMustOneByte(data[0]); err != nil {
+				return err
+			}
+			if nextField < currentField {
+				return fmt.Errorf("next field should greater than %d, got %d", currentField, nextField)
+			} else {
+				currentField = nextField
+			}
+		}
+		if len(data) == 0 || currentField != cur {
+			switch cur {
+			case 1:
+				m.Tx = nil
+			case 2:
+				m.From = ""
+			default:
+				return fmt.Errorf("unexpect feild num %d", cur)
+			}
+		} else {
+			pbk := data[0]
+			data = data[1:]
+			var subData []byte
+			if currentType == amino.Typ3_ByteLength {
+				if subData, err = amino.DecodeByteSliceWithoutCopy(&data); err != nil {
+					return err
+				}
+			}
+			switch pbk {
+			case 1<<3 | byte(amino.Typ3_ByteLength):
+				if len(subData) == 0 {
+					m.Tx = nil
+				} else {
+					m.Tx = make([]byte, len(subData))
+					copy(m.Tx, subData)
+				}
+			case 2<<3 | byte(amino.Typ3_ByteLength):
+				m.From = string(subData)
+			default:
+				return fmt.Errorf("unexpect pb key %d", pbk)
+			}
+		}
 	}
-
-	data = data[1:]
-	dataLen, n, err := amino.DecodeUvarint(data)
-	if err != nil {
-		return err
+	if len(data) != 0 {
+		return fmt.Errorf("unexpect data remain %X", data)
 	}
-	data = data[n:]
-	if len(data) != int(dataLen) {
-		return fmt.Errorf("invalid datalen")
-	}
-
-	m.Tx = nil
-	if dataLen > 0 {
-		m.Tx = make([]byte, dataLen)
-		copy(m.Tx, data)
-	}
-
 	return nil
 }
 
