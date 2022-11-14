@@ -111,7 +111,7 @@ type AppInfo struct {
 }
 
 func InitializeOKXApp(b testing.TB, db dbm.DB, numAccounts int) AppInfo {
-	types.UnittestOnlySetMilestoneVenus2Height(1)
+	types.UnittestOnlySetMilestoneEarthHeight(1)
 	evmMinter, _ := ethcrypto.HexToECDSA(PrivateKey)
 	evmMinterAddr := sdk.AccAddress(ethcrypto.PubkeyToAddress(evmMinter.PublicKey).Bytes())
 
