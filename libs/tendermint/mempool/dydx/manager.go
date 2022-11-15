@@ -186,7 +186,7 @@ func (d *OrderManager) updateMarketPriceRoutine() {
 	for range d.signals {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-			From:    d.engine.contracts.PerpetualV1Address,
+			From:    d.engine.contracts.Addresses.PerpetualV1,
 			Context: ctx,
 		})
 		cancel()

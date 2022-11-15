@@ -62,6 +62,7 @@ func NewContracts(
 	if err != nil {
 		return nil, err
 	}
+	config.ERC20 = tokenAddress
 	cons.PerpetualV1Token, err = contracts.NewIERC20(tokenAddress, backend)
 	if err != nil {
 		return nil, err

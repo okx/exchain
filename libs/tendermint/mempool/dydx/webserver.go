@@ -366,7 +366,7 @@ func (o *OrderManager) DropHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := contracts.NewTestToken(common.HexToAddress(Config.P1MarginAddress), o.engine.httpCli)
+	token, err := contracts.NewTestToken(o.engine.contracts.Addresses.ERC20, o.engine.httpCli)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
