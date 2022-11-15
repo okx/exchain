@@ -8,8 +8,12 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/libs/dydx/contracts"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -24,7 +28,9 @@ const (
 	addrKey    = "addr"
 	timeFormat = "15:04:05"
 
-	placeOrderContractAddr = "0x41815e7c60b9ad7718D7AdF0d3eCbECAc8122076" //0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
+	// 0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
+	// 0x2594E83A94F89Ffb923773ddDfF723BbE017b80D localnet
+	placeOrderContractAddr = "0xc337F8F91B2b803dA19263792E3e52157bEF8B4B"
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
@@ -45,6 +51,7 @@ func (o *OrderManager) ServeWeb() {
 	r.HandleFunc("/position", o.PositionHandler).Methods(GET).Queries("addr", "{addr}")
 	r.HandleFunc("/orders", o.OrdersHandler).Methods(GET).Queries("addr", "{addr}")
 	r.HandleFunc("/fills", o.FillsHandler).Methods(GET).Queries("addr", "{addr}")
+	r.HandleFunc("/drop", o.DropHandler).Methods(GET).Queries("amount", "{amount}", "addr", "{addr}")
 
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":8555", r))
@@ -87,7 +94,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 		TriggerPrice: big.NewInt(0),
 		LimitFee:     big.NewInt(0),
 		Maker:        common.HexToAddress(maker),
-		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds),
+		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds*100),
 	}
 	if isBuy == "true" {
 		order.Flags[31] = 1
@@ -184,9 +191,11 @@ func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type Balance struct {
-	Margin       *big.Int `json:"margin"`
-	Position     *big.Int `json:"position"`
-	Erc20Balance *big.Int `json:"erc20Balance"`
+	Margin        *big.Int `json:"margin"`
+	Position      *big.Int `json:"position"`
+	Erc20Balance  *big.Int `json:"erc20Balance"`
+	MarginCache   *big.Int `json:"marginCache"`
+	PositionCache *big.Int `json:"positionCache"`
 }
 
 func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
@@ -212,10 +221,20 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p1BalanceCache := o.getBalance(addr)
+	if p1BalanceCache == nil {
+		p1BalanceCache = &contracts.P1TypesBalance{
+			Margin:   big.NewInt(0),
+			Position: big.NewInt(0),
+		}
+	}
+
 	data, err := json.Marshal(&Balance{
-		Margin:       negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
-		Position:     negBig(p1Balance.Position, p1Balance.PositionIsPositive),
-		Erc20Balance: balance,
+		Margin:        negBig(p1Balance.Margin, p1Balance.MarginIsPositive),
+		Position:      negBig(p1Balance.Position, p1Balance.PositionIsPositive),
+		Erc20Balance:  balance,
+		MarginCache:   negBig(p1BalanceCache.Margin, p1BalanceCache.MarginIsPositive),
+		PositionCache: negBig(p1BalanceCache.Position, p1Balance.PositionIsPositive),
 	})
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
@@ -228,7 +247,7 @@ func negBig(n *big.Int, positive bool) *big.Int {
 	if positive {
 		return n
 	}
-	return n.Neg(n)
+	return new(big.Int).Neg(n)
 }
 
 type WebOrder struct {
@@ -333,4 +352,35 @@ func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, string(data))
+}
+
+func (o *OrderManager) DropHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
+	vars := mux.Vars(r)
+	addr := common.HexToAddress(vars[addrKey])
+	amount, err := strconv.ParseInt(vars["amount"], 10, 64)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
+	token, err := contracts.NewTestToken(common.HexToAddress(Config.P1MarginAddress), o.engine.httpCli)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+
+	privAdmin, _ := crypto.HexToECDSA(Config.PrivKeyHex)
+	chainID, _ := new(big.Int).SetString(Config.ChainID, 10)
+	adminTxOps, _ := bind.NewKeyedTransactorWithChainID(privAdmin, chainID)
+	adminTxOps.GasLimit = 1000000
+
+	tx, err := token.Mint(adminTxOps, addr, big.NewInt(amount))
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	fmt.Fprintf(w, tx.Hash().String())
 }

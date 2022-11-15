@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/okex/exchain/libs/dydx/contracts"
+	"github.com/okex/exchain/libs/tendermint/mempool/placeorder"
 	"github.com/stretchr/testify/require"
 	"log"
 	"math/big"
@@ -88,4 +89,40 @@ func TestWithdraw(t *testing.T) {
 	balance, err = perpetualV1.GetAccountBalance(nil, addr)
 	require.NoError(t, err)
 	log.Printf("balance of %s: %v\n", addr, balance)
+}
+
+func TestMint(t *testing.T) {
+	cli, err := ethclient.Dial(Config.EthHttpRpcUrl)
+	require.NoError(t, err)
+	token, err := contracts.NewTestToken(common.HexToAddress(Config.P1MarginAddress), cli)
+	require.NoError(t, err)
+
+	privAdmin, err := crypto.HexToECDSA(Config.PrivKeyHex)
+	chainID, _ := new(big.Int).SetString(Config.ChainID, 10)
+	adminTxOps, _ := bind.NewKeyedTransactorWithChainID(privAdmin, chainID)
+	adminTxOps.GasLimit = 1000000
+
+	tx, err := token.Mint(adminTxOps, common.HexToAddress("0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044"), big.NewInt(1000000))
+	require.NoError(t, err)
+	t.Logf("mint tx: %v", tx.Hash().Hex())
+}
+
+func TestPlaceOrder(t *testing.T) {
+	cli, err := ethclient.Dial(Config.EthHttpRpcUrl) //"http://3.113.237.222:26659"
+	require.NoError(t, err)
+	caller, err := placeorder.NewPlaceorderCaller(common.HexToAddress(placeOrderContractAddr), cli)
+	require.NoError(t, err)
+	maker := common.HexToAddress("0xbbE4733d85bc2b90682147779DA49caB38C0aA1F")
+	order := placeorder.OrdersOrder{
+		Amount:       big.NewInt(1),
+		LimitPrice:   big.NewInt(18200),
+		TriggerPrice: big.NewInt(0),
+		LimitFee:     big.NewInt(0),
+		Maker:        maker,
+		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds),
+	}
+	msg, err := caller.GetOrderMessage(&bind.CallOpts{From: maker}, order)
+	require.NoError(t, err)
+	t.Log(hex.EncodeToString(msg))
+
 }

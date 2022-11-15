@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -62,6 +63,11 @@ type OrderManager struct {
 	orders    *clist.CList
 	ordersMap sync.Map // orderKey => *clist.CElement
 
+	signals          chan struct{}
+	marketPriceMtx   sync.RWMutex
+	marketPrice      *big.Int
+	balancesMtx      sync.RWMutex
+	balances         map[common.Address]*contracts.P1TypesBalance
 	historyMtx       sync.RWMutex
 	addrTradeHistory map[common.Address][]*FilledP1Order
 	tradeHistory     []*FilledP1Order
@@ -87,6 +93,8 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		logger = log.NewNopLogger()
 	}
 	manager := &OrderManager{
+		signals:          make(chan struct{}, 10),
+		balances:         make(map[common.Address]*contracts.P1TypesBalance),
 		trades:           make(map[[32]byte]*FilledP1Order),
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
 		orders:           clist.New(),
@@ -100,6 +108,9 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		panic(err)
 	}
 	manager.engine = me
+	go manager.updateMarketPriceRoutine()
+	manager.SendSignal()
+
 	manager.gServer = NewOrderBookServer(manager.book, manager.logger)
 	port := "7070"
 	_ = manager.gServer.Start(port)
@@ -150,10 +161,90 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 		}
 	}
 
+	err = d.checkBalance(&wrapOdr)
+	if err != nil {
+		return err
+	}
+
 	ok := d.orderQueue.Enqueue(&wrapOdr)
 	d.logger.Debug("enqueue", "order", wrapOdr.Hash(), "ok", ok)
 
 	return nil
+}
+
+func (d *OrderManager) SendSignal() {
+	d.signals <- struct{}{}
+}
+
+func (d *OrderManager) GetMarketPrice() *big.Int {
+	d.marketPriceMtx.RLock()
+	defer d.marketPriceMtx.RUnlock()
+	return d.marketPrice
+}
+
+func (d *OrderManager) updateMarketPriceRoutine() {
+	for range d.signals {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
+			From:    d.engine.contracts.PerpetualV1Address,
+			Context: ctx,
+		})
+		cancel()
+		if err != nil {
+			d.logger.Error("UpdateMarketPrice", "GetPrice error", err)
+			continue
+		}
+		d.marketPriceMtx.Lock()
+		d.marketPrice = marketPrice
+		d.marketPriceMtx.Unlock()
+	}
+}
+
+func (d *OrderManager) checkBalance(order *WrapOrder) error {
+	balance := d.getBalance(order.Maker)
+	if balance == nil {
+		p1Balance, err := d.engine.contracts.PerpetualV1.GetAccountBalance(nil, order.Maker)
+		if err != nil {
+			d.logger.Error("checkBalance", "GetAccountBalance error", err, "addr", order.Maker)
+			return nil
+		}
+		d.setBalance(order.Maker, &p1Balance)
+		balance = &p1Balance
+	}
+	marketPrice := d.GetMarketPrice()
+	if marketPrice == nil {
+		return nil
+	}
+	margin := negBig(new(big.Int).Mul(balance.Margin, exp18), balance.MarginIsPositive)
+	position := negBig(new(big.Int).Mul(balance.Position, marketPrice), balance.PositionIsPositive)
+	perpetualBalance := new(big.Int).Add(margin, position)
+	if perpetualBalance.Sign() < 0 {
+		d.logger.Debug("checkBalance", "addr", order.Maker, "perpetualBalance:", perpetualBalance)
+		return ErrMarginNotEnough
+	}
+
+	cost := new(big.Int).Sub(order.LimitPrice, marketPrice)
+	cost.Mul(cost, order.LeftAmount)
+	if !order.isBuy() {
+		cost.Neg(cost)
+	}
+	if perpetualBalance.Cmp(cost) < 0 {
+		d.logger.Debug("checkBalance", "addr", order.Maker, "perpetualBalance:", perpetualBalance, "marketPrice", marketPrice, "cost", cost)
+		return ErrMarginNotEnough
+	}
+	return nil
+}
+
+func (d *OrderManager) getBalance(addr common.Address) *contracts.P1TypesBalance {
+	d.balancesMtx.RLock()
+	defer d.balancesMtx.RUnlock()
+	return d.balances[addr]
+}
+
+func (d *OrderManager) setBalance(addr common.Address, balance *contracts.P1TypesBalance) {
+	d.balancesMtx.Lock()
+	defer d.balancesMtx.Unlock()
+	d.balances[addr] = balance
 }
 
 func (d *OrderManager) Remove(order OrderRaw) {
@@ -224,7 +315,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 		}
 		ele := orderList.Get(filled.OrderHash)
 		if ele == nil {
-			fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
+			d.logger.Debug("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
 			return
 		}
 		wodr = ele.Value.(*WrapOrder)
@@ -244,6 +335,26 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 			d.book.addrMtx.Unlock()
 			//TODO delete broadcast queue
 		}
+	}
+	balance := d.getBalance(wodr.Maker)
+	positionDiff := negBig(filled.Fill.Amount, balance.PositionIsPositive)
+	marginDiff := negBig(new(big.Int).Mul(filled.Fill.Amount, filled.Fill.Price), balance.MarginIsPositive)
+	marginDiff.Div(marginDiff, exp18)
+
+	if wodr.isBuy() {
+		balance.Position.Add(balance.Position, positionDiff)
+		balance.Margin.Sub(balance.Margin, marginDiff)
+	} else {
+		balance.Position.Sub(balance.Position, positionDiff)
+		balance.Margin.Add(balance.Margin, marginDiff)
+	}
+	if balance.Position.Sign() < 0 {
+		balance.Position.Neg(balance.Position)
+		balance.PositionIsPositive = !balance.PositionIsPositive
+	}
+	if balance.Margin.Sign() < 0 {
+		balance.Margin.Neg(balance.Margin)
+		balance.MarginIsPositive = !balance.MarginIsPositive
 	}
 
 	d.historyMtx.Lock()
@@ -359,6 +470,9 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 }
 
 func (d *OrderManager) UpdateAddress(sender string, nonce uint64, code uint32) {
+	if d == nil {
+		return
+	}
 	if sender == d.engine.from.String() &&
 		(code == abci.CodeTypeOK || code > abci.CodeTypeNonceInc) {
 		d.engine.nonce = nonce

@@ -902,6 +902,10 @@ func (mem *CListMempool) Update(
 	postCheck PostCheckFunc,
 ) error {
 	// no need to update when mempool is unavailable
+	if mem.orderManager != nil {
+		mem.orderManager.SendSignal()
+	}
+
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
 	}
