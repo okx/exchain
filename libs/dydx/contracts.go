@@ -1,18 +1,22 @@
 package dydx
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/dydx/contracts"
 )
 
 type Contracts struct {
-	P1Orders      *contracts.P1Orders
-	PerpetualV1   *contracts.PerpetualV1
-	P1MakerOracle *contracts.P1MakerOracle
+	P1Orders          *contracts.P1Orders
+	PerpetualV1       *contracts.PerpetualV1
+	PerpetualV1Oracel *contracts.IP1Oracle
+	P1MakerOracle     *contracts.P1MakerOracle
 
 	Addresses *ContractsAddressConfig
 	txOps     *bind.TransactOpts
+	backend   bind.ContractBackend
 }
 
 type ContractsAddressConfig struct {
@@ -60,8 +64,27 @@ func NewContracts(
 	}
 
 	cons.txOps = defaultTxOps
+	cons.backend = backend
+	cons.Addresses = config
 
 	return &cons, nil
+}
+
+func (cc *Contracts) GetPerpetualV1OraclePrice() (*big.Int, error) {
+	if cc.PerpetualV1Oracel == nil {
+		perpetualV1OracleAddress, err := cc.PerpetualV1.GetOracleContract(nil)
+		if err != nil {
+			return nil, err
+		}
+		cc.PerpetualV1Oracel, err = contracts.NewIP1Oracle(perpetualV1OracleAddress, cc.backend)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return cc.PerpetualV1Oracel.GetPrice(&bind.CallOpts{
+		From: cc.Addresses.PerpetualV1,
+	})
 }
 
 var emptyAddr common.Address

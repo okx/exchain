@@ -55,9 +55,10 @@ type MatchEngine struct {
 }
 
 type DydxConfig struct {
-	PrivKeyHex                 string
-	ChainID                    string
-	EthHttpRpcUrl              string
+	PrivKeyHex    string
+	ChainID       string
+	EthHttpRpcUrl string
+
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
@@ -217,9 +218,7 @@ func (m *MatchEngine) Match(order *WrapOrder, marketPrice *big.Int) (*MatchResul
 }
 
 func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-		From: m.contracts.Addresses.PerpetualV1,
-	})
+	marketPrice, err := m.contracts.GetPerpetualV1OraclePrice()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get market price, err: %w", err)
 	}
