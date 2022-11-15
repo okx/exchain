@@ -4,8 +4,8 @@ import "github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 var client bind.ContractBackend
 
-func SetEthClient(client bind.ContractBackend) {
-	client = client
+func SetEthClient(backend bind.ContractBackend) {
+	client = backend
 }
 
 func GetEthClient() bind.ContractBackend {

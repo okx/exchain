@@ -52,12 +52,10 @@ var config = DydxConfig{
 	// PrivKeyHex:                 "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5",
 	PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 	ChainID:                    "8",
-	EthWsRpcUrl:                "ws://localhost:8546",
 	EthHttpRpcUrl:              "http://localhost:8545",
 	PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 	P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
 	P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-	P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 }
 
 func privKeyToAddress(privKeyHex string) common.Address {
@@ -76,7 +74,7 @@ func TestTransfer(t *testing.T) {
 	config := config
 	config.PrivKeyHex = privKeyAlice // super acc
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	toAddrs := []common.Address{
@@ -103,7 +101,7 @@ func TestMatch(t *testing.T) {
 	tool := &testTool{T: t}
 
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	// no match
@@ -229,7 +227,7 @@ func TestMatch(t *testing.T) {
 
 func TestBalance(t *testing.T) {
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	banlance, err := me.contracts.PerpetualV1.GetAccountBalance(nil, addrBob)
@@ -263,15 +261,13 @@ func TestDeposit(t *testing.T) {
 	config := DydxConfig{
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 		ChainID:                    "8",
-		EthWsRpcUrl:                "ws://localhost:8546",
 		EthHttpRpcUrl:              "http://localhost:8545",
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 	}
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	price, err := me.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
@@ -319,7 +315,7 @@ func TestDeposit(t *testing.T) {
 		priv, err := crypto.HexToECDSA(user.PrivKey)
 		txOps, _ := bind.NewKeyedTransactorWithChainID(priv, me.chainID)
 		txOps.GasLimit = 1000000
-		tx, err := erc20c.Approve(txOps, me.contracts.PerpetualV1Address, big.NewInt(math.MaxInt))
+		tx, err := erc20c.Approve(txOps, me.contracts.Addresses.PerpetualV1, big.NewInt(math.MaxInt))
 		require.NoError(t, err)
 		t.Logf("approve tx: %v", tx.Hash().Hex())
 
@@ -447,7 +443,7 @@ type msgEthereumTx struct {
 
 func TestTxReceipt(t *testing.T) {
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 	rec, err := me.httpCli.TransactionReceipt(context.Background(),
 		common.HexToHash("0xf6cc010deb24d3c78f5d34119541d5f5417f06da5f88989f0c34b858370e0d52"),

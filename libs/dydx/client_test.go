@@ -39,9 +39,7 @@ func TestClient(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	price, err := client.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-		From: client.contracts.PerpetualV1Address,
-	})
+	price, err := client.contracts.GetPerpetualV1OraclePrice()
 	require.NoError(t, err)
 	t.Logf("price: %v", price)
 
@@ -56,7 +54,7 @@ func TestClient(t *testing.T) {
 		FromBlock: fromBlockNum,
 		ToBlock:   endBlockNum,
 		Addresses: []common.Address{
-			client.contracts.P1OrdersAddress,
+			client.contracts.Addresses.P1Orders,
 		},
 		//Topics: [][]common.Hash{
 		//	{TopicLogOrderFilled},

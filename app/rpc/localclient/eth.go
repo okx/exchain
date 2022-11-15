@@ -2,6 +2,8 @@ package localclient
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
@@ -13,27 +15,32 @@ import (
 	"github.com/okex/exchain/app/rpc/types"
 )
 
-func toBlockNumArg(number *big.Int) string {
+func toBlockNumberOrHash(number *big.Int) (bnh types.BlockNumberOrHash, err error) {
+	var bn types.BlockNumber
+	bn, err = toBlockNumber(number)
+	if err != nil {
+		return
+	}
+	bnh.BlockNumber = &bn
+	return
+}
+
+func toBlockNumber(number *big.Int) (bn types.BlockNumber, err error) {
 	if number == nil {
-		return "latest"
+		bn = types.LatestBlockNumber
+		return
 	}
 	pending := big.NewInt(-1)
 	if number.Cmp(pending) == 0 {
-		return "pending"
+		bn = types.PendingBlockNumber
+		return
 	}
-	return hexutil.EncodeBig(number)
-}
-
-func toBlockNumberOrHash(number *big.Int) (types.BlockNumberOrHash, error) {
-	var blockArg types.BlockNumberOrHash
-	err := blockArg.UnmarshalJSON([]byte(toBlockNumArg(number)))
-	return blockArg, err
-}
-
-func toBlockNumber(number *big.Int) (types.BlockNumber, error) {
-	var blockArg types.BlockNumber
-	err := blockArg.UnmarshalJSON([]byte(toBlockNumArg(number)))
-	return blockArg, err
+	if number.Cmp(big.NewInt(0).SetUint64(math.MaxInt64)) > 0 {
+		err = fmt.Errorf("blocknumber too high")
+		return
+	}
+	bn = types.BlockNumber(number.Int64())
+	return
 }
 
 func toCallArg(msg ethereum.CallMsg) types.CallArgs {
@@ -78,16 +85,31 @@ func (c *Eth) CallContract(_ context.Context, call ethereum.CallMsg, blockNumber
 }
 
 func (c *Eth) HeaderByNumber(_ context.Context, number *big.Int) (*ethtypes.Header, error) {
-	var err error
-	//blockNum, err := toBlockNumber(number)
+	blockNum, err := toBlockNumber(number)
 	if err != nil {
 		return nil, err
 	}
-	var head *ethtypes.Header
-	//block, err := c.api.GetBlockByNumber(blockNum, false)
-	//if err == nil && head == nil {
-	//	err = ethereum.NotFound
-	//}
+	block, err := c.api.GetBlockByNumber(blockNum, false)
+	if err == nil && block == nil {
+		err = ethereum.NotFound
+	}
+	var head = &ethtypes.Header{
+		ParentHash:  block.ParentHash,
+		UncleHash:   block.UncleHash,
+		Coinbase:    block.Miner,
+		Root:        block.StateRoot,
+		TxHash:      block.TransactionsRoot,
+		ReceiptHash: block.ReceiptsRoot,
+		Bloom:       block.LogsBloom,
+		Difficulty:  new(big.Int).SetUint64(uint64(block.Difficulty)),
+		Number:      new(big.Int).SetUint64(uint64(block.Number)),
+		GasLimit:    uint64(block.GasLimit),
+		GasUsed:     block.GasUsed.ToInt().Uint64(),
+		Time:        uint64(block.Timestamp),
+		Extra:       block.ExtraData,
+		MixDigest:   block.MixHash,
+		Nonce:       ethtypes.BlockNonce(block.Nonce),
+	}
 	return head, err
 }
 

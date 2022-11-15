@@ -2,13 +2,10 @@ package dydx
 
 import (
 	"container/list"
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
-	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -16,8 +13,11 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	dydxlib "github.com/okex/exchain/libs/dydx"
 	"github.com/okex/exchain/libs/dydx/contracts"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
@@ -37,8 +37,10 @@ type MatchEngine struct {
 	from      common.Address
 	nonce     uint64
 	chainID   *big.Int
-	httpCli   *ethclient.Client
 	txOps     *bind.TransactOpts
+
+	contractBackend bind.ContractBackend
+	httpCli         *ethclient.Client
 
 	config DydxConfig
 
@@ -56,14 +58,13 @@ type MatchEngine struct {
 }
 
 type DydxConfig struct {
-	PrivKeyHex                 string
-	ChainID                    string
-	EthWsRpcUrl                string
-	EthHttpRpcUrl              string
+	PrivKeyHex    string
+	ChainID       string
+	EthHttpRpcUrl string
+
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
-	P1MarginAddress            string
 }
 
 type LogHandler interface {
@@ -71,14 +72,15 @@ type LogHandler interface {
 	HandleOrderCanceled(*contracts.P1OrdersLogOrderCanceled)
 }
 
-func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
+func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
 	var engine = &MatchEngine{
 		depthBook: depthBook,
 		config:    config,
 		logger:    logger,
 		pubsub:    api,
 
-		frozenOrders: list.New(),
+		frozenOrders:    list.New(),
+		contractBackend: global.GetEthClient(),
 	}
 	if engine.logger == nil {
 		engine.logger = log.NewNopLogger()
@@ -95,21 +97,21 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		return nil, fmt.Errorf("invalid chain id")
 	}
 
-	engine.httpCli, err = ethclient.Dial(config.EthHttpRpcUrl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthHttpRpcUrl, err)
-	}
+	engine.httpCli, _ = ethclient.Dial(config.EthHttpRpcUrl)
+
 	engine.txOps, err = bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create txOps, err: %w", err)
 	}
+	ccConfig := &dydxlib.ContractsAddressConfig{
+		PerpetualV1:   common.HexToAddress(config.PerpetualV1ContractAddress),
+		P1Orders:      common.HexToAddress(config.P1OrdersContractAddress),
+		P1MakerOracle: common.HexToAddress(config.P1MakerOracleAddress),
+	}
 	engine.contracts, err = dydxlib.NewContracts(
-		common.HexToAddress(config.PerpetualV1ContractAddress),
-		common.HexToAddress(config.P1OrdersContractAddress),
-		common.HexToAddress(config.P1MakerOracleAddress),
-		common.HexToAddress(config.P1MarginAddress),
+		ccConfig,
 		engine.txOps,
-		engine.httpCli,
+		engine.contractBackend,
 	)
 
 	if handler != nil {
@@ -133,6 +135,17 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		engine.logFilter = query
 		engine.logHandler = handler
 	}
+
+	if accRetriever != nil {
+		engine.nonce = accRetriever.GetAccountNonce(engine.from.String())
+	} else {
+		engine.nonce, err = engine.httpCli.NonceAt(context.Background(), engine.from, nil)
+		if err != nil {
+			return nil, fmt.Errorf("get nonce failed, err: %w", err)
+		}
+	}
+	engine.nonce--
+	engine.logger.Info("init operator nonce", "addr", engine.from, "nonce", engine.nonce)
 
 	return engine, nil
 }
@@ -218,9 +231,7 @@ func (m *MatchEngine) Match(order *WrapOrder, marketPrice *big.Int) (*MatchResul
 }
 
 func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-		From: m.contracts.PerpetualV1Address,
-	})
+	marketPrice, err := m.contracts.GetPerpetualV1OraclePrice()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get market price, err: %w", err)
 	}
