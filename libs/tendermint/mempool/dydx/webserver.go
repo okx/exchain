@@ -93,7 +93,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 		TriggerPrice: big.NewInt(0),
 		LimitFee:     big.NewInt(0),
 		Maker:        common.HexToAddress(maker),
-		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds),
+		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds*100),
 	}
 	if isBuy == "true" {
 		order.Flags[31] = 1
