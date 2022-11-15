@@ -1,6 +1,9 @@
 package core
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	rpctypes "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -25,6 +28,7 @@ func CommitIBC(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.IBCResultCommit
 		commit := env.BlockStore.LoadSeenCommit(height)
 		return ConvResultCommitTOIBC(ctypes.NewResultCommit(&header, commit, false)), nil
 	}
+	fmt.Println(fmt.Sprintf("CommitIBC:height:%d,appHash:%s", header.Height, hex.EncodeToString(header.AppHash)))
 	// Return the canonical commit (comes from the block at height+1)
 	commit := env.BlockStore.LoadBlockCommit(height)
 	return ConvResultCommitTOIBC(ctypes.NewResultCommit(&header, commit, true)), nil

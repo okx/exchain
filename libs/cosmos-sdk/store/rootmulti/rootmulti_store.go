@@ -1180,6 +1180,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
+	str := strings.Builder{}
 	for key, store := range storeMap {
 		sName := key.Name()
 		if evmAccStoreFilter(sName, version) {
