@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"time"
@@ -294,6 +295,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
+	fmt.Println(fmt.Sprintf("height:%d,appHash:%s", block.Height, hex.EncodeToString(commitResp.Data)))
 
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
