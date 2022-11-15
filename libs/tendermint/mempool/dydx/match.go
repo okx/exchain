@@ -36,8 +36,10 @@ type MatchEngine struct {
 	from      common.Address
 	nonce     uint64
 	chainID   *big.Int
-	httpCli   *ethclient.Client
 	txOps     *bind.TransactOpts
+
+	contractBackend bind.ContractBackend
+	httpCli         *ethclient.Client
 
 	config DydxConfig
 
@@ -76,7 +78,8 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		logger:    logger,
 		pubsub:    api,
 
-		frozenOrders: list.New(),
+		frozenOrders:    list.New(),
+		contractBackend: global.GetEthClient(),
 	}
 	if engine.logger == nil {
 		engine.logger = log.NewNopLogger()
@@ -93,10 +96,8 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		return nil, fmt.Errorf("invalid chain id")
 	}
 
-	engine.httpCli, err = ethclient.Dial(config.EthHttpRpcUrl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthHttpRpcUrl, err)
-	}
+	engine.httpCli, _ = ethclient.Dial(config.EthHttpRpcUrl)
+
 	engine.txOps, err = bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create txOps, err: %w", err)
@@ -109,7 +110,7 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 	engine.contracts, err = dydxlib.NewContracts(
 		ccConfig,
 		engine.txOps,
-		global.GetEthClient(),
+		engine.contractBackend,
 	)
 
 	if handler != nil {
