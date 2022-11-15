@@ -12,6 +12,7 @@ type Contracts struct {
 	P1Orders          *contracts.P1Orders
 	PerpetualV1       *contracts.PerpetualV1
 	PerpetualV1Oracel *contracts.IP1Oracle
+	PerpetualV1Token  *contracts.IERC20
 	P1MakerOracle     *contracts.P1MakerOracle
 
 	Addresses *ContractsAddressConfig
@@ -45,10 +46,31 @@ func NewContracts(
 	defaultTxOps *bind.TransactOpts,
 	backend bind.ContractBackend,
 ) (*Contracts, error) {
-	var cons Contracts
+	var cons = &Contracts{
+		Addresses: config,
+		backend:   backend,
+		txOps:     defaultTxOps,
+	}
 	var err error
 
 	cons.PerpetualV1, err = contracts.NewPerpetualV1(config.PerpetualV1, backend)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenAddress, err := cons.PerpetualV1.GetTokenContract(nil)
+	if err != nil {
+		return nil, err
+	}
+	cons.PerpetualV1Token, err = contracts.NewIERC20(tokenAddress, backend)
+	if err != nil {
+		return nil, err
+	}
+	perpetualV1OracleAddress, err := cons.PerpetualV1.GetOracleContract(nil)
+	if err != nil {
+		return nil, err
+	}
+	cons.PerpetualV1Oracel, err = contracts.NewIP1Oracle(perpetualV1OracleAddress, cons.backend)
 	if err != nil {
 		return nil, err
 	}
@@ -63,25 +85,10 @@ func NewContracts(
 		return nil, err
 	}
 
-	cons.txOps = defaultTxOps
-	cons.backend = backend
-	cons.Addresses = config
-
-	return &cons, nil
+	return cons, nil
 }
 
 func (cc *Contracts) GetPerpetualV1OraclePrice() (*big.Int, error) {
-	if cc.PerpetualV1Oracel == nil {
-		perpetualV1OracleAddress, err := cc.PerpetualV1.GetOracleContract(nil)
-		if err != nil {
-			return nil, err
-		}
-		cc.PerpetualV1Oracel, err = contracts.NewIP1Oracle(perpetualV1OracleAddress, cc.backend)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return cc.PerpetualV1Oracel.GetPrice(&bind.CallOpts{
 		From: cc.Addresses.PerpetualV1,
 	})
