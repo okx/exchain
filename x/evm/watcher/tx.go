@@ -142,7 +142,10 @@ func (w *Watcher) SaveParallelTx(realTx sdk.Tx, resultData *types.ResultData, re
 		w.saveTx(watchTx)
 
 		// save transactionReceipts
-		if resp.IsOK() && resultData != nil {
+		if resp.IsOK() {
+			if resultData == nil {
+				resultData = &types.ResultData{}
+			}
 			w.SaveTransactionReceipt(TransactionSuccess, evmTx, watchTx.GetTxHash(), watchTx.GetIndex(), resultData, uint64(resp.GasUsed))
 		} else {
 			w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
