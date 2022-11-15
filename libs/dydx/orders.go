@@ -22,7 +22,7 @@ func NewOrders(contracts *Contracts) *Orders {
 }
 
 func (orders *Orders) Address() common.Address {
-	return orders.contracts.P1OrdersAddress
+	return orders.contracts.Addresses.P1Orders
 }
 
 func (orders *Orders) ApproveOrder(order *Order, ops *bind.TransactOpts) (*types.Transaction, error) {

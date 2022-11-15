@@ -7,55 +7,57 @@ import (
 )
 
 type Contracts struct {
-	P1Orders        *contracts.P1Orders
-	P1OrdersAddress common.Address
+	P1Orders      *contracts.P1Orders
+	PerpetualV1   *contracts.PerpetualV1
+	P1MakerOracle *contracts.P1MakerOracle
 
-	PerpetualV1        *contracts.PerpetualV1
-	PerpetualV1Address common.Address
+	Addresses *ContractsAddressConfig
+	txOps     *bind.TransactOpts
+}
 
-	P1MakerOracle        *contracts.P1MakerOracle
-	P1MakerOracleAddress common.Address
-
-	P1Margin        *contracts.P1Margin
-	P1MarginAddress common.Address
-
-	txOps *bind.TransactOpts
+type ContractsAddressConfig struct {
+	PerpetualProxy           common.Address
+	PerpetualV1              common.Address
+	P1FundingOracle          common.Address
+	P1InverseFundingOracle   common.Address
+	P1ChainlinkOracle        common.Address
+	P1MakerOracle            common.Address
+	P1MirrorOracle           common.Address
+	P1OracleInverter         common.Address
+	P1Orders                 common.Address
+	P1InverseOrders          common.Address
+	P1Deleveraging           common.Address
+	P1Liquidation            common.Address
+	P1CurrencyConverterProxy common.Address
+	P1LiquidatorProxy        common.Address
+	P1SoloBridgeProxy        common.Address
+	P1WethProxy              common.Address
+	ERC20                    common.Address
+	WETH                     common.Address
 }
 
 func NewContracts(
-	perpetualV1Address common.Address,
-	p1OrdersAddr common.Address,
-	p1MakerOracleAddr common.Address,
-	p1MarginAddr common.Address,
+	config *ContractsAddressConfig,
 	defaultTxOps *bind.TransactOpts,
 	backend bind.ContractBackend,
 ) (*Contracts, error) {
 	var cons Contracts
 	var err error
 
-	cons.PerpetualV1, err = contracts.NewPerpetualV1(perpetualV1Address, backend)
+	cons.PerpetualV1, err = contracts.NewPerpetualV1(config.PerpetualV1, backend)
 	if err != nil {
 		return nil, err
 	}
-	cons.PerpetualV1Address = perpetualV1Address
 
-	cons.P1Orders, err = contracts.NewP1Orders(p1OrdersAddr, backend)
+	cons.P1Orders, err = contracts.NewP1Orders(config.P1Orders, backend)
 	if err != nil {
 		return nil, err
 	}
-	cons.P1OrdersAddress = p1OrdersAddr
 
-	cons.P1MakerOracle, err = contracts.NewP1MakerOracle(p1MakerOracleAddr, backend)
+	cons.P1MakerOracle, err = contracts.NewP1MakerOracle(config.P1MakerOracle, backend)
 	if err != nil {
 		return nil, err
 	}
-	cons.P1MakerOracleAddress = p1MakerOracleAddr
-
-	cons.P1Margin, err = contracts.NewP1Margin(p1MarginAddr, backend)
-	if err != nil {
-		return nil, err
-	}
-	cons.P1MarginAddress = p1MarginAddr
 
 	cons.txOps = defaultTxOps
 

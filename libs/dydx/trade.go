@@ -89,7 +89,7 @@ func (op *TradeOperation) FillSignedOrderWithTaker(
 	op.addTradeArg(
 		order.Maker,
 		taker,
-		op.contracts.P1OrdersAddress.String(),
+		op.contracts.Addresses.P1Orders.String(),
 		tradeData,
 	)
 	return nil
@@ -107,7 +107,7 @@ func (op *TradeOperation) FillSignedSolOrderWithTaker(
 	op.addSolTradeArg(
 		order.Maker,
 		taker,
-		op.contracts.P1OrdersAddress,
+		op.contracts.Addresses.P1Orders,
 		tradeData,
 	)
 	return nil

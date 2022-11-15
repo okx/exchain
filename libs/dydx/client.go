@@ -146,11 +146,14 @@ func NewDydxClient(chainID *big.Int, ethRpcUrl string, fromBlockNum *big.Int,
 		return nil, fmt.Errorf("failed to create txOps, err: %w", err)
 	}
 
+	ccConfig := &ContractsAddressConfig{
+		PerpetualV1:   common.HexToAddress(perpetualV1ContractAddress),
+		P1Orders:      common.HexToAddress(p1OrdersContractAddress),
+		P1MakerOracle: common.HexToAddress(p1MakerOracleContractAddress),
+	}
+
 	client.contracts, err = NewContracts(
-		common.HexToAddress(perpetualV1ContractAddress),
-		common.HexToAddress(p1OrdersContractAddress),
-		common.HexToAddress(p1MakerOracleContractAddress),
-		common.HexToAddress(p1MarginAddress),
+		ccConfig,
 		txOps,
 		client.ethCli,
 	)

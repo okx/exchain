@@ -322,7 +322,7 @@ func TestDeposit(t *testing.T) {
 		priv, err := crypto.HexToECDSA(user.PrivKey)
 		txOps, _ := bind.NewKeyedTransactorWithChainID(priv, me.chainID)
 		txOps.GasLimit = 1000000
-		tx, err := erc20c.Approve(txOps, me.contracts.PerpetualV1Address, big.NewInt(math.MaxInt))
+		tx, err := erc20c.Approve(txOps, me.contracts.Addresses.PerpetualV1, big.NewInt(math.MaxInt))
 		require.NoError(t, err)
 		t.Logf("approve tx: %v", tx.Hash().Hex())
 

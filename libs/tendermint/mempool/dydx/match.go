@@ -101,11 +101,13 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 	if err != nil {
 		return nil, fmt.Errorf("failed to create txOps, err: %w", err)
 	}
+	ccConfig := &dydxlib.ContractsAddressConfig{
+		PerpetualV1:   common.HexToAddress(config.PerpetualV1ContractAddress),
+		P1Orders:      common.HexToAddress(config.P1OrdersContractAddress),
+		P1MakerOracle: common.HexToAddress(config.P1MakerOracleAddress),
+	}
 	engine.contracts, err = dydxlib.NewContracts(
-		common.HexToAddress(config.PerpetualV1ContractAddress),
-		common.HexToAddress(config.P1OrdersContractAddress),
-		common.HexToAddress(config.P1MakerOracleAddress),
-		common.HexToAddress(config.P1MarginAddress),
+		ccConfig,
 		engine.txOps,
 		global.GetEthClient(),
 	)
@@ -217,7 +219,7 @@ func (m *MatchEngine) Match(order *WrapOrder, marketPrice *big.Int) (*MatchResul
 
 func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-		From: m.contracts.PerpetualV1Address,
+		From: m.contracts.Addresses.PerpetualV1,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get market price, err: %w", err)
