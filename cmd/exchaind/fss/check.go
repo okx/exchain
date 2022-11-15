@@ -32,6 +32,10 @@ This command is a tool to check the IAVL fast index.`,
 }
 
 func check(storeKeys []string) error {
+	if !appstatus.IsFastStorageStrategy() {
+		return fmt.Errorf("db haven't upgraded to fast IAVL")
+	}
+
 	dataDir := viper.GetString(flagDataDir)
 	dbBackend := viper.GetString(sdk.FlagDBBackend)
 	db, err := base.OpenDB(filepath.Join(dataDir, base.AppDBName), dbm.BackendType(dbBackend))
@@ -39,10 +43,6 @@ func check(storeKeys []string) error {
 		return fmt.Errorf("error opening dir %v backend %v DB: %w", dataDir, dbBackend, err)
 	}
 	defer db.Close()
-
-	if !appstatus.IsFastStorageStrategy() {
-		return fmt.Errorf("db haven't upgraded to fast IAVL")
-	}
 
 	for _, key := range storeKeys {
 		prefix := []byte(fmt.Sprintf("s/k:%s/", key))

@@ -32,10 +32,6 @@ When the create lunched, it will show Upgrade to Fast IAVL...`,
 	},
 }
 
-func init() {
-	fssCmd.AddCommand(createCmd)
-}
-
 func createIndex(storeKeys []string) error {
 	dataDir := viper.GetString(flagDataDir)
 	dbBackend := viper.GetString(sdk.FlagDBBackend)
