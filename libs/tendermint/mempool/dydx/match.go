@@ -6,18 +6,17 @@ import (
 	"fmt"
 	"math/big"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
-	"github.com/ethereum/go-ethereum/rpc"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	dydxlib "github.com/okex/exchain/libs/dydx"
 	"github.com/okex/exchain/libs/dydx/contracts"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
@@ -109,7 +108,7 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		common.HexToAddress(config.P1MakerOracleAddress),
 		common.HexToAddress(config.P1MarginAddress),
 		engine.txOps,
-		engine.httpCli,
+		global.GetEthClient(),
 	)
 
 	if handler != nil {
