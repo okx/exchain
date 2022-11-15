@@ -2,6 +2,7 @@ package dydx
 
 import (
 	"container/list"
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
@@ -71,7 +72,7 @@ type LogHandler interface {
 	HandleOrderCanceled(*contracts.P1OrdersLogOrderCanceled)
 }
 
-func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
+func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
 	var engine = &MatchEngine{
 		depthBook: depthBook,
 		config:    config,
@@ -134,6 +135,17 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 		engine.logFilter = query
 		engine.logHandler = handler
 	}
+
+	if accRetriever != nil {
+		engine.nonce = accRetriever.GetAccountNonce(engine.from.String())
+	} else {
+		engine.nonce, err = engine.httpCli.NonceAt(context.Background(), engine.from, nil)
+		if err != nil {
+			return nil, fmt.Errorf("get nonce failed, err: %w", err)
+		}
+	}
+	engine.nonce--
+	engine.logger.Info("init operator nonce", "addr", engine.from, "nonce", engine.nonce)
 
 	return engine, nil
 }

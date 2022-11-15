@@ -1,7 +1,6 @@
 package dydx
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -96,22 +95,11 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		logger:           logger,
 	}
 
-	me, err := NewMatchEngine(api, manager.book, Config, manager, manager.logger)
+	me, err := NewMatchEngine(api, accRetriever, manager.book, Config, manager, manager.logger)
 	if err != nil {
 		panic(err)
 	}
-	if accRetriever != nil {
-		me.nonce = accRetriever.GetAccountNonce(me.from.String())
-	} else {
-		me.nonce, err = me.httpCli.NonceAt(context.Background(), me.from, nil)
-		if err != nil {
-			manager.logger.Error("get nonce failed", "err", err)
-		}
-	}
-	me.nonce--
-	manager.logger.Info("init operator nonce", "addr", me.from, "nonce", me.nonce)
 	manager.engine = me
-
 	manager.gServer = NewOrderBookServer(manager.book, manager.logger)
 	port := "7070"
 	_ = manager.gServer.Start(port)

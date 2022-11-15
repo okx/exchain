@@ -79,7 +79,7 @@ func TestTransfer(t *testing.T) {
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
 	}
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	toAddrs := []common.Address{
@@ -106,7 +106,7 @@ func TestMatch(t *testing.T) {
 	tool := &testTool{T: t}
 
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	// no match
@@ -240,7 +240,7 @@ func TestBalance(t *testing.T) {
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
 	}
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	banlance, err := me.contracts.PerpetualV1.GetAccountBalance(nil, addrBob)
@@ -270,7 +270,7 @@ func TestDeposit(t *testing.T) {
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
 	}
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	price, err := me.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
@@ -447,7 +447,7 @@ type msgEthereumTx struct {
 
 func TestTxReceipt(t *testing.T) {
 	book := NewDepthBook()
-	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	me, err := NewMatchEngine(nil, nil, book, config, nil, nil)
 	require.NoError(t, err)
 	rec, err := me.httpCli.TransactionReceipt(context.Background(),
 		common.HexToHash("0xf6cc010deb24d3c78f5d34119541d5f5417f06da5f88989f0c34b858370e0d52"),
