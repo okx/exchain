@@ -55,7 +55,6 @@ var config = DydxConfig{
 	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
 	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
 	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
-	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
 }
 
 func privKeyToAddress(privKeyHex string) common.Address {
@@ -78,7 +77,6 @@ func TestTransfer(t *testing.T) {
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 	}
 	book := NewDepthBook()
 	me, err := NewMatchEngine(nil, book, config, nil, nil)
@@ -240,7 +238,6 @@ func TestBalance(t *testing.T) {
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 	}
 	book := NewDepthBook()
 	me, err := NewMatchEngine(nil, book, config, nil, nil)
@@ -271,7 +268,6 @@ func TestDeposit(t *testing.T) {
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 	}
 	book := NewDepthBook()
 	me, err := NewMatchEngine(nil, book, config, nil, nil)

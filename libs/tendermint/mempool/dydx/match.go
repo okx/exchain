@@ -61,7 +61,6 @@ type DydxConfig struct {
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
-	P1MarginAddress            string
 }
 
 type LogHandler interface {
