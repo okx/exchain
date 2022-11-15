@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/dydx/contracts"
 	"log"
 	"math/big"
 	"net/http"
@@ -201,11 +200,12 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
-	token, err := contracts.NewTestToken(o.engine.contracts.P1MarginAddress, o.engine.httpCli)
-	if err != nil {
-		fmt.Fprintf(w, err.Error())
-		return
-	}
+	token := o.engine.contracts.PerpetualV1Token
+	//token, err := contracts.NewTestToken(o.engine.contracts.P1MarginAddress, o.engine.httpCli)
+	//if err != nil {
+	//	fmt.Fprintf(w, err.Error())
+	//	return
+	//}
 	balance, err := token.BalanceOf(nil, addr)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
