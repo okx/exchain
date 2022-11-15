@@ -51,7 +51,6 @@ var config = DydxConfig{
 	// PrivKeyHex:                 "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5",
 	PrivKeyHex:                 privKeyTuring,
 	ChainID:                    "65",
-	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 	EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
 	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
 	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
@@ -75,7 +74,6 @@ func TestTransfer(t *testing.T) {
 	var config = DydxConfig{
 		PrivKeyHex:                 privKeyDevnetSuper,
 		ChainID:                    "64",
-		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 		EthHttpRpcUrl:              "http://52.199.88.250:26659",
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
@@ -238,7 +236,6 @@ func TestBalance(t *testing.T) {
 	var config = DydxConfig{
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 		ChainID:                    "64",
-		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 		EthHttpRpcUrl:              "http://52.199.88.250:26659",
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
@@ -270,7 +267,6 @@ func TestDeposit(t *testing.T) {
 	var config = DydxConfig{
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 		ChainID:                    "64",
-		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 		EthHttpRpcUrl:              "http://52.199.88.250:26659",
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",

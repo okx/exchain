@@ -57,7 +57,6 @@ type MatchEngine struct {
 type DydxConfig struct {
 	PrivKeyHex                 string
 	ChainID                    string
-	EthWsRpcUrl                string
 	EthHttpRpcUrl              string
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string

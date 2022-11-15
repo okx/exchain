@@ -54,7 +54,6 @@ func DefaultConfig() Config {
 var dydxConfig = dydx.DydxConfig{
 	PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 	ChainID:                    "64",
-	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 	EthHttpRpcUrl:              "http://52.199.88.250:26659",
 	PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 	P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
