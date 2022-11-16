@@ -81,7 +81,7 @@ func getSubmitTxCmd(codecProxy *codec.CodecProxy, reg interfacetypes.InterfaceRe
 
 			cdc := codecProxy.GetProtocMarshal()
 
-			var txMsg types2.MsgAdapter
+			var txMsg types2.MsgProtoAdapter
 			if err := cdc.UnmarshalInterfaceJSON([]byte(args[0]), &txMsg); err != nil {
 
 				// check for file path if JSON input is not provided
