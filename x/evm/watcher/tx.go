@@ -40,6 +40,9 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		}
 		if resp != nil && resp.IsOK() && !w.IsRealEvmTx(resp) { // for evm2cm
 			msgs := realTx.GetMsgs()
+			if len(msgs) == 0 {
+				return
+			}
 			evmTx, ok := msgs[0].(*types.MsgEthereumTx)
 			if !ok {
 				return
