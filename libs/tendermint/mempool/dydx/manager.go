@@ -134,6 +134,7 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	ele := d.orders.PushBack(memOrder)
 	d.ordersMap.Store(memOrder.Key(), ele)
 
+	fmt.Println("insert order", wrapOdr.orderHash.String(), time.Now().String())
 	d.logger.Debug("pre enqueue", "order", &wrapOdr)
 
 	hash := [32]byte(wrapOdr.Hash())
@@ -165,6 +166,8 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("enqueue order", wrapOdr.orderHash.String(), time.Now().String())
 
 	ok := d.orderQueue.Enqueue(&wrapOdr)
 	d.logger.Debug("enqueue", "order", wrapOdr.Hash(), "ok", ok)
@@ -377,7 +380,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 		d.trades[filled.OrderHash] = filledOrder
 	}
 
-	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
+	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String(), time.Now().String())
 }
 
 func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
@@ -406,6 +409,7 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	}()
 
 	d.logger.Debug("start reap order", "queue-size", queueLen)
+	fmt.Println("start trade", time.Now().String())
 
 	preMakeCap := maxNum
 	if orderQueueLen := int64(queueLen); orderQueueLen < maxNum {
@@ -466,6 +470,7 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	d.currentBlockTxs = tradeTxs
 	d.totalBytes = totalBytes
 	d.totalGas = totalGas
+	fmt.Println("over trade", time.Now().String())
 	return
 }
 
