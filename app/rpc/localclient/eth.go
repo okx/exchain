@@ -181,6 +181,27 @@ func (c *Eth) NonceAt(_ context.Context, account common.Address, blockNumber *bi
 	return
 }
 
+func (c *Eth) BalanceAt(_ context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
+	blockArg, err := toBlockNumberOrHash(blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	hexbig, err := c.api.GetBalance(account, blockArg)
+	if err != nil {
+		return nil, err
+	}
+	return (*big.Int)(hexbig), nil
+}
+
+func (c *Eth) StorageAt(_ context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error) {
+	blockArg, err := toBlockNumberOrHash(blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	return c.api.GetStorageAt(account, key.Hex(), blockArg)
+}
+
 var _ bind.ContractCaller = (*Eth)(nil)
 var _ bind.ContractFilterer = (*Eth)(nil)
 var _ bind.ContractTransactor = (*Eth)(nil)
+var _ ethereum.ChainStateReader = (*Eth)(nil)
