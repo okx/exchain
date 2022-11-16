@@ -82,11 +82,13 @@ func main() {
 		return
 	}
 
+	ccConfig := &dydxlib.ContractsAddressConfig{
+		PerpetualV1:   common.HexToAddress(dydxConfig.PerpetualV1ContractAddress),
+		P1Orders:      common.HexToAddress(dydxConfig.P1OrdersContractAddress),
+		P1MakerOracle: common.HexToAddress(dydxConfig.P1MakerOracleAddress),
+	}
 	dydxContracts, err := dydxlib.NewContracts(
-		common.HexToAddress(dydxConfig.PerpetualV1ContractAddress),
-		common.HexToAddress(dydxConfig.P1OrdersContractAddress),
-		common.HexToAddress(dydxConfig.P1MakerOracleAddress),
-		common.HexToAddress(dydxConfig.P1MarginAddress),
+		ccConfig,
 		nil,
 		ethCli,
 	)

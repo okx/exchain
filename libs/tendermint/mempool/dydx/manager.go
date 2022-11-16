@@ -41,12 +41,10 @@ var (
 	Config = DydxConfig{
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 		ChainID:                    "67",
-		EthWsRpcUrl:                "ws://localhost:8546",
 		EthHttpRpcUrl:              "http://localhost:8545",
 		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
 		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
 		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
-		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 	}
 
 	//Config = DydxConfig{
@@ -106,20 +104,10 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		logger:           logger,
 	}
 
-	me, err := NewMatchEngine(api, manager.book, Config, manager, manager.logger)
+	me, err := NewMatchEngine(api, accRetriever, manager.book, Config, manager, manager.logger)
 	if err != nil {
 		panic(err)
 	}
-	if accRetriever != nil {
-		me.nonce = accRetriever.GetAccountNonce(me.from.String())
-	} else {
-		me.nonce, err = me.httpCli.NonceAt(context.Background(), me.from, nil)
-		if err != nil {
-			manager.logger.Error("get nonce failed", "err", err)
-		}
-	}
-	me.nonce--
-	manager.logger.Info("init operator nonce", "addr", me.from, "nonce", me.nonce)
 	manager.engine = me
 	go manager.updateMarketPriceRoutine()
 	manager.SendSignal()
@@ -202,7 +190,7 @@ func (d *OrderManager) updateMarketPriceRoutine() {
 	for range d.signals {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-			From:    d.engine.contracts.PerpetualV1Address,
+			From:    d.engine.contracts.Addresses.PerpetualV1,
 			Context: ctx,
 		})
 		cancel()

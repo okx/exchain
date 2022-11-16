@@ -5,14 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/libs/dydx/contracts"
 	"log"
 	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/libs/dydx/contracts"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -83,7 +84,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 
 	maker := vars["maker"]
 	isBuy := vars["isBuy"]
-	caller, err := placeorder.NewPlaceorderCaller(common.HexToAddress(placeOrderContractAddr), o.engine.httpCli)
+	caller, err := placeorder.NewPlaceorderCaller(common.HexToAddress(placeOrderContractAddr), o.engine.contractBackend)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
@@ -94,7 +95,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 		TriggerPrice: big.NewInt(0),
 		LimitFee:     big.NewInt(0),
 		Maker:        common.HexToAddress(maker),
-		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds),
+		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds*100),
 	}
 	if isBuy == "true" {
 		order.Flags[31] = 1
@@ -209,11 +210,12 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, err.Error())
 		return
 	}
-	token, err := contracts.NewTestToken(o.engine.contracts.P1MarginAddress, o.engine.httpCli)
-	if err != nil {
-		fmt.Fprintf(w, err.Error())
-		return
-	}
+	token := o.engine.contracts.PerpetualV1Token
+	//token, err := contracts.NewTestToken(o.engine.contracts.P1MarginAddress, o.engine.httpCli)
+	//if err != nil {
+	//	fmt.Fprintf(w, err.Error())
+	//	return
+	//}
 	balance, err := token.BalanceOf(nil, addr)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
@@ -365,7 +367,7 @@ func (o *OrderManager) DropHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := contracts.NewTestToken(common.HexToAddress(Config.P1MarginAddress), o.engine.httpCli)
+	token, err := contracts.NewTestToken(o.engine.contracts.Addresses.ERC20, o.engine.contractBackend)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return

@@ -6,6 +6,9 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/okex/exchain/app/rpc/localclient"
+	"github.com/okex/exchain/libs/tendermint/global"
+
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/txpool"
@@ -60,6 +63,7 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 	if evmtypes.GetEnableBloomFilter() {
 		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
 	}
+	global.SetLocalEthClient(localclient.NewLocalEth(ethAPI))
 
 	apis := []rpc.API{
 		{
