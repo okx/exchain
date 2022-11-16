@@ -665,9 +665,6 @@ func (pm *parallelTxManager) clear() {
 	for key := range pm.groupList {
 		delete(pm.groupList, key)
 	}
-	for key := range pm.nextTxInGroup {
-		delete(pm.nextTxInGroup, key)
-	}
 	for key := range pm.preTxInGroup {
 		delete(pm.preTxInGroup, key)
 	}
@@ -703,6 +700,8 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	pm.cms = deliverStateMs.CacheMultiStore()
 	pm.cms.DisableCacheReadList()
 	deliverStateMs.DisableCacheReadList()
+
+	pm.nextTxInGroup = make(map[int]int)
 
 	pm.extraTxsInfo = make([]*extraDataForTx, txSize)
 	pm.txReps = make([]*executeResult, txSize)
