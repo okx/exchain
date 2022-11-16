@@ -79,7 +79,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		auth.FeeCollectorName: nil,
 		types.ModuleName:      {supply.Minter, supply.Burner},
 	}
-	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc.GetCdc(), mockDexApp.keySupply, mockDexApp.AccountKeeper, mockDexApp.bankKeeper, maccPerms)
+	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc.GetCdc(), mockDexApp.keySupply, mockDexApp.AccountKeeper, bank.NewBankKeeperAdapter(mockDexApp.bankKeeper), maccPerms)
 	mockDexApp.tokenKeeper = NewKeeper(
 		mockDexApp.bankKeeper,
 		mockDexApp.ParamsKeeper.Subspace(DefaultParamspace),
@@ -161,7 +161,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.Cdc.GetCdc(),
 		mockDexApp.keySupply,
 		mockDexApp.AccountKeeper,
-		mockDexApp.bankKeeper,
+		bank.NewBankKeeperAdapter(mockDexApp.bankKeeper),
 		maccPerms)
 
 	mockDexApp.tokenKeeper = NewKeeper(
