@@ -232,6 +232,26 @@ func ValidateTransferChannelParams(
 	channelID string,
 	version string,
 ) error {
+	if err := ValidateTransferChannelParamsV4(ctx, keeper, order, portID, channelID); nil != err {
+		return err
+	}
+
+	if version != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
+	}
+	return nil
+}
+
+// ValidateTransferChannelParams does validation of a newly created transfer channel. A transfer
+// channel must be UNORDERED, use the correct port (by default 'transfer'), and use the current
+// supported version. Only 2^32 channels are allowed to be created.
+func ValidateTransferChannelParamsV4(
+	ctx sdk.Context,
+	keeper keeper.Keeper,
+	order channeltypes.Order,
+	portID string,
+	channelID string,
+) error {
 	// NOTE: for escrow address security only 2^32 channels are allowed to be created
 	// Issue: https://github.com/cosmos/cosmos-sdk/issues/7737
 	channelSequence, err := channeltypes.ParseChannelSequence(channelID)
@@ -251,9 +271,6 @@ func ValidateTransferChannelParams(
 		return sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
 	}
 
-	if version != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
-	}
 	return nil
 }
 

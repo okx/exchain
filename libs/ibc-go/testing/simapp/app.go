@@ -9,6 +9,8 @@ import (
 	"sort"
 	"sync"
 
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/fee"
 
 	ica2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/ica"
@@ -253,8 +255,8 @@ type SimApp struct {
 
 	// keepers
 	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
+	BankKeeper     *bank.BankKeeperAdapter
+	SupplyKeeper   *supply.KeeperAdapter
 	StakingKeeper  staking.Keeper
 	SlashingKeeper slashing.Keeper
 	MintKeeper     mint.Keeper
@@ -848,12 +850,12 @@ func NewSimApp(
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
 		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
 	)
-	app.BankKeeper = &bankKeeper
+	app.BankKeeper = bank.NewBankKeeperAdapter(bankKeeper)
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
-	app.SupplyKeeper = supply.NewKeeper(
+	sup := supply.NewKeeper(
 		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, bank.NewBankKeeperAdapter(app.BankKeeper), maccPerms,
 	)
-
+	app.SupplyKeeper = supply.NewSupplyKeeperAdapter(sup)
 	stakingKeeper := staking2.NewStakingKeeper(
 		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
 	).Keeper
@@ -890,7 +892,7 @@ func NewSimApp(
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 
-	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
+	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper.Keeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.marshal.GetCdc())
 
 	// create evidence keeper with router
@@ -927,14 +929,14 @@ func NewSimApp(
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		codecProxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		v2keeper.ChannelKeeper, &v2keeper.PortKeeper,
-		app.SupplyKeeper, supply.NewSupplyKeeperAdapter(app.SupplyKeeper), scopedTransferKeeper, interfaceReg,
+		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
 	ibctransfertypes.SetMarshal(codecProxy)
 
 	app.IBCFeeKeeper = ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
 		v2keeper.ChannelKeeper, // may be replaced with IBC middleware
 		v2keeper.ChannelKeeper,
-		&v2keeper.PortKeeper, app.SupplyKeeper, supply.NewSupplyKeeperAdapter(app.SupplyKeeper),
+		&v2keeper.PortKeeper, app.SupplyKeeper, app.SupplyKeeper,
 	)
 
 	// ICA Controller keeper
@@ -949,7 +951,7 @@ func NewSimApp(
 	app.ICAHostKeeper = icahostkeeper.NewKeeper(
 		codecProxy, keys[icahosttypes.StoreKey], app.GetSubspace(icahosttypes.SubModuleName),
 		app.IBCKeeper.V2Keeper.ChannelKeeper, &app.IBCKeeper.V2Keeper.PortKeeper,
-		supply.NewSupplyKeeperAdapter(app.SupplyKeeper), scopedICAHostKeeper, app.MsgServiceRouter(),
+		app.SupplyKeeper, scopedICAHostKeeper, app.MsgServiceRouter(),
 	)
 
 	app.ICAMauthKeeper = icamauthkeeper.NewKeeper(
@@ -1002,14 +1004,15 @@ func NewSimApp(
 	//app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
-	left := common.NewDisaleProxyMiddleware()
 	//middle := transfer2.NewIBCModule(app.TransferKeeper)
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
-	right := ibcfee.NewIBCMiddleware(transferModule, app.IBCFeeKeeper)
+	left := common.NewDisaleProxyMiddleware()
+	middle := ibctransfer.NewIBCModule(app.TransferKeeper, transferModule.AppModule)
+	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
 	transferStack := ibcporttypes.NewFacadedMiddleware(left,
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
-		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, transferModule))
-	transferStack = ibcfee.NewIBCMiddleware(transferStack, app.IBCFeeKeeper)
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
+
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
 
 	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &v2keeper.PortKeeper)
@@ -1080,7 +1083,7 @@ func NewSimApp(
 		auth.NewAppModule(app.AccountKeeper),
 		bank.NewAppModule(app.BankKeeper, app.AccountKeeper, app.SupplyKeeper),
 		crisis.NewAppModule(&app.CrisisKeeper),
-		supply.NewAppModule(app.SupplyKeeper, app.AccountKeeper),
+		supply.NewAppModule(app.SupplyKeeper.Keeper, app.AccountKeeper),
 		gov.NewAppModule(app.GovKeeper, app.SupplyKeeper),
 		mint.NewAppModule(app.MintKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
@@ -1169,7 +1172,7 @@ func NewSimApp(
 	app.sm = module.NewSimulationManager(
 		auth.NewAppModule(app.AccountKeeper),
 		bank.NewAppModule(app.BankKeeper, app.AccountKeeper, app.SupplyKeeper),
-		supply.NewAppModule(app.SupplyKeeper, app.AccountKeeper),
+		supply.NewAppModule(app.SupplyKeeper.Keeper, app.AccountKeeper),
 		gov.NewAppModule(app.GovKeeper, app.SupplyKeeper),
 		mint.NewAppModule(app.MintKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
@@ -1198,7 +1201,7 @@ func NewSimApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
-	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper.Keeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
