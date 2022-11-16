@@ -102,6 +102,14 @@ func IsWasmAddress(acc AccAddress) bool {
 	return len(acc) == WasmContractAddrLen
 }
 
+func IsETHAddress(addr string) bool {
+	return strings.HasPrefix(addr, "0x")
+}
+
+func IsOKCAddress(addr string) bool {
+	return strings.HasPrefix(addr, GetConfig().GetBech32AccountAddrPrefix())
+}
+
 // AccAddressFromHex creates an AccAddress from a hex string.
 func AccAddressFromHex(address string) (addr AccAddress, err error) {
 	if len(address) == 0 {

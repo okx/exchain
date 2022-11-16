@@ -30,9 +30,7 @@ func Test_factory_CreateTx(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			factory := &factory{
-				Config: tt.fields.Config,
-			}
+			factory := NewFactory(tt.fields.Config)
 			got, err := factory.CreateTx()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateTx() error = %v, wantErr %v", err, tt.wantErr)
