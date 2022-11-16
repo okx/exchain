@@ -39,7 +39,7 @@ type MatchEngine struct {
 	chainID   *big.Int
 	txOps     *bind.TransactOpts
 
-	contractBackend bind.ContractBackend
+	contractBackend global.LocalEthClient
 	httpCli         *ethclient.Client
 
 	config DydxConfig
@@ -80,7 +80,7 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		pubsub:    api,
 
 		frozenOrders:    list.New(),
-		contractBackend: global.GetEthClient(),
+		contractBackend: global.GetLocalEthClient(),
 	}
 	if engine.logger == nil {
 		engine.logger = log.NewNopLogger()
@@ -139,7 +139,7 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 	if accRetriever != nil {
 		engine.nonce = accRetriever.GetAccountNonce(engine.from.String())
 	} else {
-		engine.nonce, err = engine.httpCli.NonceAt(context.Background(), engine.from, nil)
+		engine.nonce, err = engine.contractBackend.NonceAt(context.Background(), engine.from, nil)
 		if err != nil {
 			return nil, fmt.Errorf("get nonce failed, err: %w", err)
 		}

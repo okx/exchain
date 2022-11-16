@@ -63,7 +63,7 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 	if evmtypes.GetEnableBloomFilter() {
 		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
 	}
-	global.SetEthClient(localclient.NewLocalEth(ethAPI))
+	global.SetLocalEthClient(localclient.NewLocalEth(ethAPI))
 
 	apis := []rpc.API{
 		{
