@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	"github.com/okex/exchain/x/wasm/proxy"
@@ -106,4 +107,5 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
+	fsrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }
