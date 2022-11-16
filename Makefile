@@ -109,7 +109,7 @@ ifeq ($(LINK_STATICALLY),true)
 endif
 
 ifeq ($(OKCMALLOC),tcmalloc)
-  ldflags += -extldflags "-ltcmalloc_minimal"
+  ldflags += -extldflags "-ltcmalloc_minimal -Wl,-z,muldefs -static"
 endif
 
 ifeq ($(OKCMALLOC),jemalloc)
