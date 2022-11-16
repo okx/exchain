@@ -851,7 +851,7 @@ func NewSimApp(
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
-		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
+		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, bank.NewBankKeeperAdapter(app.BankKeeper), maccPerms,
 	)
 
 	stakingKeeper := staking2.NewStakingKeeper(
@@ -927,14 +927,14 @@ func NewSimApp(
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		codecProxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		v2keeper.ChannelKeeper, &v2keeper.PortKeeper,
-		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
+		app.SupplyKeeper, supply.NewSupplyKeeperAdapter(app.SupplyKeeper), scopedTransferKeeper, interfaceReg,
 	)
 	ibctransfertypes.SetMarshal(codecProxy)
 
 	app.IBCFeeKeeper = ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
 		v2keeper.ChannelKeeper, // may be replaced with IBC middleware
 		v2keeper.ChannelKeeper,
-		&v2keeper.PortKeeper, app.SupplyKeeper, app.SupplyKeeper,
+		&v2keeper.PortKeeper, app.SupplyKeeper, supply.NewSupplyKeeperAdapter(app.SupplyKeeper),
 	)
 
 	// ICA Controller keeper
@@ -949,7 +949,7 @@ func NewSimApp(
 	app.ICAHostKeeper = icahostkeeper.NewKeeper(
 		codecProxy, keys[icahosttypes.StoreKey], app.GetSubspace(icahosttypes.SubModuleName),
 		app.IBCKeeper.V2Keeper.ChannelKeeper, &app.IBCKeeper.V2Keeper.PortKeeper,
-		app.SupplyKeeper, scopedICAHostKeeper, app.MsgServiceRouter(),
+		supply.NewSupplyKeeperAdapter(app.SupplyKeeper), scopedICAHostKeeper, app.MsgServiceRouter(),
 	)
 
 	app.ICAMauthKeeper = icamauthkeeper.NewKeeper(
@@ -1006,7 +1006,7 @@ func NewSimApp(
 	//middle := transfer2.NewIBCModule(app.TransferKeeper)
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
 	right := ibcfee.NewIBCMiddleware(transferModule, app.IBCFeeKeeper)
-	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
+	transferStack := ibcporttypes.NewFacadedMiddleware(left,
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, transferModule))
 	transferStack = ibcfee.NewIBCMiddleware(transferStack, app.IBCFeeKeeper)
