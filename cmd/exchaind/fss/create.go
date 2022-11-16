@@ -3,12 +3,13 @@ package fss
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/cmd/exchaind/base"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/evm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -23,7 +24,7 @@ It will take long based on the original database size.
 When the create lunched, it will show Upgrade to Fast IAVL...`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		iavl.SetEnableFastStorage(true)
-		storeKeys := getStoreKeys()
+		storeKeys := appstatus.GetAllStoreKeys()
 		outputModules(storeKeys)
 
 		return createIndex(storeKeys)
@@ -32,13 +33,6 @@ When the create lunched, it will show Upgrade to Fast IAVL...`,
 
 func init() {
 	fssCmd.AddCommand(createCmd)
-}
-
-func getStoreKeys() []string {
-	return []string{
-		auth.StoreKey,
-		evm.StoreKey,
-	}
 }
 
 func outputModules(storeKeys []string) {
@@ -52,8 +46,8 @@ func outputModules(storeKeys []string) {
 
 func createIndex(storeKeys []string) error {
 	dataDir := viper.GetString(flagDataDir)
-	dbBackend := viper.GetString(flagDBBackend)
-	db, err := base.OpenDB(dataDir+base.AppDBName, dbm.BackendType(dbBackend))
+	dbBackend := viper.GetString(sdk.FlagDBBackend)
+	db, err := base.OpenDB(filepath.Join(dataDir, base.AppDBName), dbm.BackendType(dbBackend))
 	if err != nil {
 		return fmt.Errorf("error opening dir %v backend %v DB: %w", dataDir, dbBackend, err)
 	}
