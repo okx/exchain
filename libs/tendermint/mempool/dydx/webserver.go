@@ -83,7 +83,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 
 	maker := vars["maker"]
 	isBuy := vars["isBuy"]
-	caller, err := placeorder.NewPlaceorderCaller(common.HexToAddress(placeOrderContractAddr), o.engine.httpCli)
+	caller, err := placeorder.NewPlaceorderCaller(common.HexToAddress(placeOrderContractAddr), o.engine.contractBackend)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
@@ -366,7 +366,7 @@ func (o *OrderManager) DropHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := contracts.NewTestToken(o.engine.contracts.Addresses.ERC20, o.engine.httpCli)
+	token, err := contracts.NewTestToken(o.engine.contracts.Addresses.ERC20, o.engine.contractBackend)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
