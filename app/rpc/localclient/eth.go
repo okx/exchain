@@ -114,7 +114,7 @@ func (c *Eth) HeaderByNumber(_ context.Context, number *big.Int) (*ethtypes.Head
 }
 
 func (c *Eth) PendingCodeAt(_ context.Context, account common.Address) ([]byte, error) {
-	var blockArg, err = toBlockNumberOrHash(big.NewInt(0))
+	var blockArg, err = toBlockNumberOrHash(big.NewInt(-1))
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (c *Eth) PendingCodeAt(_ context.Context, account common.Address) ([]byte, 
 }
 
 func (c *Eth) PendingNonceAt(_ context.Context, account common.Address) (uint64, error) {
-	var blockArg, err = toBlockNumberOrHash(big.NewInt(0))
+	var blockArg, err = toBlockNumberOrHash(big.NewInt(-1))
 	if err != nil {
 		return 0, err
 	}
