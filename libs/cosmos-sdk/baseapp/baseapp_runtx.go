@@ -2,14 +2,14 @@ package baseapp
 
 import (
 	"fmt"
+	"math/big"
 	"runtime/debug"
-
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/pkg/errors"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/pkg/errors"
 )
 
 type runTxInfo struct {
@@ -301,6 +301,9 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
+	if realTx.GetType() == sdk.EvmTxType {
+		app.updateEvmTxGasUsed(info.gInfo.GasUsed)
+	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -349,10 +352,14 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
 	}
+
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
 	if !info.ctx.Cache().IsEnabled() {
 		app.blockCache = nil
 		app.chainCache = nil
+	}
+	if realTx.GetType() == sdk.EvmTxType {
+		app.updateEvmTxGasUsed(info.gInfo.GasUsed)
 	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
@@ -468,3 +475,11 @@ func (app *BaseApp) commitBlockCache() {
 	app.blockCache.Write(true)
 	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }
+
+// this function is not thread safe
+func (app *BaseApp) updateEvmTxGasUsed(gasUsed uint64) {
+	gas := gasBigInt.SetUint64(gasUsed)
+	app.blockAllEvmTxGasUsed.Add(&app.blockAllEvmTxGasUsed, gas)
+}
+
+var gasBigInt = new(big.Int)

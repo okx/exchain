@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"os"
 	"sort"
 	"strconv"
@@ -119,6 +120,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.blockDataCache.Clear()
+	app.blockAllEvmTxGasUsed.SetInt64(0)
 	app.PutCacheMultiStore(nil)
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
@@ -220,6 +222,8 @@ func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	app.updateFeeCollectorAccount(true)
+
+	global.SetBlockEvmTxGasUsed(req.Height, &app.blockAllEvmTxGasUsed)
 
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)

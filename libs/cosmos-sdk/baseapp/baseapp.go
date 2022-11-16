@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"reflect"
 	"strings"
@@ -223,9 +224,9 @@ type BaseApp struct { // nolint: maligned
 	reusableCacheMultiStore sdk.CacheMultiStore
 	checkTxCacheMultiStores *cacheMultiStoreList
 
-	watcherCollector sdk.EvmWatcherCollector
-
-	tmClient client.Client
+	watcherCollector     sdk.EvmWatcherCollector
+	blockAllEvmTxGasUsed big.Int
+	tmClient             client.Client
 }
 
 type recordHandle func(string)

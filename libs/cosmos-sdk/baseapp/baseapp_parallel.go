@@ -320,6 +320,12 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 		}
 	}
 
+	for i, info := range pm.extraTxsInfo {
+		if info.isEvm {
+			app.updateEvmTxGasUsed(uint64(deliverTxs[i].GasUsed))
+		}
+	}
+
 	pm.cms.Write()
 	return deliverTxs
 }

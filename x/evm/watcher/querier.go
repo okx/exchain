@@ -4,21 +4,21 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"strconv"
 	"sync"
 
-	"github.com/gogo/protobuf/proto"
-	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/app/types"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
+	"github.com/tendermint/go-amino"
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"
@@ -188,7 +188,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 			return nil, err
 		}
 	}
-	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	hash, e := q.store.Get(append(prefixBlockInfo, amino.StrToBytes(strconv.Itoa(int(height)))...))
 	if e != nil {
 		return nil, e
 	}

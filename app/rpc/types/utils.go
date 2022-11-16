@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -65,8 +66,15 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 	if err != nil {
 		return nil, err
 	}
+	var gasUsed *big.Int
+	var ethTxs []*watcher.Transaction
+	var ethTxHashes []common.Hash
 
-	gasUsed, ethTxs, err := EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
+	if fullTx {
+		gasUsed, ethTxs, err = EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
+	} else {
+		gasUsed, ethTxHashes, err = EthTransactionsHashFromTendermint(clientCtx, block.Txs, uint64(block.Height))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +88,7 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		bloom = bloomRes.Bloom
 	}
 
-	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
+	return FormatBlock(block.Header, block.FastSize(), block.Hash(), gasLimit, gasUsed, ethTxs, ethTxHashes, bloom, fullTx), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -109,6 +117,8 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 	gasUsed := big.NewInt(0)
 	index := uint64(0)
 
+	txGas := big.NewInt(0)
+
 	for _, tx := range txs {
 		ethTx, err := RawTxToEthTx(clientCtx, tx)
 		if err != nil {
@@ -116,7 +126,7 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
-		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
+		gasUsed.Add(gasUsed, txGas.SetInt64(int64(ethTx.GetGas())))
 		txHash := tx.Hash(int64(blockNumber))
 		tx, err := watcher.NewTransaction(ethTx, common.BytesToHash(txHash), blockHash, blockNumber, index)
 		if err == nil {
@@ -126,6 +136,46 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 	}
 
 	return gasUsed, transactions, nil
+}
+
+func EthTransactionsHashFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockNumber uint64) (*big.Int, []common.Hash, error) {
+	var txHashes []common.Hash
+	var gasUsed, txGas *big.Int
+	if len(txs) > 0 {
+		txHashes = make([]common.Hash, 0, len(txs))
+	}
+
+	gasCached := global.GetBlockEvmTxGasUsed(int64(blockNumber))
+	if gasCached != nil {
+		gasUsed = gasCached
+	} else {
+		gasUsed = big.NewInt(0)
+		txGas = big.NewInt(0)
+	}
+
+	for _, tx := range txs {
+		if gasCached == nil {
+			ethTx, err := RawTxToEthTx(clientCtx, tx)
+			if err != nil {
+				// continue to next transaction in case it's not a MsgEthereumTx
+				continue
+			}
+			// TODO: Remove gas usage calculation if saving gasUsed per block
+			gasUsed.Add(gasUsed, txGas.SetInt64(int64(ethTx.GetGas())))
+		}
+
+		txHash := tx.Hash(int64(blockNumber))
+		if len(txHash) == common.HashLength {
+			txHashes = append(txHashes, *(*[common.HashLength]byte)(txHash))
+		} else {
+			txHashes = append(txHashes, common.BytesToHash(txHash))
+		}
+	}
+	if gasCached == nil {
+		global.SetBlockEvmTxGasUsed(int64(blockNumber), gasUsed)
+	}
+
+	return gasUsed, txHashes, nil
 }
 
 // BlockMaxGasFromConsensusParams returns the gas limit for the latest block from the chain consensus params.
@@ -152,7 +202,7 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 // transactions.
 func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
-	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
+	gasUsed *big.Int, transactions []*watcher.Transaction, txHashes []common.Hash, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
 	transactionsRoot := ethtypes.EmptyRootHash
 	if len(header.DataHash) > 0 {
@@ -193,11 +243,19 @@ func FormatBlock(
 			ret.Transactions = transactions
 		}
 	} else {
-		txHashes := make([]common.Hash, len(transactions))
-		for i, tx := range transactions {
-			txHashes[i] = tx.Hash
+		if txHashes != nil {
+			ret.Transactions = txHashes
+		} else {
+			if len(transactions) == 0 {
+				ret.Transactions = []common.Hash{}
+			} else {
+				txHashes = make([]common.Hash, len(transactions))
+				for i, tx := range transactions {
+					txHashes[i] = tx.Hash
+				}
+				ret.Transactions = txHashes
+			}
 		}
-		ret.Transactions = txHashes
 	}
 	return ret
 }
