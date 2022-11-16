@@ -225,7 +225,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		}
 
 		// Convert tx bytes to eth transaction
-		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
+		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx, tx.Height)
 		if err != nil {
 			return nil, err
 		}
@@ -266,7 +266,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
 			LogsBloom:        data.Bloom,
 			Logs:             data.Logs,
-			TransactionHash:  common.BytesToHash(tx.Hash.Bytes()).String(),
+			TransactionHash:  common.BytesToHash(ethTx.Hash).String(),
 			ContractAddress:  contractAddr,
 			GasUsed:          hexutil.Uint64(gasUsed),
 			BlockHash:        blockHash.String(),

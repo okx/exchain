@@ -30,8 +30,8 @@ var (
 )
 
 // RawTxToEthTx returns a evm MsgEthereum transaction from raw tx bytes.
-func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgEthereumTx, error) {
-	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
+func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte, height int64) (*evmtypes.MsgEthereumTx, error) {
+	tx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, height)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -110,15 +110,14 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 	index := uint64(0)
 
 	for _, tx := range txs {
-		ethTx, err := RawTxToEthTx(clientCtx, tx)
+		ethTx, err := RawTxToEthTx(clientCtx, tx, int64(blockNumber))
 		if err != nil {
 			// continue to next transaction in case it's not a MsgEthereumTx
 			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
 		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
-		txHash := tx.Hash(int64(blockNumber))
-		tx, err := watcher.NewTransaction(ethTx, common.BytesToHash(txHash), blockHash, blockNumber, index)
+		tx, err := watcher.NewTransaction(ethTx, common.BytesToHash(ethTx.Hash), blockHash, blockNumber, index)
 		if err == nil {
 			transactions = append(transactions, tx)
 			index++
@@ -220,7 +219,7 @@ func GetBlockCumulativeGas(cdc *codec.Codec, block *tmtypes.Block, idx int) uint
 	txDecoder := evmtypes.TxDecoder(cdc)
 
 	for i := 0; i < idx && i < len(block.Txs); i++ {
-		txi, err := txDecoder(block.Txs[i], evmtypes.IGNORE_HEIGHT_CHECKING)
+		txi, err := txDecoder(block.Txs[i], block.Height)
 		if err != nil {
 			continue
 		}
