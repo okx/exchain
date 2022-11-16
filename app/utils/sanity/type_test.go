@@ -2,9 +2,10 @@ package sanity
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"testing"
 )
 
 // universeFlag used to build command
@@ -56,6 +57,27 @@ func (sf *stringFlag) args() string {
 }
 
 func (sf *stringFlag) changed() bool {
+	return sf.Changed
+}
+
+// intFlag string type flag
+type intFlag struct {
+	Name    string
+	Default int
+	Changed bool
+	Value   int
+}
+
+func (sf *intFlag) add(cmd *cobra.Command) {
+	cmd.Flags().Int(sf.Name, sf.Default, "")
+	viper.BindPFlag(sf.Name, cmd.Flags().Lookup(sf.Name))
+}
+
+func (sf *intFlag) args() string {
+	return fmt.Sprintf("--%v=%v", sf.Name, sf.Value)
+}
+
+func (sf *intFlag) changed() bool {
 	return sf.Changed
 }
 
@@ -141,13 +163,13 @@ func Test_conflictPair_checkConflict(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "1. bool item and bool item both true",
-			fields: fields{configA: boolItem{name: "b1", value: true}, configB: boolItem{name: "b2", value: true}},
+			fields: fields{configA: boolItem{name: "b1", expect: true}, configB: boolItem{name: "b2", expect: true}},
 			args:   args{cmd: getCommandBool()}, wantErr: true},
 		{name: "2. bool item and bool item true vs false",
-			fields: fields{configA: boolItem{name: "b1", value: true}, configB: boolItem{name: "b3", value: false}},
+			fields: fields{configA: boolItem{name: "b1", expect: true}, configB: boolItem{name: "b3", expect: false}},
 			args:   args{cmd: getCommandBoolDiff()}, wantErr: true},
 		{name: "3. bool item and string item",
-			fields: fields{configA: boolItem{name: "b1", value: true}, configB: stringItem{name: "s1", value: "conflict"}},
+			fields: fields{configA: boolItem{name: "b1", expect: true}, configB: stringItem{name: "s1", expect: "conflict"}},
 			args:   args{cmd: getCommandBoolString()}, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -157,7 +179,38 @@ func Test_conflictPair_checkConflict(t *testing.T) {
 				configB: tt.fields.configB,
 			}
 			var err error
-			if err = cp.checkConflict(); (err != nil) != tt.wantErr {
+			if err = cp.check(); (err != nil) != tt.wantErr {
+				t.Errorf("checkConflict() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			t.Log(err)
+		})
+	}
+}
+
+func Test_dependentPair_check(t *testing.T) {
+	type args struct {
+		cmd *cobra.Command
+	}
+	tests := []struct {
+		name    string
+		fields  dependentPair
+		args    args
+		wantErr bool
+	}{
+		{name: "1. b1=true, b2=true, correct",
+			fields: dependentPair{config: boolItem{name: "b1", expect: true}, reliedConfig: boolItem{name: "b2", expect: true}},
+			args:   args{cmd: getCommandBool()}, wantErr: false},
+		{name: "2. b1=true,b2=false, need error",
+			fields: dependentPair{config: boolItem{name: "b1", expect: true}, reliedConfig: boolItem{name: "b2", expect: false}},
+			args:   args{cmd: getCommandBool()}, wantErr: true},
+		{name: "2. b1=false, no error",
+			fields: dependentPair{config: boolItem{name: "b1", expect: false}, reliedConfig: boolItem{name: "b2", expect: false}},
+			args:   args{cmd: getCommandBool()}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var err error
+			if err = tt.fields.check(); (err != nil) != tt.wantErr {
 				t.Errorf("checkConflict() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			t.Log(err)

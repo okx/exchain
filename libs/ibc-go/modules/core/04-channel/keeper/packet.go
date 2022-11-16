@@ -354,7 +354,7 @@ func (k Keeper) WriteAcknowledgement(
 	// log that a packet acknowledgement has been written
 	k.Logger(ctx).Info(
 		"acknowledgement written",
-		"sequence", packet.GetSequence,
+		"sequence", packet.GetSequence(),
 		"src_port", packet.GetSourcePort(),
 		"src_channel", packet.GetSourceChannel(),
 		"dst_port", packet.GetDestPort(),
@@ -488,7 +488,7 @@ func (k Keeper) AcknowledgePacket(
 	// log that a packet has been acknowledged
 	k.Logger(ctx).Info(
 		"packet acknowledged",
-		"sequence", packet.GetSequence,
+		"sequence", packet.GetSequence(),
 		"src_port", packet.GetSourcePort(),
 		"src_channel", packet.GetSourceChannel(),
 		"dst_port", packet.GetDestPort(),

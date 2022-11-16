@@ -85,12 +85,12 @@ func (c *Cache) UpdateBlockedContractMethod(bcl BlockedContractList, isCheckTx b
 		return
 	}
 	c.blockedMutex.Lock()
-	c.blockedContractMethodsCache = make(map[string]BlockedContract, 0)
+	c.blockedContractMethodsCache = make(map[string]BlockedContract, len(bcl))
 	for i, _ := range bcl {
-		c.blockedContractMethodsCache[bcl[i].Address.String()] = bcl[i]
+		c.blockedContractMethodsCache[string(bcl[i].Address)] = bcl[i]
 	}
-	c.blockedMutex.Unlock()
 	c.needBlockedUpdate = false
+	c.blockedMutex.Unlock()
 }
 
 func SetEvmParamsNeedUpdate() {

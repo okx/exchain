@@ -14,11 +14,13 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	watcher "github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 var (
@@ -309,4 +311,106 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *Eth
 	}
 
 	return
+}
+
+func RawTxToRealTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
+	blockHash common.Hash, blockNumber, index uint64) (sdk.Tx, error) {
+	realTx, err := evmtypes.TxDecoder(clientCtx.CodecProy)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	return realTx, nil
+}
+
+func RawTxResultToEthReceipt(chainID *big.Int, tr *ctypes.ResultTx, realTx sdk.Tx,
+	blockHash common.Hash) (*watcher.TransactionResult, error) {
+	// Convert tx bytes to eth transaction
+	ethTx, ok := realTx.(*evmtypes.MsgEthereumTx)
+	if !ok {
+		return nil, fmt.Errorf("invalid transaction type %T, expected %T", realTx, evmtypes.MsgEthereumTx{})
+	}
+
+	// try to get from event
+	if from, err := GetEthSender(tr); err == nil {
+		ethTx.BaseTx.From = from
+	} else {
+		// try to get from sig
+		err := ethTx.VerifySig(chainID, tr.Height)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Set status codes based on tx result
+	var status = hexutil.Uint64(0)
+	if tr.TxResult.IsOK() {
+		status = hexutil.Uint64(1)
+	}
+
+	txData := tr.TxResult.GetData()
+	data, err := evmtypes.DecodeResultData(txData)
+	if err != nil {
+		status = 0 // transaction failed
+	}
+
+	if len(data.Logs) == 0 {
+		data.Logs = []*ethtypes.Log{}
+	}
+	contractAddr := &data.ContractAddress
+	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
+		contractAddr = nil
+	}
+
+	// fix gasUsed when deliverTx ante handler check sequence invalid
+	gasUsed := tr.TxResult.GasUsed
+	if tr.TxResult.Code == sdkerrors.ErrInvalidSequence.ABCICode() {
+		gasUsed = 0
+	}
+
+	receipt := watcher.TransactionReceipt{
+		Status: status,
+		//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
+		LogsBloom:        data.Bloom,
+		Logs:             data.Logs,
+		TransactionHash:  common.BytesToHash(tr.Hash.Bytes()).String(),
+		ContractAddress:  contractAddr,
+		GasUsed:          hexutil.Uint64(gasUsed),
+		BlockHash:        blockHash.String(),
+		BlockNumber:      hexutil.Uint64(tr.Height),
+		TransactionIndex: hexutil.Uint64(tr.Index),
+		From:             ethTx.GetFrom(),
+		To:               ethTx.To(),
+	}
+
+	rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tr.Hash),
+		blockHash, uint64(tr.Height), uint64(tr.Index))
+	if err != nil {
+		return nil, err
+	}
+
+	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), Receipt: &receipt, EthTx: rpcTx}, nil
+}
+
+func GetEthSender(tr *ctypes.ResultTx) (string, error) {
+	for _, ev := range tr.TxResult.Events {
+		if ev.Type == sdk.EventTypeMessage {
+			fromAddr := ""
+			realEvmTx := false
+			for _, attr := range ev.Attributes {
+				if string(attr.Key) == sdk.AttributeKeySender {
+					fromAddr = string(attr.Value)
+				}
+				if string(attr.Key) == sdk.AttributeKeyModule &&
+					string(attr.Value) == evmtypes.AttributeValueCategory { // to avoid the evm to cm tx enter
+					realEvmTx = true
+				}
+				// find the sender
+				if fromAddr != "" && realEvmTx {
+					return fromAddr, nil
+				}
+			}
+		}
+	}
+	return "", errors.New("No sender in Event")
 }

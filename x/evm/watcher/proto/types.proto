@@ -1,0 +1,48 @@
+syntax = "proto3";
+package x.evm.watcher.proto;
+
+option go_package = "github.com/okex/exchain/x/evm/watcher/proto";
+
+message Transaction {
+    bytes BlockHash = 1;
+    string BlockNumber = 2;
+    bytes From = 3;
+    uint64 Gas = 4;
+    string GasPrice = 5;
+    bytes Hash = 6;
+    bytes Input = 7;
+    uint64 Nonce = 8;
+    bytes To = 9;
+    uint64 TransactionIndex = 10;
+    string Value = 11;
+    string V = 12;
+    string R = 13;
+    string S = 14;
+}
+
+message Log {
+    bytes Address = 1;
+	repeated bytes Topics = 2;
+	bytes Data = 3;
+	uint64 BlockNumber = 4;
+	bytes TxHash = 5;
+	uint64 TxIndex = 6;
+	bytes BlockHash = 7;
+	uint64 Index = 8;
+	bool Removed = 9;
+}
+
+message TransactionReceipt {
+    uint64 Status = 1;
+	uint64 CumulativeGasUsed = 2;
+	bytes LogsBloom = 3;
+	repeated Log Logs = 4;
+	string TransactionHash = 5;
+	bytes ContractAddress = 6;
+	uint64 GasUsed = 7;
+	string BlockHash = 8;
+	uint64 BlockNumber = 9;
+	uint64 TransactionIndex = 10;
+	string From = 11;
+	bytes To = 12;
+}

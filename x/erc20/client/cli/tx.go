@@ -4,16 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-
 	"strconv"
-
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"

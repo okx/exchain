@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	trensferTypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"github.com/okex/exchain/x/erc20/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 var (
@@ -51,18 +52,26 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 		"token", token.String(),
 		"receiver", receiver,
 		"isSource", isSource)
+	// only after minting vouchers on this chain
+	if watcher.IsWatcherEnabled() {
+		ctx.SetWatcher(watcher.NewTxWatcher())
+	}
 
+	var err error
 	if !isSource {
-		// only after minting vouchers on this chain
 		// the native coin come from other chain with ibc
-		if err := iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver); err != types.ErrNoContractNotAuto {
-			return err
+		if err = iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver); err == types.ErrNoContractNotAuto {
+			err = nil
 		}
 	} else if token.Denom != sdk.DefaultBondDenom {
 		// the native coin come from this chain,
-		return iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), receiver)
+		err = iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), receiver)
 	}
-	return nil
+
+	if watcher.IsWatcherEnabled() && err == nil {
+		ctx.GetWatcher().Finalize()
+	}
+	return err
 }
 
 func (iths IBCTransferHooks) AfterRefundTransfer(
@@ -80,14 +89,23 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 		"sender", sender,
 		"isSource", isSource)
 	// only after minting vouchers on this chain
-	// the native coin come from other chain with ibc
+	if watcher.IsWatcherEnabled() {
+		ctx.SetWatcher(watcher.NewTxWatcher())
+	}
+
+	var err error
 	if !isSource {
-		if err := iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender); err != types.ErrNoContractNotAuto {
-			return err
+		// the native coin come from other chain with ibc
+		if err = iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender); err == types.ErrNoContractNotAuto {
+			err = nil
 		}
 	} else if token.Denom != sdk.DefaultBondDenom {
 		// the native coin come from this chain,
-		return iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), sender)
+		err = iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), sender)
 	}
-	return nil
+
+	if watcher.IsWatcherEnabled() && err == nil {
+		ctx.GetWatcher().Finalize()
+	}
+	return err
 }

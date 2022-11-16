@@ -9,17 +9,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/okex/exchain/app"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/okex/exchain/x/erc20/keeper"
 	"github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-
-	"github.com/stretchr/testify/suite"
 )
 
 var (
@@ -86,6 +87,10 @@ func (i IbcKeeperMock) DenomPathFromHash(ctx sdk.Context, denom string) (string,
 	return "", errors.New("not fount")
 }
 
+func (i IbcKeeperMock) GetDenomTrace(ctx sdk.Context, denomTraceHash tmbytes.HexBytes) (transfertypes.DenomTrace, bool) {
+	return transfertypes.DenomTrace{}, false
+}
+
 func (suite *KeeperTestSuite) TestDenomContractMap() {
 	denom1 := "testdenom1"
 	denom2 := "testdenom2"
@@ -139,6 +144,31 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 				suite.Require().NoError(err)
 				err = keeper.SetContractForDenom(suite.ctx, denom2, externalContract)
 				suite.Require().Error(err)
+			},
+		},
+		{
+			"success, delete contract",
+			func() {
+				keeper := suite.app.Erc20Keeper
+				r := keeper.DeleteContractForDenom(suite.ctx, denom1)
+				suite.Require().Equal(r, false)
+				err := keeper.SetContractForDenom(suite.ctx, denom1, externalContract)
+				suite.Require().NoError(err)
+				r = keeper.DeleteContractForDenom(suite.ctx, denom1)
+				suite.Require().Equal(r, true)
+			},
+		},
+		{
+			"success, multiple denoms map to different contracts",
+			func() {
+				keeper := suite.app.Erc20Keeper
+				err := keeper.SetContractForDenom(suite.ctx, denom1, autoContract)
+				suite.Require().NoError(err)
+				err = keeper.SetContractForDenom(suite.ctx, denom2, externalContract)
+				suite.Require().NoError(err)
+				out := keeper.GetContracts(suite.ctx)
+				suite.Require().Equal(out[0].Contract, autoContract.String())
+				suite.Require().Equal(out[1].Contract, externalContract.String())
 			},
 		},
 	}

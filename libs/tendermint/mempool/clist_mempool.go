@@ -80,7 +80,14 @@ type CListMempool struct {
 	pendingPoolNotify chan map[string]uint64
 
 	txInfoparser TxInfoParser
-	checkCnt     int64
+
+	checkCnt    int64
+	checkRPCCnt int64
+	checkP2PCnt int64
+
+	checkTotalTime    int64
+	checkRpcTotalTime int64
+	checkP2PTotalTime int64
 
 	txs ITransactionQueue
 }
@@ -238,9 +245,9 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-	// no need to update when mempool is unavailable
-	if mem.config.Sealed {
-		return fmt.Errorf("mempool is unavailable")
+	timeStart := int64(0)
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
+		timeStart = time.Now().UnixMicro()
 	}
 
 	txSize := len(tx)
@@ -264,7 +271,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		// so we only record the sender for txs still in the mempool.
 		if ele, ok := mem.txs.Load(txkey); ok {
 			memTx := ele.Value.(*mempoolTx)
-			memTx.senders.LoadOrStore(txInfo.SenderID, true)
+			memTx.senderMtx.Lock()
+			memTx.senders[txInfo.SenderID] = struct{}{}
+			memTx.senderMtx.Unlock()
 			// TODO: consider punishing peer for dups,
 			// its non-trivial since invalid txs can become valid,
 			// but they can spam the same tx with little cost to them atm.
@@ -272,6 +281,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxInCache
 	}
 	// END CACHE
+
+	mem.updateMtx.RLock()
+	// use defer to unlock mutex because application (*local client*) might panic
+	defer mem.updateMtx.RUnlock()
 
 	var err error
 	var gasUsed int64
@@ -286,10 +299,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 
-	mem.updateMtx.RLock()
-	// use defer to unlock mutex because application (*local client*) might panic
-	defer mem.updateMtx.RUnlock()
-
 	if mem.preCheck != nil {
 		if err = mem.preCheck(tx); err != nil {
 			return ErrPreCheck{err}
@@ -301,6 +310,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return err
 	}
 
+	if txInfo.from != "" {
+		types.SignatureCache().Add(txkey[:], txInfo.from)
+	}
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
@@ -311,6 +323,19 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
 	atomic.AddInt64(&mem.checkCnt, 1)
+
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
+		pastTime := time.Now().UnixMicro() - timeStart
+		if txInfo.SenderID != 0 {
+			atomic.AddInt64(&mem.checkP2PCnt, 1)
+			atomic.AddInt64(&mem.checkP2PTotalTime, pastTime)
+		} else {
+			atomic.AddInt64(&mem.checkRPCCnt, 1)
+			atomic.AddInt64(&mem.checkRpcTotalTime, pastTime)
+		}
+		atomic.AddInt64(&mem.checkTotalTime, pastTime)
+	}
+
 	return nil
 }
 
@@ -430,10 +455,14 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 	txNonce := memTx.realTx.GetNonce()
 	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
-	if txNonce == 0 || txNonce == expectedNonce {
+	if txNonce == 0 || txNonce < expectedNonce {
+		return mem.addTx(memTx)
+	}
+	// add pending tx
+	if txNonce == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
-			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
+			go mem.consumePendingTx(memTx.from, txNonce+1)
 		}
 		return err
 	}
@@ -571,7 +600,8 @@ func (mem *CListMempool) resCbFirstTime(
 				senderNonce: r.CheckTx.SenderNonce,
 			}
 
-			memTx.senders.Store(txInfo.SenderID, true)
+			memTx.senders = make(map[uint16]struct{})
+			memTx.senders[txInfo.SenderID] = struct{}{}
 
 			var err error
 			if mem.pendingPool != nil {
@@ -586,7 +616,7 @@ func (mem *CListMempool) resCbFirstTime(
 			} else {
 				// ignore bad transaction
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
-					"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
+					"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", err)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
 				mem.cache.RemoveKey(txkey)
@@ -808,7 +838,7 @@ func (mem *CListMempool) Update(
 ) error {
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
-		return nil
+		return mem.updateSealed(height, txs, deliverTxResponses)
 	}
 
 	// Set height
@@ -829,41 +859,10 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	for i, tx := range txs {
-		var txhash []byte
-		if mem.txInfoparser != nil {
-			if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
-				txhash = realTx.TxHash()
-			}
-		}
-		txkey := txOrTxHashToKey(tx, txhash, height)
-
 		txCode := deliverTxResponses[i].Code
-		// CodeTypeOK means tx was successfully executed.
-		// CodeTypeNonceInc means tx fails but the nonce of the account increases,
-		// e.g., the transaction gas has been consumed.
-		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
-			// add gas used with valid committed tx
-			gasUsed += uint64(deliverTxResponses[i].GasUsed)
-			// Add valid committed tx to the cache (if missing).
-			_ = mem.cache.PushKey(txkey)
-		} else {
-			// Allow invalid transactions to be resubmitted.
-			mem.cache.RemoveKey(txkey)
-		}
-
-		// Remove committed tx from the mempool.
-		//
-		// Note an evil proposer can drop valid txs!
-		// Mempool before:
-		//   100 -> 101 -> 102
-		// Block, proposed by an evil proposer:
-		//   101 -> 102
-		// Mempool after:
-		//   100
-		// https://github.com/tendermint/tendermint/issues/3322.
 		addr := ""
 		nonce := uint64(0)
-		if ele := mem.removeTxByKey(txkey); ele != nil {
+		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
@@ -880,6 +879,7 @@ func (mem *CListMempool) Update(
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
+			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 		}
 		if mem.pendingPool != nil {
 			addressNonce[addr] = nonce
@@ -921,15 +921,98 @@ func (mem *CListMempool) Update(
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
 
-	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10))
-	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, strconv.Itoa(mem.txs.Len()))
-	atomic.StoreInt64(&mem.checkCnt, 0)
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
+		mem.checkTxCost()
+	} else {
+		trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10))
+		trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, strconv.Itoa(mem.txs.Len()))
+		atomic.StoreInt64(&mem.checkCnt, 0)
+	}
 
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
 	// already sorted int the last round (will only affect the account that send these txs).
 
+	return nil
+}
+
+func (mem *CListMempool) checkTxCost() {
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt,
+		strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10)+","+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkRPCCnt), 10)+","+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2PCnt), 10))
+	atomic.StoreInt64(&mem.checkCnt, 0)
+	atomic.StoreInt64(&mem.checkRPCCnt, 0)
+	atomic.StoreInt64(&mem.checkP2PCnt, 0)
+
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxTime,
+		strconv.FormatInt(atomic.LoadInt64(&mem.checkTotalTime)/1000, 10)+"ms,"+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkRpcTotalTime)/1000, 10)+"ms,"+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2PTotalTime)/1000, 10)+"ms")
+	atomic.StoreInt64(&mem.checkTotalTime, 0)
+	atomic.StoreInt64(&mem.checkRpcTotalTime, 0)
+	atomic.StoreInt64(&mem.checkP2PTotalTime, 0)
+}
+
+func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clist.CElement {
+	var txHash []byte
+	if mem.txInfoparser != nil {
+		if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
+			txHash = realTx.TxHash()
+		}
+	}
+	txKey := txOrTxHashToKey(tx, txHash, height)
+	// CodeTypeOK means tx was successfully executed.
+	// CodeTypeNonceInc means tx fails but the nonce of the account increases,
+	// e.g., the transaction gas has been consumed.
+	if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+		// Add valid committed tx to the cache (if missing).
+		_ = mem.cache.PushKey(txKey)
+	} else {
+		// Allow invalid transactions to be resubmitted.
+		mem.cache.RemoveKey(txKey)
+	}
+	// Remove committed tx from the mempool.
+	//
+	// Note an evil proposer can drop valid txs!
+	// Mempool before:
+	//   100 -> 101 -> 102
+	// Block, proposed by an evil proposer:
+	//   101 -> 102
+	// Mempool after:
+	//   100
+	// https://github.com/tendermint/tendermint/issues/3322.
+	return mem.removeTxByKey(txKey)
+}
+
+func (mem *CListMempool) updateSealed(height int64, txs types.Txs, deliverTxResponses []*abci.ResponseDeliverTx) error {
+	// Set height
+	atomic.StoreInt64(&mem.height, height)
+	mem.notifiedTxsAvailable = false
+	// no need to update mempool
+	if mem.Size() <= 0 {
+		return nil
+	}
+	toCleanAccMap := make(map[string]uint64)
+	// update mempool
+	for i, tx := range txs {
+		txCode := deliverTxResponses[i].Code
+		// remove tx from mempool
+		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
+			if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+				toCleanAccMap[ele.Address] = ele.Nonce
+			}
+			mem.logUpdate(ele.Address, ele.Nonce)
+		}
+	}
+	for accAddr, accMaxNonce := range toCleanAccMap {
+		mem.txs.CleanItems(accAddr, accMaxNonce)
+	}
+	// mempool logs
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, strconv.Itoa(mem.txs.Len()))
+	atomic.StoreInt64(&mem.checkCnt, 0)
 	return nil
 }
 
@@ -980,7 +1063,8 @@ type mempoolTx struct {
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
-	senders sync.Map
+	senders   map[uint16]struct{}
+	senderMtx sync.RWMutex
 }
 
 // Height returns the height for this transaction

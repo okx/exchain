@@ -10,23 +10,23 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/system/trace"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -35,13 +35,13 @@ import (
 )
 
 const (
-	runTxModeCheck                 runTxMode = iota // Check a transaction
-	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
-	runTxModeSimulate                               // Simulate a transaction
-	runTxModeDeliver                                // Deliver a transaction
-	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
-	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
-	runTxModeTrace                                  // Trace a transaction
+	runTxModeCheck          runTxMode = iota // Check a transaction
+	runTxModeReCheck                         // Recheck a (pending) transaction after a commit
+	runTxModeSimulate                        // Simulate a transaction
+	runTxModeDeliver                         // Deliver a transaction
+	runTxModeDeliverInAsync                  // Deliver a transaction in Aysnc
+	_                                        // Deliver a transaction partial concurrent [deprecated]
+	runTxModeTrace                           // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -108,8 +108,6 @@ func (m runTxMode) String() (res string) {
 		res = "ModeSimulate"
 	case runTxModeDeliver:
 		res = "ModeDeliver"
-	case runTxModeDeliverPartConcurrent:
-		res = "ModeDeliverPartConcurrent"
 	case runTxModeDeliverInAsync:
 		res = "ModeDeliverInAsync"
 	case runTxModeWrappedCheck:
@@ -141,6 +139,8 @@ type BaseApp struct { // nolint: maligned
 	anteHandler      sdk.AnteHandler      // ante handler for fee and auth
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
 	accNonceHandler  sdk.AccNonceHandler  // account handler for cm tx nonce
+
+	EvmSysContractAddressHandler sdk.EvmSysContractAddressHandler // evm system contract address handler for judge whether convert evm tx to cm tx
 
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
@@ -201,9 +201,9 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	deliverTxsMgr         *DTTManager
-	feeForCollector       sdk.Coins
+	feeCollector          sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
+	FeeSplitCollector     *sync.Map
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -226,6 +226,7 @@ type BaseApp struct { // nolint: maligned
 
 	watcherCollector     sdk.EvmWatcherCollector
 	blockAllEvmTxGasUsed big.Int
+	tmClient             client.Client
 }
 
 type recordHandle func(string)
@@ -261,6 +262,7 @@ func NewBaseApp(
 		interceptors:     make(map[string]Interceptor),
 
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
+		FeeSplitCollector:       &sync.Map{},
 	}
 
 	for _, option := range options {
@@ -477,7 +479,7 @@ func (app *BaseApp) LastCommitID() sdk.CommitID {
 
 // LastBlockHeight returns the last committed block height.
 func (app *BaseApp) LastBlockHeight() int64 {
-	return app.cms.LastCommitID().Version
+	return app.cms.LastCommitVersion()
 }
 
 // initializes the remaining logic from app.cms
@@ -664,7 +666,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
 		return app.deliverState
 	}
 
@@ -698,7 +700,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx.ResetWatcher()
 	}
 
-	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver {
 		ctx.SetDeliver()
 	}
 
@@ -717,9 +719,22 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 		return sdk.Context{}, err
 	}
 
-	abciHeader, err := GetABCIHeader(height)
-	if err != nil {
-		return sdk.Context{}, err
+	var abciHeader = app.checkState.ctx.BlockHeader()
+	if abciHeader.Height != height {
+		if app.tmClient != nil {
+			var heightForQuery = height
+			var blockMeta *tmtypes.BlockMeta
+			blockMeta, err = app.tmClient.BlockInfo(&heightForQuery)
+			if err != nil {
+				return sdk.Context{}, err
+			}
+			abciHeader = blockHeaderToABCIHeader(blockMeta.Header)
+		} else {
+			abciHeader, err = GetABCIHeader(height)
+			if err != nil {
+				return sdk.Context{}, err
+			}
+		}
 	}
 
 	simState := &state{
@@ -730,6 +745,7 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	ctx := simState.ctx
 	ctx.SetTxBytes(txBytes)
+	ctx.SetConsensusParams(app.consensusParams)
 
 	return ctx, nil
 }
@@ -869,6 +885,19 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			break
 		}
 		msgRoute := msg.Route()
+
+		var isConvert bool
+
+		if app.JudgeEvmConvert(ctx, msg) {
+			newmsg, err := ConvertMsg(msg, ctx.BlockHeight())
+			if err != nil {
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
+			}
+			isConvert = true
+			msg = newmsg
+			msgRoute = msg.Route()
+		}
+
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
@@ -890,6 +919,15 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		//
 		// Note: Each message result's data must be length-prefixed in order to
 		// separate each result.
+
+		if isConvert {
+			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+			v, err := EvmResultConvert(txHash, msgResult.Data)
+			if err == nil {
+				msgResult.Data = v
+			}
+		}
+
 		events = events.AppendEvents(msgEvents)
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))
@@ -928,7 +966,7 @@ func (app *BaseApp) StopBaseApp() {
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 	exTxInfo := mempool.ExTxInfo{
-		Sender:   tx.GetFrom(),
+		Sender:   tx.GetSender(ctx),
 		GasPrice: tx.GetGasPrice(),
 		Nonce:    tx.GetNonce(),
 	}

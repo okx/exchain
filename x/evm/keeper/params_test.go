@@ -10,4 +10,9 @@ func (suite *KeeperTestSuite) TestParams() {
 	suite.app.EvmKeeper.SetParams(suite.ctx, params)
 	newParams := suite.app.EvmKeeper.GetParams(suite.ctx)
 	suite.Require().Equal(newParams, params)
+	newParams = suite.app.EvmKeeper.GetParams(*suite.ctx.SetDeliver())
+	suite.Require().Equal(newParams, params)
+	types.GetEvmParamsCache().UpdateParams(params, false)
+	newParams = suite.app.EvmKeeper.GetParams(*suite.ctx.SetDeliver())
+	suite.Require().Equal(newParams, params)
 }

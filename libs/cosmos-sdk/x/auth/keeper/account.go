@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"sync"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -28,6 +30,12 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 	return acc
 }
 
+var addrStoreKeyPool = &sync.Pool{
+	New: func() interface{} {
+		return &[33]byte{}
+	},
+}
+
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
 	if data, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
@@ -39,21 +47,30 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		return data.Copy()
 	}
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
 
-	bz := store.Get(types.AddressStoreKey(addr))
+	store := ctx.GetReusableKVStore(key)
+	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	defer func() {
+		addrStoreKeyPool.Put(keyTarget)
+		ctx.ReturnKVStore(store)
+	}()
+
+	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	if bz == nil {
 		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
 	}
 	acc := ak.decodeAccount(bz)
 
-	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
+	if ctx.Cache().IsEnabled() {
+		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
+	}
 
 	return acc
 }
@@ -65,14 +82,20 @@ func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
 		return
 	}
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
+	store := ctx.GetReusableKVStore(key)
+	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	defer func() {
+		addrStoreKeyPool.Put(keyTarget)
+		ctx.ReturnKVStore(store)
+	}()
 
-	bz := store.Get(types.AddressStoreKey(addr))
+	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	var acc exported.Account
 	if bz != nil {
 		acc = ak.decodeAccount(bz)
@@ -92,15 +115,17 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 }
 
 // SetAccount implements sdk.AccountKeeper.
-func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, updateState ...bool) {
+func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
+	store := ctx.GetReusableKVStore(key)
+	defer ctx.ReturnKVStore(store)
 
 	bz := ak.encodeAccount(acc)
 
@@ -109,7 +134,9 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
-	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
+	if ctx.Cache().IsEnabled() {
+		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
+	}
 
 	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead) {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
@@ -119,8 +146,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 		if ak.observers != nil {
 			for _, observer := range ak.observers {
 				if observer != nil {
-					updated := len(updateState) > 0 && updateState[0]
-					observer.OnAccountUpdated(acc, updated)
+					observer.OnAccountUpdated(acc)
 				}
 			}
 		}

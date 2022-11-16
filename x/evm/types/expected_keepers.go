@@ -13,7 +13,7 @@ type AccountKeeper interface {
 	GetAllAccounts(ctx sdk.Context) (accounts []authexported.Account)
 	IterateAccounts(ctx sdk.Context, cb func(account authexported.Account) bool)
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
-	SetAccount(ctx sdk.Context, account authexported.Account, updateState ...bool)
+	SetAccount(ctx sdk.Context, account authexported.Account)
 	RemoveAccount(ctx sdk.Context, account authexported.Account)
 	SetObserverKeeper(observer auth.ObserverI)
 }
@@ -30,4 +30,9 @@ type Subspace interface {
 
 type BankKeeper interface {
 	BlacklistedAddr(addr sdk.AccAddress) bool
+}
+
+// StakingKeeper for validator verify
+type StakingKeeper interface {
+	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
 }

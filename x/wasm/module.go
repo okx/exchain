@@ -2,8 +2,9 @@ package wasm
 
 import (
 	"context"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/okex/exchain/libs/tendermint/global"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -13,14 +14,16 @@ import (
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/x/wasm/client/rest"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/simulation"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -100,8 +103,9 @@ func (b AppModuleBasic) RegisterInterfaces(registry cdctypes.InterfaceRegistry) 
 type AppModule struct {
 	AppModuleBasic
 	*base.BaseIBCUpgradeModule
-	cdc    codec.CodecProxy
-	keeper *Keeper
+	cdc              codec.CodecProxy
+	keeper           *Keeper
+	permissionKeeper types.ContractOpsKeeper
 }
 
 // ConsensusVersion is a sequence number for state-breaking change of the
@@ -111,19 +115,31 @@ type AppModule struct {
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
+func NewAppModule(cdc codec.CodecProxy, wasmkeeper *Keeper) AppModule {
 	m := AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		cdc:            cdc,
-		keeper:         keeper,
+		keeper:         wasmkeeper,
 	}
 	m.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(m)
+	m.permissionKeeper = keeper.NewDefaultPermissionKeeper(wasmkeeper)
 	return m
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
-	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
+	global.Manager = watcher.ParamsManager{}
+	simulator.NewWasmSimulator = NewWasmSimulator
+	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.permissionKeeper))
+	if watcher.Enable() {
+		k := NewProxyKeeper()
+		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(&k))
+	} else {
+		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
+	}
+}
+
+func (am AppModule) GetPermissionKeeper() types.ContractOpsKeeper {
+	return am.permissionKeeper
 }
 
 //func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck
@@ -163,7 +179,13 @@ func (AppModule) QuerierRoute() string {
 //}
 
 // BeginBlock returns the begin blocker for the wasm module.
-func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
+func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
+	watcher.NewHeight()
+	if tmtypes.DownloadDelta {
+		keeper.GetWasmParamsCache().SetNeedParamsUpdate()
+		keeper.GetWasmParamsCache().SetNeedBlockedUpdate()
+	}
+}
 
 // EndBlock returns the end blocker for the wasm module. It returns no validator
 // updates.

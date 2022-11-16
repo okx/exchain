@@ -2,6 +2,10 @@ package wasm
 
 import (
 	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"sync"
+
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
 	"github.com/gorilla/mux"
@@ -12,6 +16,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmcli "github.com/okex/exchain/libs/tendermint/libs/cli"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/client/cli"
 	"github.com/okex/exchain/x/wasm/keeper"
@@ -21,23 +26,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+const SupportedFeatures = keeper.SupportedFeatures
+
 func (b AppModuleBasic) RegisterCodec(amino *codec.Codec) {
 	RegisterCodec(amino)
 }
 
 func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(&GenesisState{
-		Params: DefaultParams(),
-	})
+	return nil
 }
 
 func (b AppModuleBasic) ValidateGenesis(message json.RawMessage) error {
-	var data GenesisState
-	err := ModuleCdc.UnmarshalJSON(message, &data)
-	if err != nil {
-		return err
-	}
-	return ValidateGenesis(data)
+	return nil
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg cdctypes.InterfaceRegistry) *cobra.Command {
@@ -75,7 +75,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 }
 
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !types2.HigherThanVenus2(ctx.BlockHeight()) {
+	if !types2.HigherThanEarth(ctx.BlockHeight()) {
 		return nil
 	}
 	gs := ExportGenesis(ctx, am.keeper)
@@ -103,14 +103,14 @@ var (
 			return false
 		}
 
-		if h == types2.GetVenus2Height() {
+		if h == types2.GetEarthHeight() {
 			if s != nil {
 				s.SetUpgradeVersion(h)
 			}
 			return false
 		}
 
-		if types2.HigherThanVenus2(h) {
+		if types2.HigherThanEarth(h) {
 			return false
 		}
 
@@ -121,7 +121,7 @@ var (
 			return false
 		}
 
-		if types2.HigherThanVenus2(h) {
+		if types2.HigherThanEarth(h) {
 			return false
 		}
 
@@ -133,7 +133,7 @@ var (
 		}
 
 		return func(cb func(name string, version int64)) {
-			cb(ModuleName, types2.GetVenus2Height())
+			cb(ModuleName, types2.GetEarthHeight())
 		}
 	}
 )
@@ -157,7 +157,33 @@ func (am AppModule) VersionFilter() *store.VersionFilter {
 }
 
 func (am AppModule) UpgradeHeight() int64 {
-	return types2.GetVenus2Height()
+	return types2.GetEarthHeight()
+}
+
+var (
+	once        sync.Once
+	gWasmConfig types.WasmConfig
+	gWasmDir    string
+)
+
+func WasmDir() string {
+	once.Do(Init)
+	return gWasmDir
+}
+
+func WasmConfig() types.WasmConfig {
+	once.Do(Init)
+	return gWasmConfig
+}
+
+func Init() {
+	wasmConfig, err := ReadWasmConfig()
+	if err != nil {
+		panic(fmt.Sprintf("error while reading wasm config: %s", err))
+	}
+	gWasmConfig = wasmConfig
+	gWasmDir = filepath.Join(viper.GetString(tmcli.HomeFlag), "wasm")
+
 }
 
 // ReadWasmConfig reads the wasm specifig configuration

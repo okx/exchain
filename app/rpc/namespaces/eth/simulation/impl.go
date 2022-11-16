@@ -86,7 +86,7 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 	return account
 }
 
-func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account, updateState ...bool) {
+func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account) {
 	acc, ok := account.(types.EthAccount)
 	if !ok {
 		return
@@ -172,6 +172,13 @@ func NewBankKeeperProxy() BankKeeperProxy {
 
 func (b BankKeeperProxy) BlacklistedAddr(addr sdk.AccAddress) bool {
 	return b.blacklistedAddrs[addr.String()]
+}
+
+type StakingKeeperProxy struct {
+}
+
+func (s StakingKeeperProxy) IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool {
+	return true
 }
 
 type InternalDba struct {

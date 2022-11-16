@@ -12,6 +12,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -29,6 +30,7 @@ var big2 = big.NewInt(2)
 var big8 = big.NewInt(8)
 var DefaultDeployContractFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")
+var emptyEthAddr = ethcmn.Address{}
 
 // message type and route constants
 const (
@@ -41,6 +43,8 @@ type MsgEthereumTx struct {
 	Data TxData
 
 	sdk.BaseTx `json:"-" rlp:"-"`
+
+	addr ethcmn.Address
 }
 
 func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
@@ -49,6 +53,7 @@ func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
 
 func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.From = addr
+	tx.addr = ethcmn.HexToAddress(addr)
 }
 
 // GetFrom returns sender address of MsgEthereumTx if signature is valid, or returns "".
@@ -57,15 +62,28 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	if from == "" {
 		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
 		if from == "" {
-			from, err := tx.firstVerifySig(tx.ChainID())
+			addr, err := tx.firstVerifySig(tx.ChainID())
 			if err != nil {
-				tmtypes.SignatureCache().Add(tx.TxHash(), from)
-				tx.BaseTx.From = from
+				return ""
 			}
+			return EthAddressToString(&addr)
 		}
 	}
 
 	return from
+}
+
+func (msg MsgEthereumTx) GetSender(ctx sdk.Context) string {
+	chainID, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return ""
+	}
+	err = msg.VerifySig(chainID, ctx.BlockHeight())
+	if err != nil {
+		return ""
+	}
+
+	return msg.BaseTx.GetFrom()
 }
 
 func (msg *MsgEthereumTx) GetNonce() uint64 {
@@ -74,12 +92,18 @@ func (msg *MsgEthereumTx) GetNonce() uint64 {
 
 func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
-	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
+	feeInt := new(big.Int)
+	feeInt = msg.CalcFee(feeInt)
+	fee[0] = sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithBigIntAndPrec(feeInt, sdk.Precision))
 	return fee
 }
 
 func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
-	err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
+	chainID, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil
+	}
+	err = msg.VerifySig(chainID, ctx.BlockHeight())
 	if err != nil {
 		return nil
 	}
@@ -170,7 +194,7 @@ func (msg *MsgEthereumTx) To() *ethcmn.Address {
 // NOTE: This method panics if 'VerifySig' hasn't been called first.
 func (msg *MsgEthereumTx) GetSigners() []sdk.AccAddress {
 	addr := msg.AccountAddress()
-	if addr.Empty() {
+	if msg.BaseTx.From == "" || addr.Empty() {
 		panic("must use 'VerifySig' with a chain ID to get the from addr")
 	}
 	return []sdk.AccAddress{addr}
@@ -301,13 +325,13 @@ var sigBigNumPool = &sync.Pool{
 	},
 }
 
-func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
+func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	var V *big.Int
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
-			return "", errors.New("chainID cannot be zero")
+			return emptyEthAddr, errors.New("chainID cannot be zero")
 		}
 
 		bigNum := sigBigNumPool.Get().(*big.Int)
@@ -328,9 +352,9 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, &sigHash)
 	if err != nil {
-		return "", err
+		return emptyEthAddr, err
 	}
-	return EthAddressToString(&sender), nil
+	return sender, nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
@@ -344,15 +368,17 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	}
 	from, ok := tmtypes.SignatureCache().Get(msg.TxHash())
 	if ok {
-		msg.BaseTx.From = from
+		msg.SetFrom(from)
 		return nil
 	}
-	from, err := msg.firstVerifySig(chainID)
+	addr, err := msg.firstVerifySig(chainID)
 	if err != nil {
 		return err
 	}
+	from = EthAddressToString(&addr)
 	tmtypes.SignatureCache().Add(msg.TxHash(), from)
 	msg.BaseTx.From = from
+	msg.addr = addr
 	return nil
 }
 
@@ -373,7 +399,17 @@ func (msg *MsgEthereumTx) GetGas() uint64 {
 
 // Fee returns gasprice * gaslimit.
 func (msg *MsgEthereumTx) Fee() *big.Int {
-	return new(big.Int).Mul(msg.Data.Price, new(big.Int).SetUint64(msg.Data.GasLimit))
+	fee := new(big.Int)
+	fee.SetUint64(msg.Data.GasLimit)
+	fee.Mul(fee, msg.Data.Price)
+	return fee
+}
+
+// CalcFee set fee to gasprice * gaslimit and return fee
+func (msg *MsgEthereumTx) CalcFee(fee *big.Int) *big.Int {
+	fee.SetUint64(msg.Data.GasLimit)
+	fee.Mul(fee, msg.Data.Price)
+	return fee
 }
 
 // ChainID returns which chain id this transaction was signed for (if at all)
@@ -388,6 +424,13 @@ func (msg *MsgEthereumTx) Cost() *big.Int {
 	return total
 }
 
+// CalcCostTo set total to amount + gasprice * gaslimit and return it
+func (msg *MsgEthereumTx) CalcCostTo(total *big.Int) *big.Int {
+	total = msg.CalcFee(total)
+	total.Add(total, msg.Data.Amount)
+	return total
+}
+
 // RawSignatureValues returns the V, R, S signature values of the transaction.
 // The return values should not be modified by the caller.
 func (msg *MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
@@ -397,11 +440,19 @@ func (msg *MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 // From loads the ethereum sender address from the sigcache and returns an
 // sdk.AccAddress from its bytes
 func (msg *MsgEthereumTx) AccountAddress() sdk.AccAddress {
-	return ethcmn.FromHex(msg.GetFrom())
+	if msg.addr == emptyEthAddr {
+		return ethcmn.FromHex(msg.GetFrom())
+	} else {
+		return msg.addr[:]
+	}
 }
 
 func (msg *MsgEthereumTx) EthereumAddress() ethcmn.Address {
-	return ethcmn.HexToAddress(msg.GetFrom())
+	if msg.addr == emptyEthAddr {
+		return ethcmn.HexToAddress(msg.GetFrom())
+	} else {
+		return msg.addr
+	}
 }
 
 // deriveChainID derives the chain id from the given v parameter

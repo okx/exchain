@@ -2,12 +2,13 @@ package iavl
 
 import (
 	"fmt"
-	db "github.com/okex/exchain/libs/tm-db"
-	"github.com/stretchr/testify/require"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
+
+	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 )
 
 var dbDir = "testdata"
@@ -36,7 +37,7 @@ func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*Muta
 	//recursivePrint(tree.root, 0)
 
 	tree.SaveVersion(false)
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	fmt.Println("init setting done")
 	return tree, keySet, dataSet
 }
@@ -47,7 +48,7 @@ func benchmarkTreeRead(b *testing.B, tree *MutableTree, keySet []string, readNum
 	for i := 0; i < readNum; i++ {
 		idx := rand.Int() % len(keySet)
 		key := keySet[idx]
-		_, v := tree.Get([]byte(key))
+		_, v := tree.GetWithIndex([]byte(key))
 		require.NotNil(b, v)
 	}
 	duration := time.Since(t1)

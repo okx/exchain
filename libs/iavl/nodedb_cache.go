@@ -59,13 +59,17 @@ func (ndb *NodeCache) uncache(hash []byte) {
 // reached the cache size limit.
 func (ndb *NodeCache) cache(node *Node) {
 	ndb.nodeCacheMutex.Lock()
-	elem := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache[string(node.hash)] = elem
+	if ele, ok := ndb.nodeCache[string(node.hash)]; ok {
+		ndb.nodeCacheQueue.MoveToBack(ele)
+	} else {
+		elem := ndb.nodeCacheQueue.PushBack(node)
+		ndb.nodeCache[string(node.hash)] = elem
 
-	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		oldest := ndb.nodeCacheQueue.Front()
-		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
-		delete(ndb.nodeCache, amino.BytesToStr(hash))
+		for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
+			oldest := ndb.nodeCacheQueue.Front()
+			hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
+			delete(ndb.nodeCache, amino.BytesToStr(hash))
+		}
 	}
 	ndb.nodeCacheMutex.Unlock()
 }
@@ -81,15 +85,6 @@ func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
 		delete(ndb.nodeCache, amino.BytesToStr(hash))
 	}
 	ndb.nodeCacheMutex.Unlock()
-}
-
-func (ndb *NodeCache) cacheByCheck(node *Node) {
-	ndb.nodeCacheMutex.RLock()
-	_, ok := ndb.nodeCache[string(node.hash)]
-	ndb.nodeCacheMutex.RUnlock()
-	if !ok {
-		ndb.cache(node)
-	}
 }
 
 func (ndb *NodeCache) get(hash []byte, promoteRecentNode bool) (n *Node) {

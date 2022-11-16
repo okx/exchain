@@ -35,6 +35,15 @@ var (
 	delAddr3 = sdk.AccAddress(delPk3.Address())
 	delAddr4 = sdk.AccAddress(delPk4.Address())
 
+	proxyPk1   = ed25519.GenPrivKey().PubKey()
+	proxyPk2   = ed25519.GenPrivKey().PubKey()
+	proxyPk3   = ed25519.GenPrivKey().PubKey()
+	proxyPk4   = ed25519.GenPrivKey().PubKey()
+	proxyAddr1 = sdk.AccAddress(proxyPk1.Address())
+	proxyAddr2 = sdk.AccAddress(proxyPk2.Address())
+	proxyAddr3 = sdk.AccAddress(proxyPk3.Address())
+	proxyAddr4 = sdk.AccAddress(proxyPk4.Address())
+
 	valOpPk1    = ed25519.GenPrivKey().PubKey()
 	valOpPk2    = ed25519.GenPrivKey().PubKey()
 	valOpPk3    = ed25519.GenPrivKey().PubKey()
@@ -61,8 +70,14 @@ var (
 	// test addresses
 	TestAddrs = []sdk.AccAddress{
 		delAddr1, delAddr2, delAddr3, delAddr4,
+		proxyAddr1, proxyAddr2, proxyAddr3, proxyAddr4,
 		valAccAddr1, valAccAddr2, valAccAddr3, valAccAddr4,
 	}
+	TestDelAddrs    = []sdk.AccAddress{delAddr1, delAddr2, delAddr3, delAddr4}
+	TestProxyAddrs  = []sdk.AccAddress{proxyAddr1, proxyAddr2, proxyAddr3, proxyAddr4}
+	TestValAddrs    = []sdk.ValAddress{valOpAddr1, valOpAddr2, valOpAddr3, valOpAddr4}
+	TestConsAddrs   = []sdk.ConsAddress{valConsAddr1, valConsAddr2, valConsAddr3, valConsAddr4}
+	TestValAccAddrs = []sdk.AccAddress{valAccAddr1, valAccAddr2, valAccAddr3, valAccAddr4}
 
 	distrAcc = supply.NewEmptyModuleAccount(types.ModuleName)
 )
@@ -76,6 +91,11 @@ func ReInit() {
 	delAddr2 = sdk.AccAddress(delPk2.Address())
 	delAddr3 = sdk.AccAddress(delPk3.Address())
 	delAddr4 = sdk.AccAddress(delPk4.Address())
+
+	proxyAddr1 = sdk.AccAddress(proxyPk1.Address())
+	proxyAddr2 = sdk.AccAddress(proxyPk2.Address())
+	proxyAddr3 = sdk.AccAddress(proxyPk3.Address())
+	proxyAddr4 = sdk.AccAddress(proxyPk4.Address())
 
 	valOpPk1 = ed25519.GenPrivKey().PubKey()
 	valOpPk2 = ed25519.GenPrivKey().PubKey()
@@ -136,6 +156,7 @@ func MakeTestCodec() *codec.Codec {
 	supply.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
+	//gov.RegisterCodec(cdc)
 
 	types.RegisterCodec(cdc) // distr
 	return cdc
