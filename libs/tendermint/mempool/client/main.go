@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	node              = "wss://exchaintestws.okex.org:8443"
+	//node              = "wss://exchaintestws.okex.org:8443"
 	devnetNode        = "http://35.79.9.80:26659"
 	localNode         = "http://localhost:8545"
 	GasPrice   int64  = 100000000 // 0.1 gwei
@@ -38,6 +38,7 @@ var (
 	isBuy     bool
 	debug     bool
 	debugOnly bool
+	node      string
 )
 
 func main() {
@@ -47,6 +48,7 @@ func main() {
 	flag.BoolVar(&isBuy, "buy", true, "")
 	flag.BoolVar(&debug, "debug", false, "")
 	flag.BoolVar(&debugOnly, "debug-only", false, "")
+	flag.StringVar(&node, "node", localNode, "")
 	flag.Parse()
 	priv, err := crypto.HexToECDSA(privHex)
 	if err != nil {

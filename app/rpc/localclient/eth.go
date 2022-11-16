@@ -164,6 +164,23 @@ func (c *Eth) SubscribeFilterLogs(ctx context.Context, query ethereum.FilterQuer
 	panic("implement me")
 }
 
+func (c *Eth) NonceAt(_ context.Context, account common.Address, blockNumber *big.Int) (nonce uint64, err error) {
+	var blockArg types.BlockNumberOrHash
+	blockArg, err = toBlockNumberOrHash(blockNumber)
+	if err != nil {
+		return
+	}
+	var tc *hexutil.Uint64
+	tc, err = c.api.GetTransactionCount(account, blockArg)
+	if err != nil {
+		return
+	}
+	if tc != nil {
+		nonce = uint64(*tc)
+	}
+	return
+}
+
 var _ bind.ContractCaller = (*Eth)(nil)
 var _ bind.ContractFilterer = (*Eth)(nil)
 var _ bind.ContractTransactor = (*Eth)(nil)
