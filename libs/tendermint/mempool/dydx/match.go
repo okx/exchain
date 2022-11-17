@@ -115,6 +115,10 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		P1Orders:      common.HexToAddress(config.P1OrdersContractAddress),
 		P1MakerOracle: common.HexToAddress(config.P1MakerOracleAddress),
 	}
+	backend := engine.contractBackend
+	if backend == nil {
+		backend = engine.httpCli
+	}
 	engine.contracts, err = dydxlib.NewContracts(
 		ccConfig,
 		engine.txOps,
