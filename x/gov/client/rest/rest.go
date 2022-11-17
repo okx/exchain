@@ -48,7 +48,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, phs []ProposalREST
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 
-	r.HandleFunc("/cosmos/gov/v1beta1/proposals", queryProposalsWithParameterFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/gov/proposals", queryProposalsWithParameterFn(cliCtx)).Methods("GET")
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}", RestProposalID), queryProposalHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc(
 		fmt.Sprintf("/gov/proposals/{%s}/proposer", RestProposalID),
@@ -59,6 +59,9 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, phs []ProposalREST
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}/tally", RestProposalID), queryTallyOnProposalHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}/votes", RestProposalID), queryVotesOnProposalHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}/votes/{%s}", RestProposalID, RestVoter), queryVoteHandlerFn(cliCtx)).Methods("GET")
+
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc("/cosmos/gov/v1beta1/proposals", queryProposalsWithParameterCM45Fn(cliCtx)).Methods("GET")
 }
 
 // PostProposalReq defines the properties of a proposal request's body.

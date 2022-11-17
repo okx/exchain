@@ -66,7 +66,7 @@ func WrapCM45Validator(v Validator, ca *CosmosAny) CM45Validator {
 }
 
 type WrappedValidators struct {
-	Vs []CM45Validator `json:"result" yaml:"result"`
+	Vs []CM45Validator `json:"validators" yaml:"result"`
 }
 
 func NewWrappedValidators(vs []CM45Validator) WrappedValidators {

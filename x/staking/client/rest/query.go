@@ -66,7 +66,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// get all validators
 	r.HandleFunc(
-		"/cosmos/staking/v1beta1/validators",
+		"/staking/validators",
 		validatorsHandlerFn(cliCtx),
 	).Methods("GET")
 
@@ -112,6 +112,11 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		accountAddressHandlerFn(cliCtx),
 	).Methods("GET")
 
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/validators",
+		validatorsCM45HandlerFn(cliCtx),
+	).Methods("GET")
 }
 
 // HTTP request handler to query all delegator bonded validators
@@ -192,6 +197,43 @@ func historicalInfoHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 // HTTP request handler to query list of validators
 func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
+			return
+		}
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		status := r.FormValue("status")
+		if status == "" {
+			status = sdk.BondStatusBonded
+		}
+
+		params := types.NewQueryValidatorsParams(page, limit, status)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidators)
+		res, height, err := cliCtx.QueryWithData(route, bz)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+// HTTP request handler to query list of validators
+func validatorsCM45HandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
 		if err != nil {

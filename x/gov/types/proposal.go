@@ -20,7 +20,7 @@ func NewWrappedProposal(p CM45Proposal) WrappedProposal {
 }
 
 type WrappedProposals struct {
-	Ps []CM45Proposal `json:"result" yaml:"result"`
+	Ps []CM45Proposal `json:"proposals" yaml:"result"`
 }
 
 func NewWrappedProposals(ps []CM45Proposal) WrappedProposals {
