@@ -332,6 +332,24 @@ func (d *OrderManager) HandleDeposit(deposit *contracts.PerpetualV1LogDeposit) {
 	}
 }
 
+func (d *OrderManager) HandleIndex(index *contracts.PerpetualV1LogIndex) {
+	if index != nil {
+		index := dydx.Bytes32ToIndex(&index.Index)
+		timeIndex := time.Unix(int64(index.Timestamp), 0).Local()
+		valueStr := index.Value.String()
+		if !index.IsPositive {
+			valueStr = "-" + valueStr
+		}
+		d.logger.Debug("HandleIndex", "time", timeIndex, "value", valueStr)
+	}
+}
+
+func (d *OrderManager) HandleAccountSettled(settled *contracts.PerpetualV1LogAccountSettled) {
+	if settled != nil {
+		d.logger.Debug("HandleAccountSettled", "addr", settled.Account)
+	}
+}
+
 func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderCanceled) {
 	if canceled != nil {
 		d.filledOrCanceledOrders.Store(canceled.OrderHash, nil)
