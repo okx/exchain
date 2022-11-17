@@ -64,29 +64,25 @@ func NewOracle(params GPOConfig) *Oracle {
 
 func (gpo *Oracle) RecommendGP() *big.Int {
 	maxGasUsed := appconfig.GetOecConfig().GetMaxGasUsedPerBlock()
-	// If maxGasUsed is not negative and the current block's total gas consumption is
-	// less than 80% of it, then we consider the chain to be uncongested and return defaultPrice.
-	if maxGasUsed > 0 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed*80/100) {
-		return defaultPrice
-	}
-	// If the number of tx in the current block is less than the MaxTxNumPerBlock in mempool config,
-	// the default gas price is returned.
-	allGPsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
 	maxTxNum := appconfig.GetOecConfig().GetMaxTxNumPerBlock()
-	if allGPsLen < maxTxNum {
-		return defaultPrice
-	}
+	allTxsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
+	// If maxGasUsed is not negative and the current block's total gas consumption is more than 80% of it,
+	// or the number of tx in the current block is equal to MaxTxNumPerBlock in mempool config,
+	// then we consider the chain to be congested
+	// and return recommend gas price.
+	if (maxGasUsed > 0 && gpo.CurrentBlockGPs.GetGasUsed() >= uint64(maxGasUsed*80/100)) || allTxsLen == maxTxNum {
+		txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice)
 
-	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice)
-
-	price := gpo.lastPrice
-	if len(txPrices) > 0 {
-		sort.Sort(types.BigIntArray(txPrices))
-		price = txPrices[(len(txPrices)-1)*gpo.weight/100]
+		price := gpo.lastPrice
+		if len(txPrices) > 0 {
+			sort.Sort(types.BigIntArray(txPrices))
+			price = txPrices[(len(txPrices)-1)*gpo.weight/100]
+		}
+		if price.Cmp(maxPrice) > 0 {
+			price = new(big.Int).Set(maxPrice)
+		}
+		gpo.lastPrice = price
+		return price
 	}
-	if price.Cmp(maxPrice) > 0 {
-		price = new(big.Int).Set(maxPrice)
-	}
-	gpo.lastPrice = price
-	return price
+	return defaultPrice
 }
