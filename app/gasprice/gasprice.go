@@ -67,10 +67,10 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	maxTxNum := appconfig.GetOecConfig().GetMaxTxNumPerBlock()
 	allTxsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
 	// If maxGasUsed is not negative and the current block's total gas consumption is more than 80% of it,
-	// or the number of tx in the current block is equal to MaxTxNumPerBlock in mempool config,
+	// or the number of tx in the current block is more than 80% of MaxTxNumPerBlock in mempool config,
 	// then we consider the chain to be congested
 	// and return recommend gas price.
-	if (maxGasUsed > 0 && gpo.CurrentBlockGPs.GetGasUsed() >= uint64(maxGasUsed*80/100)) || allTxsLen == maxTxNum {
+	if (maxGasUsed > 0 && gpo.CurrentBlockGPs.GetGasUsed() >= uint64(maxGasUsed*80/100)) || (maxTxNum > 0 && allTxsLen >= maxTxNum*80/100) {
 		txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice)
 
 		price := gpo.lastPrice
