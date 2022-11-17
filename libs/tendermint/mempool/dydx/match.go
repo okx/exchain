@@ -49,11 +49,13 @@ type MatchEngine struct {
 
 	logger log.Logger
 
-	topicLogOrderCanceled common.Hash
-	topicLogOrderFilled   common.Hash
-	topicLogTrade         common.Hash
-	topicLogWithdraw      common.Hash
-	topicLogDeposit       common.Hash
+	topicLogOrderCanceled  common.Hash
+	topicLogOrderFilled    common.Hash
+	topicLogTrade          common.Hash
+	topicLogWithdraw       common.Hash
+	topicLogDeposit        common.Hash
+	topicLogIndex          common.Hash
+	topicLogAccountSettled common.Hash
 
 	logFilter  ethereum.FilterQuery
 	logHandler LogHandler
@@ -77,6 +79,8 @@ type LogHandler interface {
 	HandleTrade(*contracts.PerpetualV1LogTrade)
 	HandleWithdraw(withdraw *contracts.PerpetualV1LogWithdraw)
 	HandleDeposit(deposit *contracts.PerpetualV1LogDeposit)
+	HandleIndex(index *contracts.PerpetualV1LogIndex)
+	HandleAccountSettled(accountSettled *contracts.PerpetualV1LogAccountSettled)
 }
 
 func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
@@ -140,6 +144,8 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		engine.topicLogTrade = perpetualAbi.Events["LogTrade"].ID
 		engine.topicLogWithdraw = perpetualAbi.Events["LogWithdraw"].ID
 		engine.topicLogDeposit = perpetualAbi.Events["LogDeposit"].ID
+		engine.topicLogIndex = perpetualAbi.Events["LogIndex"].ID
+		engine.topicLogAccountSettled = perpetualAbi.Events["LogAccountSettled"].ID
 
 		var query = ethereum.FilterQuery{
 			Addresses: []common.Address{
@@ -153,6 +159,8 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 					engine.topicLogTrade,
 					engine.topicLogWithdraw,
 					engine.topicLogDeposit,
+					engine.topicLogIndex,
+					engine.topicLogAccountSettled,
 				},
 			},
 		}
@@ -253,6 +261,16 @@ func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
 				depositLog, err := m.contracts.PerpetualV1.ParseLogDeposit(*evmLog)
 				if err == nil {
 					m.logHandler.HandleDeposit(depositLog)
+				}
+			case m.topicLogIndex:
+				indexLog, err := m.contracts.PerpetualV1.ParseLogIndex(*evmLog)
+				if err == nil {
+					m.logHandler.HandleIndex(indexLog)
+				}
+			case m.topicLogAccountSettled:
+				settledLog, err := m.contracts.PerpetualV1.ParseLogAccountSettled(*evmLog)
+				if err == nil {
+					m.logHandler.HandleAccountSettled(settledLog)
 				}
 			}
 		}
