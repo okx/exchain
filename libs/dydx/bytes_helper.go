@@ -3,6 +3,8 @@ package dydx
 import (
 	"math/big"
 	"strings"
+
+	"github.com/okex/exchain/libs/dydx/contracts"
 )
 
 func BnToBytes32(value *big.Int) string {
@@ -42,4 +44,13 @@ func CombineHexString(args ...string) string {
 		sb.WriteString(StripHexPrefix(arg))
 	}
 	return sb.String()
+}
+
+func Bytes32ToBalance(bz *[32]byte) contracts.P1TypesBalance {
+	var balance contracts.P1TypesBalance
+	balance.Position = new(big.Int).SetBytes(bz[17:32])
+	balance.Margin = new(big.Int).SetBytes(bz[1:16])
+	balance.PositionIsPositive = bz[16]&0x01 == 0x01
+	balance.MarginIsPositive = bz[0]&0x02 == 0x02
+	return balance
 }

@@ -1,13 +1,21 @@
 package global
 
-import "github.com/ethereum/go-ethereum/accounts/abi/bind"
+import (
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+)
 
-var client bind.ContractBackend
+type LocalEthClient interface {
+	bind.ContractBackend
+	ethereum.ChainStateReader
+}
 
-func SetEthClient(backend bind.ContractBackend) {
+var client LocalEthClient
+
+func SetLocalEthClient(backend LocalEthClient) {
 	client = backend
 }
 
-func GetEthClient() bind.ContractBackend {
+func GetLocalEthClient() LocalEthClient {
 	return client
 }
