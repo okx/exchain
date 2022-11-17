@@ -3,12 +3,13 @@ package watcher
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
-	"strconv"
 )
 
 var errACNotFound = errors.New("ac processor: not found")
@@ -242,7 +243,10 @@ func (aq *ACProcessorQuerier) GetParams() (evmtypes.Params, error) {
 
 // for prefixWhiteList and prefixBlackList
 func (aq *ACProcessorQuerier) Has(key []byte) (bool, error) {
-	if _, ok := aq.p.Get(key); ok {
+	if v, ok := aq.p.Get(key); ok {
+		if v == nil || v.GetType() == TypeDelete { // for del key
+			return false, nil
+		}
 		return true, nil
 	}
 	return false, errACNotFound
