@@ -49,11 +49,14 @@ type MatchEngine struct {
 
 	logger log.Logger
 
-	logFilter             ethereum.FilterQuery
 	topicLogOrderCanceled common.Hash
 	topicLogOrderFilled   common.Hash
 	topicLogTrade         common.Hash
-	logHandler            LogHandler
+	topicLogWithdraw      common.Hash
+	topicLogDeposit       common.Hash
+
+	logFilter  ethereum.FilterQuery
+	logHandler LogHandler
 
 	frozenOrders *list.List
 }
@@ -72,6 +75,8 @@ type LogHandler interface {
 	HandleOrderFilled(*contracts.P1OrdersLogOrderFilled)
 	HandleOrderCanceled(*contracts.P1OrdersLogOrderCanceled)
 	HandleTrade(*contracts.PerpetualV1LogTrade)
+	HandleWithdraw(withdraw *contracts.PerpetualV1LogWithdraw)
+	HandleDeposit(deposit *contracts.PerpetualV1LogDeposit)
 }
 
 func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
@@ -130,6 +135,8 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		engine.topicLogOrderFilled = ordersAbi.Events["LogOrderFilled"].ID
 
 		engine.topicLogTrade = perpetualAbi.Events["LogTrade"].ID
+		engine.topicLogWithdraw = perpetualAbi.Events["LogWithdraw"].ID
+		engine.topicLogDeposit = perpetualAbi.Events["LogDeposit"].ID
 
 		var query = ethereum.FilterQuery{
 			Addresses: []common.Address{
@@ -137,7 +144,13 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 				ccConfig.PerpetualV1,
 			},
 			Topics: [][]common.Hash{
-				{engine.topicLogOrderFilled, engine.topicLogOrderCanceled, engine.topicLogTrade},
+				{
+					engine.topicLogOrderFilled,
+					engine.topicLogOrderCanceled,
+					engine.topicLogTrade,
+					engine.topicLogWithdraw,
+					engine.topicLogDeposit,
+				},
 			},
 		}
 
@@ -227,6 +240,16 @@ func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
 				tradeLog, err := m.contracts.PerpetualV1.ParseLogTrade(*evmLog)
 				if err == nil {
 					m.logHandler.HandleTrade(tradeLog)
+				}
+			case m.topicLogWithdraw:
+				withdrawLog, err := m.contracts.PerpetualV1.ParseLogWithdraw(*evmLog)
+				if err == nil {
+					m.logHandler.HandleWithdraw(withdrawLog)
+				}
+			case m.topicLogDeposit:
+				depositLog, err := m.contracts.PerpetualV1.ParseLogDeposit(*evmLog)
+				if err == nil {
+					m.logHandler.HandleDeposit(depositLog)
 				}
 			}
 		}
