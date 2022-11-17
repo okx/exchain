@@ -52,6 +52,7 @@ type MatchEngine struct {
 	logFilter             ethereum.FilterQuery
 	topicLogOrderCanceled common.Hash
 	topicLogOrderFilled   common.Hash
+	topicLogTrade         common.Hash
 	logHandler            LogHandler
 
 	frozenOrders *list.List
@@ -70,6 +71,7 @@ type DydxConfig struct {
 type LogHandler interface {
 	HandleOrderFilled(*contracts.P1OrdersLogOrderFilled)
 	HandleOrderCanceled(*contracts.P1OrdersLogOrderCanceled)
+	HandleTrade(*contracts.PerpetualV1LogTrade)
 }
 
 func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
@@ -119,16 +121,23 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		if err != nil {
 			return nil, fmt.Errorf("failed to get orders abi, err: %w", err)
 		}
+		perpetualAbi, err := contracts.PerpetualV1MetaData.GetAbi()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get perpetual abi, err: %w", err)
+		}
 
 		engine.topicLogOrderCanceled = ordersAbi.Events["LogOrderCanceled"].ID
 		engine.topicLogOrderFilled = ordersAbi.Events["LogOrderFilled"].ID
 
+		engine.topicLogTrade = perpetualAbi.Events["LogTrade"].ID
+
 		var query = ethereum.FilterQuery{
 			Addresses: []common.Address{
-				common.HexToAddress(config.P1OrdersContractAddress),
+				ccConfig.P1Orders,
+				ccConfig.PerpetualV1,
 			},
 			Topics: [][]common.Hash{
-				{engine.topicLogOrderFilled, engine.topicLogOrderCanceled},
+				{engine.topicLogOrderFilled, engine.topicLogOrderCanceled, engine.topicLogTrade},
 			},
 		}
 
@@ -213,6 +222,11 @@ func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
 				canceledLog, err := m.contracts.P1Orders.ParseLogOrderCanceled(*evmLog)
 				if err == nil {
 					m.logHandler.HandleOrderCanceled(canceledLog)
+				}
+			case m.topicLogTrade:
+				tradeLog, err := m.contracts.PerpetualV1.ParseLogTrade(*evmLog)
+				if err == nil {
+					m.logHandler.HandleTrade(tradeLog)
 				}
 			}
 		}

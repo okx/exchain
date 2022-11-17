@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/dydx"
 	"github.com/okex/exchain/libs/dydx/contracts"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -295,6 +296,14 @@ func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled
 		return o
 	}
 	return o
+}
+
+func (d *OrderManager) HandleTrade(trade *contracts.PerpetualV1LogTrade) {
+	if trade != nil {
+		var makerBalance = dydx.Bytes32ToBalance(&trade.MakerBalance)
+		var takerBalance = dydx.Bytes32ToBalance(&trade.TakerBalance)
+		d.logger.Debug("HandleTrade", "taker", trade.Taker, "maker", trade.Maker, "makerBalance", makerBalance, "takerBalance", takerBalance)
+	}
 }
 
 func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderCanceled) {
