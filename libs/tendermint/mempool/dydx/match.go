@@ -105,6 +105,9 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 	}
 
 	engine.httpCli, _ = ethclient.Dial(config.EthHttpRpcUrl)
+	if engine.contractBackend == nil && engine.httpCli != nil {
+		engine.contractBackend = engine.httpCli
+	}
 
 	engine.txOps, err = bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
 	if err != nil {
@@ -114,10 +117,6 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		PerpetualV1:   common.HexToAddress(config.PerpetualV1ContractAddress),
 		P1Orders:      common.HexToAddress(config.P1OrdersContractAddress),
 		P1MakerOracle: common.HexToAddress(config.P1MakerOracleAddress),
-	}
-	backend := engine.contractBackend
-	if backend == nil {
-		backend = engine.httpCli
 	}
 	engine.contracts, err = dydxlib.NewContracts(
 		ccConfig,
