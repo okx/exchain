@@ -203,12 +203,13 @@ func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
 	logsSlice := m.pubsub.ParseLogsFromTxs(txsResps, m.logFilter)
 	for _, logs := range logsSlice {
 		for _, evmLog := range logs {
-			if evmLog.Topics[0] == m.topicLogOrderFilled {
+			switch evmLog.Topics[0] {
+			case m.topicLogOrderFilled:
 				filledLog, err := m.contracts.P1Orders.ParseLogOrderFilled(*evmLog)
 				if err == nil {
 					m.logHandler.HandleOrderFilled(filledLog)
 				}
-			} else if evmLog.Topics[0] == m.topicLogOrderCanceled {
+			case m.topicLogOrderCanceled:
 				canceledLog, err := m.contracts.P1Orders.ParseLogOrderCanceled(*evmLog)
 				if err == nil {
 					m.logHandler.HandleOrderCanceled(canceledLog)
