@@ -24,7 +24,7 @@ func (d Deposit) String() string {
 }
 
 type WrappedDeposits struct {
-	Ds Deposits `json:"result" yaml:"result"`
+	Ds Deposits `json:"deposits" yaml:"result"`
 }
 
 func NewWrappedDeposits(ds Deposits) WrappedDeposits {

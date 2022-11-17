@@ -10,7 +10,7 @@ import (
 )
 
 type WrappedProposal struct {
-	P CM45Proposal `json:"result" yaml:"result"`
+	P CM45Proposal `json:"proposal" yaml:"result"`
 }
 
 func NewWrappedProposal(p CM45Proposal) WrappedProposal {

@@ -62,6 +62,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, phs []ProposalREST
 
 	// Compatible with cosmos v0.45.1
 	r.HandleFunc("/cosmos/gov/v1beta1/proposals", queryProposalsWithParameterCM45Fn(cliCtx)).Methods("GET")
+	r.HandleFunc(fmt.Sprintf("/cosmos/gov/v1beta1/proposals/{%s}", RestProposalID), queryProposalHandlerFn(cliCtx)).Methods("GET")
 }
 
 // PostProposalReq defines the properties of a proposal request's body.
