@@ -56,6 +56,14 @@ func Bytes32ToBalance(bz *[32]byte) contracts.P1TypesBalance {
 	return balance
 }
 
+func Bytes32ToIndex(bz *[32]byte) contracts.P1TypesIndex {
+	var index contracts.P1TypesIndex
+	index.Value = new(big.Int).SetBytes(bz[16:32])
+	index.IsPositive = bz[15]&0x01 == 0x01
+	index.Timestamp = uint32(new(big.Int).SetBytes(bz[11:15]).Uint64())
+	return index
+}
+
 type P1TypesBalanceStringer contracts.P1TypesBalance
 
 func (b P1TypesBalanceStringer) String() string {
