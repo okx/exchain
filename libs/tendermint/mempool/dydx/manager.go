@@ -302,7 +302,33 @@ func (d *OrderManager) HandleTrade(trade *contracts.PerpetualV1LogTrade) {
 	if trade != nil {
 		var makerBalance = dydx.Bytes32ToBalance(&trade.MakerBalance)
 		var takerBalance = dydx.Bytes32ToBalance(&trade.TakerBalance)
-		d.logger.Debug("HandleTrade", "taker", trade.Taker, "maker", trade.Maker, "makerBalance", makerBalance, "takerBalance", takerBalance)
+		d.logger.Debug("HandleTrade",
+			"taker", trade.Taker,
+			"takerBalance", dydx.P1TypesBalanceStringer(takerBalance),
+			"maker", trade.Maker,
+			"makerBalance", dydx.P1TypesBalanceStringer(makerBalance),
+		)
+	}
+}
+
+func (d *OrderManager) HandleWithdraw(withdraw *contracts.PerpetualV1LogWithdraw) {
+	if withdraw != nil {
+		balance := dydx.Bytes32ToBalance(&withdraw.Balance)
+		d.logger.Debug("HandleWithdraw",
+			"addr", withdraw.Account, "to", withdraw.Destination,
+			"amount", withdraw.Amount, "balance", dydx.P1TypesBalanceStringer(balance),
+		)
+	}
+}
+
+func (d *OrderManager) HandleDeposit(deposit *contracts.PerpetualV1LogDeposit) {
+	if deposit != nil {
+		balance := dydx.Bytes32ToBalance(&deposit.Balance)
+		d.logger.Debug("HandleDeposit",
+			"addr", deposit.Account,
+			"amount", deposit.Amount,
+			"balance", dydx.P1TypesBalanceStringer(balance),
+		)
 	}
 }
 

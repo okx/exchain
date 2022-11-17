@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -53,4 +54,18 @@ func Bytes32ToBalance(bz *[32]byte) contracts.P1TypesBalance {
 	balance.PositionIsPositive = bz[16]&0x01 == 0x01
 	balance.MarginIsPositive = bz[0]&0x02 == 0x02
 	return balance
+}
+
+type P1TypesBalanceStringer contracts.P1TypesBalance
+
+func (b P1TypesBalanceStringer) String() string {
+	margin := b.Margin.String()
+	position := b.Position.String()
+	if !b.PositionIsPositive {
+		position = "-" + position
+	}
+	if !b.MarginIsPositive {
+		margin = "-" + margin
+	}
+	return fmt.Sprintf("margin: %s, position: %s", margin, position)
 }
