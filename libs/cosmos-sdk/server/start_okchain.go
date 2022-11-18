@@ -42,6 +42,10 @@ const (
 	FlagWsSubChannelLength = "ws.sub_channel_length"
 )
 
+var (
+	ChainID = "exchain-66"
+)
+
 //module hook
 
 type fnHookstartInProcess func(ctx *Context) error
@@ -56,7 +60,7 @@ func InstallHookEx(flag string, hooker fnHookstartInProcess) {
 	gSrvHookTable.hookTable[flag] = hooker
 }
 
-//call hooker function
+// call hooker function
 func callHooker(flag string, args ...interface{}) error {
 	params := make([]interface{}, 0)
 	switch flag {
@@ -247,7 +251,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
-	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
+	cmd.Flags().String(flags.FlagChainID, ChainID, "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
 	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
