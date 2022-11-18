@@ -201,8 +201,9 @@ type SimApp struct {
 	invCheckPeriod uint
 
 	// keys to access the substores
-	keys  map[string]*sdk.KVStoreKey
-	tkeys map[string]*sdk.TransientStoreKey
+	keys    map[string]*sdk.KVStoreKey
+	tkeys   map[string]*sdk.TransientStoreKey
+	memKeys map[string]*sdk.MemoryStoreKey
 
 	// subspaces
 	subspaces map[string]params.Subspace
@@ -305,6 +306,7 @@ func NewSimApp(
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
+		memKeys:        memKeys,
 	}
 	bApp.SetInterceptors(makeInterceptors())
 
@@ -731,6 +733,10 @@ func (app *SimApp) SimulationManager() *module.SimulationManager {
 // NOTE: This is solely to be used for testing purposes.
 func (app *SimApp) GetKey(storeKey string) *sdk.KVStoreKey {
 	return app.keys[storeKey]
+}
+
+func (app *SimApp) GetMemKey(storeKey string) *sdk.MemoryStoreKey {
+	return app.memKeys[storeKey]
 }
 
 func (app *SimApp) GetBaseApp() *bam.BaseApp {
