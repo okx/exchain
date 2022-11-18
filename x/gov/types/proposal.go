@@ -93,7 +93,7 @@ func (p Proposal) ToCM45Proposal() *CM45Proposal {
 	cm45p := CM45Proposal{
 		Content:          p.Content,
 		ProposalID:       p.ProposalID,
-		Status:           p.Status.String(),
+		Status:           p.Status.ToCM45Status(),
 		FinalTallyResult: p.FinalTallyResult,
 		SubmitTime:       p.SubmitTime,
 		DepositEndTime:   p.DepositEndTime,
@@ -193,6 +193,28 @@ func ValidProposalStatus(status ProposalStatus) bool {
 	return false
 }
 
+func (status ProposalStatus) ToCM45Status() string {
+	switch status {
+	case StatusDepositPeriod:
+		return "PROPOSAL_STATUS_DEPOSIT_PERIOD"
+
+	case StatusVotingPeriod:
+		return "PROPOSAL_STATUS_VOTING_PERIOD"
+
+	case StatusPassed:
+		return "PROPOSAL_STATUS_PASSED"
+
+	case StatusRejected:
+		return "PROPOSAL_STATUS_REJECTED"
+
+	case StatusFailed:
+		return "PROPOSAL_STATUS_FAILED"
+
+	default:
+		return ""
+	}
+}
+
 // Marshal needed for protobuf compatibility
 func (status ProposalStatus) Marshal() ([]byte, error) {
 	return []byte{byte(status)}, nil
@@ -228,19 +250,19 @@ func (status *ProposalStatus) UnmarshalJSON(data []byte) error {
 func (status ProposalStatus) String() string {
 	switch status {
 	case StatusDepositPeriod:
-		return "PROPOSAL_STATUS_DEPOSIT_PERIOD"
+		return "DepositPeriod"
 
 	case StatusVotingPeriod:
-		return "PROPOSAL_STATUS_VOTING_PERIOD"
+		return "VotingPeriod"
 
 	case StatusPassed:
-		return "PROPOSAL_STATUS_PASSED"
+		return "Passed"
 
 	case StatusRejected:
-		return "PROPOSAL_STATUS_REJECTED"
+		return "Rejected"
 
 	case StatusFailed:
-		return "PROPOSAL_STATUS_FAILED"
+		return "Failed"
 
 	default:
 		return ""
