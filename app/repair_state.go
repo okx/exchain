@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/utils/appstatus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -60,6 +61,10 @@ func repairStateOnStart(ctx *server.Context) {
 	orgEnableFlatKV := viper.GetBool(flatkv.FlagEnable)
 	iavl.EnableAsyncCommit = false
 	viper.Set(flatkv.FlagEnable, false)
+	if appstatus.IsFastStorageStrategy() &&
+		viper.GetBool(iavl.FlagIavlEnableFastStorage) {
+		iavl.SetEnableFastStorage(true)
+	}
 
 	// repair state
 	RepairState(ctx, true)
