@@ -208,7 +208,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, true, "Enable async commit")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableFastStorage, false, "Enable fast storage")
 	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 100000, "Max size of iavl fast storage cache")
-	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
+	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, true, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().Bool(sdkstoretypes.FlagLoadVersionAsync, false, "Enable async for each kvstore to load version")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
