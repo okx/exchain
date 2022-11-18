@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 	"io"
 
 	"github.com/okex/exchain/app/logevents"
@@ -46,6 +47,7 @@ const flagInvCheckPeriod = "inv-check-period"
 var invCheckPeriod uint
 
 func main() {
+	mempool.CleanFunc = baseapp.RecreateHguDB
 	cobra.EnableCommandSorting = false
 
 	codecProxy, registry := codec.MakeCodecSuit(app.ModuleBasics)

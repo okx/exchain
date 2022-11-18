@@ -31,6 +31,7 @@ run() {
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 2000ms \
       --enable-preruntx=false \
+      --mempool.max_gas_used_per_block 120000000 \
       --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \

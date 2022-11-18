@@ -123,6 +123,7 @@ which accepts a path for the resulting pprof file.
 			log.SetSubscriber(sub)
 
 			setPID(ctx)
+			baseapp.CreateHguDB()
 			_, err := startInProcess(ctx, cdc, registry, appCreator, appStop, registerRoutesFn)
 			if err != nil {
 				tmos.Exit(err.Error())

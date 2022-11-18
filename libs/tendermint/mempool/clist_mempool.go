@@ -741,6 +741,9 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// must be non-negative, it follows that this won't overflow.
 		newTotalGas := totalGas + memTx.gasWanted
 		if maxGas > -1 && newTotalGas > maxGas {
+			if len(txs) < 5 && mem.Size() > 0 {
+				CleanFunc()
+			}
 			return txs
 		}
 		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
