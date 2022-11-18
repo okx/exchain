@@ -34,7 +34,7 @@ type CM45Proposal struct {
 	Content `json:"content" yaml:"content"` // Proposal content interface
 
 	ProposalID       uint64      `json:"id" yaml:"id"`                                 //  ID of the proposal
-	Status           int32       `json:"status" yaml:"proposal_status"`                // Status of the Proposal {Pending, Active, Passed, Rejected}
+	Status           string      `json:"status" yaml:"proposal_status"`                // Status of the Proposal {Pending, Active, Passed, Rejected}
 	FinalTallyResult TallyResult `json:"final_tally_result" yaml:"final_tally_result"` // Result of Tallys
 
 	SubmitTime     time.Time    `json:"submit_time" yaml:"submit_time"`           // Time of the block where TxGovSubmitProposal was included
@@ -93,7 +93,7 @@ func (p Proposal) ToCM45Proposal() *CM45Proposal {
 	cm45p := CM45Proposal{
 		Content:          p.Content,
 		ProposalID:       p.ProposalID,
-		Status:           int32(p.Status),
+		Status:           p.Status.String(),
 		FinalTallyResult: p.FinalTallyResult,
 		SubmitTime:       p.SubmitTime,
 		DepositEndTime:   p.DepositEndTime,
@@ -228,19 +228,19 @@ func (status *ProposalStatus) UnmarshalJSON(data []byte) error {
 func (status ProposalStatus) String() string {
 	switch status {
 	case StatusDepositPeriod:
-		return "DepositPeriod"
+		return "PROPOSAL_STATUS_DEPOSIT_PERIOD"
 
 	case StatusVotingPeriod:
-		return "VotingPeriod"
+		return "PROPOSAL_STATUS_VOTING_PERIOD"
 
 	case StatusPassed:
-		return "Passed"
+		return "PROPOSAL_STATUS_PASSED"
 
 	case StatusRejected:
-		return "Rejected"
+		return "PROPOSAL_STATUS_REJECTED"
 
 	case StatusFailed:
-		return "Failed"
+		return "PROPOSAL_STATUS_FAILED"
 
 	default:
 		return ""

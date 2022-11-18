@@ -7,11 +7,11 @@ import (
 )
 
 // PubkeyType is to be compatible with the response format of the standard cosmos REST API.
-const PubkeyType = "tendermint/PubKeyEd25519"
+const PubkeyType = "/cosmos.crypto.ed25519.PubKey"
 
 type CosmosAny struct {
 	// nolint
-	TypeUrl string `protobuf:"bytes,1,opt,name=type_url,json=typeUrl,proto3" json:"type,omitempty"`
+	TypeUrl string `protobuf:"bytes,1,opt,name=type_url,json=typeUrl,proto3" json:"@type,omitempty"`
 	// Must be a valid serialized protocol buffer of the above specified type.
 	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
@@ -32,7 +32,7 @@ type CM45Validator struct {
 	// has the validator been jailed from bonded status?
 	Jailed bool `json:"jailed" yaml:"jailed"`
 	// validator status (bonded/unbonding/unbonded)
-	Status sdktypes.BondStatus `json:"status" yaml:"status"`
+	Status string `json:"status" yaml:"status"`
 	// delegated tokens (incl. self-delegation)
 	Tokens sdktypes.Int `json:"tokens" yaml:"tokens"`
 	// total shares added to a validator
@@ -54,7 +54,7 @@ func WrapCM45Validator(v Validator, ca *CosmosAny) CM45Validator {
 		OperatorAddress:         v.OperatorAddress,
 		ConsPubKey:              ca,
 		Jailed:                  v.Jailed,
-		Status:                  v.Status + 1,
+		Status:                  v.Status.String(),
 		Tokens:                  v.Tokens,
 		DelegatorShares:         v.DelegatorShares,
 		Description:             v.Description,
