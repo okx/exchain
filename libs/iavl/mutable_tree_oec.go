@@ -34,7 +34,7 @@ var (
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = 100
 	enableFastStorage               = false
-	fastNodeCacheSize               = 100000
+	fastNodeCacheSize               = 10000000
 )
 
 type commitEvent struct {
