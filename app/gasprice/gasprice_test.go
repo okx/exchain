@@ -180,7 +180,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 			fmt.Println(testRecommendGP)
 		}
 	})
-	t.Run("case 6: full tx, not full gasUsed, not adapt uncongest", func(t *testing.T) {
+	t.Run("case 7: full tx, not full gasUsed, not adapt uncongest", func(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
@@ -204,7 +204,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 			fmt.Println(testRecommendGP)
 		}
 	})
-	t.Run("case 6: full tx, full gasUsed, not adapt uncongest", func(t *testing.T) {
+	t.Run("case 8: full tx, full gasUsed, not adapt uncongest", func(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
@@ -228,7 +228,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 			fmt.Println(testRecommendGP)
 		}
 	})
-	t.Run("case 6: full tx, full gasUsed, adapt uncongest", func(t *testing.T) {
+	t.Run("case 9: full tx, full gasUsed, adapt uncongest", func(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
