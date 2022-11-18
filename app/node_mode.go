@@ -74,9 +74,12 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
-	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
+	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
+	viper.SetDefault(watcher.FlagFastQuery, false)
+	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
-		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything"))
+		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
+		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false))
 }
 
 func setArchiveConfig(ctx *server.Context) {
