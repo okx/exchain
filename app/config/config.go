@@ -53,6 +53,8 @@ type OecConfig struct {
 	dynamicGpWeight int
 	// dynamic-gp-check-blocks
 	dynamicGpCheckBlocks int
+	// dynamic-gp-adapt-uncongest
+	dynamicGpAdaptUncongest bool
 
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
@@ -95,20 +97,21 @@ type OecConfig struct {
 const (
 	FlagEnableDynamic = "config.enable-dynamic"
 
-	FlagMempoolRecheck         = "mempool.recheck"
-	FlagMempoolForceRecheckGap = "mempool.force_recheck_gap"
-	FlagMempoolSize            = "mempool.size"
-	FlagMempoolFlush           = "mempool.flush"
-	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
-	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
-	FlagNodeKeyWhitelist       = "mempool.node_key_whitelist"
-	FlagMempoolCheckTxCost     = "mempool.check_tx_cost"
-	FlagGasLimitBuffer         = "gas-limit-buffer"
-	FlagEnableDynamicGp        = "enable-dynamic-gp"
-	FlagDynamicGpWeight        = "dynamic-gp-weight"
-	FlagDynamicGpCheckBlocks   = "dynamic-gp-check-blocks"
-	FlagEnableWrappedTx        = "enable-wtx"
-	FlagSentryAddrs            = "p2p.sentry_addrs"
+	FlagMempoolRecheck          = "mempool.recheck"
+	FlagMempoolForceRecheckGap  = "mempool.force_recheck_gap"
+	FlagMempoolSize             = "mempool.size"
+	FlagMempoolFlush            = "mempool.flush"
+	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
+	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
+	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
+	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
+	FlagGasLimitBuffer          = "gas-limit-buffer"
+	FlagEnableDynamicGp         = "enable-dynamic-gp"
+	FlagDynamicGpWeight         = "dynamic-gp-weight"
+	FlagDynamicGpCheckBlocks    = "dynamic-gp-check-blocks"
+	FlagDynamicGpAdaptUncongest = "dynamic-gp-adapt-uncongest"
+	FlagEnableWrappedTx         = "enable-wtx"
+	FlagSentryAddrs             = "p2p.sentry_addrs"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -390,6 +393,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpCheckBlocks(r)
+	case FlagDynamicGpAdaptUncongest:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpAdaptUncongest(r)
 	case FlagCsTimeoutPropose:
 		r, err := time.ParseDuration(v)
 		if err != nil {
@@ -639,6 +648,14 @@ func (c *OecConfig) SetDynamicGpCheckBlocks(value int) {
 		value = 100
 	}
 	c.dynamicGpCheckBlocks = value
+}
+
+func (c *OecConfig) SetDynamicGpAdaptUncongest(value bool) {
+	c.dynamicGpAdaptUncongest = value
+}
+
+func (c *OecConfig) GetDynamicGpAdaptUncongest() bool {
+	return c.dynamicGpAdaptUncongest
 }
 
 func (c *OecConfig) GetCsTimeoutPropose() time.Duration {
