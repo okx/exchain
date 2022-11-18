@@ -1,7 +1,9 @@
 package ibc_tx
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
@@ -10,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
 	"google.golang.org/protobuf/encoding/protowire"
+
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -75,7 +78,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			return nil, err
 		}
 
-		signatures := convertSignature(ibcTx)
+		signatures, err := convertSignature(ibcTx)
+		if err != nil {
+			return nil, err
+		}
 
 		// construct Msg
 		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
@@ -165,30 +171,36 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 	return stdMsgs, signMsgs, nil
 }
 
-func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
-	signatures := []authtypes.StdSignature{}
+func convertSignature(ibcTx *tx.Tx) ([]authtypes.StdSignature, error) {
+	ret := make([]authtypes.StdSignature, len(ibcTx.Signatures))
 	for i, s := range ibcTx.Signatures {
 		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
 			var ok bool
+			if ibcTx.AuthInfo.SignerInfos[i].PublicKey == nil {
+				// maybe it is a simulate request
+				ret[i] = authtypes.StdSignature{
+					Signature: s,
+					PubKey:    nil,
+				}
+				continue
+			}
 			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
 			if !ok {
-				return []authtypes.StdSignature{}
+				return nil, errors.New("unknown public key data")
 			}
 		}
 		pubKey, err := adapter.ProtoBufPubkey2LagacyPubkey(pkData)
 		if err != nil {
-			return []authtypes.StdSignature{}
+			return nil, err
 		}
 
-		signatures = append(signatures,
-			authtypes.StdSignature{
-				Signature: s,
-				PubKey:    pubKey,
-			},
-		)
+		ret[i] = authtypes.StdSignature{
+			Signature: s,
+			PubKey:    pubKey,
+		}
 	}
-	return signatures
+	return ret, nil
 }
 
 func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, string, error) {
