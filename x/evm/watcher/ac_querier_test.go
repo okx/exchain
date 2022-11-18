@@ -1,23 +1,19 @@
 package watcher
 
 import (
+	"encoding/json"
+	"strconv"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/okex/exchain/x/evm/types"
-	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"strconv"
-	"testing"
 )
 
 var (
@@ -34,244 +30,6 @@ type data struct {
 	batch *Batch
 	del1  *Batch
 	del2  []byte
-}
-
-func newTestTransactionReceipt(txHash common.Hash) TransactionReceipt {
-	addr := common.BytesToAddress([]byte("test_address"))
-	ethTx := types.NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
-	return newTransactionReceipt(
-		0,
-		ethTx,
-		txHash,
-		common.Hash{0x02},
-		0,
-		0,
-		&types.ResultData{},
-		1,
-		1)
-}
-
-func TestGetTransactionReceipt(t *testing.T) {
-	acq := newACProcessorQuerier(nil)
-	acProcessor := acq.p
-
-	testcases := []struct {
-		d       *data
-		fnInit  func(d *data)
-		fnCheck func(d *data)
-	}{
-		{
-			d: &data{},
-			fnInit: func(d *data) {
-				d.wsg = NewMsgTransactionReceipt(newTestTransactionReceipt(wsgHash), wsgHash)
-
-				btx := NewMsgTransactionReceipt(newTestTransactionReceipt(batchHash), batchHash)
-				d.batch = &Batch{
-					Key:       btx.GetKey(),
-					Value:     []byte(btx.GetValue()),
-					TypeValue: btx.GetType(),
-				}
-
-				dtx1 := NewMsgTransactionReceipt(newTestTransactionReceipt(delHash1), delHash1)
-				d.del1 = &Batch{
-					Key:       dtx1.GetKey(),
-					TypeValue: TypeDelete,
-				}
-
-				dtx2 := NewMsgTransactionReceipt(newTestTransactionReceipt(delHash2), delHash2)
-				d.del2 = dtx2.GetKey()
-
-				acProcessor.BatchSet([]WatchMessage{d.wsg})
-				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
-				acProcessor.BatchDel([][]byte{d.del2})
-			},
-			fnCheck: func(d *data) {
-				recp, err := acq.GetTransactionReceipt(d.wsg.GetKey())
-				require.Nil(t, err)
-
-				var protoReceipt prototypes.TransactionReceipt
-				e := proto.Unmarshal([]byte(d.wsg.GetValue()), &protoReceipt)
-				require.NoError(t, e)
-				receipt := protoToReceipt(&protoReceipt)
-				require.Equal(t, recp, receipt)
-
-				recp, err = acq.GetTransactionReceipt(d.batch.GetKey())
-				require.Nil(t, err)
-
-				recp, err = acq.GetTransactionReceipt(d.del1.GetKey())
-				require.Nil(t, err)
-				require.Nil(t, recp)
-
-				recp, err = acq.GetTransactionReceipt(d.del2)
-				require.Nil(t, err)
-				require.Nil(t, recp)
-			},
-		},
-	}
-
-	for _, ts := range testcases {
-		ts.fnInit(ts.d)
-		for i := 0; i < 3; i++ {
-			ts.fnCheck(ts.d)
-		}
-	}
-}
-
-func newTestBlock(hash common.Hash) Block {
-	return newBlock(
-		0,
-		ethtypes.Bloom{},
-		hash,
-		abci.Header{},
-		0,
-		big.NewInt(1),
-		nil,
-	)
-}
-
-func TestGetBlockByHash(t *testing.T) {
-	acq := newACProcessorQuerier(nil)
-	acProcessor := acq.p
-
-	testcases := []struct {
-		d       *data
-		fnInit  func(d *data)
-		fnCheck func(d *data)
-	}{
-		{
-			d: &data{},
-			fnInit: func(d *data) {
-				d.wsg = NewMsgBlock(newTestBlock(wsgHash))
-				btx := NewMsgBlock(newTestBlock(batchHash))
-				d.batch = &Batch{
-					Key:       btx.GetKey(),
-					Value:     []byte(btx.GetValue()),
-					TypeValue: btx.GetType(),
-				}
-
-				dtx1 := NewMsgBlock(newTestBlock(delHash1))
-				d.del1 = &Batch{
-					Key:       dtx1.GetKey(),
-					TypeValue: TypeDelete,
-				}
-
-				dtx2 := NewMsgBlock(newTestBlock(delHash2))
-				d.del2 = dtx2.GetKey()
-
-				acProcessor.BatchSet([]WatchMessage{d.wsg})
-				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
-				acProcessor.BatchDel([][]byte{d.del2})
-			},
-			fnCheck: func(d *data) {
-				recp, err := acq.GetBlockByHash(d.wsg.GetKey())
-				require.Nil(t, err)
-				require.Equal(t, d.wsg.(*MsgBlock).blockHash, recp.Hash[:])
-
-				recp, err = acq.GetBlockByHash(d.batch.GetKey())
-				require.Nil(t, err)
-
-				recp, err = acq.GetBlockByHash(d.del1.GetKey())
-				require.Nil(t, err)
-				require.Nil(t, recp)
-
-				recp, err = acq.GetBlockByHash(d.del2)
-				require.Nil(t, err)
-				require.Nil(t, recp)
-			},
-		},
-	}
-
-	for _, ts := range testcases {
-		ts.fnInit(ts.d)
-		for i := 0; i < 3; i++ {
-			ts.fnCheck(ts.d)
-		}
-	}
-}
-
-func newTestMsgEthTx(txHash common.Hash) *MsgEthTx {
-	addr := common.BytesToAddress([]byte("test_address"))
-	ethTx := types.NewMsgEthereumTx(0, &addr, big.NewInt(1), 100000, big.NewInt(1), []byte("test"))
-	privkey, err := ethsecp256k1.GenerateKey()
-	if err != nil {
-		panic(err)
-	}
-	ethTx.Sign(big.NewInt(1), privkey.ToECDSA())
-	if err != nil {
-		panic(err)
-	}
-	return newMsgEthTx(
-		ethTx,
-		txHash,
-		common.Hash{0x02},
-		0,
-		0)
-}
-
-func TestGetTransactionByHash(t *testing.T) {
-	acq := newACProcessorQuerier(nil)
-	acProcessor := acq.p
-
-	testcases := []struct {
-		d       *data
-		fnInit  func(d *data)
-		fnCheck func(d *data)
-	}{
-		{
-			d: &data{},
-			fnInit: func(d *data) {
-				d.wsg = newTestMsgEthTx(wsgHash)
-
-				btx := newTestMsgEthTx(batchHash)
-				d.batch = &Batch{
-					Key:       btx.GetKey(),
-					Value:     []byte(btx.GetValue()),
-					TypeValue: btx.GetType(),
-				}
-
-				dtx1 := newTestMsgEthTx(delHash1)
-				d.del1 = &Batch{
-					Key:       dtx1.GetKey(),
-					TypeValue: TypeDelete,
-				}
-
-				dtx2 := newTestMsgEthTx(delHash2)
-				d.del2 = dtx2.GetKey()
-
-				acProcessor.BatchSet([]WatchMessage{d.wsg})
-				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
-				acProcessor.BatchDel([][]byte{d.del2})
-			},
-			fnCheck: func(d *data) {
-				recp, err := acq.GetTransactionByHash(d.wsg.GetKey())
-				require.Nil(t, err)
-
-				var prototx prototypes.Transaction
-				e := proto.Unmarshal([]byte(d.wsg.GetValue()), &prototx)
-				require.NoError(t, e)
-				tx := protoToTransaction(&prototx)
-				require.Equal(t, recp, tx)
-
-				recp, err = acq.GetTransactionByHash(d.batch.GetKey())
-				require.Nil(t, err)
-
-				recp, err = acq.GetTransactionByHash(d.del1.GetKey())
-				require.Nil(t, err)
-				require.Nil(t, recp)
-
-				recp, err = acq.GetTransactionByHash(d.del2)
-				require.Nil(t, err)
-				require.Nil(t, recp)
-			},
-		},
-	}
-
-	for _, ts := range testcases {
-		ts.fnInit(ts.d)
-		for i := 0; i < 3; i++ {
-			ts.fnCheck(ts.d)
-		}
-	}
 }
 
 func TestGetLatestBlockNumber(t *testing.T) {
@@ -329,6 +87,135 @@ func TestGetLatestBlockNumber(t *testing.T) {
 		ts.fnCheckBatch()
 		ts.fnCheckDel1()
 		ts.fnCheckDel2()
+	}
+}
+
+func TestGetCode(t *testing.T) {
+	newTestCode := func() *MsgCode {
+		privKey := secp256k1.GenPrivKey()
+		pubKey := privKey.PubKey()
+		addr := pubKey.Address()
+		return NewMsgCode(common.BytesToAddress(addr), []byte(rand.Str(32)), 1)
+	}
+
+	acq := newACProcessorQuerier(nil)
+	acProcessor := acq.p
+
+	testcases := []struct {
+		d       *data
+		fnInit  func(d *data)
+		fnCheck func(d *data)
+	}{
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				d.wsg = newTestCode()
+				btx := newTestCode()
+				d.batch = &Batch{
+					Key:       btx.GetKey(),
+					Value:     []byte(btx.GetValue()),
+					TypeValue: btx.GetType(),
+				}
+
+				dtx1 := newTestCode()
+				d.del1 = &Batch{
+					Key:       dtx1.GetKey(),
+					TypeValue: TypeDelete,
+				}
+
+				dtx2 := newTestCode()
+				d.del2 = dtx2.GetKey()
+
+				acProcessor.BatchSet([]WatchMessage{d.wsg})
+				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
+				acProcessor.BatchDel([][]byte{d.del2})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetCode(d.wsg.GetKey())
+				require.Nil(t, err)
+				require.Equal(t, d.wsg.(*MsgCode).GetValue(), string(recp))
+
+				recp, err = acq.GetCode(d.batch.GetKey())
+				require.Nil(t, err)
+				require.Equal(t, d.batch.GetValue(), string(recp))
+
+				recp, err = acq.GetCode(d.del1.GetKey())
+				require.Nil(t, err)
+				require.Nil(t, recp)
+
+				recp, err = acq.GetCode(d.del2)
+				require.Nil(t, err)
+				require.Nil(t, recp)
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ts.fnInit(ts.d)
+		ts.fnCheck(ts.d)
+	}
+}
+
+func TestGetCodeByHash(t *testing.T) {
+	newTestCodeByHash := func() *MsgCodeByHash {
+		return NewMsgCodeByHash([]byte(rand.Str(32)), []byte(rand.Str(32)))
+	}
+
+	acq := newACProcessorQuerier(nil)
+	acProcessor := acq.p
+
+	testcases := []struct {
+		d       *data
+		fnInit  func(d *data)
+		fnCheck func(d *data)
+	}{
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				d.wsg = newTestCodeByHash()
+				btx := newTestCodeByHash()
+				d.batch = &Batch{
+					Key:       btx.GetKey(),
+					Value:     []byte(btx.GetValue()),
+					TypeValue: btx.GetType(),
+				}
+
+				dtx1 := newTestCodeByHash()
+				d.del1 = &Batch{
+					Key:       dtx1.GetKey(),
+					TypeValue: TypeDelete,
+				}
+
+				dtx2 := newTestCodeByHash()
+				d.del2 = dtx2.GetKey()
+
+				acProcessor.BatchSet([]WatchMessage{d.wsg})
+				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
+				acProcessor.BatchDel([][]byte{d.del2})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetCodeByHash(d.wsg.GetKey())
+				require.Nil(t, err)
+				require.Equal(t, d.wsg.(*MsgCodeByHash).GetValue(), string(recp))
+
+				recp, err = acq.GetCodeByHash(d.batch.GetKey())
+				require.Nil(t, err)
+				require.Equal(t, d.batch.GetValue(), string(recp))
+
+				recp, err = acq.GetCodeByHash(d.del1.GetKey())
+				require.Nil(t, err)
+				require.Nil(t, recp)
+
+				recp, err = acq.GetCodeByHash(d.del2)
+				require.Nil(t, err)
+				require.Nil(t, recp)
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ts.fnInit(ts.d)
+		ts.fnCheck(ts.d)
 	}
 }
 
@@ -398,9 +285,7 @@ func TestGetAccount(t *testing.T) {
 
 	for _, ts := range testcases {
 		ts.fnInit(ts.d)
-		for i := 0; i < 3; i++ {
-			ts.fnCheck(ts.d)
-		}
+		ts.fnCheck(ts.d)
 	}
 }
 
@@ -468,8 +353,219 @@ func TestGetState(t *testing.T) {
 
 	for _, ts := range testcases {
 		ts.fnInit(ts.d)
-		for i := 0; i < 3; i++ {
-			ts.fnCheck(ts.d)
-		}
+		ts.fnCheck(ts.d)
+	}
+}
+
+func TestGetParams(t *testing.T) {
+	acq := newACProcessorQuerier(nil)
+	acProcessor := acq.p
+
+	testcases := []struct {
+		d       *data
+		fnInit  func(d *data)
+		fnCheck func(d *data)
+	}{
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				d.wsg = NewMsgParams(types.Params{EnableCreate: true})
+				acProcessor.BatchSet([]WatchMessage{d.wsg})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetParams()
+				require.Nil(t, err)
+				require.Equal(t, d.wsg.(*MsgParams).Params, recp)
+			},
+		},
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				btx := NewMsgParams(types.Params{EnableCall: true})
+				d.batch = &Batch{
+					Key:       btx.GetKey(),
+					Value:     []byte(btx.GetValue()),
+					TypeValue: btx.GetType(),
+				}
+				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetParams()
+				require.Nil(t, err)
+				rdata, err := json.Marshal(&recp)
+				require.Nil(t, err)
+				require.Equal(t, d.batch.GetValue(), string(rdata))
+			},
+		},
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				dtx1 := NewMsgParams(types.Params{EnableContractDeploymentWhitelist: true})
+				d.del1 = &Batch{
+					Key:       dtx1.GetKey(),
+					TypeValue: TypeDelete,
+				}
+				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetParams()
+				require.Nil(t, err)
+				require.Equal(t, recp, types.Params{})
+			},
+		},
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				dtx2 := NewMsgParams(types.Params{EnableContractBlockedList: true})
+				d.del2 = dtx2.GetKey()
+				acProcessor.BatchDel([][]byte{d.del2})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetParams()
+				require.Nil(t, err)
+				require.Equal(t, recp, types.Params{})
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ts.fnInit(ts.d)
+		ts.fnCheck(ts.d)
+	}
+}
+
+func TestHas(t *testing.T) {
+	newTestContractBlockedListItem := func() *MsgContractBlockedListItem {
+		privKey := secp256k1.GenPrivKey()
+		pubKey := privKey.PubKey()
+		addr := pubKey.Address()
+		return NewMsgContractBlockedListItem(addr.Bytes())
+	}
+
+	acq := newACProcessorQuerier(nil)
+	acProcessor := acq.p
+
+	testcases := []struct {
+		d       *data
+		fnInit  func(d *data)
+		fnCheck func(d *data)
+	}{
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				d.wsg = newTestContractBlockedListItem()
+				btx := newTestContractBlockedListItem()
+				d.batch = &Batch{
+					Key:       btx.GetKey(),
+					Value:     []byte(btx.GetValue()),
+					TypeValue: btx.GetType(),
+				}
+
+				dtx1 := newTestContractBlockedListItem()
+				d.del1 = &Batch{
+					Key:       dtx1.GetKey(),
+					TypeValue: TypeDelete,
+				}
+
+				dtx2 := newTestContractBlockedListItem()
+				d.del2 = dtx2.GetKey()
+
+				acProcessor.BatchSet([]WatchMessage{d.wsg})
+				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
+				acProcessor.BatchDel([][]byte{d.del2})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.Has(d.wsg.GetKey())
+				require.Nil(t, err)
+				require.True(t, recp)
+
+				recp, err = acq.Has(d.batch.GetKey())
+				require.Nil(t, err)
+				require.True(t, recp)
+
+				recp, err = acq.Has(d.del1.GetKey())
+				require.Nil(t, err)
+				require.False(t, recp)
+
+				recp, err = acq.Has(d.del2)
+				require.Nil(t, err)
+				require.False(t, recp)
+
+				recp, err = acq.Has([]byte("123"))
+				require.Error(t, err)
+				require.False(t, recp)
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ts.fnInit(ts.d)
+		ts.fnCheck(ts.d)
+	}
+}
+
+func TestGetBlackList(t *testing.T) {
+	newTestContractBlockedListItem := func() *MsgContractBlockedListItem {
+		privKey := secp256k1.GenPrivKey()
+		pubKey := privKey.PubKey()
+		addr := pubKey.Address()
+		return NewMsgContractBlockedListItem(addr.Bytes())
+	}
+
+	acq := newACProcessorQuerier(nil)
+	acProcessor := acq.p
+
+	testcases := []struct {
+		d       *data
+		fnInit  func(d *data)
+		fnCheck func(d *data)
+	}{
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				d.wsg = newTestContractBlockedListItem()
+				btx := newTestContractBlockedListItem()
+				d.batch = &Batch{
+					Key:       btx.GetKey(),
+					Value:     []byte(btx.GetValue()),
+					TypeValue: btx.GetType(),
+				}
+
+				dtx1 := newTestContractBlockedListItem()
+				d.del1 = &Batch{
+					Key:       dtx1.GetKey(),
+					TypeValue: TypeDelete,
+				}
+
+				dtx2 := newTestContractBlockedListItem()
+				d.del2 = dtx2.GetKey()
+
+				acProcessor.BatchSet([]WatchMessage{d.wsg})
+				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
+				acProcessor.BatchDel([][]byte{d.del2})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetBlackList(d.wsg.GetKey())
+				require.Nil(t, err)
+				require.Equal(t, d.wsg.(*MsgContractBlockedListItem).GetValue(), string(recp))
+
+				recp, err = acq.GetBlackList(d.batch.GetKey())
+				require.Nil(t, err)
+				require.Equal(t, d.batch.GetValue(), string(recp))
+
+				recp, err = acq.GetBlackList(d.del1.GetKey())
+				require.Nil(t, err)
+				require.Nil(t, recp)
+
+				recp, err = acq.GetBlackList(d.del2)
+				require.Nil(t, err)
+				require.Nil(t, recp)
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ts.fnInit(ts.d)
+		ts.fnCheck(ts.d)
 	}
 }

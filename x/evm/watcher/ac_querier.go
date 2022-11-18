@@ -5,11 +5,8 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/app/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
 )
 
 var errACNotFound = errors.New("ac processor: not found")
@@ -29,86 +26,6 @@ func newACProcessorQuerier(p *ACProcessor) *ACProcessorQuerier {
 	}}
 }
 
-func (aq *ACProcessorQuerier) GetTransactionReceipt(key []byte) (*TransactionReceipt, error) {
-	if v, ok := aq.p.Get(key); ok {
-		if v == nil || v.GetType() == TypeDelete { // for del key
-			return nil, nil
-		}
-		if value, ok := v.(*MsgTransactionReceipt); ok {
-			return value.Formatting(), nil
-		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
-			var protoReceipt prototypes.TransactionReceipt
-			e := proto.Unmarshal(value.Value, &protoReceipt)
-			if e != nil {
-				return nil, e
-			}
-			receipt := protoToReceipt(&protoReceipt)
-			return receipt, nil
-		}
-	}
-	return nil, errACNotFound
-}
-
-func (aq *ACProcessorQuerier) GetTransactionResponse(key []byte) ([]byte, error) {
-	if v, ok := aq.p.Get(key); ok {
-		if v == nil || v.GetType() == TypeDelete { // for del key
-			return nil, nil
-		}
-		if value, ok := v.(*MsgStdTransactionResponse); ok {
-			return []byte(value.GetValue()), nil
-		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
-			return value.Value, nil
-		}
-	}
-	return nil, errACNotFound
-}
-
-func (aq *ACProcessorQuerier) GetBlockByHash(key []byte) (*Block, error) {
-	var b []byte
-	if v, ok := aq.p.Get(key); ok {
-		if v == nil || v.GetType() == TypeDelete { // for del key
-			return nil, nil
-		}
-		if rsp, ok := v.(*MsgBlock); ok {
-			b = []byte(rsp.GetValue())
-		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
-			b = value.Value
-		} else {
-			return nil, errACNotFound
-		}
-		var block Block
-		err := json.Unmarshal(b, &block)
-		if err != nil {
-			return nil, err
-		}
-		return &block, nil
-	}
-	return nil, errACNotFound
-}
-
-func (aq *ACProcessorQuerier) GetTransactionByHash(key []byte) (*Transaction, error) {
-	if v, ok := aq.p.Get(key); ok {
-		if v == nil || v.GetType() == TypeDelete { // for del key
-			return nil, nil
-		}
-		if rsp, ok := v.(*MsgEthTx); ok {
-			tx, err := rsp.Formatting()
-			if err != nil {
-				return nil, err
-			}
-			return tx, nil
-		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
-			var protoTx prototypes.Transaction
-			e := proto.Unmarshal(value.Value, &protoTx)
-			if e != nil {
-				return nil, e
-			}
-			return protoToTransaction(&protoTx), nil
-		}
-	}
-	return nil, errACNotFound
-}
-
 func (aq *ACProcessorQuerier) GetLatestBlockNumber(key []byte) (uint64, error) {
 	if v, ok := aq.p.Get(key); ok {
 		if v == nil || v.GetType() == TypeDelete { // for del key
@@ -124,34 +41,6 @@ func (aq *ACProcessorQuerier) GetLatestBlockNumber(key []byte) (uint64, error) {
 		return uint64(h), e
 	}
 	return 0, errACNotFound
-}
-
-func (aq *ACProcessorQuerier) GetBlockHashByNumber(key []byte) (common.Hash, error) {
-	if v, ok := aq.p.Get(key); ok {
-		if v == nil || v.GetType() == TypeDelete { // for del key
-			return common.Hash{}, nil
-		}
-		if rsp, ok := v.(*MsgBlockInfo); ok {
-			return common.HexToHash(rsp.GetValue()), nil
-		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
-			return common.HexToHash(string(value.Value)), nil
-		}
-	}
-	return common.Hash{}, errACNotFound
-}
-
-func (aq *ACProcessorQuerier) GetBlockHash(key []byte) (common.Hash, error) {
-	if v, ok := aq.p.Get(key); ok {
-		if v == nil || v.GetType() == TypeDelete { // for del key
-			return common.Hash{}, nil
-		}
-		if rsp, ok := v.(*MsgBlockInfo); ok {
-			return common.HexToHash(rsp.GetValue()), nil
-		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
-			return common.HexToHash(string(value.Value)), nil
-		}
-	}
-	return common.Hash{}, errACNotFound
 }
 
 func (aq *ACProcessorQuerier) GetCode(key []byte) ([]byte, error) {
@@ -174,20 +63,6 @@ func (aq *ACProcessorQuerier) GetCodeByHash(key []byte) ([]byte, error) {
 			return nil, nil
 		}
 		if rsp, ok := v.(*MsgCodeByHash); ok {
-			return []byte(rsp.GetValue()), nil
-		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
-			return value.Value, nil
-		}
-	}
-	return nil, errACNotFound
-}
-
-func (aq *ACProcessorQuerier) GetStdTxHash(key []byte) ([]byte, error) {
-	if v, ok := aq.p.Get(key); ok {
-		if v == nil || v.GetType() == TypeDelete { // for del key
-			return nil, nil
-		}
-		if rsp, ok := v.(*MsgBlockStdTxHash); ok {
 			return []byte(rsp.GetValue()), nil
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			return value.Value, nil
@@ -236,6 +111,13 @@ func (aq *ACProcessorQuerier) GetParams() (evmtypes.Params, error) {
 		}
 		if rsp, ok := v.(*MsgParams); ok {
 			return rsp.Params, nil
+		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds (just adaptive)
+			var msgParams MsgParams
+			err := json.Unmarshal(value.Value, &msgParams)
+			if err != nil {
+				return evmtypes.Params{}, err
+			}
+			return msgParams.Params, nil
 		}
 	}
 	return evmtypes.Params{}, errACNotFound
