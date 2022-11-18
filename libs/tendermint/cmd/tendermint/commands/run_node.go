@@ -174,7 +174,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		false,
 		"Calculate tx type count and time in function checkTx per block",
 	)
-
+	cmd.Flags().String(
+		"tx_index.indexer",
+		config.TxIndex.Indexer,
+		"indexer to use for transactions, options: null, kv",
+	)
 	cmd.Flags().String(
 		"local_perf",
 		"",
