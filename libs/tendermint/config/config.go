@@ -40,6 +40,7 @@ var (
 
 	defaultPrivValKeyName   = "priv_validator_key.json"
 	defaultPrivValStateName = "priv_validator_state.json"
+	defaultNodeExtInfoName  = "node_extinfo.json"
 
 	defaultNodeKeyName  = "node_key.json"
 	defaultAddrBookName = "addrbook.json"
@@ -48,6 +49,7 @@ var (
 	defaultGenesisJSONPath  = filepath.Join(defaultConfigDir, defaultGenesisJSONName)
 	defaultPrivValKeyPath   = filepath.Join(defaultConfigDir, defaultPrivValKeyName)
 	defaultPrivValStatePath = filepath.Join(defaultDataDir, defaultPrivValStateName)
+	defaultNodeExtInfoPath  = filepath.Join(defaultConfigDir, defaultNodeExtInfoName)
 
 	defaultNodeKeyPath  = filepath.Join(defaultConfigDir, defaultNodeKeyName)
 	defaultAddrBookPath = filepath.Join(defaultConfigDir, defaultAddrBookName)
@@ -233,6 +235,9 @@ type BaseConfig struct { //nolint: maligned
 
 	// Logging stdout
 	LogStdout bool `mapstructure:"log_stdout"`
+
+	// A JSON file containing the node extra info to display
+	NodeExtInfo string `mapstructure:"node_extinfo"`
 }
 
 // DefaultBaseConfig returns a default base configuration for a Tendermint node
@@ -255,6 +260,7 @@ func DefaultBaseConfig() BaseConfig {
 		LogFile:            defaultLogFile,
 		LogStdout:          true,
 		ProfListenAddress:  "localhost:6060",
+		NodeExtInfo:        defaultNodeExtInfoPath,
 	}
 }
 
@@ -286,6 +292,11 @@ func (cfg BaseConfig) PrivValidatorKeyFile() string {
 // PrivValidatorFile returns the full path to the priv_validator_state.json file
 func (cfg BaseConfig) PrivValidatorStateFile() string {
 	return rootify(cfg.PrivValidatorState, cfg.RootDir)
+}
+
+// NodeExtInfoFile returns the full path to the node_extinfo.json file
+func (cfg BaseConfig) NodeExtInfoFile() string {
+	return rootify(cfg.NodeExtInfo, cfg.RootDir)
 }
 
 // NodeKeyFile returns the full path to the node_key.json file
@@ -946,12 +957,14 @@ func (cfg *ConsensusConfig) ValidateBasic() error {
 	return nil
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // TxIndexConfig
 // Remember that Event has the following structure:
 // type: [
-//  key: value,
-//  ...
+//
+//	key: value,
+//	...
+//
 // ]
 //
 // CompositeKeys are constructed by `type.key`

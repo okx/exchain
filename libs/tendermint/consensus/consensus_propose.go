@@ -63,6 +63,15 @@ func (cs *State) isBlockProducer() (string, string) {
 	if len(bpStr) > len2display {
 		bpStr = bpStr[:len2display]
 	}
+
+	// add node extra info
+	if cs.nodeExtInfo != nil {
+		key := bpAddr.String()
+		if val, ok := cs.nodeExtInfo[key]; ok {
+			bpStr = bpStr + "-" + val
+		}
+	}
+
 	isBlockProducer := "n"
 	if cs.privValidator != nil && cs.privValidatorPubKey != nil {
 		address := cs.privValidatorPubKey.Address()
@@ -77,7 +86,9 @@ func (cs *State) isBlockProducer() (string, string) {
 
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
 // Enter (CreateEmptyBlocks, CreateEmptyBlocksInterval > 0 ):
-// 		after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
+//
+//	after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
+//
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)

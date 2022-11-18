@@ -164,6 +164,8 @@ type State struct {
 	vcMsg          *ViewChangeMessage
 	vcHeight       map[int64]string
 	taskResultChan chan *preBlockTaskRes
+
+	nodeExtInfo map[string]string
 }
 
 // StateOption sets an optional parameter on the State.
@@ -233,6 +235,10 @@ func NewState(
 func (cs *State) SetLogger(l log.Logger) {
 	cs.BaseService.Logger = l
 	cs.timeoutTicker.SetLogger(l)
+}
+
+func (cs *State) SetNodeExtInfo(info map[string]string) {
+	cs.nodeExtInfo = info
 }
 
 // SetEventBus sets event bus.

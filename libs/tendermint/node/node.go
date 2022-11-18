@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // nolint: gosec // securely exposed on separate, optional port
@@ -133,11 +134,11 @@ type Option func(*Node)
 // WARNING: using any name from the below list of the existing reactors will
 // result in replacing it with the custom one.
 //
-//  - MEMPOOL
-//  - BLOCKCHAIN
-//  - CONSENSUS
-//  - EVIDENCE
-//  - PEX
+//   - MEMPOOL
+//   - BLOCKCHAIN
+//   - CONSENSUS
+//   - EVIDENCE
+//   - PEX
 func CustomReactors(reactors map[string]p2p.Reactor) Option {
 	return func(n *Node) {
 		for name, reactor := range reactors {
@@ -687,11 +688,14 @@ func NewNode(config *cfg.Config,
 		return nil, errors.Wrap(err, "could not create blockchain reactor")
 	}
 
+	//load extra node info
+	nodeExtInfo := loadNodeExtraNodeInfo(config.NodeExtInfoFile())
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
 		config, state, blockExec, blockStore, mempool, evidencePool,
 		privValidator, csMetrics, fastSync, autoFastSync, eventBus, consensusLogger,
 	)
+	consensusState.SetNodeExtInfo(nodeExtInfo)
 
 	nodeInfo, err := makeNodeInfo(config, nodeKey, txIndexer, genDoc, state)
 	if err != nil {
@@ -1322,6 +1326,20 @@ func loadGenesisDoc(db dbm.DB) (*types.GenesisDoc, error) {
 		panic(fmt.Sprintf("Failed to load genesis doc due to unmarshaling error: %v (bytes: %X)", err, b))
 	}
 	return genDoc, nil
+}
+
+func loadNodeExtraNodeInfo(filePath string) map[string]string {
+	jsonBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil
+	}
+
+	var m map[string]string
+	err = cdc.UnmarshalJSON(jsonBytes, &m)
+	if err != nil {
+		return nil
+	}
+	return m
 }
 
 // panics if failed to marshal the given genesis document
