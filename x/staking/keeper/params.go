@@ -26,8 +26,9 @@ func (k Keeper) UnbondingTime(ctx sdk.Context) (res time.Duration) {
 
 // MaxValidators returns the param Maximum number of validators
 func (k Keeper) MaxValidators(ctx sdk.Context) (res uint16) {
-	k.paramstore.Get(ctx, types.KeyMaxValidators, &res)
-	return
+	return 21
+	//k.paramstore.Get(ctx, types.KeyMaxValidators, &res)
+	//return
 }
 
 // BondDenom returns the default the denomination of staking token
