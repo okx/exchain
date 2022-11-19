@@ -2,11 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/vmbridge"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -18,6 +18,7 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	gasprice "github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
+	"github.com/okex/exchain/app/statistic"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -83,6 +84,7 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/vmbridge"
 	"github.com/okex/exchain/x/wasm"
 	wasmclient "github.com/okex/exchain/x/wasm/client"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
@@ -251,6 +253,8 @@ type OKExChainApp struct {
 	VMBridgeKeeper       *vmbridge.Keeper
 
 	WasmHandler wasmkeeper.HandlerOption
+
+	statistic *statistic.TimeStatistic
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -313,6 +317,8 @@ func NewOKExChainApp(
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
+
+		statistic: statistic.NewTimeStatistic(time.Now(), logger),
 	}
 	bApp.SetInterceptors(makeInterceptors())
 
@@ -713,6 +719,7 @@ func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker updates every begin block
 func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+	app.statistic.BeginBlock(req.Header.Height)
 	return app.mm.BeginBlock(ctx, req)
 }
 
@@ -724,7 +731,9 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 		app.gpo.CurrentBlockGPs.Clear()
 	}
 
-	return app.mm.EndBlock(ctx, req)
+	res := app.mm.EndBlock(ctx, req)
+	app.statistic.EndBlock(req.Height)
+	return res
 }
 
 // InitChainer updates at chain initialization
