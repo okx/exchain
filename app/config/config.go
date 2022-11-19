@@ -286,6 +286,10 @@ func (c *OecConfig) format() string {
 	gas-limit-buffer: %d
 	enable-dynamic-gp: %v
 	dynamic-gp-weight: %d
+	dynamic-gp-check-blocks: %d
+	dynamic-gp-adapt-uncongest: %v
+	dynamic-gp-adapt-congest: %v
+	dynamic-gp-adapt-coefficient: %d
 
 	consensus.timeout_propose: %s
 	consensus.timeout_propose_delta: %s
@@ -308,6 +312,10 @@ func (c *OecConfig) format() string {
 		c.GetGasLimitBuffer(),
 		c.GetEnableDynamicGp(),
 		c.GetDynamicGpWeight(),
+		c.GetDynamicGpCheckBlocks(),
+		c.GetDynamicGpAdaptUncongest(),
+		c.GetDynamicGpAdaptCongest(),
+		c.GetDynamicGpCoefficient(),
 		c.GetCsTimeoutPropose(),
 		c.GetCsTimeoutProposeDelta(),
 		c.GetCsTimeoutPrevote(),
