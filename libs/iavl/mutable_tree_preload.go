@@ -23,6 +23,7 @@ type preWriteJob struct {
 }
 
 func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
+	return
 	if tree.root == nil {
 		return
 	}
