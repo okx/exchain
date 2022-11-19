@@ -70,7 +70,7 @@ func (pc *prerunContext) dequeueResult() (*ABCIResponses, time.Duration, error) 
 		}
 
 		if bytes.Equal(context.block.AppHash, expected.block.AppHash) {
-			return context.result.res, 0, context.result.err
+			return context.result.res, context.result.duration, context.result.err
 		} else {
 			// todo
 			panic("wrong app hash")
