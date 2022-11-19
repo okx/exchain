@@ -19,7 +19,7 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 type (
 	// Enum mode for executing [deliverTx, ...]
 	DeliverTxsExecMode int
@@ -34,6 +34,7 @@ const (
 	// 1: execute [deliverTx,...] deprecated
 	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
+	FlagEnableConcurrency  = "enable-concurrency"
 )
 
 // BlockExecutor handles block execution and state updates.

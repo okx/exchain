@@ -895,7 +895,7 @@ func (api *PublicEthereumAPI) doCall(
 	// evm tx to cm tx is no need watch db query
 	useWatch := api.useWatchBackend(blockNum)
 	if useWatch && args.To != nil &&
-		api.JudgeEvm2CmTx(args.To.Bytes(), *args.Data) {
+		api.JudgeEvm2CmTx(args.To.Bytes(), data) {
 		useWatch = false
 	}
 
