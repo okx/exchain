@@ -18,7 +18,6 @@ func TestOracle_RecommendGP(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
-		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(false)
 		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)
@@ -61,27 +60,37 @@ func TestOracle_RecommendGP(t *testing.T) {
 		//testRecommendGP == 0.1GWei
 	})
 	t.Run("case 2: not full tx, not full gasUsed, adapt uncongest", func(t *testing.T) {
+		appconfig.GetOecConfig().SetEnableDynamicGp(true)
 		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
-		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(true)
-		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
+		appconfig.GetOecConfig().SetDynamicGpAdaptCongest(true)
+		appconfig.GetOecConfig().SetDynamicGpCoefficient(3)
+		config := NewGPOConfig(80, 5)
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)
-		coefficient := int64(200000)
+		delta := int64(200000)
 		gpNum := 200
 
 		for blockNum := 1; blockNum <= 10; blockNum++ {
 			for i := 0; i < gpNum; i++ {
-				gp := big.NewInt(coefficient + params.GWei)
+				gp := big.NewInt(delta + params.GWei)
 				gpo.CurrentBlockGPs.Update(gp, 3500) // chain is uncongested
-				coefficient--
+				delta--
 			}
 			gpo.BlockGPQueue.Push(gpo.CurrentBlockGPs)
 			testRecommendGP = gpo.RecommendGP()
 			gpo.CurrentBlockGPs.Clear()
 			require.NotNil(t, testRecommendGP)
-			fmt.Println(testRecommendGP)
+			price := testRecommendGP
+			if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+				coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
+				gpRes := big.NewInt(0)
+				gpRes.Mul(price, coefficient)
+				fmt.Println(gpRes)
+			} else {
+				fmt.Println(price)
+			}
 		}
 	})
 	t.Run("case 3: not full tx, not full gasUsed, not adapt uncongest", func(t *testing.T) {
@@ -89,6 +98,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(false)
+		appconfig.GetOecConfig().SetDynamicGpAdaptCongest(true)
 		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)
@@ -113,6 +123,8 @@ func TestOracle_RecommendGP(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(false)
+		appconfig.GetOecConfig().SetDynamicGpAdaptCongest(true)
+		appconfig.GetOecConfig().SetDynamicGpCoefficient(2)
 		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)
@@ -129,7 +141,15 @@ func TestOracle_RecommendGP(t *testing.T) {
 			testRecommendGP = gpo.RecommendGP()
 			gpo.CurrentBlockGPs.Clear()
 			require.NotNil(t, testRecommendGP)
-			fmt.Println(testRecommendGP)
+			price := testRecommendGP
+			if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+				coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
+				gpRes := big.NewInt(0)
+				gpRes.Mul(price, coefficient)
+				fmt.Println(gpRes)
+			} else {
+				fmt.Println(price)
+			}
 		}
 	})
 	t.Run("case 5: not full tx, full gasUsed, adapt uncongest", func(t *testing.T) {
@@ -161,6 +181,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(true)
+		appconfig.GetOecConfig().SetDynamicGpAdaptCongest(true)
 		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)
@@ -185,6 +206,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(false)
+		appconfig.GetOecConfig().SetDynamicGpAdaptCongest(true)
 		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)
@@ -209,6 +231,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(false)
+		appconfig.GetOecConfig().SetDynamicGpAdaptCongest(true)
 		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)
@@ -233,6 +256,7 @@ func TestOracle_RecommendGP(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 		appconfig.GetOecConfig().SetDynamicGpAdaptUncongest(true)
+		appconfig.GetOecConfig().SetDynamicGpAdaptCongest(true)
 		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
 		gpo := NewOracle(config)

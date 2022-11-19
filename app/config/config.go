@@ -55,6 +55,10 @@ type OecConfig struct {
 	dynamicGpCheckBlocks int
 	// dynamic-gp-adapt-uncongest
 	dynamicGpAdaptUncongest bool
+	// dynamic-gp-adapt-congest
+	dynamicGpAdaptCongest bool
+	// dynamic-gp-coefficient
+	dynamicGpCoefficient int
 
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
@@ -110,6 +114,8 @@ const (
 	FlagDynamicGpWeight         = "dynamic-gp-weight"
 	FlagDynamicGpCheckBlocks    = "dynamic-gp-check-blocks"
 	FlagDynamicGpAdaptUncongest = "dynamic-gp-adapt-uncongest"
+	FlagDynamicGpAdaptCongest   = "dynamic-gp-adapt-congest"
+	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
 	FlagEnableWrappedTx         = "enable-wtx"
 	FlagSentryAddrs             = "p2p.sentry_addrs"
 
@@ -399,6 +405,18 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpAdaptUncongest(r)
+	case FlagDynamicGpAdaptCongest:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpAdaptCongest(r)
+	case FlagDynamicGpCoefficient:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpCoefficient(r)
 	case FlagCsTimeoutPropose:
 		r, err := time.ParseDuration(v)
 		if err != nil {
@@ -637,6 +655,18 @@ func (c *OecConfig) SetDynamicGpWeight(value int) {
 	c.dynamicGpWeight = value
 }
 
+func (c *OecConfig) GetDynamicGpCoefficient() int {
+	return c.dynamicGpCoefficient
+}
+func (c *OecConfig) SetDynamicGpCoefficient(value int) {
+	if value <= 0 {
+		value = 1
+	} else if value > 100 {
+		value = 100
+	}
+	c.dynamicGpCoefficient = value
+}
+
 func (c *OecConfig) GetDynamicGpCheckBlocks() int {
 	return c.dynamicGpCheckBlocks
 }
@@ -656,6 +686,14 @@ func (c *OecConfig) SetDynamicGpAdaptUncongest(value bool) {
 
 func (c *OecConfig) GetDynamicGpAdaptUncongest() bool {
 	return c.dynamicGpAdaptUncongest
+}
+
+func (c *OecConfig) SetDynamicGpAdaptCongest(value bool) {
+	c.dynamicGpAdaptCongest = value
+}
+
+func (c *OecConfig) GetDynamicGpAdaptCongest() bool {
+	return c.dynamicGpAdaptCongest
 }
 
 func (c *OecConfig) GetCsTimeoutPropose() time.Duration {
