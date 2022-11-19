@@ -5,14 +5,17 @@ import (
 	"sort"
 
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/spf13/viper"
 
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 var (
 	maxPrice     = big.NewInt(500 * params.GWei)
-	defaultPrice = big.NewInt(params.GWei / 10)
+	defaultPrice = getDefaultGasPrice()
 )
 
 type GPOConfig struct {
@@ -64,29 +67,40 @@ func NewOracle(params GPOConfig) *Oracle {
 
 func (gpo *Oracle) RecommendGP() *big.Int {
 	maxGasUsed := appconfig.GetOecConfig().GetMaxGasUsedPerBlock()
-	// If maxGasUsed is not negative and the current block's total gas consumption is
-	// less than 80% of it, then we consider the chain to be uncongested and return defaultPrice.
-	if maxGasUsed > 0 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed*80/100) {
-		return defaultPrice
-	}
-	// If the number of tx in the current block is less than the MaxTxNumPerBlock in mempool config,
-	// the default gas price is returned.
-	allGPsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
 	maxTxNum := appconfig.GetOecConfig().GetMaxTxNumPerBlock()
-	if allGPsLen < maxTxNum {
+	allTxsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
+	// If maxGasUsed is not negative and the current block's total gas consumption is more than 80% of it,
+	// or the number of tx in the current block is more than 80% of MaxTxNumPerBlock in mempool config,
+	// then we consider the chain to be congested.
+	isCongested := (gpo.CurrentBlockGPs.GetGasUsed() >= uint64(maxGasUsed*80/100)) || (allTxsLen >= maxTxNum*80/100)
+
+	adoptHigherGp := appconfig.GetOecConfig().GetDynamicGpAdaptCongest() && isCongested
+
+	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice, adoptHigherGp)
+
+	if appconfig.GetOecConfig().GetDynamicGpAdaptUncongest() && !isCongested {
+		// If network is uncongested, return default gas price.
+		gpo.lastPrice = defaultPrice
 		return defaultPrice
 	}
-
-	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice)
-
 	price := gpo.lastPrice
 	if len(txPrices) > 0 {
 		sort.Sort(types.BigIntArray(txPrices))
 		price = txPrices[(len(txPrices)-1)*gpo.weight/100]
 	}
+
 	if price.Cmp(maxPrice) > 0 {
 		price = new(big.Int).Set(maxPrice)
 	}
 	gpo.lastPrice = price
 	return price
+}
+
+func getDefaultGasPrice() *big.Int {
+	gasPrices, err := sdk.ParseDecCoins(viper.GetString(server.FlagMinGasPrices))
+	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
+		return gasPrices[0].Amount.BigInt()
+	}
+	//return the default gas price : DefaultGasPrice
+	return sdk.NewDecFromBigIntWithPrec(big.NewInt(1), sdk.Precision/2+1).BigInt()
 }
