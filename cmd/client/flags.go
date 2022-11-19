@@ -24,7 +24,7 @@ import (
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
-	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Bool(watcher.FlagFastQuery, true, "Enable the fast query mode for rpc queries")
 	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 10, "Set the threshold of fast query")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().Int(backend.FlagApiBackendBlockLruCache, 30000, "Set the size of block LRU cache for backend mem cache")
@@ -32,7 +32,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagCheckWd, false, "Enable check watchDB in log")
 	cmd.Flags().Bool(rpc.FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(rpc.FlagDebugAPI, false, "Enable the debug_ prefixed set of APIs in the Web3 JSON-RPC spec")
-	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
+	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, true, "Enable bloom filter for event logs")
 	cmd.Flags().Int64(filters.FlagGetLogsHeightSpan, 2000, "config the block height span for get logs")
 	// register application rpc to nacos
 	cmd.Flags().String(rpc.FlagRestApplicationName, "", "rest application name in  nacos")
@@ -103,7 +103,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1)")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
 
-	cmd.Flags().Bool(consensus.EnablePrerunTx, false, "enable proactively runtx mode, default close")
+	cmd.Flags().Bool(consensus.EnablePrerunTx, true, "enable proactively runtx mode, default close")
 	cmd.Flags().String(automation.ConsensusRole, "", "consensus role")
 	cmd.Flags().String(automation.ConsensusTestcase, "", "consensus test case file")
 
