@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -167,13 +168,16 @@ func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *i
 		st.tree.SetUpgradeVersion(ver)
 		st.SetUpgradeVersion(-1)
 	}
+	st11 := time.Now()
 	hash, version, outputDelta, err := st.tree.SaveVersion(flag)
 	if err != nil {
 		panic(err)
 	}
 
 	// commit to flat kv db
+	st1 := time.Now()
 	st.commitFlatKV(version)
+	fmt.Println("****** lyh *****", version, "tree", st1.Sub(st11), "commitFlatKV", time.Now().Sub(st1))
 
 	return types.CommitID{
 		Version: version,

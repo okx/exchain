@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -631,7 +632,9 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 		rs.versions = append(rs.versions, version)
 	}
+	st1 := time.Now()
 	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	fmt.Println("***** lyh ***** flushMetadata ", version, time.Now().Sub(st1))
 
 	return types.CommitID{
 		Version: version,
