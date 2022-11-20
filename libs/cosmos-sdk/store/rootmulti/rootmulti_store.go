@@ -1180,44 +1180,51 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-	for key, store := range storeMap {
-		sName := key.Name()
-		if evmAccStoreFilter(sName, version) {
-			continue
-		}
+	wg := sync.WaitGroup{}
+	wg.Add(len(storeMap))
 
-		if !mpt.TrieWriteAhead {
-			if newMptStoreFilter(sName, version) {
-				continue
+	for k, st := range storeMap {
+		go func(key types.StoreKey, store types.CommitKVStore) {
+			defer wg.Done()
+			sName := key.Name()
+			if evmAccStoreFilter(sName, version) {
+				return
 			}
-		}
 
-		if filter(key.Name(), version, store, filters) {
-			continue
-		}
+			if !mpt.TrieWriteAhead {
+				if newMptStoreFilter(sName, version) {
+					return
+				}
+			}
 
-		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+			if filter(key.Name(), version, store, filters) {
+				return
+			}
 
-		if store.GetStoreType() == types.StoreTypeTransient {
-			continue
-		}
+			commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
-		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
-		if newMptStoreFilter(sName, version) {
-			continue
-		}
+			if store.GetStoreType() == types.StoreTypeTransient {
+				return
+			}
 
-		// evm and acc store should not participate in AppHash calculation process after Mars Height
-		if evmAccStoreFilter(sName, version, true) {
-			continue
-		}
+			// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
+			if newMptStoreFilter(sName, version) {
+				return
+			}
 
-		si := storeInfo{}
-		si.Name = key.Name()
-		si.Core.CommitID = commitID
-		storeInfos = append(storeInfos, si)
-		outputDeltaMap[key.Name()] = outputDelta
+			// evm and acc store should not participate in AppHash calculation process after Mars Height
+			if evmAccStoreFilter(sName, version, true) {
+				return
+			}
+
+			si := storeInfo{}
+			si.Name = key.Name()
+			si.Core.CommitID = commitID
+			storeInfos = append(storeInfos, si)
+			outputDeltaMap[key.Name()] = outputDelta
+		}(k, st)
 	}
+	wg.Wait()
 
 	return commitInfo{
 		Version:    version,
