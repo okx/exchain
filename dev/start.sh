@@ -30,7 +30,7 @@ run() {
       --log_file json \
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 2000ms \
-      --enable-preruntx=false \
+      --enable-preruntx=1 \
       --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \

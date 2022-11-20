@@ -122,6 +122,7 @@ const (
 	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
 	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
 	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
+
 	FlagEnableWrappedTx         = "enable-wtx"
 	FlagSentryAddrs             = "p2p.sentry_addrs"
 
