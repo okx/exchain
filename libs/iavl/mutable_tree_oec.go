@@ -17,8 +17,8 @@ const (
 	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
-	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
 	FlagIavlFastStorageCacheSize   = "iavl-fast-storage-cache-size"
+	FlagIavlDiscardFastStorage     = "discard-fast-storage"
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = 100
-	enableFastStorage               = false
+	enableFastStorage               = true
 	fastNodeCacheSize               = 10000000
 )
 
