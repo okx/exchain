@@ -863,7 +863,7 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 
-	ctx.Logger.Info("The database storage strategy", "fast-storage", appstatus.IsFastStorageStrategy())
+	ctx.Logger.Info("The database storage strategy", "fast-storage", iavl.GetEnableFastStorage())
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
