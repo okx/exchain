@@ -4,11 +4,12 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/wasm/keeper/testdata"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/x/wasm/keeper/testdata"
 
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	okexchain "github.com/okex/exchain/app/types"
@@ -49,6 +50,7 @@ import (
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/staking"
 	token "github.com/okex/exchain/x/token/types"
+
 	//upgradeclient "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/client"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -321,7 +323,7 @@ func createTestInput(
 	bankKeeper.SetSendEnabled(ctx, true)
 
 	supplyKeeper := supply.NewKeeper(
-		legacyAmino, keys[supply.StoreKey], &accountKeeper, bankKeeper, maccPerms,
+		legacyAmino, keys[supply.StoreKey], &accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms,
 	)
 	stakingKeeper := stakingkeeper.NewKeeper(
 		&appCodec,

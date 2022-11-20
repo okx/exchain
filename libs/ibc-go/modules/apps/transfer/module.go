@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
@@ -120,9 +119,7 @@ func NewAppModule(k keeper.Keeper, m *codec.CodecProxy) AppModule {
 }
 
 // RegisterInvariants implements the AppModule interface
-func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	// TODO
-}
+func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 // Route implements the AppModule interface
 func (am AppModule) Route() string {
@@ -254,6 +251,9 @@ func ValidateTransferChannelParams(
 		return sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
 	}
 
+	if version != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
+	}
 	return nil
 }
 
@@ -272,17 +272,9 @@ func (am AppModule) OnChanOpenInit(
 		return "", err
 	}
 
-	if strings.TrimSpace(version) == "" {
-		version = types.Version
-	}
-
-	if version != types.Version {
-		return "", sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
-	}
-
 	// Claim channel capability passed back by IBC module
 	if err := am.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return version, err
+		return "", err
 	}
 
 	return version, nil
@@ -301,11 +293,11 @@ func (am AppModule) OnChanOpenTry(
 	counterpartyVersion string,
 ) (string, error) {
 	if err := ValidateTransferChannelParams(ctx, am.keeper, order, portID, channelID, version); err != nil {
-		return version, err
+		return "", err
 	}
 
 	if counterpartyVersion != types.Version {
-		return version, sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
+		return "", sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
 	}
 
 	// Module may have already claimed capability in OnChanOpenInit in the case of crossing hellos
@@ -315,19 +307,19 @@ func (am AppModule) OnChanOpenTry(
 	if !am.keeper.AuthenticateCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)) {
 		// Only claim channel capability passed back by IBC module if we do not already own it
 		if err := am.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-			return version, err
+			return "", err
 		}
 	}
 
-	return version, nil
+	return types.Version, nil
 }
 
 // OnChanOpenAck implements the IBCModule interface
-func (am AppModule) OnChanOpenAck(
+func (im AppModule) OnChanOpenAck(
 	ctx sdk.Context,
 	portID,
 	channelID string,
-	counterpartyChannelID string,
+	_ string,
 	counterpartyVersion string,
 ) error {
 	if counterpartyVersion != types.Version {

@@ -63,8 +63,7 @@ func (b AppModuleBasic) RegisterGRPCGatewayRoutes(ctx cliCtx.CLIContext, mux *ru
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
-	// TODO, 同tx ,是否需要tx cmd
-	return nil
+	return cli.NewTxCmd(cdc, reg)
 }
 
 func (b AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
@@ -97,9 +96,7 @@ func (a AppModule) InitGenesis(s sdk.Context, message json.RawMessage) []abci.Va
 }
 
 func (a AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	// TODO,可能会触发smb
-	gs := a.keeper.ExportGenesis(ctx)
-	return ModuleCdc.MustMarshalJSON(gs)
+	return nil
 }
 
 func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {}
@@ -116,7 +113,6 @@ func (a AppModule) QuerierRoute() string {
 	return types.QuerierRoute
 }
 
-// TODO, 有需要适配的吗
 func (a AppModule) NewQuerierHandler() sdk.Querier {
 	return nil
 }
@@ -130,4 +126,19 @@ func (a AppModule) EndBlock(s sdk.Context, block abci.RequestEndBlock) []abci.Va
 func (a AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), a.keeper)
 	types.RegisterQueryServer(cfg.QueryServer(), a.keeper)
+}
+
+func (a AppModule) RegisterTask() upgrade.HeightTask {
+	return upgrade.NewHeightTask(5, func(ctx sdk.Context) error {
+		data := ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+		a.initGenesis(ctx, data)
+		return nil
+	})
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
+	var genesisState types.GenesisState
+	ModuleCdc.MustUnmarshalJSON(message, &genesisState)
+	am.keeper.InitGenesis(ctx, genesisState)
+	return []abci.ValidatorUpdate{}
 }

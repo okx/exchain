@@ -19,6 +19,6 @@ type MsgAdapter interface {
 }
 
 // MsgTypeURL returns the TypeURL of a `sdk.Msg`.
-func MsgTypeURL(msg MsgProtoAdapter) string {
+func MsgTypeURL(msg proto.Message) string {
 	return "/" + proto.MessageName(msg)
 }

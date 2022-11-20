@@ -100,6 +100,8 @@ var (
 
 	// ErrInvalidChainID defines an error when the chain-id is invalid.
 	ErrInvalidChainID = Register(RootCodespace, 28, "invalid chain-id")
+
+	ErrNotFound = Register(RootCodespace, 38, "not found")
 )
 
 // Register returns an error instance that should be used as the base for

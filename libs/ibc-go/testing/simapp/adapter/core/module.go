@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
@@ -22,11 +23,11 @@ type CoreModule struct {
 }
 
 // NewAppModule creates a new AppModule object
-func NewIBCCOreAppModule(k *keeper.Keeper) *CoreModule {
+func NewIBCCOreAppModule(k *ibc.Keeper) *CoreModule {
 	a := ibc.NewAppModule(k)
 	ret := &CoreModule{
 		AppModule:        a,
-		tkeeper:          k,
+		tkeeper:          k.V2Keeper,
 		tcreateLocalhost: false,
 	}
 	return ret

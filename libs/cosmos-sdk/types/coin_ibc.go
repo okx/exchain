@@ -74,13 +74,16 @@ func NewCoinAdapter(denom string, amount Int) CoinAdapter {
 
 	return coin
 }
-
+func (cs CoinAdapter) ToCoin() Coin {
+	if cs.Denom == DefaultIbcWei {
+		cs.Denom = DefaultBondDenom
+	}
+	return CoinAdapterToCoin(cs)
+}
 func (cs CoinAdapters) ToCoins() Coins {
 	ret := make([]Coin, 0)
 	for _, v := range cs {
-		transferAmountDec := NewDecFromIntWithPrec(v.Amount, Precision)
-		token := NewCoin(v.Denom, transferAmountDec)
-		ret = append(ret, token)
+		ret = append(ret, v.ToCoin())
 	}
 	return ret
 }
@@ -307,4 +310,82 @@ func (coins CoinAdapters) Copy() CoinAdapters {
 	}
 
 	return copyCoins
+}
+
+func ConvWei2TOkt(adapters CoinAdapters) (CoinAdapters, error) {
+	copyAdapters := adapters.Copy()
+	for index, _ := range copyAdapters {
+		if copyAdapters[index].Denom == DefaultIbcWei {
+			copyAdapters[index].Denom = DefaultBondDenom
+		} else if strings.ToLower(copyAdapters[index].Denom) == DefaultBondDenom {
+			return nil, errors.Wrap(errors.ErrInvalidCoins, "not support okt denom")
+		}
+	}
+	return copyAdapters, nil
+}
+
+// AmountOf returns the amount of a denom from coins
+func (coins CoinAdapters) AmountOf(denom string) Int {
+	mustValidateDenom(denom)
+	return coins.AmountOfNoDenomValidation(denom)
+}
+
+// AmountOfNoDenomValidation returns the amount of a denom from coins
+// without validating the denomination.
+func (coins CoinAdapters) AmountOfNoDenomValidation(denom string) Int {
+	switch len(coins) {
+	case 0:
+		return ZeroInt()
+
+	case 1:
+		coin := coins[0]
+		if coin.Denom == denom {
+			return coin.Amount
+		}
+		return ZeroInt()
+
+	default:
+		// Binary search the amount of coins remaining
+		midIdx := len(coins) / 2 // 2:1, 3:1, 4:2
+		coin := coins[midIdx]
+		switch {
+		case denom < coin.Denom:
+			return coins[:midIdx].AmountOfNoDenomValidation(denom)
+		case denom == coin.Denom:
+			return coin.Amount
+		default:
+			return coins[midIdx+1:].AmountOfNoDenomValidation(denom)
+		}
+	}
+}
+
+func (coins CoinAdapters) Sub(coinsB CoinAdapters) CoinAdapters {
+	diff, hasNeg := coins.SafeSub(coinsB)
+	if hasNeg {
+		panic("negative coin amount")
+	}
+
+	return diff
+}
+
+func (coins CoinAdapters) SafeSub(coinsB CoinAdapters) (CoinAdapters, bool) {
+	diff := coins.safeAdd(coinsB.negative())
+	return diff, diff.IsAnyNegative()
+}
+func (coins CoinAdapters) negative() CoinAdapters {
+	res := make([]CoinAdapter, 0, len(coins))
+
+	for _, coin := range coins {
+		res = append(res, CoinAdapter{
+			Denom:  coin.Denom,
+			Amount: coin.Amount.Neg(),
+		})
+	}
+
+	return res
+}
+
+// AddAmount adds an amount to the Coin.
+func (coin CoinAdapter) AddAmount(amount Int) CoinAdapter {
+	return CoinAdapter{coin.Denom, coin.Amount.Add(amount)}
 }

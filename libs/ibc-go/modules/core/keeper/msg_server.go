@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"strings"
 
 	//"github.com/armon/go-metrics"
 	//"github.com/cosmos/cosmos-sdk/telemetry"
@@ -288,10 +287,7 @@ func (k Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgChan
 		),
 	})
 
-	return &channeltypes.MsgChannelOpenInitResponse{
-		ChannelId: channelID,
-		Version:   strings.TrimSpace(msg.Channel.Version),
-	}, nil
+	return &channeltypes.MsgChannelOpenInitResponse{}, nil
 }
 
 // ChannelOpenTry defines a rpc handler method for MsgChannelOpenTry.

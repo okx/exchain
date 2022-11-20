@@ -2,7 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/typesadapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 )
 
@@ -13,13 +13,14 @@ func (k Keeper) RegisterInterchainAccount(ctx sdk.Context, connectionID, control
 	if acc := k.accountKeeper.GetAccount(ctx, accAddress); acc != nil {
 		return
 	}
-	interchainAccount := icatypes.NewInterchainAccount(
-		authtypes.NewBaseAccountWithAddress(accAddress),
+	baseAcc := auth.NewBaseAccountWithAddress(accAddress)
+	interchainAccount := icatypes.NewAminoInterchainAccount(
+		&baseAcc,
 		controllerPortID,
 	)
 
 	k.accountKeeper.NewAccount(ctx, interchainAccount)
 	k.accountKeeper.SetAccount(ctx, interchainAccount)
 
-	k.SetInterchainAccountAddress(ctx, connectionID, controllerPortID, interchainAccount.Address)
+	k.SetInterchainAccountAddress(ctx, connectionID, controllerPortID, interchainAccount.Address.String())
 }

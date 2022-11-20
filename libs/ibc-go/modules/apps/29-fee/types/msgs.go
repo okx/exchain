@@ -3,11 +3,22 @@ package types
 import (
 	"strings"
 
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+)
+
+var (
+	_ sdk.Msg             = MsgPayPacketFee{}
+	_ sdk.HeightSensitive = MsgPayPacketFee{}
+
+	_ sdk.HeightSensitive = MsgRegisterCounterpartyPayee{}
+	_ sdk.HeightSensitive = MsgPayPacketFeeAsync{}
+	_ sdk.HeightSensitive = MsgRegisterPayee{}
 )
 
 // msg types
@@ -53,6 +64,10 @@ func (msg MsgRegisterPayee) ValidateBasic() error {
 	return nil
 }
 
+func (msg MsgPayPacketFee) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgRegisterPayee) GetSigners() []sdk.AccAddress {
 	signer, err := sdk.AccAddressFromBech32(msg.Relayer)
@@ -61,6 +76,18 @@ func (msg MsgRegisterPayee) GetSigners() []sdk.AccAddress {
 	}
 
 	return []sdk.AccAddress{signer}
+}
+
+func (msg MsgRegisterPayee) Route() string {
+	return RouterKey
+}
+
+func (msg MsgRegisterPayee) Type() string {
+	return sdk.MsgTypeURL(&msg)
+}
+
+func (msg MsgRegisterPayee) GetSignBytes() []byte {
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
 }
 
 // NewMsgRegisterCounterpartyPayee creates a new instance of MsgRegisterCounterpartyPayee
@@ -95,6 +122,10 @@ func (msg MsgRegisterCounterpartyPayee) ValidateBasic() error {
 	return nil
 }
 
+func (msg MsgRegisterCounterpartyPayee) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
+}
+
 // GetSigners implements sdk.Msg
 func (msg MsgRegisterCounterpartyPayee) GetSigners() []sdk.AccAddress {
 	signer, err := sdk.AccAddressFromBech32(msg.Relayer)
@@ -103,6 +134,18 @@ func (msg MsgRegisterCounterpartyPayee) GetSigners() []sdk.AccAddress {
 	}
 
 	return []sdk.AccAddress{signer}
+}
+
+func (msg MsgRegisterCounterpartyPayee) Route() string {
+	return RouterKey
+}
+
+func (msg MsgRegisterCounterpartyPayee) Type() string {
+	return sdk.MsgTypeURL(&msg)
+}
+
+func (msg MsgRegisterCounterpartyPayee) GetSignBytes() []byte {
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
 }
 
 // NewMsgPayPacketFee creates a new instance of MsgPayPacketFee
@@ -115,6 +158,17 @@ func NewMsgPayPacketFee(fee Fee, sourcePortId, sourceChannelId, signer string, r
 		Relayers:        relayers,
 	}
 }
+
+//func (msg MsgPayPacketFee) RulesFilter() (sdk.Msg, error) {
+//	ret := msg
+//
+//	fee, err := convPacketFee(ret.Fee)
+//	if nil != err {
+//		return nil, err
+//	}
+//	ret.Fee = fee
+//	return &ret, nil
+//}
 
 // ValidateBasic performs a basic check of the MsgPayPacketFee fields
 func (msg MsgPayPacketFee) ValidateBasic() error {
@@ -166,7 +220,7 @@ func (msg MsgPayPacketFee) Type() string {
 
 // GetSignBytes implements sdk.Msg.
 func (msg MsgPayPacketFee) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
 }
 
 // NewMsgPayPacketAsync creates a new instance of MsgPayPacketFee
@@ -212,5 +266,50 @@ func (msg MsgPayPacketFeeAsync) Type() string {
 
 // GetSignBytes implements sdk.Msg.
 func (msg MsgPayPacketFeeAsync) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
+}
+
+//func (msg MsgPayPacketFeeAsync) RulesFilter() (sdk.Msg, error) {
+//	ret := msg
+//
+//	fee, err := convPacketFee(ret.PacketFee.Fee)
+//	if nil != err {
+//		return nil, err
+//	}
+//	ret.PacketFee.Fee = fee
+//
+//	return &ret, nil
+//}
+
+func convPacketFee(fee Fee) (Fee, error) {
+	recvF, err := sdk.ConvWei2TOkt(fee.RecvFee)
+	if nil != err {
+		return fee, err
+	}
+
+	ackF, err := sdk.ConvWei2TOkt(fee.AckFee)
+	if nil != err {
+		return fee, err
+	}
+	timeoutF, err := sdk.ConvWei2TOkt(fee.TimeoutFee)
+	if nil != err {
+		return fee, err
+	}
+	fee.RecvFee = recvF
+	fee.AckFee = ackF
+	fee.TimeoutFee = timeoutF
+	return fee, nil
+}
+
+func (m Metadata) Empty() bool {
+	return len(m.FeeVersion) == 0 || len(m.AppVersion) == 0
+}
+
+//////////
+func (msg MsgPayPacketFeeAsync) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
+}
+
+func (msg MsgRegisterPayee) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
 }

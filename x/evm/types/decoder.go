@@ -52,7 +52,7 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 			height = global.GetGlobalHeight()
 		}
 
-		for _, f := range []decodeFunc{
+		for index, f := range []decodeFunc{
 			evmDecoder,
 			ubruDecoder,
 			ubDecoder,
@@ -61,6 +61,15 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 			if tx, err = f(cdc, txBytes, height); err == nil {
 				tx.SetRaw(txBytes)
 				tx.SetTxHash(types.Tx(txBytes).Hash(height))
+				// index=0 means it is a evmtx(evmDecoder) ,we wont verify again
+				if index > 0 {
+					if sensitive, ok := tx.(sdk.HeightSensitive); ok {
+						if err := sensitive.ValidWithHeight(height); err != nil {
+							return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+						}
+					}
+				}
+
 				return tx, nil
 			}
 		}

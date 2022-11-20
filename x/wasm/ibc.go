@@ -48,11 +48,11 @@ func (i IBCHandler) OnChanOpenInit(
 ) (string, error) {
 	// ensure port, version, capability
 	if err := ValidateChannelParams(channelID); err != nil {
-		return version, err
+		return "", err
 	}
 	contractAddr, err := ContractFromPortID(portID)
 	if err != nil {
-		return version, sdkerrors.Wrapf(err, "contract port id")
+		return "", sdkerrors.Wrapf(err, "contract port id")
 	}
 
 	msg := wasmvmtypes.IBCChannelOpenMsg{
@@ -69,11 +69,11 @@ func (i IBCHandler) OnChanOpenInit(
 	}
 	_, err = i.keeper.OnOpenChannel(ctx, contractAddr, msg)
 	if err != nil {
-		return version, err
+		return "", err
 	}
 	// Claim channel capability passed back by IBC module
 	if err := i.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return version, sdkerrors.Wrap(err, "claim capability")
+		return "", sdkerrors.Wrap(err, "claim capability")
 	}
 	return version, nil
 }

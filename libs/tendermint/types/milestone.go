@@ -36,6 +36,9 @@ var (
 	MILESTONE_EARTH_HEIGHT string
 	milestoneEarthHeight   int64
 
+	MILESTONE_VENUS4_HEIGHT string
+	milestoneVenus4Height   int64
+
 	// note: it stores the earlies height of the node,and it is used by cli
 	nodePruneHeight int64
 
@@ -74,6 +77,7 @@ func init() {
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 		milestoneVenus3Height = string2number(MILESTONE_VENUS3_HEIGHT)
 		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
+		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
 	})
 }
 
@@ -251,4 +255,24 @@ func GetEarthHeight() int64 {
 }
 
 // =========== Earth ===============
+// ==================================
+
+// ==================================
+// =========== Venus3 ===============
+func HigherThanVenus4(h int64) bool {
+	if milestoneVenus4Height == 0 {
+		return false
+	}
+	return h > milestoneVenus4Height
+}
+
+func UnittestOnlySetMilestoneVenus4Height(h int64) {
+	milestoneVenus4Height = h
+}
+
+func GetVenus4Height() int64 {
+	return milestoneVenus4Height
+}
+
+// =========== Venus4 ===============
 // ==================================
