@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -17,7 +19,6 @@ import (
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // CreateTestInputDefaultForBenchmark test input with default values
@@ -89,7 +90,7 @@ func CreateTestInputAdvancedForBenchmark(b *testing.B, isCheckTx bool, initPower
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		staking.BondedPoolName:    {supply.Burner, supply.Staking},
 	}
-	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bankKeeper, maccPerms)
+	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms)
 	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace))
 	sk.SetParams(ctx, staking.DefaultParams())
 	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(types.DefaultParamspace), sk, supplyKeeper, auth.FeeCollectorName, nil)

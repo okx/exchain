@@ -50,6 +50,7 @@ var (
 		trace.LastBlockTime,
 		trace.GasUsed,
 		trace.InvalidTxs,
+		trace.LastRun,
 		trace.RunTx,
 		trace.Prerun,
 		trace.MempoolTxsCnt,

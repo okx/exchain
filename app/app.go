@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/vmbridge"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/x/vmbridge"
 
 	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
 	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
@@ -281,7 +282,6 @@ type OKExChainApp struct {
 	ICAControllerKeeper  icacontrollerkeeper.Keeper
 	ICAHostKeeper        icahostkeeper.Keeper
 	VMBridgeKeeper       *vmbridge.Keeper
-
 
 	WasmHandler wasmkeeper.HandlerOption
 }
