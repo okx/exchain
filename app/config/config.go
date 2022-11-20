@@ -64,7 +64,6 @@ type OecConfig struct {
 	// dynamic-gp-max-tx-num
 	dynamicGpMaxTxNum int64
 
-
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
 	// consensus.timeout_propose_delta
@@ -121,7 +120,6 @@ const (
 	FlagDynamicGpAdaptUncongest = "dynamic-gp-adapt-uncongest"
 	FlagDynamicGpAdaptCongest   = "dynamic-gp-adapt-congest"
 	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
-
 	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
 	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
 
@@ -245,7 +243,6 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetDynamicGpCoefficient(viper.GetInt(FlagDynamicGpCoefficient))
 	c.SetDynamicGpMaxGasUsed(viper.GetInt64(FlagDynamicGpMaxGasUsed))
 	c.SetDynamicGpMaxTxNum(viper.GetInt64(FlagDynamicGpMaxTxNum))
-
 	c.SetDynamicGpAdaptCongest(viper.GetBool(FlagDynamicGpAdaptCongest))
 	c.SetDynamicGpAdaptUncongest(viper.GetBool(FlagDynamicGpAdaptUncongest))
 	c.SetCsTimeoutPropose(viper.GetDuration(FlagCsTimeoutPropose))
@@ -305,7 +302,6 @@ func (c *OecConfig) format() string {
 	dynamic-gp-max-gas-used: %d
 	dynamic-gp-max-tx-num: %d
 
-
 	consensus.timeout_propose: %s
 	consensus.timeout_propose_delta: %s
 	consensus.timeout_prevote: %s
@@ -333,7 +329,6 @@ func (c *OecConfig) format() string {
 		c.GetDynamicGpCoefficient(),
 		c.GetDynamicGpMaxGasUsed(),
 		c.GetDynamicGpMaxTxNum(),
-
 		c.GetCsTimeoutPropose(),
 		c.GetCsTimeoutProposeDelta(),
 		c.GetCsTimeoutPrevote(),
@@ -707,14 +702,16 @@ func (c *OecConfig) SetDynamicGpCoefficient(value int) {
 	}
 	c.dynamicGpCoefficient = value
 }
+
 func (c *OecConfig) GetDynamicGpMaxGasUsed() int64 {
 	return c.dynamicGpMaxGasUsed
 }
 
 func (c *OecConfig) SetDynamicGpMaxGasUsed(value int64) {
-	if value > 0 {
-		c.dynamicGpMaxGasUsed = value
+	if value < -1 {
+		return
 	}
+	c.dynamicGpMaxGasUsed = value
 }
 
 func (c *OecConfig) GetDynamicGpMaxTxNum() int64 {

@@ -58,7 +58,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(rpc.FlagDisableAPI, "", "Set the RPC API to be disabled, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
 
 	cmd.Flags().Int64(config.FlagDynamicGpMaxTxNum, 300, "If tx number in the block is more than this, the network is congested.")
-	cmd.Flags().Int64(config.FlagDynamicGpMaxGasUsed, 0, "If the block gas used is more than this, the network is congested.")
+	cmd.Flags().Int64(config.FlagDynamicGpMaxGasUsed, -1, "If the block gas used is more than this, the network is congested.")
 	cmd.Flags().Int(config.FlagDynamicGpWeight, 80, "The recommended weight of dynamic gas price [1,100])")
 	cmd.Flags().Int(config.FlagDynamicGpCheckBlocks, 5, "The recommended number of blocks checked of dynamic gas price [1,100])")
 	cmd.Flags().Bool(config.FlagDynamicGpAdaptUncongest, true, "Default gas price will be recommended when the network is not congested")
