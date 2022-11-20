@@ -32,10 +32,6 @@ func NewGPOConfig(weight int, checkBlocks int) GPOConfig {
 	}
 }
 
-func DefaultGPOConfig() GPOConfig {
-	return NewGPOConfig(80, 5)
-}
-
 // Oracle recommends gas prices based on the content of recent blocks.
 type Oracle struct {
 	CurrentBlockGPs *types.SingleBlockGPs
@@ -66,13 +62,13 @@ func NewOracle(params GPOConfig) *Oracle {
 }
 
 func (gpo *Oracle) RecommendGP() *big.Int {
-	maxGasUsed := appconfig.GetOecConfig().GetMaxGasUsedPerBlock()
-	maxTxNum := appconfig.GetOecConfig().GetMaxTxNumPerBlock()
+	maxGasUsed := appconfig.GetOecConfig().GetDynamicGpMaxGasUsed()
+	maxTxNum := appconfig.GetOecConfig().GetDynamicGpMaxTxNum()
 	allTxsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
 	// If maxGasUsed is not negative and the current block's total gas consumption is more than 80% of it,
 	// or the number of tx in the current block is more than 80% of MaxTxNumPerBlock in mempool config,
 	// then we consider the chain to be congested.
-	isCongested := (gpo.CurrentBlockGPs.GetGasUsed() >= uint64(maxGasUsed*80/100)) || (allTxsLen >= maxTxNum*80/100)
+	isCongested := (gpo.CurrentBlockGPs.GetGasUsed() >= uint64(maxGasUsed)) || (allTxsLen >= maxTxNum)
 
 	adoptHigherGp := appconfig.GetOecConfig().GetDynamicGpAdaptCongest() && isCongested
 

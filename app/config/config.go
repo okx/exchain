@@ -59,6 +59,10 @@ type OecConfig struct {
 	dynamicGpAdaptCongest bool
 	// dynamic-gp-coefficient
 	dynamicGpCoefficient int
+	// dynamic-gp-max-gas-used
+	dynamicGpMaxGasUsed int64
+	// dynamic-gp-max-tx-num
+	dynamicGpMaxTxNum int64
 
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
@@ -116,6 +120,8 @@ const (
 	FlagDynamicGpAdaptUncongest = "dynamic-gp-adapt-uncongest"
 	FlagDynamicGpAdaptCongest   = "dynamic-gp-adapt-congest"
 	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
+	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
+	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
 	FlagEnableWrappedTx         = "enable-wtx"
 	FlagSentryAddrs             = "p2p.sentry_addrs"
 
@@ -234,6 +240,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
 	c.SetDynamicGpCheckBlocks(viper.GetInt(FlagDynamicGpCheckBlocks))
 	c.SetDynamicGpCoefficient(viper.GetInt(FlagDynamicGpCoefficient))
+	c.SetDynamicGpMaxGasUsed(viper.GetInt64(FlagDynamicGpMaxGasUsed))
+	c.SetDynamicGpMaxTxNum(viper.GetInt64(FlagDynamicGpMaxTxNum))
 	c.SetDynamicGpAdaptCongest(viper.GetBool(FlagDynamicGpAdaptCongest))
 	c.SetDynamicGpAdaptUncongest(viper.GetBool(FlagDynamicGpAdaptUncongest))
 	c.SetCsTimeoutPropose(viper.GetDuration(FlagCsTimeoutPropose))
@@ -289,7 +297,9 @@ func (c *OecConfig) format() string {
 	dynamic-gp-check-blocks: %d
 	dynamic-gp-adapt-uncongest: %v
 	dynamic-gp-adapt-congest: %v
-	dynamic-gp-adapt-coefficient: %d
+	dynamic-gp-coefficient: %d
+	dynamic-gp-max-gas-used: %d
+	dynamic-gp-max-tx-num: %d
 
 	consensus.timeout_propose: %s
 	consensus.timeout_propose_delta: %s
@@ -316,6 +326,8 @@ func (c *OecConfig) format() string {
 		c.GetDynamicGpAdaptUncongest(),
 		c.GetDynamicGpAdaptCongest(),
 		c.GetDynamicGpCoefficient(),
+		c.GetDynamicGpMaxGasUsed(),
+		c.GetDynamicGpMaxTxNum(),
 		c.GetCsTimeoutPropose(),
 		c.GetCsTimeoutProposeDelta(),
 		c.GetCsTimeoutPrevote(),
@@ -428,6 +440,18 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpCoefficient(r)
+	case FlagDynamicGpMaxGasUsed:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpMaxGasUsed(r)
+	case FlagDynamicGpMaxTxNum:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpMaxTxNum(r)
 	case FlagCsTimeoutPropose:
 		r, err := time.ParseDuration(v)
 		if err != nil {
@@ -676,6 +700,28 @@ func (c *OecConfig) SetDynamicGpCoefficient(value int) {
 		value = 100
 	}
 	c.dynamicGpCoefficient = value
+}
+
+func (c *OecConfig) GetDynamicGpMaxGasUsed() int64 {
+	return c.dynamicGpMaxGasUsed
+}
+
+func (c *OecConfig) SetDynamicGpMaxGasUsed(value int64) {
+	if value < -1 {
+		return
+	}
+	c.dynamicGpMaxGasUsed = value
+}
+
+func (c *OecConfig) GetDynamicGpMaxTxNum() int64 {
+	return c.dynamicGpMaxTxNum
+}
+
+func (c *OecConfig) SetDynamicGpMaxTxNum(value int64) {
+	if value < 0 {
+		return
+	}
+	c.dynamicGpMaxTxNum = value
 }
 
 func (c *OecConfig) GetDynamicGpCheckBlocks() int {
