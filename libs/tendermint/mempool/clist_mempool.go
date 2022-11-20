@@ -254,7 +254,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	// the old logic for can not allow to delete low gasprice tx,then we must check mempool txs weather is full.
-	if !mem.GetEnableDeleteLowGPTx() {
+	if !mem.GetEnableDeleteMinGPTx() {
 		txSize := len(tx)
 		if err := mem.isFull(txSize); err != nil {
 			return err
@@ -493,7 +493,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		if pendingTx == nil {
 			return
 		}
-		if !mem.GetEnableDeleteLowGPTx() {
+		if !mem.GetEnableDeleteMinGPTx() {
 			if err := mem.isFull(len(pendingTx.tx)); err != nil {
 				time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 				continue
@@ -508,7 +508,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 			return
 		}
 
-		if mem.GetEnableDeleteLowGPTx() {
+		if mem.GetEnableDeleteMinGPTx() {
 			// If mempool is full the we remove the last one tx
 			if err := mem.isFull(len(pendingTx.tx)); err != nil {
 				mem.deleteOldTx(mem.txs.Back())
@@ -579,7 +579,7 @@ func (mem *CListMempool) resCbFirstTime(
 		txkey := txOrTxHashToKey(tx, txHash, mem.height)
 
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
-			if !mem.GetEnableDeleteLowGPTx() {
+			if !mem.GetEnableDeleteMinGPTx() {
 				// Check mempool isn't full again to reduce the chance of exceeding the
 				// limits.
 				if err := mem.isFull(len(tx)); err != nil {
@@ -630,7 +630,7 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			if err == nil {
-				if mem.GetEnableDeleteLowGPTx() {
+				if mem.GetEnableDeleteMinGPTx() {
 					// If mempool is full the we remove the last one tx
 					if err := mem.isFull(len(tx)); err != nil {
 						mem.deleteOldTx(mem.txs.Back())
@@ -1263,13 +1263,13 @@ func (mem *CListMempool) deleteOldTx(removeTx *clist.CElement) {
 		mem.pendingPool.removeTxByHash(txID(removeMemTx.tx, removeMemTx.Height()))
 	}
 }
-func (mem *CListMempool) SetEnableDeleteLowGPTx(enable bool) {
+func (mem *CListMempool) SetEnableDeleteMinGPTx(enable bool) {
 	mem.enableDeleteLowGPTxMutex.Lock()
 	mem.enableDeleteLowGPTx = enable
 	mem.enableDeleteLowGPTxMutex.Unlock()
 }
 
-func (mem *CListMempool) GetEnableDeleteLowGPTx() bool {
+func (mem *CListMempool) GetEnableDeleteMinGPTx() bool {
 	enable := false
 	mem.enableDeleteLowGPTxMutex.RLock()
 	enable = mem.enableDeleteLowGPTx
