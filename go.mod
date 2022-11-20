@@ -23,6 +23,7 @@ require (
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/fortytw2/leaktest v1.3.0
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-errors/errors v1.0.1
 	github.com/go-kit/kit v0.10.0
 	github.com/go-logfmt/logfmt v0.5.0
@@ -109,7 +110,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
 	github.com/go-ole/go-ole v1.2.6-0.20210915003542-8b1f7f90f6b1 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
