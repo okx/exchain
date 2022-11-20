@@ -707,8 +707,8 @@ func (c *OecConfig) GetDynamicGpMaxGasUsed() int64 {
 }
 
 func (c *OecConfig) SetDynamicGpMaxGasUsed(value int64) {
-	if value < 0 {
-		value = 0
+	if value < -1 {
+		return
 	}
 	c.dynamicGpMaxGasUsed = value
 }
