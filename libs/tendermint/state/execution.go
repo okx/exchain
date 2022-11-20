@@ -245,7 +245,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
@@ -280,6 +279,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Lock mempool, commit app state, update mempoool.
 	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs, trc)
 	endTime = time.Now().UnixNano()
+	fmt.Println("*******lyh******", "Persist", block.Height, float64(endTime-startTime)/1e6)
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
@@ -290,7 +290,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.evpool.Update(block, state)
 
 	fail.Fail() // XXX
-
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
@@ -386,6 +385,7 @@ func (blockExec *BlockExecutor) commit(
 
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
+	t1 := time.Now()
 	err := blockExec.mempool.FlushAppConn()
 	if err != nil {
 		blockExec.logger.Error("Client error during mempool.FlushAppConn", "err", err)
@@ -397,6 +397,7 @@ func (blockExec *BlockExecutor) commit(
 	if deltaInfo != nil {
 		treeDeltaMap = deltaInfo.treeDeltaMap
 	}
+	t2 := time.Now()
 	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{DeltaMap: treeDeltaMap})
 	if err != nil {
 		blockExec.logger.Error(
@@ -417,6 +418,7 @@ func (blockExec *BlockExecutor) commit(
 
 	//trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
+	t3 := time.Now()
 	err = blockExec.mempool.Update(
 		block.Height,
 		block.Txs,
@@ -425,6 +427,7 @@ func (blockExec *BlockExecutor) commit(
 		TxPostCheck(state),
 	)
 
+	t4 := time.Now()
 	if !cfg.DynamicConfig.GetMempoolRecheck() && block.Height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
 		proxyCb := func(req *abci.Request, res *abci.Response) {
 
@@ -435,7 +438,9 @@ func (blockExec *BlockExecutor) commit(
 			Key: "ResetCheckState",
 		})
 	}
-
+	t5 := time.Now()
+	fmt.Println("*****lyh****", block.Height, "FlushAppConn", t2.Sub(t1),
+		"CommitSync", t3.Sub(t2), "mempool.Update", t4.Sub(t3), "other", t5.Sub(t4))
 	return res, res.RetainHeight, err
 }
 

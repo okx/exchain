@@ -597,7 +597,9 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 	version := previousHeight + 1
 
 	var outputDeltaMap iavltree.TreeDeltaMap
+	st0 := time.Now()
 	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitFilters)
+	sss := time.Now().Sub(st0)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -634,7 +636,7 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 	}
 	st1 := time.Now()
 	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
-	fmt.Println("***** lyh ***** flushMetadata ", version, time.Now().Sub(st1))
+	fmt.Println("***** lyh ***** ", version, "all commitStores", sss, "flushMetadata", time.Now().Sub(st1))
 
 	return types.CommitID{
 		Version: version,

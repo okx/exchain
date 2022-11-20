@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"runtime"
 	"time"
 
@@ -94,8 +95,10 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// 1. this round commit a valid block
 	// 2. before commit the block,State#updateToState hasent not called yet,so the proposalBlockPart is not nil which means we wont
 	// 	  call the prerun during commit step(edge case)
+	tt := time.Now()
 	app.EvmKeeper.Watcher.Commit()
 	watcher.Commit()
+	fmt.Println("******lyh*****", res.RetainHeight, time.Now().Sub(tt))
 
 	return res
 }
