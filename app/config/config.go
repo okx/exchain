@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -207,6 +209,15 @@ func NewOecConfig() *OecConfig {
 		if !loaded {
 			panic("failed to connect apollo or no config items in apollo")
 		}
+		ok, err := c.loadFromLocal()
+		if err != nil {
+			panic(fmt.Errorf("failed to load config from local: %v", err))
+		}
+		if !ok {
+			confLogger.Error("failed to load config from local")
+		} else {
+			confLogger.Info("load config from local success")
+		}
 	}
 
 	return c
@@ -282,6 +293,23 @@ func (c *OecConfig) loadFromApollo() bool {
 	return client.LoadConfig()
 }
 
+func (c *OecConfig) loadFromLocal() (bool, error) {
+	var err error
+	rootDir := viper.GetString("home")
+	configPath := path.Join(rootDir, "config", LocalDynamicConfigPath)
+	configPath, err = filepath.Abs(configPath)
+	if err != nil {
+		return false, err
+	}
+	client, err := NewLocalClient(configPath, c, confLogger)
+	if err != nil {
+		return false, err
+	}
+	ok := client.LoadConfig()
+	err = client.Enable()
+	return ok, err
+}
+
 func (c *OecConfig) format() string {
 	return fmt.Sprintf(`%s config:
 	mempool.recheck: %v
@@ -344,6 +372,10 @@ func (c *OecConfig) format() string {
 
 func (c *OecConfig) update(key, value interface{}) {
 	k, v := key.(string), value.(string)
+	c.updateFromKVStr(k, v)
+}
+
+func (c *OecConfig) updateFromKVStr(k, v string) {
 	switch k {
 	case FlagMempoolRecheck:
 		r, err := strconv.ParseBool(v)
@@ -376,11 +408,7 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetMaxTxNumPerBlock(r)
 	case FlagNodeKeyWhitelist:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetNodeKeyWhitelist(r)
+		c.SetNodeKeyWhitelist(v)
 	case FlagMempoolCheckTxCost:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -388,11 +416,7 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetMempoolCheckTxCost(r)
 	case FlagSentryAddrs:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetSentryAddrs(r)
+		c.SetSentryAddrs(v)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
