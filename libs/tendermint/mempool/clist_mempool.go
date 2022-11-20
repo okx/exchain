@@ -90,6 +90,9 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
+
+	enableDeleteLowGPTx      bool
+	enableDeleteLowGPTxMutex sync.RWMutex
 }
 
 var _ Mempool = &CListMempool{}
@@ -250,16 +253,22 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		timeStart = time.Now().UnixMicro()
 	}
 
-	txSize := len(tx)
-	if err := mem.isFull(txSize); err != nil {
-		return err
+	// the old logic for can not allow to delete low gasprice tx,then we must check mempool txs weather is full.
+	if !mem.GetEnableDeleteLowGPTx() {
+		txSize := len(tx)
+		if err := mem.isFull(txSize); err != nil {
+			return err
+		}
+		// The size of the corresponding amino-encoded TxMessage
+		// can't be larger than the maxMsgSize, otherwise we can't
+		// relay it to peers.
+		if txSize > mem.config.MaxTxBytes {
+			return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
+		}
 	}
-	// The size of the corresponding amino-encoded TxMessage
-	// can't be larger than the maxMsgSize, otherwise we can't
-	// relay it to peers.
-	if txSize > mem.config.MaxTxBytes {
-		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
-	}
+	// TODO
+	// the new logic that even if mempool is full, we check tx gasprice weather > the minimum gas price tx in mempool. If true , we delete it.
+	// But For mempool is under the abci, it can not get tx gasprice, so the line we can not precheck gasprice. Maybe we can break abci level for
 
 	txkey := txKey(tx)
 
@@ -484,9 +493,11 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		if pendingTx == nil {
 			return
 		}
-		if err := mem.isFull(len(pendingTx.tx)); err != nil {
-			time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
-			continue
+		if !mem.GetEnableDeleteLowGPTx() {
+			if err := mem.isFull(len(pendingTx.tx)); err != nil {
+				time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
+				continue
+			}
 		}
 
 		mempoolTx := pendingTx
@@ -497,6 +508,12 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 			return
 		}
 
+		if mem.GetEnableDeleteLowGPTx() {
+			// If mempool is full the we remove the last one tx
+			if err := mem.isFull(len(pendingTx.tx)); err != nil {
+				mem.deleteOldTx(mem.txs.Back())
+			}
+		}
 		mem.logger.Info("Added good transaction",
 			"tx", txIDStringer{mempoolTx.tx, mempoolTx.height},
 			"height", mempoolTx.height,
@@ -562,16 +579,18 @@ func (mem *CListMempool) resCbFirstTime(
 		txkey := txOrTxHashToKey(tx, txHash, mem.height)
 
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
-			// Check mempool isn't full again to reduce the chance of exceeding the
-			// limits.
-			if err := mem.isFull(len(tx)); err != nil {
-				// remove from cache (mempool might have a space later)
-				mem.cache.RemoveKey(txkey)
-				errStr := err.Error()
-				mem.logger.Info(errStr)
-				r.CheckTx.Code = 1
-				r.CheckTx.Log = errStr
-				return
+			if !mem.GetEnableDeleteLowGPTx() {
+				// Check mempool isn't full again to reduce the chance of exceeding the
+				// limits.
+				if err := mem.isFull(len(tx)); err != nil {
+					// remove from cache (mempool might have a space later)
+					mem.cache.RemoveKey(txkey)
+					errStr := err.Error()
+					mem.logger.Info(errStr)
+					r.CheckTx.Code = 1
+					r.CheckTx.Log = errStr
+					return
+				}
 			}
 
 			//var exTxInfo ExTxInfo
@@ -611,6 +630,13 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			if err == nil {
+				if mem.GetEnableDeleteLowGPTx() {
+					// If mempool is full the we remove the last one tx
+					if err := mem.isFull(len(tx)); err != nil {
+						mem.deleteOldTx(mem.txs.Back())
+					}
+				}
+
 				mem.logAddTx(memTx, r)
 				mem.notifyTxsAvailable()
 			} else {
@@ -1221,4 +1247,32 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	}
 	err = cdc.UnmarshalBinaryBare(res.Value, &simuRes)
 	return &simuRes, err
+}
+
+func (mem *CListMempool) deleteOldTx(removeTx *clist.CElement) {
+	mem.removeTx(removeTx)
+
+	removeMemTx := removeTx.Value.(*mempoolTx)
+	var removeMemTxHash []byte
+	if removeMemTx.realTx != nil {
+		removeMemTxHash = removeMemTx.realTx.TxHash()
+	}
+	mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+
+	if mem.pendingPool != nil {
+		mem.pendingPool.removeTxByHash(txID(removeMemTx.tx, removeMemTx.Height()))
+	}
+}
+func (mem *CListMempool) SetEnableDeleteLowGPTx(enable bool) {
+	mem.enableDeleteLowGPTxMutex.Lock()
+	mem.enableDeleteLowGPTx = enable
+	mem.enableDeleteLowGPTxMutex.Unlock()
+}
+
+func (mem *CListMempool) GetEnableDeleteLowGPTx() bool {
+	enable := false
+	mem.enableDeleteLowGPTxMutex.RLock()
+	enable = mem.enableDeleteLowGPTx
+	mem.enableDeleteLowGPTxMutex.RUnlock()
+	return enable
 }
