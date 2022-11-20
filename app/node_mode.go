@@ -76,6 +76,8 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "everything")
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
 	viper.SetDefault(watcher.FlagFastQuery, false)
+	viper.SetDefault("mempool.max_gas_used_per_block", 120000000)
+
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",

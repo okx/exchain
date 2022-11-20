@@ -699,7 +699,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		CacheSize:                  300_000,
 		MaxTxBytes:                 1024 * 1024, // 1MB
 		MaxTxNumPerBlock:           300,
-		MaxGasUsedPerBlock:         120_000_000,
+		MaxGasUsedPerBlock:         -1,
 		SortTxByGp:                 true,
 		ForceRecheckGap:            2000,
 		TxPriceBump:                10,
