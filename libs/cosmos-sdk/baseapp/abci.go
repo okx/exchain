@@ -294,6 +294,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
+	t22 := time.Now()
 	app.deliverState.ms.Write()
 	t3 := time.Now()
 
@@ -343,7 +344,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		app.halt()
 	}
 	t7 := time.Now()
-	fmt.Println("*****lyh*****", header.Height, "other", t2.Sub(t1), "deliverState", t3.Sub(t2),
+	fmt.Println("*****lyh*****", header.Height, "other", t2.Sub(t1),
+		"commitBlockCache", t22.Sub(t2), "deliverState", t3.Sub(t22),
 		"DeltaMap", t4.Sub(t3), "CommitterCommitMap", t5.Sub(t4),
 		"Trace_Reset", t6.Sub(t5), "halt", t7.Sub(t6))
 
