@@ -207,6 +207,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmiavl.FlagIavlMaxCommittedHeightNum, 30, "Max committed version to cache in memory")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, true, "Enable async commit")
 	cmd.Flags().Bool(tmiavl.FlagIavlDiscardFastStorage, false, "Discard fast storage")
+	cmd.Flags().MarkHidden(tmiavl.FlagIavlDiscardFastStorage)
 	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 10000000, "Max size of iavl fast storage cache")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, true, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
