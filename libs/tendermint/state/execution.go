@@ -328,9 +328,10 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 
 	if deltaInfo != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deltaLen)
-
+		t0 := time.Now()
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
+		duration = time.Now().Sub(t0)
 	} else {
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
