@@ -76,10 +76,12 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "everything")
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
 	viper.SetDefault(watcher.FlagFastQuery, false)
-	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
+	viper.SetDefault(appconfig.FlagMaxGasUsedPerBlock, 120000000)
+
+	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
-		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false))
+		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000))
 }
 
 func setArchiveConfig(ctx *server.Context) {
