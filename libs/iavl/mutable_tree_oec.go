@@ -131,7 +131,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tasklen := len(tree.ndb.oi.orphanTaskChan)
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 	t5 = time.Now().Sub(time1)
-	tree.log(IavlDebug, "SaveVersionAsync height", version, "sanityCheckHandleOrphansResult", t0, "updateBranchMoreConcurrency", t1,
+	tree.log(IavlDebug, "SaveVersionAsync ", "height", version, "sanityCheckHandleOrphansResult", t0, "updateBranchMoreConcurrency", t1,
 		"updateBranchFastNode", t2, "saveNewOrphans", t3, "persist", t4, "enqueueOrphanTask", t5, "tasklen", tasklen)
 
 	return tree.setNewWorkingTree(version, shouldPersist)
