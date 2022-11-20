@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -80,15 +81,25 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
 
+	var t1 time.Duration
+	var t2 time.Duration
+	var t3 time.Duration
+	var t4 time.Duration
+	var t5 time.Duration
+
 	if tree.root != nil {
 		if useDeltas && tree.hasNewNode() {
 			tree.updateBranchWithDelta(tree.root)
 		} else if produceDelta {
 			tree.ndb.updateBranchConcurrency(tree.root, tree.savedNodes)
 		} else {
+			time1 := time.Now()
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
+			t1 = time.Now().Sub(time1)
 		}
+		time1 := time.Now()
 		tree.updateBranchFastNode()
+		t2 = time.Now().Sub(time1)
 
 		// generate state delta
 		if produceDelta {
@@ -105,10 +116,19 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tree.ndb.updateLatestMemoryVersion(version)
 
 	if shouldPersist {
+		time1 := time.Now()
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
+		t3 = time.Now().Sub(time1)
+
+		time1 = time.Now()
 		tree.persist(version)
+		t4 = time.Now().Sub(time1)
 	}
+	time1 := time.Now()
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
+	t5 = time.Now().Sub(time1)
+	tree.log(IavlDebug, "SaveVersionAsync height", version, "updateBranchMoreConcurrency", t1,
+		"updateBranchFastNode", t2, "saveNewOrphans", t3, "persist", t4, "enqueueOrphanTask", t5)
 
 	return tree.setNewWorkingTree(version, shouldPersist)
 }
