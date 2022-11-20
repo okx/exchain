@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
 
@@ -345,4 +346,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
 
 	tmtypes.EnableEventBlockTime = viper.GetBool(FlagEventBlockTime)
+
+	consensus.SetActiveVC(viper.GetBool(FlagActiveViewChange))
 }
