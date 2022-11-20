@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"time"
 )
 
 type prerunContext struct {
@@ -50,7 +51,7 @@ func (pc *prerunContext) prerunRoutine() {
 	}
 }
 
-func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
+func (pc *prerunContext) dequeueResult() (*ABCIResponses, time.Duration, error) {
 	expected := pc.prerunTask
 	for context := range pc.taskResultChan {
 
@@ -69,13 +70,13 @@ func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
 		}
 
 		if bytes.Equal(context.block.AppHash, expected.block.AppHash) {
-			return context.result.res, context.result.err
+			return context.result.res, context.result.duration, context.result.err
 		} else {
 			// todo
 			panic("wrong app hash")
 		}
 	}
-	return nil, nil
+	return nil, 0, nil
 }
 
 func (pc *prerunContext) stopPrerun(height int64) (index int64) {
@@ -114,7 +115,7 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	pc.taskChan <- pc.prerunTask
 }
 
-func (pc *prerunContext) getPrerunResult(block *types.Block) (res *ABCIResponses, err error) {
+func (pc *prerunContext) getPrerunResult(block *types.Block) (res *ABCIResponses, duration time.Duration, err error) {
 	pc.checkIndex(block.Height)
 
 	// blockExec.prerunContext == nil means:
@@ -122,7 +123,7 @@ func (pc *prerunContext) getPrerunResult(block *types.Block) (res *ABCIResponses
 	// 2. we are in fasy-sync: the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
 	if pc.prerunTask != nil {
 		prerunHash := pc.prerunTask.block.Hash()
-		res, err = pc.dequeueResult()
+		res, duration, err = pc.dequeueResult()
 		pc.prerunTask = nil
 
 		//compare block hash equal prerun block hash
