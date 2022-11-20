@@ -406,7 +406,7 @@ func (blockExec *BlockExecutor) commit(
 		)
 		return nil, 0, err
 	}
-
+	t22 := time.Now()
 	// ResponseCommit has no error code - just data
 	blockExec.logger.Debug(
 		"Committed state",
@@ -440,7 +440,7 @@ func (blockExec *BlockExecutor) commit(
 	}
 	t5 := time.Now()
 	fmt.Println("*****lyh****", block.Height, "FlushAppConn", t2.Sub(t1),
-		"CommitSync", t3.Sub(t2), "mempool.Update", t4.Sub(t3), "other", t5.Sub(t4))
+		"CommitSync", t22.Sub(t2), t3.Sub(t22), "mempool.Update", t4.Sub(t3), "other", t5.Sub(t4))
 	return res, res.RetainHeight, err
 }
 

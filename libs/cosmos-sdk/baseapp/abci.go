@@ -278,6 +278,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
+	t1 := time.Now()
 	header := app.deliverState.ctx.BlockHeader()
 
 	if app.mptCommitHandler != nil {
@@ -288,12 +289,13 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		mpt.GAccTryUpdateTrieChannel <- struct{}{}
 		<-mpt.GAccTrieUpdatedChannel
 	}
-
+	t2 := time.Now()
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 	app.deliverState.ms.Write()
+	t3 := time.Now()
 
 	var input iavl.TreeDeltaMap
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
@@ -304,8 +306,9 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		}
 	}
 
+	t4 := time.Now()
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
-
+	t5 := time.Now()
 	app.addCommitTraceInfo()
 
 	app.cms.ResetCount()
@@ -317,6 +320,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// Commit. Use the header from this latest block.
 	app.setCheckState(header)
 
+	t6 := time.Now()
 	app.logger.Debug("deliverState reset by BaseApp.Commit", "height", header.Height)
 	// empty/reset the deliver state
 	app.deliverState = nil
@@ -338,6 +342,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		// reset or moved to a more distant value.
 		app.halt()
 	}
+	t7 := time.Now()
+	fmt.Println("*****lyh*****", header.Height, t2.Sub(t1), t3.Sub(t2), t4.Sub(t3), t5.Sub(t4), t6.Sub(t5), t7.Sub(t6))
 
 	return abci.ResponseCommit{
 		Data:     commitID.Hash,
