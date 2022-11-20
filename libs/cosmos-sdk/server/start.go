@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
 
@@ -341,4 +342,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
+
+	consensus.SetActiveVC(viper.GetBool(FlagActiveViewChange))
 }
