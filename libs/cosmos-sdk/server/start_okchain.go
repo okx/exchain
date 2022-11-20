@@ -214,7 +214,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(system.FlagEnableGid, false, "Display goroutine id in log")
 	cmd.Flags().Int(FlagBlockPartSizeBytes, 65536, "Size of one block part by byte")
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
-	cmd.Flags().Bool(FlagActiveViewChange, false, "enable active view change or not")
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 
