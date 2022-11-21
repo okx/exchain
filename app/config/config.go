@@ -82,7 +82,8 @@ type OecConfig struct {
 	csTimeoutCommit time.Duration
 
 	// iavl-cache-size
-	iavlCacheSize   int
+	iavlCacheSize int
+	// commit-gap-height
 	commitGapHeight int64
 
 	// enable-wtx
