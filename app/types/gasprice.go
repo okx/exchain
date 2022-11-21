@@ -40,23 +40,33 @@ func (bgp SingleBlockGPs) GetGasUsed() uint64 {
 }
 
 func (bgp *SingleBlockGPs) AddSampledGP(gp *big.Int) {
-	bgp.sampled = append(bgp.sampled, gp)
+	gpCopy := new(big.Int).Set(gp)
+	bgp.sampled = append(bgp.sampled, gpCopy)
 }
 
 func (bgp *SingleBlockGPs) Update(gp *big.Int, gas uint64) {
-	bgp.all = append(bgp.all, gp)
+	gpCopy := new(big.Int).Set(gp)
+	bgp.all = append(bgp.all, gpCopy)
 	bgp.gasUsed += gas
 }
 
 func (bgp *SingleBlockGPs) Clear() {
-	bgp.all = bgp.all[:0]
-	bgp.sampled = bgp.sampled[:0]
+	bgp.all = make([]*big.Int, 0)
+	bgp.sampled = make([]*big.Int, 0)
 	bgp.gasUsed = 0
+}
+
+func (bgp *SingleBlockGPs) Copy() *SingleBlockGPs {
+	return &SingleBlockGPs{
+		all:     bgp.all,
+		sampled: bgp.sampled,
+		gasUsed: bgp.gasUsed,
+	}
 }
 
 func (bgp *SingleBlockGPs) SampleGP(adoptHigherGp bool) {
 	// "len(bgp.sampled) != 0" means it has been sampled
-	if len(bgp.all) == 0 && len(bgp.sampled) != 0 {
+	if len(bgp.sampled) != 0 {
 		return
 	}
 
@@ -73,7 +83,7 @@ func (bgp *SingleBlockGPs) SampleGP(adoptHigherGp bool) {
 			if i >= sampleNumber {
 				break
 			}
-			rowSampledGPs = append(rowSampledGPs, txGPs[i])
+			rowSampledGPs = append(rowSampledGPs, new(big.Int).Set(txGPs[i]))
 		}
 
 		// Addition of sampleNumber higher-priced gp
@@ -81,7 +91,7 @@ func (bgp *SingleBlockGPs) SampleGP(adoptHigherGp bool) {
 			if len(txGPs)-1-i >= sampleNumber {
 				break
 			}
-			rowSampledGPs = append(rowSampledGPs, txGPs[i])
+			rowSampledGPs = append(rowSampledGPs, new(big.Int).Set(txGPs[i]))
 		}
 
 		if len(rowSampledGPs) != 0 {
@@ -91,7 +101,7 @@ func (bgp *SingleBlockGPs) SampleGP(adoptHigherGp bool) {
 				sum.Add(sum, gp)
 			}
 
-			avgGP := sum.Quo(sum, sampledGPLen)
+			avgGP := new(big.Int).Quo(sum, sampledGPLen)
 			bgp.AddSampledGP(avgGP)
 		}
 	} else {
@@ -185,14 +195,17 @@ func (rs *BlockGPResults) ExecuteSamplingBy(lastPrice *big.Int, adoptHigherGp bo
 		// traverse the circular queue
 		for i := rs.front; i != rs.rear; i = (i + 1) % rs.capacity {
 			rs.items[i].SampleGP(adoptHigherGp)
-
 			// If block is empty, use the latest gas price for sampling.
 			if len(rs.items[i].sampled) == 0 {
 				rs.items[i].AddSampledGP(lastPrice)
 			}
-
 			txPrices = append(txPrices, rs.items[i].sampled...)
 		}
+		rs.items[rs.rear].SampleGP(adoptHigherGp)
+		if len(rs.items[rs.rear].sampled) == 0 {
+			rs.items[rs.rear].AddSampledGP(lastPrice)
+		}
+		txPrices = append(txPrices, rs.items[rs.rear].sampled...)
 	}
 	return txPrices
 }

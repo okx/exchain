@@ -252,15 +252,14 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	defer monitor.OnEnd()
 
 	if appconfig.GetOecConfig().GetDynamicGpMode() != 2 {
-		price := app.GlobalGp
+		price := new(big.Int).Set(app.GlobalGp)
 		if price.Cmp((*big.Int)(api.gasPrice)) == -1 {
-			price = (*big.Int)(api.gasPrice)
+			price.Set((*big.Int)(api.gasPrice))
 		}
 
 		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
 			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			gpRes := big.NewInt(0)
-			gpRes.Mul(price, coefficient)
+			gpRes := new(big.Int).Mul(price, coefficient)
 			return (*hexutil.Big)(gpRes)
 		}
 		return (*hexutil.Big)(price)
