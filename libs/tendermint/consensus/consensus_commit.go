@@ -399,37 +399,38 @@ func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 }
 
 func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
-	cs.createProposalBlock()
-	//tNow := tmtime.Now()
-	//block, blockParts := cs.createProposalBlock()
-	//if len(cs.taskResultChan) == 1 {
-	//	<-cs.taskResultChan
-	//}
-	//cs.taskResultChan <- &preBlockTaskRes{block: block, blockParts: blockParts}
-	//
-	//propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
-	//proposal := types.NewProposal(height, 0, cs.ValidRound, propBlockID)
-	//
-	//isBlockProducer, _ := cs.isBlockProducer()
-	//if GetActiveVC() && isBlockProducer != "y" {
-	//	time.Sleep(waiting - tmtime.Now().Sub(tNow))
-	//	// request for proposer of new height
-	//	prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
-	//	cs.requestForProposer(prMsg)
-	//}
+	tNow := tmtime.Now()
+	block, blockParts := cs.createProposalBlock()
+	if len(cs.taskResultChan) == 1 {
+		<-cs.taskResultChan
+	}
+	cs.taskResultChan <- &preBlockTaskRes{block: block, blockParts: blockParts}
+
+	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
+	proposal := types.NewProposal(height, 0, cs.ValidRound, propBlockID)
+
+	time.Sleep(waiting - tmtime.Now().Sub(tNow))
+
+	// request for proposer of new height
+	prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
+	cs.requestForProposer(prMsg)
 }
 
 func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
 	if !GetActiveVC() {
 		return nil
 	}
+	t := time.NewTimer(time.Second)
 	for {
 		select {
 		case res := <-cs.taskResultChan:
 			if res.block.Height == height {
+				if !t.Stop() {
+					<-t.C
+				}
 				return res
 			}
-		case <-time.After(time.Second):
+		case <-t.C:
 			return nil
 		}
 
