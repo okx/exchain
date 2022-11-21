@@ -61,10 +61,7 @@ func repairStateOnStart(ctx *server.Context) {
 	orgEnableFlatKV := viper.GetBool(flatkv.FlagEnable)
 	iavl.EnableAsyncCommit = false
 	viper.Set(flatkv.FlagEnable, false)
-	if appstatus.IsFastStorageStrategy() &&
-		viper.GetBool(iavl.FlagIavlEnableFastStorage) {
-		iavl.SetEnableFastStorage(true)
-	}
+	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 
 	// repair state
 	RepairState(ctx, true)

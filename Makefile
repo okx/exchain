@@ -13,7 +13,7 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.6.5.3
+Version=v1.6.5.6
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -102,6 +102,10 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
 
 ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/tendermint/types.DBBackend=rocksdb
+endif
+
+ifeq ($(MAKECMDGOALS),testnet)
+  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/server.ChainID=exchain-65
 endif
 
 ifeq ($(LINK_STATICALLY),true)
