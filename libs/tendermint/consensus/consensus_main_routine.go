@@ -295,13 +295,11 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	if GetActiveVC() && cs.privValidator != nil {
-		isBlockProducer, _ := cs.isBlockProducer()
-		if GetActiveVC() && isBlockProducer != "y" {
-			if len(cs.preBlockTaskChan) == 1 {
-				<-cs.preBlockTaskChan
-			}
-			cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
+
+		if len(cs.preBlockTaskChan) == 1 {
+			<-cs.preBlockTaskChan
 		}
+		cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
 	}
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
