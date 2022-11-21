@@ -58,9 +58,6 @@ func (k Keeper) PostTxProcessing(
 	// check if the fees are globally enabled
 	params := k.GetParamsWithCache(ctx)
 	if !params.EnableFeeSplit {
-		// delete feesplit info
-		k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
-		k.deleteFeesplitInnertx(receipt.TxHash.Hex())
 		return nil
 	}
 
@@ -97,8 +94,8 @@ func (k Keeper) PostTxProcessing(
 	}
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
-	// distribute the fees to the contract deployer / withdraw address
-	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees, false)
+	//distribute the fees to the contract deployer / withdraw address
+	ctx.GetFeeSplitInfo().Update(withdrawer, fees)
 
 	// add innertx
 	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
