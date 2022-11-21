@@ -61,18 +61,21 @@ func (ctx CLIContext) CheckTendermintError(err error, txBytes []byte) *sdk.TxRes
 	case strings.Contains(errStr, strings.ToLower(mempool.ErrTxInCache.Error())):
 		return &sdk.TxResponse{
 			Code:   sdkerrors.ErrTxInMempoolCache.ABCICode(),
+			RawLog: sdkerrors.ErrTxInMempoolCache.Error(),
 			TxHash: txHash,
 		}
 
 	case strings.Contains(errStr, "mempool is full"):
 		return &sdk.TxResponse{
 			Code:   sdkerrors.ErrMempoolIsFull.ABCICode(),
+			RawLog: sdkerrors.ErrMempoolIsFull.Error(),
 			TxHash: txHash,
 		}
 
 	case strings.Contains(errStr, "tx too large"):
 		return &sdk.TxResponse{
 			Code:   sdkerrors.ErrTxTooLarge.ABCICode(),
+			RawLog: sdkerrors.ErrTxTooLarge.Error(),
 			TxHash: txHash,
 		}
 

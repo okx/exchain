@@ -187,11 +187,13 @@ func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 	}, true
 }
 
-func EnableDeleteMinGPTx(enable bool) (bool, error) {
+func EnableDeleteMinGPTx(ctx *rpctypes.Context, enable bool) (*ctypes.ResultEnableDeleteMinGPTx, error) {
 	env.Mempool.SetEnableDeleteMinGPTx(enable)
-	return env.Mempool.GetEnableDeleteMinGPTx(), nil
+	status := env.Mempool.GetEnableDeleteMinGPTx()
+	return &ctypes.ResultEnableDeleteMinGPTx{Enable: status}, nil
 }
 
-func GetEnableDeleteMinGPTx() bool {
-	return env.Mempool.GetEnableDeleteMinGPTx()
+func GetEnableDeleteMinGPTx(ctx *rpctypes.Context) (*ctypes.ResultEnableDeleteMinGPTx, error) {
+	status := env.Mempool.GetEnableDeleteMinGPTx()
+	return &ctypes.ResultEnableDeleteMinGPTx{Enable: status}, nil
 }

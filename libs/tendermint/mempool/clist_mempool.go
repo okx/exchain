@@ -498,6 +498,12 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 				time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 				continue
 			}
+		} else {
+			minGPTx := mem.txs.Back().Value.(*mempoolTx)
+			if minGPTx.realTx.GetGasPrice().Cmp(pendingTx.realTx.GetGasPrice()) >= 0 {
+				time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
+				continue
+			}
 		}
 
 		mempoolTx := pendingTx
@@ -591,6 +597,23 @@ func (mem *CListMempool) resCbFirstTime(
 					r.CheckTx.Log = errStr
 					return
 				}
+			}
+
+			// Check mempool isn't full again to reduce the chance of exceeding the
+			// limits.
+			if err := mem.isFull(len(tx)); err != nil {
+				minGPTx := mem.txs.Back().Value.(*mempoolTx)
+				// If disable deleteMinGPTx, it'old logic, must be remove cache key
+				// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
+				if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && minGPTx.realTx.GetGasPrice().Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0) {
+					// remove from cache (mempool might have a space later)
+					mem.cache.RemoveKey(txkey)
+					errStr := err.Error()
+					mem.logger.Info(errStr)
+					r.CheckTx.Code = 1
+					r.CheckTx.Log = errStr
+				}
+				return
 			}
 
 			//var exTxInfo ExTxInfo
