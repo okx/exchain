@@ -1,7 +1,6 @@
 package ibc_tx
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -78,10 +77,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			return nil, err
 		}
 
-		signatures, err := convertSignature(ibcTx)
-		if err != nil {
-			return nil, err
-		}
+		signatures := convertSignature(ibcTx)
 
 		// construct Msg
 		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
@@ -171,9 +167,9 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 	return stdMsgs, signMsgs, nil
 }
 
-func convertSignature(ibcTx *tx.Tx) ([]authtypes.StdSignature, error) {
+func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	ret := make([]authtypes.StdSignature, len(ibcTx.Signatures))
-	
+
 	for i, s := range ibcTx.Signatures {
 		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
@@ -188,12 +184,12 @@ func convertSignature(ibcTx *tx.Tx) ([]authtypes.StdSignature, error) {
 			}
 			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
 			if !ok {
-				return nil, errors.New("unknown public key data")
+				return []authtypes.StdSignature{}
 			}
 		}
 		pubKey, err := adapter.ProtoBufPubkey2LagacyPubkey(pkData)
 		if err != nil {
-			return nil, err
+			return []authtypes.StdSignature{}
 		}
 
 		ret[i] = authtypes.StdSignature{
@@ -202,7 +198,7 @@ func convertSignature(ibcTx *tx.Tx) ([]authtypes.StdSignature, error) {
 		}
 	}
 
-	return ret, nil
+	return ret
 }
 
 func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, string, error) {
