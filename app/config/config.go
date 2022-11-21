@@ -34,6 +34,8 @@ type OecConfig struct {
 	mempoolForceRecheckGap int64
 	// mempool.size
 	mempoolSize int
+	// mempool.cache_size
+	mempoolCacheSize int
 	// mempool.flush
 	mempoolFlush bool
 	// mempool.max_tx_num_per_block
@@ -110,6 +112,7 @@ const (
 	FlagMempoolRecheck          = "mempool.recheck"
 	FlagMempoolForceRecheckGap  = "mempool.force_recheck_gap"
 	FlagMempoolSize             = "mempool.size"
+	FlagMempoolCacheSize        = "mempool.cache_size"
 	FlagMempoolFlush            = "mempool.flush"
 	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
@@ -125,8 +128,8 @@ const (
 	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
 	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
 
-	FlagEnableWrappedTx         = "enable-wtx"
-	FlagSentryAddrs             = "p2p.sentry_addrs"
+	FlagEnableWrappedTx = "enable-wtx"
+	FlagSentryAddrs     = "p2p.sentry_addrs"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -243,6 +246,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool(FlagMempoolRecheck))
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
+	c.SetMempoolCacheSize(viper.GetInt(FlagMempoolCacheSize))
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
@@ -315,6 +319,8 @@ func (c *OecConfig) format() string {
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d
+	mempool.cache_size: %d
+
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
 	mempool.max_gas_used_per_block: %d
@@ -344,6 +350,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
+		c.GetMempoolCacheSize(),
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
 		c.GetMaxGasUsedPerBlock(),
@@ -395,6 +402,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetMempoolSize(r)
+	case FlagMempoolCacheSize:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetMempoolCacheSize(r)
 	case FlagMempoolFlush:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -608,6 +621,16 @@ func (c *OecConfig) SetMempoolSize(value int) {
 		return
 	}
 	c.mempoolSize = value
+}
+
+func (c *OecConfig) GetMempoolCacheSize() int {
+	return c.mempoolCacheSize
+}
+func (c *OecConfig) SetMempoolCacheSize(value int) {
+	if value < 0 {
+		return
+	}
+	c.mempoolCacheSize = value
 }
 
 func (c *OecConfig) GetMempoolFlush() bool {
