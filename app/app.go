@@ -7,11 +7,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
+
+	"github.com/okex/exchain/app/utils/appstatus"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -667,7 +668,7 @@ func NewOKExChainApp(
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
 
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != 2 {
 		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		app.gpo = gasprice.NewOracle(gpoConfig)
 	}
@@ -703,7 +704,7 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != 2 {
 		_ = app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
 		GlobalGp = app.gpo.RecommendGP()
 		app.gpo.CurrentBlockGPs.Clear()
