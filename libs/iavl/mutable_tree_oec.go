@@ -107,7 +107,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%config.DynamicConfig.GetCommitGapHeight() == 0
+	shouldPersist := version%CommitGapHeight == 0
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
