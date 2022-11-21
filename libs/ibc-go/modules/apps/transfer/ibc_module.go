@@ -298,7 +298,7 @@ func (im IBCModule) WriteAcknowledgement(ctx sdk.Context, chanCap *capabilitytyp
 }
 
 func (im IBCModule) GetAppVersion(ctx sdk.Context, portID, channelID string) (string, bool) {
-	panic(errNotSupportICS20.Error())
+	panic(errNotSupportICS20)
 }
 
 func (im IBCModule) NegotiateAppVersion(ctx sdk.Context, order channeltypes.Order, connectionID string, portID string, counterparty channeltypes.Counterparty, proposedVersion string) (version string, err error) {

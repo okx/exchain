@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,40 +13,6 @@ import (
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
-
-func Query40Tx(cliCtx context.CLIContext, hashHexStr string) (*types.TxResponse, error) {
-	// strip 0x prefix
-	if strings.HasPrefix(hashHexStr, "0x") {
-		hashHexStr = hashHexStr[2:]
-	}
-
-	hash, err := hex.DecodeString(hashHexStr)
-	if err != nil {
-		return nil, err
-	}
-
-	node, err := cliCtx.GetNode()
-	if err != nil {
-		return nil, err
-	}
-
-	resTx, err := node.Tx(hash, !cliCtx.TrustNode)
-	if err != nil {
-		return nil, err
-	}
-
-	resBlocks, err := getBlocksForTxResults(cliCtx, []*ctypes.ResultTx{resTx})
-	if err != nil {
-		return nil, err
-	}
-
-	out, err := mk40TxResult(cliCtx, resTx, resBlocks[resTx.Height])
-	if err != nil {
-		return out, err
-	}
-
-	return out, nil
-}
 
 func Query40TxsByEvents(cliCtx context.CLIContext, events []string, page, limit int) (*types.SearchTxsResult, error) {
 	if len(events) == 0 {
