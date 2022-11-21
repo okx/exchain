@@ -640,7 +640,10 @@ func (mem *CListMempool) resCbFirstTime(
 				if mem.GetEnableDeleteMinGPTx() {
 					// If mempool is full the we remove the last one tx
 					if err := mem.isFull(len(tx)); err != nil {
-						mem.deleteOldTx(mem.txs.Back())
+						// when pendingPool enable, we need to check tx is inserted into mempool.txsqueue, the we delete old tx
+						if _, inserted := mem.txs.Load(txkey); inserted {
+							mem.deleteOldTx(mem.txs.Back())
+						}
 					}
 				}
 
@@ -1266,9 +1269,10 @@ func (mem *CListMempool) deleteOldTx(removeTx *clist.CElement) {
 	}
 	mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
 
-	if mem.pendingPool != nil {
-		mem.pendingPool.removeTxByHash(txID(removeMemTx.tx, removeMemTx.Height()))
-	}
+	// pendingPool need not to delete
+	//if mem.pendingPool != nil {
+	//	mem.pendingPool.removeTxByHash(txID(removeMemTx.tx, removeMemTx.Height()))
+	//}
 }
 func (mem *CListMempool) SetEnableDeleteMinGPTx(enable bool) {
 	mem.enableDeleteLowGPTxMutex.Lock()
