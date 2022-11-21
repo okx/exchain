@@ -23,6 +23,7 @@ while getopts "i:n:p:r:s:b:dux" opt; do
     d)
       echo "DOWNLOAD_DELTA=$OPTARG"
       DOWNLOAD_DELTA="--download-delta=true"
+      MULTI_CACHE="--multi-cache=false"
       ;;
     u)
       echo "DOWNLOAD_DELTA=$OPTARG"
@@ -153,6 +154,7 @@ start() {
     --append-pid \
     ${UPLOAD_DELTA} \
     ${DOWNLOAD_DELTA} \
+    ${MULTI_CACHE} \
     --p2p.addr_book_strict=false \
     --enable-preruntx=${PRERUN} \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &

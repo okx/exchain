@@ -235,7 +235,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	//wait till the last block async write be saved
 	blockExec.tryWaitLastBlockSave(block.Height - 1)
 
-	abciResponses, err := blockExec.runAbci(block, deltaInfo)
+	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
+
+	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
@@ -243,7 +245,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
@@ -290,7 +291,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-	trc.Pin(trace.SaveState)
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
@@ -322,9 +322,10 @@ func (blockExec *BlockExecutor) ApplyBlockWithTrace(
 	return s, id, err
 }
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, time.Duration, error) {
 	var abciResponses *ABCIResponses
 	var err error
+	var duration time.Duration
 
 	if deltaInfo != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deltaLen)
@@ -334,10 +335,11 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 	} else {
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
-			abciResponses, err = pc.getPrerunResult(block)
+			abciResponses, duration, err = pc.getPrerunResult(block)
 		}
 
 		if abciResponses == nil {
+			t0 := time.Now()
 			ctx := &executionTask{
 				logger:   blockExec.logger,
 				block:    block,
@@ -353,10 +355,11 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
+			duration = time.Now().Sub(t0)
 		}
 	}
 
-	return abciResponses, err
+	return abciResponses, duration, err
 }
 
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
@@ -412,7 +415,7 @@ func (blockExec *BlockExecutor) commit(
 		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
-	trc.Pin(trace.MempoolUpdate)
+	//trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
 	err = blockExec.mempool.Update(
 		block.Height,
