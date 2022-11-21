@@ -783,7 +783,7 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 }
 
 func (app *OKExChainApp) ReportErr(module string, err error) {
-
+	app.StopBaseApp()
 }
 
 var protoCodec = encoding.GetCodec(proto.Name)
