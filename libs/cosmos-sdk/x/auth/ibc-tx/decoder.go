@@ -2,6 +2,7 @@ package ibc_tx
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
@@ -10,6 +11,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
 	"google.golang.org/protobuf/encoding/protowire"
+
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -167,6 +169,7 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 
 func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	signatures := []authtypes.StdSignature{}
+
 	for i, s := range ibcTx.Signatures {
 		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
@@ -188,6 +191,7 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 			},
 		)
 	}
+
 	return signatures
 }
 
