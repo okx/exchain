@@ -209,7 +209,7 @@ func NewState(
 		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
 		vcHeight:           make(map[int64]string),
 		taskResultChan:     make(chan *preBlockTaskRes, 1),
-		preBlockTaskChan:   make(chan *preBlockTask, 1),
+		preBlockTaskChan:   make(chan *preBlockTask, 100),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal

@@ -295,10 +295,6 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	if GetActiveVC() && cs.privValidator != nil {
-
-		if len(cs.preBlockTaskChan) == 1 {
-			<-cs.preBlockTaskChan
-		}
 		cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
 	}
 
@@ -362,7 +358,9 @@ func (cs *State) preMakeBlockRoutine() {
 	for {
 		select {
 		case task := <-cs.preBlockTaskChan:
-			cs.preMakeBlock(task.height, task.duration)
+			if task.height == cs.Height {
+				cs.preMakeBlock(task.height, task.duration)
+			}
 		case <-cs.Quit():
 			return
 		}
