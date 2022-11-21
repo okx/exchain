@@ -258,3 +258,4 @@ func (app *PersistentKVStoreApplication) updateValidator(v types.ValidatorUpdate
 
 	return types.ResponseDeliverTx{Code: code.CodeTypeOK}
 }
+func (app *PersistentKVStoreApplication) ReportErr(_ string, _ error) {}

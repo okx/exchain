@@ -244,7 +244,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
@@ -289,7 +288,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.evpool.Update(block, state)
 
 	fail.Fail() // XXX
-
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
@@ -750,4 +748,8 @@ func fireEvents(
 func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, address types.Address) {
 	blockExec.eventBus.PublishEventLatestBlockTime(
 		types.EventDataBlockTime{Height: height, BlockTime: blockTime, NextProposer: address})
+}
+
+func (blockExec *BlockExecutor) ReportErr(module string, err error) {
+	blockExec.proxyApp.Error()
 }

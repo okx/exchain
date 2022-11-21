@@ -11,7 +11,6 @@ import (
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 )
@@ -50,7 +49,7 @@ func (cs *State) receiveRoutine(maxSteps int) {
 			// some console or secure RPC system, but for now, halting the chain upon
 			// unexpected consensus bugs sounds like the better option.
 			onExit(cs)
-			tmos.Kill() //close app to finilize
+			cs.blockExec.ReportErr("", r.(error))
 		}
 	}()
 

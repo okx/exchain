@@ -2,11 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/vmbridge"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/x/vmbridge"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -779,6 +780,10 @@ func (app *OKExChainApp) Marshal() *codec.CodecProxy {
 // NOTE: This is solely to be used for testing purposes.
 func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 	return app.subspaces[moduleName]
+}
+
+func (app *OKExChainApp) ReportErr(module string, err error) {
+
 }
 
 var protoCodec = encoding.GetCodec(proto.Name)

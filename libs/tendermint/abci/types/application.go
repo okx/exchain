@@ -31,6 +31,7 @@ type Application interface {
 	PreDeliverRealTx([]byte) TxEssentials
 	// DeliverRealTx deliver tx returned by PreDeliverRealTx, if PreDeliverRealTx returns nil, DeliverRealTx SHOULD NOT be called
 	DeliverRealTx(TxEssentials) ResponseDeliverTx
+	ReportErr(string, error)
 }
 
 //-------------------------------------------------------
@@ -92,6 +93,8 @@ func (BaseApplication) EndBlock(req RequestEndBlock) ResponseEndBlock {
 func (a BaseApplication) ParallelTxs(_ [][]byte, onlyCalSender bool) []*ResponseDeliverTx {
 	return nil
 }
+
+func (a BaseApplication) ReportErr(_ string, _ error) {}
 
 //-------------------------------------------------------
 
