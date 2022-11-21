@@ -7,5 +7,9 @@ import (
 func (p *Params) From(pp types.Params) {
 	p.MaxValidators = uint32(pp.MaxValidators)
 	p.UnbondingTime = pp.UnbondingTime
-	p.HistoricalEntries = pp.HistoricalEntries
+	if pp.HistoricalEntries == 0 {
+		p.HistoricalEntries = 1000
+	} else {
+		p.HistoricalEntries = pp.HistoricalEntries
+	}
 }
