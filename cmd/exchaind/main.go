@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"runtime"
 
 	"github.com/okex/exchain/app/logevents"
 	"github.com/okex/exchain/cmd/exchaind/fss"
@@ -63,6 +64,10 @@ func main() {
 	okexchain.SetBech32Prefixes(config)
 	okexchain.SetBip44CoinType(config)
 	config.Seal()
+
+	fmt.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0),
+		" cpus:", runtime.NumCPU(),
+	)
 
 	ctx := server.NewDefaultContext()
 
