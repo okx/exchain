@@ -173,6 +173,7 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 
 func convertSignature(ibcTx *tx.Tx) ([]authtypes.StdSignature, error) {
 	ret := make([]authtypes.StdSignature, len(ibcTx.Signatures))
+	
 	for i, s := range ibcTx.Signatures {
 		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
@@ -200,6 +201,7 @@ func convertSignature(ibcTx *tx.Tx) ([]authtypes.StdSignature, error) {
 			PubKey:    pubKey,
 		}
 	}
+
 	return ret, nil
 }
 
