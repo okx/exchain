@@ -418,7 +418,7 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	}})
 
 	types.SignatureCache().Remove(memTx.realTx.TxHash())
-
+	mem.logger.Debug("mempool", "add  Tx", hex.EncodeToString(memTx.realTx.TxHash()), "nounce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice())
 	return nil
 }
 
@@ -463,6 +463,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 		expectedNonce = pendingNonce + 1
 	}
 	txNonce := memTx.realTx.GetNonce()
+	mem.logger.Debug("mempool", "addPendingTx", hex.EncodeToString(memTx.realTx.TxHash()), "nounce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice(), "pending Nouce", pendingNonce, "excepectNouce", expectedNonce)
 	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
 	if txNonce == 0 || txNonce < expectedNonce {
 		return mem.addTx(memTx)
@@ -482,6 +483,8 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 	pendingTx := memTx
 	mem.pendingPool.addTx(pendingTx)
+	mem.logger.Debug("mempool", "add-pending-Tx", hex.EncodeToString(memTx.realTx.TxHash()), "nounce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice())
+
 	mem.logger.Debug("pending pool addTx", "tx", pendingTx)
 
 	return nil
@@ -503,6 +506,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 				continue
 			}
 		}
+		mem.logger.Debug("mempool", "consumePendingTx", hex.EncodeToString(pendingTx.realTx.TxHash()), "nounce", pendingTx.realTx.GetNonce(), "gp", pendingTx.realTx.GetGasPrice())
 
 		mempoolTx := pendingTx
 		mempoolTx.height = mem.Height()
@@ -513,10 +517,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		if mem.GetEnableDeleteMinGPTx() {
-			// If mempool is full the we remove the last one tx
-			if err := mem.isFull(len(pendingTx.tx)); err != nil {
-				mem.deleteOldTx(mem.txs.Back())
-			}
+			mem.deleteOldTx(mem.txs.Back())
 		}
 		mem.logger.Info("Added good transaction",
 			"tx", txIDStringer{mempoolTx.tx, mempoolTx.height},
@@ -639,11 +640,9 @@ func (mem *CListMempool) resCbFirstTime(
 			if err == nil {
 				if mem.GetEnableDeleteMinGPTx() {
 					// If mempool is full the we remove the last one tx
-					if err := mem.isFull(len(tx)); err != nil {
-						// when pendingPool enable, we need to check tx is inserted into mempool.txsqueue, the we delete old tx
-						if _, inserted := mem.txs.Load(txkey); inserted {
-							mem.deleteOldTx(mem.txs.Back())
-						}
+					// when pendingPool enable, we need to check tx is inserted into mempool.txsqueue, the we delete old tx
+					if _, inserted := mem.txs.Load(txkey); inserted {
+						mem.deleteOldTx(mem.txs.Back())
 					}
 				}
 
@@ -1260,19 +1259,18 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 }
 
 func (mem *CListMempool) deleteOldTx(removeTx *clist.CElement) {
-	mem.removeTx(removeTx)
+	//check weather exceed mempool size,then need to delet the minimum gas price
+	if mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+		mem.removeTx(removeTx)
 
-	removeMemTx := removeTx.Value.(*mempoolTx)
-	var removeMemTxHash []byte
-	if removeMemTx.realTx != nil {
-		removeMemTxHash = removeMemTx.realTx.TxHash()
+		removeMemTx := removeTx.Value.(*mempoolTx)
+		var removeMemTxHash []byte
+		if removeMemTx.realTx != nil {
+			removeMemTxHash = removeMemTx.realTx.TxHash()
+		}
+		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nounce", removeTx.Value.(*mempoolTx).realTx.GetNonce(), "gp", removeTx.Value.(*mempoolTx).realTx.GetGasPrice())
+		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
 	}
-	mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
-
-	// pendingPool need not to delete
-	//if mem.pendingPool != nil {
-	//	mem.pendingPool.removeTxByHash(txID(removeMemTx.tx, removeMemTx.Height()))
-	//}
 }
 func (mem *CListMempool) SetEnableDeleteMinGPTx(enable bool) {
 	mem.enableDeleteLowGPTxMutex.Lock()
