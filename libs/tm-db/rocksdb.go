@@ -67,6 +67,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
+	opts.SetFIFOCompactionOptions(gorocksdb.NewDefaultFIFOCompactionOptions())
 
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
