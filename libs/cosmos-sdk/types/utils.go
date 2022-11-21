@@ -103,15 +103,9 @@ type ParaMsg struct {
 }
 
 type FeeSplitInfo struct {
-	Addr    AccAddress
-	Fee     Coins
-	Updated bool
-}
-
-func (f *FeeSplitInfo) Update(addr AccAddress, fee Coins) {
-	f.Addr = addr
-	f.Fee = fee
-	f.Updated = true
+	Addr   AccAddress
+	Fee    Coins
+	HasFee bool
 }
 
 type TxWatcher struct {

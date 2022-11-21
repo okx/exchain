@@ -342,7 +342,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
-		if txRes.FeeSpiltInfo.Updated {
+		if txRes.FeeSpiltInfo.HasFee {
 			app.FeeSplitCollector = append(app.FeeSplitCollector, txRes.FeeSpiltInfo)
 		}
 
