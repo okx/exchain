@@ -345,7 +345,7 @@ func newTestOkcChainApp(
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
-		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
+		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, bank.NewBankKeeperAdapter(app.BankKeeper), maccPerms,
 	)
 
 	stakingKeeper := staking.NewKeeper(
@@ -415,7 +415,7 @@ func newTestOkcChainApp(
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		codecProxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		app.IBCKeeper.V2Keeper.ChannelKeeper, &app.IBCKeeper.V2Keeper.PortKeeper,
-		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
+		app.SupplyKeeper, supply.NewSupplyKeeperAdapter(app.SupplyKeeper), scopedTransferKeeper, interfaceReg,
 	)
 	ibctransfertypes.SetMarshal(codecProxy)
 

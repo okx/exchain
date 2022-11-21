@@ -47,6 +47,7 @@ var (
 
 type (
 	Keeper        = keeper.Keeper
+	KeeperAdapter = keeper.SupplyKeerAdapter
 	ModuleAccount = types.ModuleAccount
 	GenesisState  = types.GenesisState
 	Supply        = types.Supply

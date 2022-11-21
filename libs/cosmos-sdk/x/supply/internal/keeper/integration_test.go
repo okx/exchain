@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
@@ -28,7 +29,7 @@ func createTestApp(isCheckTx bool) (*simapp.SimApp, sdk.Context) {
 	maccPerms[randomPerm] = []string{"random"}
 
 	ctx := app.BaseApp.NewContext(isCheckTx, abci.Header{})
-	app.SupplyKeeper = keep.NewKeeper(app.Codec(), app.GetKey(types.StoreKey), app.AccountKeeper, app.BankKeeper, maccPerms)
+	app.SupplyKeeper = keep.NewKeeper(app.Codec(), app.GetKey(types.StoreKey), app.AccountKeeper, bank.NewBankKeeperAdapter(app.BankKeeper), maccPerms)
 	app.SupplyKeeper.SetSupply(ctx, types.NewSupply(sdk.NewCoins()))
 
 	return app, ctx

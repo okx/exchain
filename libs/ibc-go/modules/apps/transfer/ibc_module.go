@@ -48,7 +48,7 @@ func (im IBCModule) OnChanOpenInit(
 		return im.v2Module.OnChanOpenInit(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, version)
 	}
 
-	if err := ValidateTransferChannelParams(ctx, im.keeper, order, portID, channelID, version); err != nil {
+	if err := ValidateTransferChannelParamsV4(ctx, im.keeper, order, portID, channelID); err != nil {
 		return "", err
 	}
 
@@ -84,7 +84,7 @@ func (im IBCModule) OnChanOpenTry(
 		return im.v2Module.OnChanOpenTry(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, version, counterpartyVersion)
 	}
 
-	if err := ValidateTransferChannelParams(ctx, im.keeper, order, portID, channelID, ""); err != nil {
+	if err := ValidateTransferChannelParamsV4(ctx, im.keeper, order, portID, channelID); err != nil {
 		return "", err
 	}
 
