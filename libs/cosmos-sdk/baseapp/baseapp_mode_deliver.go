@@ -58,7 +58,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	}
 	refund := handleGasRefund(info, m.app.cacheTxContext, m.app.GasRefundHandler)
 	m.app.UpdateFeeCollector(refund, false)
-	if info.ctx.GetFeeSplitInfo().Updated {
+	if info.ctx.GetFeeSplitInfo().HasFee {
 		m.app.FeeSplitCollector = append(m.app.FeeSplitCollector, info.ctx.GetFeeSplitInfo())
 	}
 
