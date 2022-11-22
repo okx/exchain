@@ -47,6 +47,9 @@ type OecConfig struct {
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
+
+	// enable-dynamic-gp
+	enableDynamicGp bool
 	// dynamic-gp-weight
 	dynamicGpWeight int
 	// dynamic-gp-check-blocks
@@ -231,6 +234,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 
+	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
 	c.SetDynamicGpCheckBlocks(viper.GetInt(FlagDynamicGpCheckBlocks))
 	c.SetDynamicGpCoefficient(viper.GetInt(FlagDynamicGpCoefficient))
@@ -394,6 +398,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetGasLimitBuffer(r)
+	case FlagEnableDynamicGp:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableDynamicGp(r)
 	case FlagDynamicGpWeight:
 		r, err := strconv.Atoi(v)
 		if err != nil {
@@ -649,9 +659,18 @@ func (c *OecConfig) SetGasLimitBuffer(value uint64) {
 	c.gasLimitBuffer = value
 }
 
+func (c *OecConfig) GetEnableDynamicGp() bool {
+	return c.enableDynamicGp
+}
+
+func (c *OecConfig) SetEnableDynamicGp(value bool) {
+	c.enableDynamicGp = value
+}
+
 func (c *OecConfig) GetDynamicGpWeight() int {
 	return c.dynamicGpWeight
 }
+
 func (c *OecConfig) SetDynamicGpWeight(value int) {
 	if value <= 0 {
 		value = 1
