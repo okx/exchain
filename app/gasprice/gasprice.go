@@ -71,9 +71,8 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	// then we consider the chain to be congested.
 	isCongested := (int64(gpo.CurrentBlockGPs.GetGasUsed()) >= maxGasUsed) || (allTxsLen >= maxTxNum)
 
-	// dynamic-gp-mode == 0 means higher price mode
 	// When the network is congested, increase the recommended gas price.
-	adoptHigherGp := (appconfig.GetOecConfig().GetDynamicGpMode() == 0) && isCongested
+	adoptHigherGp := (appconfig.GetOecConfig().GetDynamicGpMode() == sdk.CongestionHigherGpMode) && isCongested
 
 	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice, adoptHigherGp)
 

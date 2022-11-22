@@ -251,7 +251,7 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	if appconfig.GetOecConfig().GetDynamicGpMode() != 2 {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != sdk.CloseMode {
 		price := new(big.Int).Set(app.GlobalGp)
 		if price.Cmp((*big.Int)(api.gasPrice)) == -1 {
 			price.Set((*big.Int)(api.gasPrice))
