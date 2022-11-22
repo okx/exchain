@@ -1,18 +1,23 @@
 package simapp
 
 import (
+	"encoding/hex"
 	"fmt"
+	evm2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/evm"
+
 	"io"
 	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
+	ethermint "github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -512,7 +517,7 @@ func NewSimApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		staking2.TNewStakingModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
-		evm.NewAppModule(app.EvmKeeper, &app.AccountKeeper),
+		evm2.TNewEvmModuleAdapter(app.EvmKeeper, &app.AccountKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
 		dex.NewAppModule(commonversion.ProtocolVersionV0, app.DexKeeper, app.SupplyKeeper),
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
@@ -621,8 +626,10 @@ func NewSimApp(
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
+	app.SetEvmWatcherCollector(func(...sdk.IWatcher) {})
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -649,6 +656,43 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
 		return ek.FixLog(tx, logIndex, hasEnterEvmTx, anteErrs, resp)
+	}
+}
+func evmTxVerifySigHandler(chainID string, blockHeight int64, evmTx *evmtypes.MsgEthereumTx) error {
+	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	if err != nil {
+		return err
+	}
+	err = evmTx.VerifySig(chainIDEpoch, blockHeight)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string, err error) {
+		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+			isEvm = true
+			err = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
+			if err != nil {
+				return
+			}
+			fee = evmTx.GetFee()
+			from = evmTx.BaseTx.From
+			if len(from) > 2 {
+				from = strings.ToLower(from[2:])
+			}
+			if evmTx.To() != nil {
+				to = strings.ToLower(evmTx.To().String()[2:])
+			}
+		} else if feeTx, ok := tx.(authante.FeeTx); ok {
+			fee = feeTx.GetFee()
+			feePayer := feeTx.FeePayer(ctx)
+			feePayerAcc := ak.GetAccount(ctx, feePayer)
+			from = hex.EncodeToString(feePayerAcc.GetAddress())
+		}
+
+		return
 	}
 }
 
