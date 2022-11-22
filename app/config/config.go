@@ -733,10 +733,7 @@ func (c *OecConfig) GetDynamicGpMode() int {
 }
 
 func (c *OecConfig) SetDynamicGpMode(value int) {
-	if value < 0 {
-		return
-	}
-	if value > 2 {
+	if value < 0 || value > 2 {
 		return
 	}
 	c.dynamicGpMode = value
