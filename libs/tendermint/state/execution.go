@@ -73,8 +73,6 @@ type BlockExecutor struct {
 	// the owner is validator
 	isNullIndexer bool
 	eventsChan    chan event
-
-	wls *trace.WorkloadStatistic
 }
 
 type event struct {
@@ -112,8 +110,6 @@ func NewBlockExecutor(
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
 		eventsChan:   make(chan event, 5),
-
-		wls: trace.GetApplyBlockWorkloadSttistic(),
 	}
 
 	for _, option := range options {
@@ -212,7 +208,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
 	trc.EnableSummary()
-	trc.SetWorkloadStatistic(blockExec.wls)
+	trc.SetWorkloadStatistic(trace.GetApplyBlockWorkloadSttistic())
 	dc := blockExec.deltaContext
 
 	defer func() {
@@ -220,7 +216,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
-		trace.GetElapsedInfo().AddInfo(trace.Workload, blockExec.wls.Format())
+		trace.GetElapsedInfo().AddInfo(trace.Workload, trace.GetApplyBlockWorkloadSttistic().Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
 		now := time.Now().UnixNano()
@@ -244,7 +240,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
-	blockExec.wls.Add(trace.LastRun, duration)
+	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, duration)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
