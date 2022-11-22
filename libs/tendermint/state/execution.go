@@ -751,5 +751,5 @@ func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, add
 }
 
 func (blockExec *BlockExecutor) ReportErr(module string, err error) {
-	blockExec.proxyApp.Error()
+	blockExec.proxyApp.ReportErr(module, err)
 }

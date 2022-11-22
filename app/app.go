@@ -783,6 +783,7 @@ func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
 }
 
 func (app *OKExChainApp) ReportErr(module string, err error) {
+	app.Logger().Error(fmt.Sprintf("An error is reported from %s, err : %s", module, err.Error()))
 	app.StopBaseApp()
 }
 
