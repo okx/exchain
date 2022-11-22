@@ -100,7 +100,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%CommitGapHeight == 0
+	shouldPersist := version%40 == 0
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
@@ -157,7 +157,10 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, &wg, 0, nil}
+	wg.Wait()
 	var tpp map[string]*Node = nil
 	fnc := newFastNodeChanges()
 	if EnablePruningHistoryState {
@@ -180,8 +183,11 @@ func (tree *MutableTree) persist(version int64) {
 		tree.commitOrphans = tree.commitOrphans[:0]
 	}
 	versions := tree.deepCopyVersions()
-	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height()), fnc}
+	go func() {
+		tree.commitCh <- commitEvent{version, versions, batch,
+			tpp, nil, int(tree.Height()), fnc}
+	}()
+
 	tree.lastPersistHeight = version
 }
 
