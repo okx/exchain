@@ -106,6 +106,9 @@ func (c Context) ParaMsg() *ParaMsg {
 }
 
 func (c Context) GetFeeSplitInfo() *FeeSplitInfo {
+	if c.feesplitInfo == nil {
+		c.feesplitInfo = &FeeSplitInfo{}
+	}
 	return c.feesplitInfo
 }
 
