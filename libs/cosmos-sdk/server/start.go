@@ -3,9 +3,10 @@ package server
 // DONTCOVER
 
 import (
-	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
+
+	"github.com/okex/exchain/libs/tendermint/consensus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
@@ -340,7 +341,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
 	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
 
-	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
