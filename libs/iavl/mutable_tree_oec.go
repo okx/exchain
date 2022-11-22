@@ -100,15 +100,18 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%40 == 0
+	shouldPersist := version%30 == 0
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
 	if shouldPersist {
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
-		tree.persist(version)
+		tree.persist(version, func() {
+			tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
+		})
+	} else {
+		tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 	}
-	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
 	return tree.setNewWorkingTree(version, shouldPersist)
 }
@@ -154,41 +157,40 @@ func (tree *MutableTree) removeVersion(version int64) {
 	tree.versions.Delete(version)
 }
 
-func (tree *MutableTree) persist(version int64) {
-	var err error
-	batch := tree.NewBatch()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, &wg, 0, nil}
-	wg.Wait()
-	var tpp map[string]*Node = nil
-	fnc := newFastNodeChanges()
-	if EnablePruningHistoryState {
-		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
-	}
-	if tree.root == nil {
-		// There can still be orphans, for example if the root is the node being removed.
-		err = tree.ndb.SaveEmptyRoot(batch, version)
-	} else {
-		err = tree.ndb.SaveRoot(batch, tree.root, version)
-		tpp, fnc = tree.ndb.asyncPersistTppStart(version)
-	}
-
-	if err != nil {
-		// never going to happen in case of AC enabled
-		panic(err)
-	}
-
-	if tree.commitOrphans != nil {
-		tree.commitOrphans = tree.commitOrphans[:0]
-	}
-	versions := tree.deepCopyVersions()
-	go func() {
-		tree.commitCh <- commitEvent{version, versions, batch,
-			tpp, nil, int(tree.Height()), fnc}
-	}()
-
+func (tree *MutableTree) persist(version int64, cb func()) {
 	tree.lastPersistHeight = version
+	go func() {
+		var err error
+		batch := tree.NewBatch()
+		tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
+		var tpp map[string]*Node = nil
+		fnc := newFastNodeChanges()
+		if EnablePruningHistoryState {
+			tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
+		}
+		if tree.root == nil {
+			// There can still be orphans, for example if the root is the node being removed.
+			err = tree.ndb.SaveEmptyRoot(batch, version)
+		} else {
+			err = tree.ndb.SaveRoot(batch, tree.root, version)
+			tpp, fnc = tree.ndb.asyncPersistTppStart(version)
+		}
+
+		if err != nil {
+			// never going to happen in case of AC enabled
+			panic(err)
+		}
+
+		if tree.commitOrphans != nil {
+			tree.commitOrphans = tree.commitOrphans[:0]
+		}
+		versions := tree.deepCopyVersions()
+		go func() {
+			defer cb()
+			tree.commitCh <- commitEvent{version, versions, batch,
+				tpp, nil, int(tree.Height()), fnc}
+		}()
+	}()
 }
 
 func (tree *MutableTree) commitSchedule() {
