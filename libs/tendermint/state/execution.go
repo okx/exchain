@@ -220,8 +220,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
+		trace.GetElapsedInfo().AddInfo(trace.Workload, blockExec.wls.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
-		// TODO
 
 		now := time.Now().UnixNano()
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
@@ -244,6 +244,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
+	blockExec.wls.Add(trace.LastRun, duration)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)

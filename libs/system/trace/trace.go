@@ -86,7 +86,7 @@ func (t *Tracer) pinByFormat(tag string) {
 		}
 
 		if t.wls != nil {
-			t.wls.end(tag, now)
+			t.wls.end(t.lastPin, now)
 		}
 	}
 	t.lastPinStartTime = now
