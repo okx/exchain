@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 
+	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -70,7 +71,7 @@ func SetFastNodeCacheSize(size int) {
 
 // GetFastNodeCacheSize get fast node cache size
 func GetFastNodeCacheSize() int {
-	return fastNodeCacheSize
+	return iavlconfig.DynamicConfig.GetIavlFSCacheSize()
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {

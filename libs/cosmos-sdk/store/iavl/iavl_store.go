@@ -24,6 +24,8 @@ var (
 	FlagIavlCacheSize = "iavl-cache-size"
 
 	IavlCacheSize = 1000000
+
+	FlagIavlFSCacheSize = "iavl-fast-storage-cache-size"
 )
 
 var (

@@ -82,6 +82,9 @@ type OecConfig struct {
 	// iavl-cache-size
 	iavlCacheSize int
 
+	// iavl-fast-storage-cache-size
+	iavlFSCacheSize int
+
 	// enable-wtx
 	enableWtx bool
 
@@ -123,8 +126,8 @@ const (
 	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
 	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
 
-	FlagEnableWrappedTx         = "enable-wtx"
-	FlagSentryAddrs             = "p2p.sentry_addrs"
+	FlagEnableWrappedTx = "enable-wtx"
+	FlagSentryAddrs     = "p2p.sentry_addrs"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -253,6 +256,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetIavlFSCacheSize(viper.GetInt(iavl.FlagIavlFSCacheSize))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
@@ -311,6 +315,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
+    iavl-fast-storage-cache-size: %d
 	enable-analyzer: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
@@ -337,6 +342,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrecommitDelta(),
 		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
+		c.GetIavlFSCacheSize(),
 		c.GetEnableAnalyzer(),
 		c.GetActiveVC(),
 	)
@@ -501,6 +507,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
+	case iavl.FlagIavlFSCacheSize:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetIavlFSCacheSize(r)
 	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -829,6 +841,14 @@ func (c *OecConfig) GetIavlCacheSize() int {
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
+}
+
+func (c *OecConfig) GetIavlFSCacheSize() int {
+	return c.iavlFSCacheSize
+}
+
+func (c *OecConfig) SetIavlFSCacheSize(value int) {
+	c.iavlFSCacheSize = value
 }
 
 func (c *OecConfig) GetActiveVC() bool {
