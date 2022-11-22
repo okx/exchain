@@ -9,7 +9,7 @@ import (
 
 var (
 	applyBlockWorkloadStatistic = newWorkloadStatistic(
-		[]periodPair{{time.Hour, "1h"}, {2 * time.Hour, "2h"}, {4 * time.Hour, "4h"}, {8 * time.Hour, "8h"}}, []string{LastRun, Persist})
+		[]time.Duration{time.Hour, 2 * time.Hour, 4 * time.Hour, 8 * time.Hour}, []string{LastRun, Persist})
 )
 
 // TODO: think about a very long work which longer than a statistic period.
@@ -32,13 +32,8 @@ type WorkloadStatistic struct {
 	workCh chan workInfo
 }
 
-type periodPair struct {
-	peirod time.Duration
-	name   string
-}
-
 type workloadSummary struct {
-	period   periodPair
+	period   time.Duration
 	workload atomic.Int64
 }
 
@@ -51,7 +46,7 @@ func GetApplyBlockWorkloadSttistic() *WorkloadStatistic {
 	return applyBlockWorkloadStatistic
 }
 
-func newWorkloadStatistic(periods []periodPair, tags_ []string) *WorkloadStatistic {
+func newWorkloadStatistic(periods []time.Duration, tags_ []string) *WorkloadStatistic {
 	tags := toTagsMap(tags_)
 
 	workloads := make([]workloadSummary, 0, len(periods))
@@ -73,17 +68,18 @@ func (ws *WorkloadStatistic) Add(tag string, wl time.Duration) {
 	now := time.Now()
 	for i := range ws.workloads {
 		ws.workloads[i].workload.Add(int64(wl))
-		ws.workCh <- workInfo{now, int64(wl)}
 	}
+
+	ws.workCh <- workInfo{now, int64(wl)}
 }
 
 func (ws *WorkloadStatistic) Format() string {
 	var sumItem []string
 	for _, summary := range ws.summary() {
-		sumItem = append(sumItem, fmt.Sprintf("%s<%.2f>", summary.period.name, float64(summary.workload)/float64(summary.period.peirod)))
+		sumItem = append(sumItem, fmt.Sprintf("%.2f", float64(summary.workload)/float64(summary.period)))
 	}
 
-	return strings.Join(sumItem, ",")
+	return strings.Join(sumItem, "|")
 }
 
 func (ws *WorkloadStatistic) begin(tag string, t time.Time) {
@@ -105,14 +101,14 @@ func (ws *WorkloadStatistic) end(tag string, t time.Time) {
 	dur := t.Sub(ws.latestBegin)
 	for i := range ws.workloads {
 		ws.workloads[i].workload.Add(int64(dur))
-		ws.workCh <- workInfo{t, int64(dur)}
 	}
 
+	ws.workCh <- workInfo{t, int64(dur)}
 	ws.latestBegin = time.Time{}
 }
 
 type summaryInfo struct {
-	period   periodPair
+	period   time.Duration
 	workload time.Duration
 }
 
@@ -142,7 +138,7 @@ func (ws *WorkloadStatistic) shrink_loop() {
 
 			for i, wload := range ws.workloads {
 				period := wload.period
-				expiredSec := work.end.Add(period.peirod).Unix()
+				expiredSec := work.end.Add(period).Unix()
 				if expiredSec < earilest {
 					earilest = expiredSec
 				}
@@ -171,6 +167,7 @@ func (ws *WorkloadStatistic) shrink_loop() {
 					w, ok := info[i]
 					if ok {
 						ws.workloads[index].workload.Add(-w)
+						delete(info, i)
 					}
 				}
 			}

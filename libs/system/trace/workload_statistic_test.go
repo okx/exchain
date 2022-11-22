@@ -18,20 +18,21 @@ func TestWorkload(t *testing.T) {
 	defer func() {
 		GetElapsedInfo().AddInfo(RunTx, trc.Format())
 
+		time.Sleep(time.Second)
 		summary := GetApplyBlockWorkloadSttistic().summary()
 		for _, sum := range summary {
 			workload := int64(sum.workload.Seconds())
 			if workload != expectWorkload {
-				t.Errorf("period %s: expect workload %v but got %v\n", sum.period.peirod, expectWorkload, workload)
+				t.Errorf("period %d: expect workload %v but got %v\n", sum.period, expectWorkload, workload)
 			}
 		}
 	}()
 
 	trc.Pin(Abci)
 	time.Sleep(abciWorkload)
-	GetApplyBlockWorkloadSttistic().Add(LastRun, 2*time.Minute)
+	GetApplyBlockWorkloadSttistic().Add(LastRun, lastRunWorkload)
 
 	trc.Pin(Persist)
-	time.Sleep(time.Second)
+	time.Sleep(persistWorkload)
 
 }
