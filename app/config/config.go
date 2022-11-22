@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -845,11 +844,11 @@ func (c *OecConfig) SetIavlCacheSize(value int) {
 }
 
 func (c *OecConfig) GetIavlFSCacheSize() int64 {
-	return atomic.LoadInt64(&c.iavlFSCacheSize)
+	return c.iavlFSCacheSize
 }
 
 func (c *OecConfig) SetIavlFSCacheSize(value int64) {
-	atomic.StoreInt64(&c.iavlFSCacheSize, value)
+	c.iavlFSCacheSize = value
 }
 
 func (c *OecConfig) GetActiveVC() bool {
