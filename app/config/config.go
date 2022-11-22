@@ -12,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	tmiavl "github.com/okex/exchain/libs/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
@@ -224,6 +225,7 @@ func defaultOecConfig() *OecConfig {
 		mempoolRecheck:         false,
 		mempoolForceRecheckGap: 2000,
 		commitGapHeight:        iavlconfig.DefaultCommitGapHeight,
+		iavlFSCacheSize:        tmiavl.DefaultIavlFastStorageCacheSize,
 	}
 }
 
@@ -261,7 +263,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
-	c.SetIavlFSCacheSize(viper.GetInt64(iavl.FlagIavlFSCacheSize))
+	c.SetIavlFSCacheSize(viper.GetInt64(tmiavl.FlagIavlFastStorageCacheSize))
 	c.SetCommitGapHeight(viper.GetInt64(server.FlagCommitGapHeight))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
@@ -515,7 +517,7 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
-	case iavl.FlagIavlFSCacheSize:
+	case tmiavl.FlagIavlFastStorageCacheSize:
 		r, err := strconv.Atoi(v)
 		if err != nil {
 			return
