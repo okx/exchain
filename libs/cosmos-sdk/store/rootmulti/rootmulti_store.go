@@ -631,7 +631,9 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 		rs.versions = append(rs.versions, version)
 	}
-	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	go func() {
+		flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	}()
 
 	return types.CommitID{
 		Version: version,
