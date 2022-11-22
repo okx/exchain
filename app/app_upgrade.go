@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 
 	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/grpc/tmservice"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -27,6 +28,16 @@ func (app *OKExChainApp) grpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result,
 		return sdk.GasInfo{}, nil, sdkerrors.Wrap(err, "failed to decode tx")
 	}
 	return app.Simulate(txBytes, tx, 0, nil)
+}
+
+// RegisterTendermintService implements the Application.RegisterTendermintService method.
+func (a *OKExChainApp) RegisterTendermintService(clientCtx cliContext.CLIContext) {
+	tmservice.RegisterTendermintService(
+		clientCtx,
+		a.GRPCQueryRouter(),
+		clientCtx.InterfaceRegistry,
+		a.Query,
+	)
 }
 
 func (app *OKExChainApp) setupUpgradeModules() {

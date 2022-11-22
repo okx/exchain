@@ -5,6 +5,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/node"
+	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
+
 	app2 "github.com/okex/exchain/libs/cosmos-sdk/server/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -31,11 +34,13 @@ import (
 const ServerStartTime = 5 * time.Second
 
 // StartGRPCServer starts a gRPC server on the given address.
-func StartGRPCServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, app app2.ApplicationAdapter, cfg config.GRPCConfig) (*grpc.Server, error) {
+func StartGRPCServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, app app2.ApplicationAdapter, cfg config.GRPCConfig, tmNode *node.Node) (*grpc.Server, error) {
 	txCfg := utils.NewPbTxConfig(interfaceReg.(interfacetypes.InterfaceRegistry))
 
 	cliCtx := context.NewCLIContext().WithProxy(cdc).WithInterfaceRegistry(interfaceReg.(interfacetypes.InterfaceRegistry))
 	cliCtx = cliCtx.WithChainID(viper.GetString(flags.FlagChainID))
+	cliCtx.TrustNode = true
+	cliCtx = cliCtx.WithClient(local.New(tmNode))
 
 	maxSendMsgSize := cfg.MaxSendMsgSize
 	if maxSendMsgSize == 0 {
@@ -52,6 +57,7 @@ func StartGRPCServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, app
 		grpc.MaxRecvMsgSize(maxRecvMsgSize),
 	)
 
+	app.RegisterTendermintService(cliCtx)
 	app.RegisterTxService(cliCtx)
 	app.RegisterGRPCServer(grpcSrv)
 

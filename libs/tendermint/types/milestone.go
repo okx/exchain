@@ -74,6 +74,7 @@ func init() {
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 		milestoneVenus3Height = string2number(MILESTONE_VENUS3_HEIGHT)
 		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
+		milestoneVenus1Height = 1
 	})
 }
 

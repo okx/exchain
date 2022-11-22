@@ -8,4 +8,5 @@ import (
 type ApplicationAdapter interface {
 	RegisterGRPCServer(gogogrpc.Server)
 	RegisterTxService(clientCtx cliContext.CLIContext)
+	RegisterTendermintService(clientCtx cliContext.CLIContext)
 }
