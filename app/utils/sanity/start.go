@@ -53,42 +53,43 @@ import (
 var (
 	startDependentElems = []dependentPair{
 		{ // if infura.FlagEnable=true , watcher.FlagFastQuery must be set to true
-			config:       boolItem{name: infura.FlagEnable, value: true},
-			reliedConfig: boolItem{name: watcher.FlagFastQuery, value: true},
+			config:       boolItem{name: infura.FlagEnable, expect: true},
+			reliedConfig: boolItem{name: watcher.FlagFastQuery, expect: true},
 		},
 	}
 	// conflicts flags
 	startConflictElems = []conflictPair{
 		// --fast-query      conflict with --pruning=nothing
 		{
-			configA: boolItem{name: watcher.FlagFastQuery, value: true},
-			configB: stringItem{name: server.FlagPruning, value: cosmost.PruningOptionNothing},
+			configA: boolItem{name: watcher.FlagFastQuery, expect: true},
+			configB: stringItem{name: server.FlagPruning, expect: cosmost.PruningOptionNothing},
 		},
 		// --enable-preruntx conflict with --download-delta
 		{
-			configA: boolItem{name: consensus.EnablePrerunTx, value: true},
-			configB: boolItem{name: types.FlagDownloadDDS, value: true},
+			configA: boolItem{name: consensus.EnablePrerunTx, expect: true},
+			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
 		},
 		// --multi-cache conflict with --download-delta
 		{
-			configA: boolItem{name: sdk.FlagMultiCache, value: true},
-			configB: boolItem{name: types.FlagDownloadDDS, value: true},
+			configA: boolItem{name: sdk.FlagMultiCache, expect: true},
+			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
 		},
 		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
-			configB: stringItem{name: server.FlagPruning, value: cosmost.PruningOptionNothing},
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.RpcNode)},
+			configB: stringItem{name: server.FlagPruning, expect: cosmost.PruningOptionNothing},
 		},
 		// --node-mode=archive(--pruning=nothing) conflicts with --fast-query
 		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.ArchiveNode)},
-			configB: boolItem{name: watcher.FlagFastQuery, value: true},
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
+			configB: boolItem{name: watcher.FlagFastQuery, expect: true},
 		},
 	}
 
-	checkRangeItems = []rangeItem{{
-		enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
-		name:      state.FlagDeliverTxsExecMode,
-	},
+	checkRangeItems = []rangeItem{
+		{
+			enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
+			name:      state.FlagDeliverTxsExecMode,
+		},
 	}
 )
 

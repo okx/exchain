@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
@@ -860,9 +861,11 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 
+	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 
+	ctx.Logger.Info("The database storage strategy", "fast-storage", iavl.GetEnableFastStorage())
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 

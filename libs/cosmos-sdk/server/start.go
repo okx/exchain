@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
 
@@ -69,8 +70,6 @@ const (
 	FlagBlockPartSizeBytes = "block-part-size"
 
 	FlagFastSyncGap = "fastsync-gap"
-
-	FlagEventBlockTime = "event-block-time"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -321,7 +320,9 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
-	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
+	if viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) {
+		tmiavl.SetEnableFastStorage(false)
+	}
 	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 
@@ -344,5 +345,5 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
 
-	tmtypes.EnableEventBlockTime = viper.GetBool(FlagEventBlockTime)
+	consensus.SetActiveVC(viper.GetBool(FlagActiveViewChange))
 }

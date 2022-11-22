@@ -60,6 +60,7 @@ func (k Keeper) PostTxProcessing(
 	if !params.EnableFeeSplit {
 		// delete feesplit info
 		k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
+		k.deleteFeesplitInnertx(receipt.TxHash.Hex())
 		return nil
 	}
 
