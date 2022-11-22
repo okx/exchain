@@ -253,22 +253,23 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		timeStart = time.Now().UnixMicro()
 	}
 
+	txSize := len(tx)
 	// the old logic for can not allow to delete low gasprice tx,then we must check mempool txs weather is full.
 	if !mem.GetEnableDeleteMinGPTx() {
-		txSize := len(tx)
 		if err := mem.isFull(txSize); err != nil {
 			return err
-		}
-		// The size of the corresponding amino-encoded TxMessage
-		// can't be larger than the maxMsgSize, otherwise we can't
-		// relay it to peers.
-		if txSize > mem.config.MaxTxBytes {
-			return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 		}
 	}
 	// TODO
 	// the new logic that even if mempool is full, we check tx gasprice weather > the minimum gas price tx in mempool. If true , we delete it.
 	// But For mempool is under the abci, it can not get tx gasprice, so the line we can not precheck gasprice. Maybe we can break abci level for
+
+	// The size of the corresponding amino-encoded TxMessage
+	// can't be larger than the maxMsgSize, otherwise we can't
+	// relay it to peers.
+	if txSize > mem.config.MaxTxBytes {
+		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
+	}
 
 	txkey := txKey(tx)
 
@@ -517,7 +518,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		if mem.GetEnableDeleteMinGPTx() {
-			mem.deleteOldTx(mem.txs.Back())
+			mem.deleteMinGPTxOnlyFull(mem.txs.Back())
 		}
 		mem.logger.Info("Added good transaction",
 			"tx", txIDStringer{mempoolTx.tx, mempoolTx.height},
@@ -642,7 +643,7 @@ func (mem *CListMempool) resCbFirstTime(
 					// If mempool is full the we remove the last one tx
 					// when pendingPool enable, we need to check tx is inserted into mempool.txsqueue, the we delete old tx
 					if _, inserted := mem.txs.Load(txkey); inserted {
-						mem.deleteOldTx(mem.txs.Back())
+						mem.deleteMinGPTxOnlyFull(mem.txs.Back())
 					}
 				}
 
@@ -1258,7 +1259,7 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	return &simuRes, err
 }
 
-func (mem *CListMempool) deleteOldTx(removeTx *clist.CElement) {
+func (mem *CListMempool) deleteMinGPTxOnlyFull(removeTx *clist.CElement) {
 	//check weather exceed mempool size,then need to delet the minimum gas price
 	if mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
 		mem.removeTx(removeTx)
