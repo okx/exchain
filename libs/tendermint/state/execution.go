@@ -245,7 +245,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
@@ -290,7 +289,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.evpool.Update(block, state)
 
 	fail.Fail() // XXX
-
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data

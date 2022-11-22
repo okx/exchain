@@ -136,13 +136,16 @@ func NewCListMempool(
 		option(mempool)
 	}
 
+	// default EnableDeleteMinGPTx true
+	mempool.SetEnableDeleteMinGPTx(true)
 	if config.EnablePendingPool {
 		mempool.pendingPool = newPendingPool(config.PendingPoolSize, config.PendingPoolPeriod,
 			config.PendingPoolReserveBlocks, config.PendingPoolMaxTxPerAddress)
 		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
 		go mempool.pendingPoolJob()
 
-		mempool.consumePendingTxQueueLimit = 100
+		// consumePendingTxQueueLimit use  PendingPoolSize, because consumePendingTx is consume pendingTx.
+		mempool.consumePendingTxQueueLimit = mempool.config.PendingPoolSize
 		mempool.consumePendingTxQueue = make(chan AddressNonce, mempool.consumePendingTxQueueLimit)
 		go mempool.consumePendingTxQueueJob()
 	}
@@ -480,7 +483,10 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 		err := mem.addTx(memTx)
 		if err == nil {
 			if len(mem.consumePendingTxQueue) >= mem.consumePendingTxQueueLimit {
-				mem.logger.Error("mempool", "the consumePendingTxQueue and mempool is full", "disable consume pending tx")
+				//This line maybe be lead to user pendingTx will not be packed into block
+				//when extreme condition (mem.consumePendingTxQueue is block which is maintain caused by mempool is full).
+				//But we must be do thus,for protect chain's block can be product.
+				mem.logger.Error("mempool", "addPendingTx", "when consumePendingTxQueue and mempool is full, disable consume pending tx")
 			} else {
 				mem.consumePendingTxQueue <- AddressNonce{addr: memTx.from, nonce: txNonce + 1}
 			}
@@ -972,15 +978,14 @@ func (mem *CListMempool) Update(
 	mem.metrics.Size.Set(float64(mem.Size()))
 	if mem.pendingPool != nil {
 		if len(mem.pendingPoolNotify) >= 1 {
-			go func() {
-				mem.pendingPoolNotify <- addressNonce
-				mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
-			}()
+			//This line maybe be lead to user pendingTx will not be packed into block
+			//when extreme condition (mem.pendingPoolNotify is block which is maintain caused by mempool is full).
+			//But we must be do thus,for protect chain's block can be product.
+			mem.logger.Error("mempool", "Update", "when mempool  is  full and consume pendingPool, disable consume pending tx")
 		} else {
 			mem.pendingPoolNotify <- addressNonce
 			mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 		}
-
 	}
 
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
