@@ -400,6 +400,10 @@ type executeResult struct {
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32,
 	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg, feeSpiltInfo *sdk.FeeSplitInfo) *executeResult {
+
+	if feeSpiltInfo == nil {
+		feeSpiltInfo = &sdk.FeeSplitInfo{}
+	}
 	ans := &executeResult{
 		resp:         r,
 		ms:           ms,
