@@ -85,7 +85,7 @@ func setValidatorConfig(ctx *server.Context) {
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
 		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000))
 }
-git
+
 func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "nothing")
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
