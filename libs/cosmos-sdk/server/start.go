@@ -324,7 +324,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	if viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) {
 		tmiavl.SetEnableFastStorage(false)
 	}
-	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)

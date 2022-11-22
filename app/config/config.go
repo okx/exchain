@@ -12,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	tmiavl "github.com/okex/exchain/libs/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
@@ -85,6 +86,9 @@ type OecConfig struct {
 	iavlCacheSize int
 	// commit-gap-height
 	commitGapHeight int64
+
+	// iavl-fast-storage-cache-size
+	iavlFSCacheSize int64
 
 	// enable-wtx
 	enableWtx bool
@@ -221,6 +225,7 @@ func defaultOecConfig() *OecConfig {
 		mempoolRecheck:         false,
 		mempoolForceRecheckGap: 2000,
 		commitGapHeight:        iavlconfig.DefaultCommitGapHeight,
+		iavlFSCacheSize:        tmiavl.DefaultIavlFastStorageCacheSize,
 	}
 }
 
@@ -258,6 +263,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetIavlFSCacheSize(viper.GetInt64(tmiavl.FlagIavlFastStorageCacheSize))
 	c.SetCommitGapHeight(viper.GetInt64(server.FlagCommitGapHeight))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
@@ -317,6 +323,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
+    iavl-fast-storage-cache-size: %d
     commit-gap-height: %d
 	enable-analyzer: %v
 	active-view-change: %v`, system.ChainName,
@@ -344,6 +351,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrecommitDelta(),
 		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
+		c.GetIavlFSCacheSize(),
 		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
 		c.GetActiveVC(),
@@ -509,6 +517,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
+	case tmiavl.FlagIavlFastStorageCacheSize:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetIavlFSCacheSize(int64(r))
 	case server.FlagCommitGapHeight:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -843,6 +857,14 @@ func (c *OecConfig) GetIavlCacheSize() int {
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
+}
+
+func (c *OecConfig) GetIavlFSCacheSize() int64 {
+	return c.iavlFSCacheSize
+}
+
+func (c *OecConfig) SetIavlFSCacheSize(value int64) {
+	c.iavlFSCacheSize = value
 }
 
 func (c *OecConfig) GetCommitGapHeight() int64 {
