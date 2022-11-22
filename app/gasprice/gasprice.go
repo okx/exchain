@@ -71,26 +71,21 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	// then we consider the chain to be congested.
 	isCongested := (int64(gpo.CurrentBlockGPs.GetGasUsed()) >= maxGasUsed) || (allTxsLen >= maxTxNum)
 
-	adoptHigherGp := appconfig.GetOecConfig().GetDynamicGpAdaptCongest() && isCongested
+	// When the network is congested, increase the recommended gas price.
+	adoptHigherGp := (appconfig.GetOecConfig().GetDynamicGpMode() == types.CongestionHigherGpMode) && isCongested
 
 	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice, adoptHigherGp)
 
-
-	if appconfig.GetOecConfig().GetDynamicGpAdaptUncongest() && !isCongested {
-		// If network is uncongested, return default gas price.
-		gpo.lastPrice = defaultPrice
-		return defaultPrice
-	}
-	price := gpo.lastPrice
+	price := new(big.Int).Set(gpo.lastPrice)
 	if len(txPrices) > 0 {
 		sort.Sort(types.BigIntArray(txPrices))
-		price = txPrices[(len(txPrices)-1)*gpo.weight/100]
+		price.Set(txPrices[(len(txPrices)-1)*gpo.weight/100])
 	}
 
 	if price.Cmp(maxPrice) > 0 {
-		price = new(big.Int).Set(maxPrice)
+		price.Set(maxPrice)
 	}
-	gpo.lastPrice = price
+	gpo.lastPrice.Set(price)
 	return price
 }
 
