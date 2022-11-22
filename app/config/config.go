@@ -110,6 +110,7 @@ const (
 	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
 	FlagGasLimitBuffer          = "gas-limit-buffer"
+	FlagEnableDynamicGp         = "enable-dynamic-gp"
 	FlagDynamicGpMode           = "dynamic-gp-mode"
 	FlagDynamicGpWeight         = "dynamic-gp-weight"
 	FlagDynamicGpCheckBlocks    = "dynamic-gp-check-blocks"
