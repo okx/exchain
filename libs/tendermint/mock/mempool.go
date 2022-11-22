@@ -75,3 +75,11 @@ func (Mempool) SetAccountRetriever(_ mempl.AccountRetriever) {
 func (Mempool) SetTxInfoParser(_ mempl.TxInfoParser) {
 
 }
+
+func (Mempool) SetEnableDeleteMinGPTx(enable bool) {
+
+}
+
+func (Mempool) GetEnableDeleteMinGPTx() bool {
+	return false
+}
