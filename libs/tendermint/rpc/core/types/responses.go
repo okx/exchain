@@ -229,6 +229,10 @@ type ResultBroadcastEvidence struct {
 	Hash []byte `json:"hash"`
 }
 
+type ResultEnableDeleteMinGPTx struct {
+	Enable bool `json:"enable"`
+}
+
 // empty results
 type (
 	ResultUnsafeFlushMempool struct{}

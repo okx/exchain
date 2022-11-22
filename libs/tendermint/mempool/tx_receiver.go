@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	gogocodec "github.com/gogo/protobuf/codec"
 	gogoproto "github.com/gogo/protobuf/proto"
@@ -315,6 +316,7 @@ func (r *txReceiver) Start(configPort string) {
 func (r *txReceiver) CheckTx(peerID uint16, memTx *mempoolTx) bool {
 	client, ok := r.GetClient(peerID)
 	if ok {
+		r.Logger.Debug("CheckTx:Receive", "tx", hex.EncodeToString(memTx.realTx.TxHash()))
 		_, err := client.Client.CheckTx(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID), From: memTx.from})
 		if err != nil {
 			r.Logger.Error("CheckTx:Receive", "err", err)
@@ -341,6 +343,7 @@ func (r *txReceiver) CheckTxByStream(memTx *mempoolTx, peerID uint16, peer p2p.P
 			}
 			*client = clientV
 		}
+		r.Logger.Debug("CheckTxStream:Send", "tx", hex.EncodeToString(memTx.realTx.TxHash()))
 		stream, err = client.Client.CheckTxStream(context.Background())
 		if err != nil {
 			r.Logger.Error("Error CheckTxs", "err", err)
@@ -379,6 +382,7 @@ func (r *txReceiver) CheckTxAsyncByStream(memTx *mempoolTx, peerID uint16, peer 
 			}
 			*client = clientV
 		}
+		r.Logger.Debug("CheckTxStreamAsync:Send", "tx", hex.EncodeToString(memTx.realTx.TxHash()))
 		stream, err = client.Client.CheckTxStreamAsync(context.Background())
 		if err != nil {
 			r.Logger.Error("Error CheckTxs", "err", err)

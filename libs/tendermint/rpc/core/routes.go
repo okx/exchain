@@ -48,6 +48,8 @@ var Routes = map[string]*rpc.RPCFunc{
 
 	// evidence API
 	"broadcast_evidence": rpc.NewRPCFunc(BroadcastEvidence, "evidence"),
+
+	"get_enable_delete_min_gp_tx": rpc.NewRPCFunc(GetEnableDeleteMinGPTx, ""),
 }
 
 func AddUnsafeRoutes() {

@@ -191,6 +191,7 @@ func (memR *Reactor) OnStart() error {
 
 func (memR *Reactor) checkTx(tx types.Tx, txInfo TxInfo) {
 	err := memR.mempool.CheckTx(tx, nil, txInfo)
+	memR.Logger.Error("2link:receiver", "tx", tx)
 	if err != nil {
 		memR.logCheckTxError(tx, memR.mempool.height, err)
 	}
