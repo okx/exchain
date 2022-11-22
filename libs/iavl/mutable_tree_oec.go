@@ -195,6 +195,9 @@ func (tree *MutableTree) commitSchedule() {
 	tree.loadVersionToCommittedHeightMap()
 	for event := range tree.commitCh {
 		if event.version < 0 {
+			if event.wg != nil {
+				event.wg.Done()
+			}
 			continue
 		}
 		_, ok := tree.committedHeightMap[event.version]
