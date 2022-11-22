@@ -33,8 +33,10 @@ type Tracer struct {
 	intervals        []time.Duration
 	elapsedTime      time.Duration
 
-	pinMap map[string]time.Duration
-	enableSummary    bool
+	pinMap        map[string]time.Duration
+	enableSummary bool
+
+	wls *WorkloadStatistic
 }
 
 func NewTracer(name string) *Tracer {
@@ -48,6 +50,10 @@ func NewTracer(name string) *Tracer {
 
 func (t *Tracer) EnableSummary() {
 	t.enableSummary = true
+}
+
+func (t *Tracer) SetWorkloadStatistic(wls *WorkloadStatistic) {
+	t.wls = wls
 }
 
 func (t *Tracer) Pin(format string, args ...interface{}) {
@@ -67,12 +73,20 @@ func (t *Tracer) pinByFormat(tag string) {
 
 	now := time.Now()
 
+	if t.wls != nil {
+		t.wls.begin(tag, now)
+	}
+
 	if len(t.lastPin) > 0 {
 		t.pins = append(t.pins, t.lastPin)
 		duration := now.Sub(t.lastPinStartTime)
 		t.intervals = append(t.intervals, duration)
 		if t.enableSummary {
 			insertElapse(t.lastPin, duration.Milliseconds())
+		}
+
+		if t.wls != nil {
+			t.wls.end(tag, now)
 		}
 	}
 	t.lastPinStartTime = now

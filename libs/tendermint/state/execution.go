@@ -73,6 +73,8 @@ type BlockExecutor struct {
 	// the owner is validator
 	isNullIndexer bool
 	eventsChan    chan event
+
+	wls *trace.WorkloadStatistic
 }
 
 type event struct {
@@ -110,6 +112,8 @@ func NewBlockExecutor(
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
 		eventsChan:   make(chan event, 5),
+
+		wls: trace.GetApplyBlockWorkloadSttistic(),
 	}
 
 	for _, option := range options {
@@ -208,6 +212,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
 	trc.EnableSummary()
+	trc.SetWorkloadStatistic(blockExec.wls)
 	dc := blockExec.deltaContext
 
 	defer func() {
@@ -216,6 +221,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
+		// TODO
 
 		now := time.Now().UnixNano()
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
@@ -244,7 +250,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 
 	fail.Fail() // XXX
-
 
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
@@ -290,7 +295,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.evpool.Update(block, state)
 
 	fail.Fail() // XXX
-
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
