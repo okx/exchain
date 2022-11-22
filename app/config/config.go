@@ -6,10 +6,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	tmiavl "github.com/okex/exchain/libs/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
@@ -47,22 +50,21 @@ type OecConfig struct {
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
+
 	// enable-dynamic-gp
 	enableDynamicGp bool
 	// dynamic-gp-weight
 	dynamicGpWeight int
 	// dynamic-gp-check-blocks
 	dynamicGpCheckBlocks int
-	// dynamic-gp-adapt-uncongest
-	dynamicGpAdaptUncongest bool
-	// dynamic-gp-adapt-congest
-	dynamicGpAdaptCongest bool
 	// dynamic-gp-coefficient
 	dynamicGpCoefficient int
 	// dynamic-gp-max-gas-used
 	dynamicGpMaxGasUsed int64
 	// dynamic-gp-max-tx-num
 	dynamicGpMaxTxNum int64
+	// dynamic-gp-mode
+	dynamicGpMode int
 
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
@@ -81,6 +83,11 @@ type OecConfig struct {
 
 	// iavl-cache-size
 	iavlCacheSize int
+	// commit-gap-height
+	commitGapHeight int64
+
+	// iavl-fast-storage-cache-size
+	iavlFSCacheSize int64
 
 	// enable-wtx
 	enableWtx bool
@@ -115,17 +122,14 @@ const (
 	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
 	FlagGasLimitBuffer          = "gas-limit-buffer"
 	FlagEnableDynamicGp         = "enable-dynamic-gp"
+	FlagDynamicGpMode           = "dynamic-gp-mode"
 	FlagDynamicGpWeight         = "dynamic-gp-weight"
 	FlagDynamicGpCheckBlocks    = "dynamic-gp-check-blocks"
-	FlagDynamicGpAdaptUncongest = "dynamic-gp-adapt-uncongest"
-	FlagDynamicGpAdaptCongest   = "dynamic-gp-adapt-congest"
 	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
 	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
 	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
-
 	FlagEnableWrappedTx         = "enable-wtx"
 	FlagSentryAddrs             = "p2p.sentry_addrs"
-
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
 	FlagCsTimeoutPrevote        = "consensus.timeout_prevote"
@@ -216,6 +220,8 @@ func defaultOecConfig() *OecConfig {
 	return &OecConfig{
 		mempoolRecheck:         false,
 		mempoolForceRecheckGap: 2000,
+		commitGapHeight:        iavlconfig.DefaultCommitGapHeight,
+		iavlFSCacheSize:        tmiavl.DefaultIavlFastStorageCacheSize,
 	}
 }
 
@@ -237,14 +243,15 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
+
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
 	c.SetDynamicGpCheckBlocks(viper.GetInt(FlagDynamicGpCheckBlocks))
 	c.SetDynamicGpCoefficient(viper.GetInt(FlagDynamicGpCoefficient))
 	c.SetDynamicGpMaxGasUsed(viper.GetInt64(FlagDynamicGpMaxGasUsed))
 	c.SetDynamicGpMaxTxNum(viper.GetInt64(FlagDynamicGpMaxTxNum))
-	c.SetDynamicGpAdaptCongest(viper.GetBool(FlagDynamicGpAdaptCongest))
-	c.SetDynamicGpAdaptUncongest(viper.GetBool(FlagDynamicGpAdaptUncongest))
+
+	c.SetDynamicGpMode(viper.GetInt(FlagDynamicGpMode))
 	c.SetCsTimeoutPropose(viper.GetDuration(FlagCsTimeoutPropose))
 	c.SetCsTimeoutProposeDelta(viper.GetDuration(FlagCsTimeoutProposeDelta))
 	c.SetCsTimeoutPrevote(viper.GetDuration(FlagCsTimeoutPrevote))
@@ -253,6 +260,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetIavlFSCacheSize(viper.GetInt64(tmiavl.FlagIavlFastStorageCacheSize))
+	c.SetCommitGapHeight(viper.GetInt64(server.FlagCommitGapHeight))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
@@ -293,14 +302,12 @@ func (c *OecConfig) format() string {
 	mempool.check_tx_cost: %v
 
 	gas-limit-buffer: %d
-	enable-dynamic-gp: %v
 	dynamic-gp-weight: %d
 	dynamic-gp-check-blocks: %d
-	dynamic-gp-adapt-uncongest: %v
-	dynamic-gp-adapt-congest: %v
 	dynamic-gp-coefficient: %d
 	dynamic-gp-max-gas-used: %d
 	dynamic-gp-max-tx-num: %d
+	dynamic-gp-mode: %d
 
 	consensus.timeout_propose: %s
 	consensus.timeout_propose_delta: %s
@@ -311,6 +318,8 @@ func (c *OecConfig) format() string {
 	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
+    iavl-fast-storage-cache-size: %d
+    commit-gap-height: %d
 	enable-analyzer: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
@@ -321,14 +330,12 @@ func (c *OecConfig) format() string {
 		c.GetMaxGasUsedPerBlock(),
 		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
-		c.GetEnableDynamicGp(),
 		c.GetDynamicGpWeight(),
 		c.GetDynamicGpCheckBlocks(),
-		c.GetDynamicGpAdaptUncongest(),
-		c.GetDynamicGpAdaptCongest(),
 		c.GetDynamicGpCoefficient(),
 		c.GetDynamicGpMaxGasUsed(),
 		c.GetDynamicGpMaxTxNum(),
+		c.GetDynamicGpMode(),
 		c.GetCsTimeoutPropose(),
 		c.GetCsTimeoutProposeDelta(),
 		c.GetCsTimeoutPrevote(),
@@ -337,6 +344,8 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrecommitDelta(),
 		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
+		c.GetIavlFSCacheSize(),
+		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
 		c.GetActiveVC(),
 	)
@@ -423,18 +432,6 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpCheckBlocks(r)
-	case FlagDynamicGpAdaptUncongest:
-		r, err := strconv.ParseBool(v)
-		if err != nil {
-			return
-		}
-		c.SetDynamicGpAdaptUncongest(r)
-	case FlagDynamicGpAdaptCongest:
-		r, err := strconv.ParseBool(v)
-		if err != nil {
-			return
-		}
-		c.SetDynamicGpAdaptCongest(r)
 	case FlagDynamicGpCoefficient:
 		r, err := strconv.Atoi(v)
 		if err != nil {
@@ -453,6 +450,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpMaxTxNum(r)
+	case FlagDynamicGpMode:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpMode(r)
 	case FlagCsTimeoutPropose:
 		r, err := time.ParseDuration(v)
 		if err != nil {
@@ -501,6 +504,18 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
+	case tmiavl.FlagIavlFastStorageCacheSize:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetIavlFSCacheSize(int64(r))
+	case server.FlagCommitGapHeight:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetCommitGapHeight(r)
 	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -675,6 +690,7 @@ func (c *OecConfig) SetGasLimitBuffer(value uint64) {
 func (c *OecConfig) GetEnableDynamicGp() bool {
 	return c.enableDynamicGp
 }
+
 func (c *OecConfig) SetEnableDynamicGp(value bool) {
 	c.enableDynamicGp = value
 }
@@ -682,6 +698,7 @@ func (c *OecConfig) SetEnableDynamicGp(value bool) {
 func (c *OecConfig) GetDynamicGpWeight() int {
 	return c.dynamicGpWeight
 }
+
 func (c *OecConfig) SetDynamicGpWeight(value int) {
 	if value <= 0 {
 		value = 1
@@ -725,6 +742,17 @@ func (c *OecConfig) SetDynamicGpMaxTxNum(value int64) {
 	c.dynamicGpMaxTxNum = value
 }
 
+func (c *OecConfig) GetDynamicGpMode() int {
+	return c.dynamicGpMode
+}
+
+func (c *OecConfig) SetDynamicGpMode(value int) {
+	if value < 0 || value > 2 {
+		return
+	}
+	c.dynamicGpMode = value
+}
+
 func (c *OecConfig) GetDynamicGpCheckBlocks() int {
 	return c.dynamicGpCheckBlocks
 }
@@ -736,22 +764,6 @@ func (c *OecConfig) SetDynamicGpCheckBlocks(value int) {
 		value = 100
 	}
 	c.dynamicGpCheckBlocks = value
-}
-
-func (c *OecConfig) SetDynamicGpAdaptUncongest(value bool) {
-	c.dynamicGpAdaptUncongest = value
-}
-
-func (c *OecConfig) GetDynamicGpAdaptUncongest() bool {
-	return c.dynamicGpAdaptUncongest
-}
-
-func (c *OecConfig) SetDynamicGpAdaptCongest(value bool) {
-	c.dynamicGpAdaptCongest = value
-}
-
-func (c *OecConfig) GetDynamicGpAdaptCongest() bool {
-	return c.dynamicGpAdaptCongest
 }
 
 func (c *OecConfig) GetCsTimeoutPropose() time.Duration {
@@ -829,6 +841,35 @@ func (c *OecConfig) GetIavlCacheSize() int {
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
+}
+
+func (c *OecConfig) GetIavlFSCacheSize() int64 {
+	return c.iavlFSCacheSize
+}
+
+func (c *OecConfig) SetIavlFSCacheSize(value int64) {
+	c.iavlFSCacheSize = value
+}
+
+func (c *OecConfig) GetCommitGapHeight() int64 {
+	return atomic.LoadInt64(&c.commitGapHeight)
+}
+func (c *OecConfig) SetCommitGapHeight(value int64) {
+	if IsPruningOptionNothing() { // pruning nothing the gap should 1
+		value = 1
+	}
+	if value <= 0 {
+		return
+	}
+	atomic.StoreInt64(&c.commitGapHeight, value)
+}
+
+func IsPruningOptionNothing() bool {
+	strategy := strings.ToLower(viper.GetString(server.FlagPruning))
+	if strategy == types.PruningOptionNothing {
+		return true
+	}
+	return false
 }
 
 func (c *OecConfig) GetActiveVC() bool {

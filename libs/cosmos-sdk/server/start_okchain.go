@@ -9,6 +9,9 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -25,8 +28,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // exchain full-node start flags
@@ -210,7 +211,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().MarkHidden(tmiavl.FlagIavlDiscardFastStorage)
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableFastStorage, false, "Enable fast storage")
 	cmd.Flags().MarkHidden(tmiavl.FlagIavlEnableFastStorage)
-	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 10000000, "Max size of iavl fast storage cache")
+	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, tmiavl.DefaultIavlFastStorageCacheSize, "Max size of iavl fast storage cache")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, true, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().Bool(sdkstoretypes.FlagLoadVersionAsync, false, "Enable async for each kvstore to load version")
@@ -292,7 +293,7 @@ set --node-mode=rpc to manage the following flags:
 set --node-mode=validator to manage the following flags:
 	--disable-checktx-mutex=true
 	--disable-query-mutex=true
-	--enable-dynamic-gp=false
+	--dynamic-gp-mode=2
 	--iavl-enable-async-commit=true
 	--iavl-cache-size=10000000
 	--pruning=everything
