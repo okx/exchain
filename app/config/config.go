@@ -317,7 +317,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
-    commit-gap-Height: %d
+    commit-gap-height: %d
 	enable-analyzer: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
