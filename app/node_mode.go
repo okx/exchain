@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	sdktypes "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/iavl"
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -72,7 +71,7 @@ func setRpcConfig(ctx *server.Context) {
 
 func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
-	viper.SetDefault(appconfig.FlagDynamicGpMode, sdktypes.CloseMode)
+	viper.SetDefault(appconfig.FlagDynamicGpMode, types.CloseMode)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
@@ -81,7 +80,7 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(appconfig.FlagMaxGasUsedPerBlock, 120000000)
 
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
-		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, sdktypes.CloseMode, iavl.FlagIavlEnableAsyncCommit, true,
+		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, types.CloseMode, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
 		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000))
 }
