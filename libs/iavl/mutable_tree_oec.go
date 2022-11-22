@@ -6,7 +6,8 @@ import (
 	"sort"
 	"sync"
 
-	iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	"github.com/okex/exchain/libs/iavl/config"
+
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -34,9 +35,8 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
-	CommitGapHeight           int64 = 100
+	CommitGapHeight           int64 = config.DefaultCommitGapHeight
 	enableFastStorage               = true
-	fastNodeCacheSize               = 10000000
 )
 
 type commitEvent struct {
@@ -66,7 +66,11 @@ func GetEnableFastStorage() bool {
 
 // GetFastNodeCacheSize get fast node cache size
 func GetFastNodeCacheSize() int {
-	return int(iavlconfig.DynamicConfig.GetIavlFSCacheSize())
+	return int(config.DynamicConfig.GetIavlFSCacheSize())
+}
+
+func UpdateCommitGapHeight(gap int64) {
+	CommitGapHeight = gap
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {

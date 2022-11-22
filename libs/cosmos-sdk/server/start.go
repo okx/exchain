@@ -340,7 +340,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
 	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
 
-	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)

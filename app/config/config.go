@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
@@ -81,6 +83,8 @@ type OecConfig struct {
 
 	// iavl-cache-size
 	iavlCacheSize int
+	// commit-gap-height
+	commitGapHeight int64
 
 	// iavl-fast-storage-cache-size
 	iavlFSCacheSize int64
@@ -219,6 +223,7 @@ func defaultOecConfig() *OecConfig {
 	return &OecConfig{
 		mempoolRecheck:         false,
 		mempoolForceRecheckGap: 2000,
+		commitGapHeight:        iavlconfig.DefaultCommitGapHeight,
 	}
 }
 
@@ -257,6 +262,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetIavlFSCacheSize(viper.GetInt64(iavl.FlagIavlFSCacheSize))
+	c.SetCommitGapHeight(viper.GetInt64(server.FlagCommitGapHeight))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
@@ -316,6 +322,7 @@ func (c *OecConfig) format() string {
 	
 	iavl-cache-size: %d
     iavl-fast-storage-cache-size: %d
+    commit-gap-height: %d
 	enable-analyzer: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
@@ -343,6 +350,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
 		c.GetIavlFSCacheSize(),
+		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
 		c.GetActiveVC(),
 	)
@@ -513,6 +521,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlFSCacheSize(int64(r))
+	case server.FlagCommitGapHeight:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetCommitGapHeight(r)
 	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -849,6 +863,27 @@ func (c *OecConfig) GetIavlFSCacheSize() int64 {
 
 func (c *OecConfig) SetIavlFSCacheSize(value int64) {
 	c.iavlFSCacheSize = value
+}
+
+func (c *OecConfig) GetCommitGapHeight() int64 {
+	return atomic.LoadInt64(&c.commitGapHeight)
+}
+func (c *OecConfig) SetCommitGapHeight(value int64) {
+	if IsPruningOptionNothing() { // pruning nothing the gap should 1
+		value = 1
+	}
+	if value <= 0 {
+		return
+	}
+	atomic.StoreInt64(&c.commitGapHeight, value)
+}
+
+func IsPruningOptionNothing() bool {
+	strategy := strings.ToLower(viper.GetString(server.FlagPruning))
+	if strategy == types.PruningOptionNothing {
+		return true
+	}
+	return false
 }
 
 func (c *OecConfig) GetActiveVC() bool {
