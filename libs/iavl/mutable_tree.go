@@ -5,9 +5,11 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
+	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/tendermint/go-amino"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -773,6 +775,7 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, error) {
 	version := tree.version + 1
 
+	log.Printf("giskook %v --- %v\n", iavlconfig.DynamicConfig.GetIavlFSCacheSize(), GetFastNodeCacheSize())
 	//begin for upgrade new module
 	upgradeVersion := tree.GetUpgradeVersion()
 	if upgradeVersion != -1 {

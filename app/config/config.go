@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	stdlog "log"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -350,6 +351,7 @@ func (c *OecConfig) format() string {
 
 func (c *OecConfig) update(key, value interface{}) {
 	k, v := key.(string), value.(string)
+	stdlog.Printf("giskook update change %v %v\n", key, value)
 	switch k {
 	case FlagMempoolRecheck:
 		r, err := strconv.ParseBool(v)
@@ -509,6 +511,7 @@ func (c *OecConfig) update(key, value interface{}) {
 		c.SetIavlCacheSize(r)
 	case iavl.FlagIavlFSCacheSize:
 		r, err := strconv.Atoi(v)
+		stdlog.Printf("giskook change %v %v\n", r, err)
 		if err != nil {
 			return
 		}
