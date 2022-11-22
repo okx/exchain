@@ -53,7 +53,6 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 		bbto.SetBlockSize(int(size))
 	}
-	bbto.SetBlockSize(32)
 	bbto.SetBlockCache(gorocksdb.NewLRUCache(1 << 30))
 	if v, ok := params[blockCache]; ok {
 		cache, err := toBytes(v)
@@ -62,6 +61,8 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 		bbto.SetBlockCache(gorocksdb.NewLRUCache(cache))
 	}
+	bbto.SetCacheIndexAndFilterBlocks(true)
+	bbto.SetPinL0FilterAndIndexBlocksInCache(true)
 	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
 
 	opts := gorocksdb.NewDefaultOptions()
