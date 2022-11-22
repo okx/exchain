@@ -202,3 +202,8 @@ func calculateMaxNonce(data *addrMap) uint64 {
 	}
 	return maxNonce
 }
+
+type AddressNonce struct {
+	addr  string
+	nonce uint64
+}

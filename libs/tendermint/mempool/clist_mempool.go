@@ -75,9 +75,11 @@ type CListMempool struct {
 
 	metrics *Metrics
 
-	pendingPool       *PendingPool
-	accountRetriever  AccountRetriever
-	pendingPoolNotify chan map[string]uint64
+	pendingPool                *PendingPool
+	accountRetriever           AccountRetriever
+	pendingPoolNotify          chan map[string]uint64
+	consumePendingTxQueue      chan AddressNonce
+	consumePendingTxQueueLimit int
 
 	txInfoparser TxInfoParser
 
@@ -139,6 +141,10 @@ func NewCListMempool(
 			config.PendingPoolReserveBlocks, config.PendingPoolMaxTxPerAddress)
 		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
 		go mempool.pendingPoolJob()
+
+		mempool.consumePendingTxQueueLimit = 100
+		mempool.consumePendingTxQueue = make(chan AddressNonce, mempool.consumePendingTxQueueLimit)
+		go mempool.consumePendingTxQueueJob()
 	}
 
 	return mempool
@@ -419,7 +425,7 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	}})
 
 	types.SignatureCache().Remove(memTx.realTx.TxHash())
-	mem.logger.Debug("mempool", "add  Tx", hex.EncodeToString(memTx.realTx.TxHash()), "nounce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice())
+	mem.logger.Debug("mempool", "add  Tx", hex.EncodeToString(memTx.realTx.TxHash()), "nonce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice())
 	return nil
 }
 
@@ -464,7 +470,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 		expectedNonce = pendingNonce + 1
 	}
 	txNonce := memTx.realTx.GetNonce()
-	mem.logger.Debug("mempool", "addPendingTx", hex.EncodeToString(memTx.realTx.TxHash()), "nounce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice(), "pending Nouce", pendingNonce, "excepectNouce", expectedNonce)
+	mem.logger.Debug("mempool", "addPendingTx", hex.EncodeToString(memTx.realTx.TxHash()), "nonce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice(), "pending Nouce", pendingNonce, "excepectNouce", expectedNonce)
 	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
 	if txNonce == 0 || txNonce < expectedNonce {
 		return mem.addTx(memTx)
@@ -473,7 +479,12 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	if txNonce == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
-			go mem.consumePendingTx(memTx.from, txNonce+1)
+			if len(mem.consumePendingTxQueue) >= mem.consumePendingTxQueueLimit {
+				mem.logger.Error("mempool", "the consumePendingTxQueue and mempool is full", "disable consume pending tx")
+			} else {
+				mem.consumePendingTxQueue <- AddressNonce{addr: memTx.from, nonce: txNonce + 1}
+			}
+			//go mem.consumePendingTx(memTx.from, txNonce+1)
 		}
 		return err
 	}
@@ -484,7 +495,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 	pendingTx := memTx
 	mem.pendingPool.addTx(pendingTx)
-	mem.logger.Debug("mempool", "add-pending-Tx", hex.EncodeToString(memTx.realTx.TxHash()), "nounce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice())
+	mem.logger.Debug("mempool", "add-pending-Tx", hex.EncodeToString(memTx.realTx.TxHash()), "nonce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice())
 
 	mem.logger.Debug("pending pool addTx", "tx", pendingTx)
 
@@ -507,7 +518,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 				continue
 			}
 		}
-		mem.logger.Debug("mempool", "consumePendingTx", hex.EncodeToString(pendingTx.realTx.TxHash()), "nounce", pendingTx.realTx.GetNonce(), "gp", pendingTx.realTx.GetGasPrice())
+		mem.logger.Debug("mempool", "consumePendingTx", hex.EncodeToString(pendingTx.realTx.TxHash()), "nonce", pendingTx.realTx.GetNonce(), "gp", pendingTx.realTx.GetGasPrice())
 
 		mempoolTx := pendingTx
 		mempoolTx.height = mem.Height()
@@ -953,8 +964,16 @@ func (mem *CListMempool) Update(
 	// Update metrics
 	mem.metrics.Size.Set(float64(mem.Size()))
 	if mem.pendingPool != nil {
-		mem.pendingPoolNotify <- addressNonce
-		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
+		if len(mem.pendingPoolNotify) >= 1 {
+			go func() {
+				mem.pendingPoolNotify <- addressNonce
+				mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
+			}()
+		} else {
+			mem.pendingPoolNotify <- addressNonce
+			mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
+		}
+
 	}
 
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
@@ -1246,6 +1265,12 @@ func (mem *CListMempool) pendingPoolJob() {
 	}
 }
 
+func (mem *CListMempool) consumePendingTxQueueJob() {
+	for addrNonce := range mem.consumePendingTxQueue {
+		mem.consumePendingTx(addrNonce.addr, addrNonce.nonce)
+	}
+}
+
 func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	var simuRes SimulationResponse
 	res, err := mem.proxyAppConn.QuerySync(abci.RequestQuery{
@@ -1269,7 +1294,7 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull(removeTx *clist.CElement) {
 		if removeMemTx.realTx != nil {
 			removeMemTxHash = removeMemTx.realTx.TxHash()
 		}
-		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nounce", removeTx.Value.(*mempoolTx).realTx.GetNonce(), "gp", removeTx.Value.(*mempoolTx).realTx.GetGasPrice())
+		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeTx.Value.(*mempoolTx).realTx.GetNonce(), "gp", removeTx.Value.(*mempoolTx).realTx.GetGasPrice())
 		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
 	}
 }
