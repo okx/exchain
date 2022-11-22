@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -83,7 +84,7 @@ type OecConfig struct {
 	iavlCacheSize int
 
 	// iavl-fast-storage-cache-size
-	iavlFSCacheSize int
+	iavlFSCacheSize int64
 
 	// enable-wtx
 	enableWtx bool
@@ -256,7 +257,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
-	c.SetIavlFSCacheSize(viper.GetInt(iavl.FlagIavlFSCacheSize))
+	c.SetIavlFSCacheSize(viper.GetInt64(iavl.FlagIavlFSCacheSize))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
@@ -512,7 +513,7 @@ func (c *OecConfig) update(key, value interface{}) {
 		if err != nil {
 			return
 		}
-		c.SetIavlFSCacheSize(r)
+		c.SetIavlFSCacheSize(int64(r))
 	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -843,12 +844,12 @@ func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
 }
 
-func (c *OecConfig) GetIavlFSCacheSize() int {
-	return c.iavlFSCacheSize
+func (c *OecConfig) GetIavlFSCacheSize() int64 {
+	return atomic.LoadInt64(&c.iavlFSCacheSize)
 }
 
-func (c *OecConfig) SetIavlFSCacheSize(value int) {
-	c.iavlFSCacheSize = value
+func (c *OecConfig) SetIavlFSCacheSize(value int64) {
+	atomic.StoreInt64(&c.iavlFSCacheSize, value)
 }
 
 func (c *OecConfig) GetActiveVC() bool {

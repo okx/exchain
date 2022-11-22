@@ -64,14 +64,9 @@ func GetEnableFastStorage() bool {
 	return enableFastStorage
 }
 
-// SetFastNodeCacheSize set fast node cache size
-func SetFastNodeCacheSize(size int) {
-	fastNodeCacheSize = size
-}
-
 // GetFastNodeCacheSize get fast node cache size
 func GetFastNodeCacheSize() int {
-	return iavlconfig.DynamicConfig.GetIavlFSCacheSize()
+	return int(iavlconfig.DynamicConfig.GetIavlFSCacheSize())
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
