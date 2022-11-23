@@ -52,12 +52,27 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 		}(txJobChan, &wg)
 	}
 
-	for i, key := range keys {
-		setOrDelFlag := setOrDel[i]
+	for i := 0; i < keyCount; i++ {
+		j := i
+		if j%2 != 0 {
+			j = keyCount - (i / 2) - 1
+		} else {
+			j = i / 2
+		}
+
+		key := keys[j]
+		setOrDelFlag := setOrDel[j]
 		if setOrDelFlag != PreChangeNop {
-			txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDel[i]}
+			txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDelFlag}
 		}
 	}
+
+	//for i, key := range keys {
+	//	setOrDelFlag := setOrDel[i]
+	//	if setOrDelFlag != PreChangeNop {
+	//		txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDel[i]}
+	//	}
+	//}
 	close(txJobChan)
 	wg.Wait()
 
