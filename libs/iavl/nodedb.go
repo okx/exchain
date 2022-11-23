@@ -217,6 +217,8 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 	return
 }
 
+var TopContract = make(map[common.Address]int)
+
 // GetNode gets a node from memory or disk. If it is an inner node, it does not
 // load its children.
 func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
@@ -229,6 +231,7 @@ func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 		if len(n.key) == 53 && bytes.Equal(n.key[1:21], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
 			if from == fromDisk {
 				ndb.addXenDBReadCount()
+				TopContract[common.BytesToAddress(n.key[1:21])]++
 			} else {
 				ndb.addXenNodeReadCount()
 			}

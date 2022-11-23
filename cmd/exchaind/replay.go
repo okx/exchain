@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"sort"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
@@ -20,6 +22,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
@@ -96,6 +99,10 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			ts := time.Now()
 			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
+			list := sortMapByValue(iavl.TopContract)
+			for i := 0; i < 100 && i < len(list); i++ {
+				log.Println(list[i].Key, list[i].Value)
+			}
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			if viper.GetBool(runWithPprofMemFlag) {
@@ -116,6 +123,27 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 	tcmd.AddNodeFlags(cmd)
 	registerReplayFlags(cmd)
 	return cmd
+}
+
+type Pair struct {
+	Key   common.Address
+	Value int
+}
+
+type PairList []Pair
+
+func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p PairList) Len() int           { return len(p) }
+func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+
+func sortMapByValue(m map[common.Address]int) PairList {
+	p := make(PairList, len(m))
+	i := 0
+	for k, v := range m {
+		p[i] = Pair{k, v}
+	}
+	sort.Sort(p)
+	return p
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
