@@ -22,13 +22,14 @@ killbyname() {
 
 run() {
     LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info
-
+#--mempool.enable_delete_min_gp_tx false \
 #    exchaind start --pruning=nothing --rpc.unsafe \
     exchaind start --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
       --dynamic-gp-mode=2 \
+      --mempool.enable_delete_min_gp_tx=true \
       --consensus.timeout_commit 2000ms \
       --enable-preruntx=1 \
       --iavl-enable-async-commit \

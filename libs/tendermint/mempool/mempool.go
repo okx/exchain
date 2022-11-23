@@ -90,7 +90,6 @@ type Mempool interface {
 
 	SetTxInfoParser(parser TxInfoParser)
 
-	SetEnableDeleteMinGPTx(enable bool)
 	GetEnableDeleteMinGPTx() bool
 }
 

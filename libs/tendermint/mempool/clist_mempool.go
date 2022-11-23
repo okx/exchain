@@ -92,9 +92,6 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
-
-	enableDeleteLowGPTx      bool
-	enableDeleteLowGPTxMutex sync.RWMutex
 }
 
 var _ Mempool = &CListMempool{}
@@ -136,8 +133,6 @@ func NewCListMempool(
 		option(mempool)
 	}
 
-	// default EnableDeleteMinGPTx true
-	mempool.SetEnableDeleteMinGPTx(true)
 	if config.EnablePendingPool {
 		mempool.pendingPool = newPendingPool(config.PendingPoolSize, config.PendingPoolPeriod,
 			config.PendingPoolReserveBlocks, config.PendingPoolMaxTxPerAddress)
@@ -1310,16 +1305,7 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull(removeTx *clist.CElement) {
 		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
 	}
 }
-func (mem *CListMempool) SetEnableDeleteMinGPTx(enable bool) {
-	mem.enableDeleteLowGPTxMutex.Lock()
-	mem.enableDeleteLowGPTx = enable
-	mem.enableDeleteLowGPTxMutex.Unlock()
-}
 
 func (mem *CListMempool) GetEnableDeleteMinGPTx() bool {
-	enable := false
-	mem.enableDeleteLowGPTxMutex.RLock()
-	enable = mem.enableDeleteLowGPTx
-	mem.enableDeleteLowGPTxMutex.RUnlock()
-	return enable
+	return cfg.DynamicConfig.GetEnableDeleteMinGPTx()
 }

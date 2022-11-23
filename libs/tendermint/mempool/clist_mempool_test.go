@@ -1013,7 +1013,9 @@ func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
 				mempool.Flush()
 				err := mempool.CheckTx([]byte{0x02}, nil, TxInfo{})
 				require.NoError(tt, err)
-				mempool.SetEnableDeleteMinGPTx(true)
+				moc := cfg.MockDynamicConfig{}
+				moc.SetEnableDeleteMinGPTx(true)
+				cfg.SetDynamicConfig(moc)
 			},
 			execFunc: func(mempool *CListMempool, tt *testing.T) {
 				err := mempool.CheckTx([]byte{0x03}, nil, TxInfo{})

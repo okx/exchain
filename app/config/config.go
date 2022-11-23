@@ -39,6 +39,8 @@ type OecConfig struct {
 	mempoolFlush bool
 	// mempool.max_tx_num_per_block
 	maxTxNumPerBlock int64
+	// mempool.enable_delete_min_gp_tx
+	enableDeleteMinGPTx bool
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
 	// mempool.node_key_whitelist
@@ -112,33 +114,34 @@ type OecConfig struct {
 const (
 	FlagEnableDynamic = "config.enable-dynamic"
 
-	FlagMempoolRecheck          = "mempool.recheck"
-	FlagMempoolForceRecheckGap  = "mempool.force_recheck_gap"
-	FlagMempoolSize             = "mempool.size"
-	FlagMempoolFlush            = "mempool.flush"
-	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
-	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
-	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
-	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
-	FlagGasLimitBuffer          = "gas-limit-buffer"
-	FlagEnableDynamicGp         = "enable-dynamic-gp"
-	FlagDynamicGpMode           = "dynamic-gp-mode"
-	FlagDynamicGpWeight         = "dynamic-gp-weight"
-	FlagDynamicGpCheckBlocks    = "dynamic-gp-check-blocks"
-	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
-	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
-	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
-	FlagEnableWrappedTx         = "enable-wtx"
-	FlagSentryAddrs             = "p2p.sentry_addrs"
-	FlagCsTimeoutPropose        = "consensus.timeout_propose"
-	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
-	FlagCsTimeoutPrevote        = "consensus.timeout_prevote"
-	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
-	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
-	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
-	FlagCsTimeoutCommit         = "consensus.timeout_commit"
-	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
-	FlagDebugGcInterval         = "debug.gc-interval"
+	FlagMempoolRecheck             = "mempool.recheck"
+	FlagMempoolForceRecheckGap     = "mempool.force_recheck_gap"
+	FlagMempoolSize                = "mempool.size"
+	FlagMempoolFlush               = "mempool.flush"
+	FlagMaxTxNumPerBlock           = "mempool.max_tx_num_per_block"
+	FlagMaxGasUsedPerBlock         = "mempool.max_gas_used_per_block"
+	FlagNodeKeyWhitelist           = "mempool.node_key_whitelist"
+	FlagMempoolCheckTxCost         = "mempool.check_tx_cost"
+	FlagMempoolEnableDeleteMinGPTx = "mempool.enable_delete_min_gp_tx"
+	FlagGasLimitBuffer             = "gas-limit-buffer"
+	FlagEnableDynamicGp            = "enable-dynamic-gp"
+	FlagDynamicGpMode              = "dynamic-gp-mode"
+	FlagDynamicGpWeight            = "dynamic-gp-weight"
+	FlagDynamicGpCheckBlocks       = "dynamic-gp-check-blocks"
+	FlagDynamicGpCoefficient       = "dynamic-gp-coefficient"
+	FlagDynamicGpMaxGasUsed        = "dynamic-gp-max-gas-used"
+	FlagDynamicGpMaxTxNum          = "dynamic-gp-max-tx-num"
+	FlagEnableWrappedTx            = "enable-wtx"
+	FlagSentryAddrs                = "p2p.sentry_addrs"
+	FlagCsTimeoutPropose           = "consensus.timeout_propose"
+	FlagCsTimeoutProposeDelta      = "consensus.timeout_propose_delta"
+	FlagCsTimeoutPrevote           = "consensus.timeout_prevote"
+	FlagCsTimeoutPrevoteDelta      = "consensus.timeout_prevote_delta"
+	FlagCsTimeoutPrecommit         = "consensus.timeout_precommit"
+	FlagCsTimeoutPrecommitDelta    = "consensus.timeout_precommit_delta"
+	FlagCsTimeoutCommit            = "consensus.timeout_commit"
+	FlagEnableHasBlockPartMsg      = "enable-blockpart-ack"
+	FlagDebugGcInterval            = "debug.gc-interval"
 )
 
 var (
@@ -241,6 +244,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
+	c.SetEnableDeleteMinGPTx(viper.GetBool(FlagMempoolEnableDeleteMinGPTx))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 
@@ -298,6 +302,7 @@ func (c *OecConfig) format() string {
 	mempool.size: %d
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
+	mempool.enable_delete_min_gp_tx: %v
 	mempool.max_gas_used_per_block: %d
 	mempool.check_tx_cost: %v
 
@@ -327,6 +332,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolSize(),
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
+		c.GetEnableDeleteMinGPTx(),
 		c.GetMaxGasUsedPerBlock(),
 		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
@@ -384,6 +390,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMaxTxNumPerBlock(r)
+	case FlagMempoolEnableDeleteMinGPTx:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableDeleteMinGPTx(r)
 	case FlagNodeKeyWhitelist:
 		r, ok := value.(string)
 		if !ok {
@@ -668,6 +680,14 @@ func (c *OecConfig) SetMaxTxNumPerBlock(value int64) {
 		return
 	}
 	c.maxTxNumPerBlock = value
+}
+
+func (c *OecConfig) GetEnableDeleteMinGPTx() bool {
+	return c.enableDeleteMinGPTx
+}
+
+func (c *OecConfig) SetEnableDeleteMinGPTx(enable bool) {
+	c.enableDeleteMinGPTx = enable
 }
 
 func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {

@@ -7,6 +7,7 @@ type IDynamicConfig interface {
 	GetMempoolForceRecheckGap() int64
 	GetMempoolSize() int
 	GetMaxTxNumPerBlock() int64
+	GetEnableDeleteMinGPTx() bool
 	GetMaxGasUsedPerBlock() int64
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
@@ -31,6 +32,7 @@ func SetDynamicConfig(c IDynamicConfig) {
 }
 
 type MockDynamicConfig struct {
+	enableDeleteMinGPTx bool
 }
 
 func (d MockDynamicConfig) GetMempoolRecheck() bool {
@@ -100,4 +102,12 @@ func (d MockDynamicConfig) GetDeliverTxsExecuteMode() int {
 
 func (d MockDynamicConfig) GetEnableHasBlockPartMsg() bool {
 	return false
+}
+
+func (d MockDynamicConfig) GetEnableDeleteMinGPTx() bool {
+	return d.enableDeleteMinGPTx
+}
+
+func (d *MockDynamicConfig) SetEnableDeleteMinGPTx(enable bool) {
+	d.enableDeleteMinGPTx = true
 }
