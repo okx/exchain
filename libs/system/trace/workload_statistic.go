@@ -34,7 +34,7 @@ type WorkloadStatistic struct {
 
 type workloadSummary struct {
 	period   time.Duration
-	workload atomic.Int64
+	workload int64
 }
 
 type workInfo struct {
@@ -51,7 +51,7 @@ func newWorkloadStatistic(periods []time.Duration, tags_ []string) *WorkloadStat
 
 	workloads := make([]workloadSummary, 0, len(periods))
 	for _, period := range periods {
-		workloads = append(workloads, workloadSummary{period, atomic.Int64{}})
+		workloads = append(workloads, workloadSummary{period, 0})
 	}
 
 	wls := &WorkloadStatistic{tags: tags, workloads: workloads, workCh: make(chan workInfo, 1000)}
@@ -67,7 +67,7 @@ func (ws *WorkloadStatistic) Add(tag string, wl time.Duration) {
 
 	now := time.Now()
 	for i := range ws.workloads {
-		ws.workloads[i].workload.Add(int64(wl))
+		atomic.AddInt64(&ws.workloads[i].workload, int64(wl))
 	}
 
 	ws.workCh <- workInfo{now, int64(wl)}
@@ -100,7 +100,7 @@ func (ws *WorkloadStatistic) end(tag string, t time.Time) {
 
 	dur := t.Sub(ws.latestBegin)
 	for i := range ws.workloads {
-		ws.workloads[i].workload.Add(int64(dur))
+		atomic.AddInt64(&ws.workloads[i].workload, int64(dur))
 	}
 
 	ws.workCh <- workInfo{t, int64(dur)}
@@ -117,7 +117,7 @@ func (ws *WorkloadStatistic) summary() []summaryInfo {
 
 	summary := make([]summaryInfo, 0, len(ws.workloads))
 	for _, wload := range ws.workloads {
-		summary = append(summary, summaryInfo{wload.period, time.Duration(wload.workload.Load())})
+		summary = append(summary, summaryInfo{wload.period, time.Duration(atomic.LoadInt64(&wload.workload))})
 	}
 	return summary
 }
@@ -166,7 +166,7 @@ func (ws *WorkloadStatistic) shrink_loop() {
 				for i := latest; i < current+1; i++ {
 					w, ok := info[i]
 					if ok {
-						ws.workloads[index].workload.Add(-w)
+						atomic.AddInt64(&ws.workloads[index].workload, -w)
 						delete(info, i)
 					}
 				}
