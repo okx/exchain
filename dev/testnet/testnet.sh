@@ -146,7 +146,7 @@ run() {
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
     --p2p.allow_duplicate_ip \
-    --enable-dynamic-gp=false \
+    --dynamic-gp-mode=2 \
     --enable-wtx=${WRAPPEDTX} \
     --mempool.node_key_whitelist ${WHITE_LIST} \
     --p2p.pex=false \

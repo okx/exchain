@@ -30,7 +30,6 @@ const (
 	HandlerDefer = "handler_defer"
 )
 
-
 const (
 	GasUsed     = "GasUsed"
 	Produce     = "Produce"
@@ -78,6 +77,8 @@ const (
 	IavlRuntime     = "IavlRuntime"
 
 	BlockPartsP2P = "BlockPartsP2P"
+
+	Workload = "Workload"
 )
 
 const (
