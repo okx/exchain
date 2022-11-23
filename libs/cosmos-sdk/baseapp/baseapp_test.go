@@ -290,26 +290,6 @@ func TestAppVersionSetterGetter(t *testing.T) {
 	require.Equal(t, versionString, string(res.Value))
 }
 
-func TestCustomQuery(t *testing.T) {
-	logger := defaultLogger()
-	pruningOpt := SetPruning(store.PruneDefault)
-	db := dbm.NewMemDB()
-	name := t.Name()
-	app := NewBaseApp(name, logger, db, nil, pruningOpt)
-
-	require.Equal(t, "", app.AppVersion())
-	res := app.Query(abci.RequestQuery{Path: "custom/auth/account"})
-	require.True(t, res.IsOK())
-	require.Equal(t, "", string(res.Value))
-
-	versionString := "1.0.0"
-	app.SetAppVersion(versionString)
-	require.Equal(t, versionString, app.AppVersion())
-	res = app.Query(abci.RequestQuery{Path: "app/version"})
-	require.True(t, res.IsOK())
-	require.Equal(t, versionString, string(res.Value))
-}
-
 func TestLoadVersionInvalid(t *testing.T) {
 	logger := log.NewNopLogger()
 	pruningOpt := SetPruning(store.PruneNothing)
@@ -520,18 +500,7 @@ func TestInitChainer(t *testing.T) {
 	var initChainer sdk.InitChainer = func(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 		store := ctx.KVStore(capKey)
 		store.Set(key, value)
-		return abci.ResponseInitChain{
-			Validators: []abci.ValidatorUpdate{
-				{
-					PubKey: abci.PubKey{Type: "test1", Data: []byte("123")},
-					Power:  2,
-				},
-				{
-					PubKey: abci.PubKey{Type: "test2", Data: []byte("223")},
-					Power:  1,
-				},
-			},
-		}
+		return abci.ResponseInitChain{}
 	}
 
 	query := abci.RequestQuery{
@@ -552,20 +521,7 @@ func TestInitChainer(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, int64(0), app.LastBlockHeight())
 
-	app.InitChain(
-		abci.RequestInitChain{
-			Validators: []abci.ValidatorUpdate{
-				{
-					PubKey: abci.PubKey{Type: "test2", Data: []byte("223")},
-					Power:  1,
-				},
-				{
-					PubKey: abci.PubKey{Type: "test1", Data: []byte("123")},
-					Power:  2,
-				},
-			},
-			AppStateBytes: []byte("{}"), ChainId: "test-chain-id"},
-	) // must have valid JSON genesis file, even if empty
+	app.InitChain(abci.RequestInitChain{AppStateBytes: []byte("{}"), ChainId: "test-chain-id"}) // must have valid JSON genesis file, even if empty
 
 	// assert that chainID is set correctly in InitChain
 	chainID := app.deliverState.ctx.ChainID()
@@ -1671,192 +1627,3 @@ func TestWithRouter(t *testing.T) {
 		app.Commit(abci.RequestCommit{})
 	}
 }
-
-//type BaseAppTestSuite struct {
-//	suite.Suite
-//	app                 *simapp2.SimApp
-//	priv0, priv1, priv2 ethsecp256k1.PrivKey
-//	addr0, addr1, addr2 sdk.AccAddress
-//	acc0, acc1          *types3.EthAccount
-//	chainIdStr          string
-//	chainIdInt          *big.Int
-//}
-//
-//func (suite *BaseAppTestSuite) SetupTest() {
-//	types2.UnittestOnlySetMilestoneVenusHeight(-1)
-//	var err error
-//	suite.priv0, err = ethsecp256k1.GenerateKey()
-//	suite.Require().NoError(err)
-//	suite.addr0 = sdk.AccAddress(suite.priv0.PubKey().Address())
-//	suite.Require().NoError(err)
-//	suite.priv1, err = ethsecp256k1.GenerateKey()
-//	suite.Require().NoError(err)
-//	suite.addr1 = sdk.AccAddress(suite.priv1.PubKey().Address())
-//	suite.priv2, err = ethsecp256k1.GenerateKey()
-//	suite.Require().NoError(err)
-//
-//	suite.acc0 = &types3.EthAccount{
-//		BaseAccount: &auth.BaseAccount{
-//			Address: suite.addr0,
-//			Coins:   sdk.Coins{sdk.NewInt64Coin("okt", 1000000)},
-//		},
-//		CodeHash: []byte{1, 2},
-//	}
-//	suite.acc1 = &types3.EthAccount{
-//		BaseAccount: &auth.BaseAccount{
-//			Address: suite.addr1,
-//			Coins:   sdk.Coins{sdk.NewInt64Coin("okt", 1000000)},
-//		},
-//		CodeHash: []byte{1, 2},
-//	}
-//	suite.chainIdStr = "ethermint-3"
-//	suite.chainIdInt = big.NewInt(3)
-//	genAccs := []authexported.GenesisAccount{suite.acc0, suite.acc1}
-//	suite.app = simapp2.SetupWithGenesisAccounts(genAccs, sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(1000000, 0))))
-//	//header := abci.Header{Height: suite.app.LastBlockHeight() + 1, ChainID: suite.chainIdStr}
-//
-//	suite.app.BaseApp.Commit(abci.RequestCommit{})
-//}
-//
-//func (suite *BaseAppTestSuite) TestParallel(t *testing.T) {
-//
-//}
-//func (suite *BaseAppTestSuite) TestTraceTx(t *testing.T) {
-//	gasConsumed := uint64(5)
-//
-//	anteOpt := func(bapp *BaseApp) {
-//		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-//			newCtx = ctx
-//			newCtx.SetGasMeter(sdk.NewGasMeter(gasConsumed))
-//			return
-//		})
-//	}
-//
-//	routerOpt := func(bapp *BaseApp) {
-//		bapp.Router().AddRoute(routeMsgCounter, func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-//			ctx.GasMeter().ConsumeGas(gasConsumed, "test")
-//			return &sdk.Result{}, nil
-//		})
-//	}
-//
-//	app := setupBaseApp(t, anteOpt, routerOpt)
-//
-//	app.InitChain(abci.RequestInitChain{})
-//
-//	// Create same codec used in txDecoder
-//	cdc := codec.New()
-//	registerTestCodec(cdc)
-//
-//	//nBlocks := 4
-//	//for blockN := 0; blockN < nBlocks; blockN++ {
-//	header := abci.Header{Height: 1}
-//	app.BeginBlock(abci.RequestBeginBlock{Header: header})
-//	//addr := ethcmn.BytesToAddress([]byte("test_address"))
-//
-//	tx, err := app.txDecoder(txBytes)
-//	require.NoError(t, err)
-//	app.runTx(runTxModeDeliver, txBytes, tx, 1)
-//	app.EndBlock(abci.RequestEndBlock{})
-//	app.Commit(abci.RequestCommit{})
-//	//if blockN != 0 {
-//	// simulate a message, check gas reported
-//	//gInfo, result, err := app.Simulate(txBytes, tx, 0, nil)
-//	//require.NoError(t, err)
-//	//require.NotNil(t, result)
-//	//require.Equal(t, gasConsumed, gInfo.GasUsed)
-//
-//	// simulate again, same result
-//	//gInfo, result, err = app.Simulate(txBytes, tx, 0, nil)
-//	//require.NoError(t, err)
-//	//require.NotNil(t, result)
-//	//require.Equal(t, gasConsumed, gInfo.GasUsed)
-//
-//	// simulate by calling Query with encoded tx
-//	query := abci.RequestQuery{
-//		Path: "/app/trace",
-//		Data: ethcmn.Hex2Bytes("b502282816a90a7e9b4ee3990a050a036f6b63121e0a036f6b74121731303030303030303030303030303030303030303030301a14bbe4733d85bc2b90682147779da49cab38c0aa1f2214bbe4733d85bc2b90682147779da49cab38c0aa1f2a251624de64206a4bd0485451a498ad88c527211ff043118f260ee38ab4dbaac96a203d23e1b8120410c09a0c1a6b0a26f3b3cd032103917cddc74df72174b992e532d85cbb44fb730a1fd77983aaaa92fcd4c99e3e93124161a7e841ad22e836295d54ab0e3087467cd6e400ff581199393a5e7eaecd28905d7b2172192696366f048f14be67247b8acd3d148d5ca73b728cc7a50064270400223c34623634643237386361303266343936633636616664633665663133316664616634353330363131403139322e3136382e312e3130323a3236363536"),
-//	}
-//	queryResult := app.Query(query)
-//	require.True(t, queryResult.IsOK(), queryResult.Log)
-//
-//	//var simRes sdk.SimulationResponse
-//	//err = codec.Cdc.UnmarshalBinaryBare(queryResult.Value, &simRes)
-//	//require.NoError(t, err)
-//	//require.Equal(t, gInfo, simRes.GasInfo)
-//	//require.Equal(t, result.Log, simRes.Result.Log)
-//	//require.Equal(t, result.Events, simRes.Result.Events)
-//	//require.True(t, bytes.Equal(result.Data, simRes.Result.Data))
-//	//}
-//
-//	//}
-//}
-//
-//func (suite *BaseAppTestSuite) testTraceTx(t *testing.T) {
-//	gasConsumed := uint64(5)
-//
-//	anteOpt := func(bapp *BaseApp) {
-//		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-//			newCtx = ctx
-//			newCtx.SetGasMeter(sdk.NewGasMeter(gasConsumed))
-//			return
-//		})
-//	}
-//
-//	routerOpt := func(bapp *BaseApp) {
-//		bapp.Router().AddRoute(routeMsgCounter, func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-//			ctx.GasMeter().ConsumeGas(gasConsumed, "test")
-//			return &sdk.Result{}, nil
-//		})
-//	}
-//
-//	app := setupBaseApp(t, anteOpt, routerOpt)
-//
-//	app.InitChain(abci.RequestInitChain{})
-//
-//	// Create same codec used in txDecoder
-//	cdc := codec.New()
-//	registerTestCodec(cdc)
-//
-//	//nBlocks := 4
-//	//for blockN := 0; blockN < nBlocks; blockN++ {
-//	header := abci.Header{Height: 1}
-//	app.BeginBlock(abci.RequestBeginBlock{Header: header})
-//	//addr := ethcmn.BytesToAddress([]byte("test_address"))
-//
-//	tx, err := app.txDecoder(txBytes)
-//	require.NoError(t, err)
-//	app.runTx(runTxModeDeliver, txBytes, tx, 1)
-//	app.EndBlock(abci.RequestEndBlock{})
-//	app.Commit(abci.RequestCommit{})
-//	//if blockN != 0 {
-//	// simulate a message, check gas reported
-//	//gInfo, result, err := app.Simulate(txBytes, tx, 0, nil)
-//	//require.NoError(t, err)
-//	//require.NotNil(t, result)
-//	//require.Equal(t, gasConsumed, gInfo.GasUsed)
-//
-//	// simulate again, same result
-//	//gInfo, result, err = app.Simulate(txBytes, tx, 0, nil)
-//	//require.NoError(t, err)
-//	//require.NotNil(t, result)
-//	//require.Equal(t, gasConsumed, gInfo.GasUsed)
-//
-//	// simulate by calling Query with encoded tx
-//	query := abci.RequestQuery{
-//		Path: "/app/trace",
-//		Data: ethcmn.Hex2Bytes("b502282816a90a7e9b4ee3990a050a036f6b63121e0a036f6b74121731303030303030303030303030303030303030303030301a14bbe4733d85bc2b90682147779da49cab38c0aa1f2214bbe4733d85bc2b90682147779da49cab38c0aa1f2a251624de64206a4bd0485451a498ad88c527211ff043118f260ee38ab4dbaac96a203d23e1b8120410c09a0c1a6b0a26f3b3cd032103917cddc74df72174b992e532d85cbb44fb730a1fd77983aaaa92fcd4c99e3e93124161a7e841ad22e836295d54ab0e3087467cd6e400ff581199393a5e7eaecd28905d7b2172192696366f048f14be67247b8acd3d148d5ca73b728cc7a50064270400223c34623634643237386361303266343936633636616664633665663133316664616634353330363131403139322e3136382e312e3130323a3236363536"),
-//	}
-//	queryResult := app.Query(query)
-//	require.True(t, queryResult.IsOK(), queryResult.Log)
-//
-//	//var simRes sdk.SimulationResponse
-//	//err = codec.Cdc.UnmarshalBinaryBare(queryResult.Value, &simRes)
-//	//require.NoError(t, err)
-//	//require.Equal(t, gInfo, simRes.GasInfo)
-//	//require.Equal(t, result.Log, simRes.Result.Log)
-//	//require.Equal(t, result.Events, simRes.Result.Events)
-//	//require.True(t, bytes.Equal(result.Data, simRes.Result.Data))
-//	//}
-//
-//	//}
-//}
