@@ -395,6 +395,14 @@ func (st *Store) GetNodeReadCount() int {
 	return st.tree.GetNodeReadCount()
 }
 
+func (st *Store) GetXenDBReadCount() int {
+	return st.tree.GetXenDBReadCount()
+}
+
+func (st *Store) GetXenNodeReadCount() int {
+	return st.tree.GetXenNodeReadCount()
+}
+
 func (st *Store) ResetCount() {
 	st.tree.ResetCount()
 	st.resetFlatKVCount()

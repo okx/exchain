@@ -2,8 +2,9 @@ package iavl
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"sync/atomic"
+
+	"github.com/okex/exchain/libs/system/trace"
 )
 
 type RuntimeState struct {
@@ -12,19 +13,23 @@ type RuntimeState struct {
 	nodeReadCount int64
 	dbWriteCount  int64
 
+	xenNodeReadCount int64
+	xenDbReadCount   int64
+
 	totalPersistedCount int64
 	totalPersistedSize  int64
 	totalDeletedCount   int64
 	totalOrphanCount    int64
 
-	fromPpnc         int64
-	fromTpp          int64
-	fromNodeCache    int64
-	fromOrphanCache  int64
-	fromDisk         int64
+	fromPpnc        int64
+	fromTpp         int64
+	fromNodeCache   int64
+	fromOrphanCache int64
+	fromDisk        int64
 }
 
 type retrieveType int
+
 const (
 	unknown retrieveType = iota
 	fromPpnc
@@ -103,11 +108,37 @@ func (s *RuntimeState) getNodeReadCount() int {
 	return int(atomic.LoadInt64(&s.nodeReadCount))
 }
 
+func (s *RuntimeState) getXenDBReadCount() int {
+	return int(atomic.LoadInt64(&s.xenDbReadCount))
+}
+
+func (s *RuntimeState) getXenNodeReadCount() int {
+	return int(atomic.LoadInt64(&s.xenNodeReadCount))
+}
+
+func (s *RuntimeState) addXenDBReadCount() {
+	atomic.AddInt64(&s.xenDbReadCount, 1)
+}
+
+func (s *RuntimeState) addXenNodeReadCount() {
+	atomic.AddInt64(&s.xenNodeReadCount, 1)
+}
+
+func (s *RuntimeState) resetXenDBReadCount() {
+	atomic.StoreInt64(&s.xenDbReadCount, 0)
+}
+
+func (s *RuntimeState) resetXenNodeReadCount() {
+	atomic.StoreInt64(&s.xenNodeReadCount, 0)
+}
+
 func (s *RuntimeState) resetCount() {
 	s.resetDBReadTime()
 	s.resetDBReadCount()
 	s.resetDBWriteCount()
 	s.resetNodeReadCount()
+	s.resetXenDBReadCount()
+	s.resetXenNodeReadCount()
 }
 
 func (s *RuntimeState) increasePersistedSize(num int) {
@@ -172,9 +203,8 @@ func (ndb *nodeDB) sprintCacheLog(version int64) (printLog string) {
 		trace.GetElapsedInfo().AddInfo(trace.IavlRuntime, printLog)
 	}
 
-	return header+printLog
+	return header + printLog
 }
-
 
 func (ndb *nodeDB) getDBReadTime() int {
 	return ndb.state.getDBReadTime()
@@ -210,4 +240,20 @@ func (ndb *nodeDB) addDBWriteCount(count int64) {
 
 func (ndb *nodeDB) addNodeReadCount() {
 	ndb.state.addNodeReadCount()
+}
+
+func (ndb *nodeDB) getXenDBReadCount() int {
+	return ndb.state.getXenDBReadCount()
+}
+
+func (ndb *nodeDB) getXenNodeReadCount() int {
+	return ndb.state.getXenNodeReadCount()
+}
+
+func (ndb *nodeDB) addXenDBReadCount() {
+	ndb.state.addXenDBReadCount()
+}
+
+func (ndb *nodeDB) addXenNodeReadCount() {
+	ndb.state.addXenNodeReadCount()
 }

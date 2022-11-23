@@ -24,6 +24,14 @@ type Store struct {
 	dbadapter.Store
 }
 
+func (s *Store) GetXenDBReadCount() int {
+	return 0
+}
+
+func (s *Store) GetXenNodeReadCount() int {
+	return 0
+}
+
 func (s *Store) CommitterCommit(_ *iavl.TreeDelta) (_ types.CommitID, _ *iavl.TreeDelta) {
 	return
 }

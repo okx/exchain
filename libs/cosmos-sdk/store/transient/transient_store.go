@@ -16,6 +16,14 @@ type Store struct {
 	dbadapter.Store
 }
 
+func (ts *Store) GetXenDBReadCount() int {
+	return 0
+}
+
+func (ts *Store) GetXenNodeReadCount() int {
+	return 0
+}
+
 // Constructs new MemDB adapter
 func NewStore() *Store {
 	return &Store{Store: dbadapter.Store{DB: dbm.NewMemDB()}}

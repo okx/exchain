@@ -28,6 +28,8 @@ type (
 		GetDBReadCount() int
 		GetDBReadTime() int
 		GetNodeReadCount() int
+		GetXenDBReadCount() int
+		GetXenNodeReadCount() int
 		ResetCount()
 		DeleteVersion(version int64) error
 		DeleteVersions(versions ...int64) error
@@ -50,6 +52,14 @@ type (
 		*iavl.ImmutableTree
 	}
 )
+
+func (it *immutableTree) GetXenDBReadCount() int {
+	return 0
+}
+
+func (it *immutableTree) GetXenNodeReadCount() int {
+	return 0
+}
 
 func (it *immutableTree) Set(_, _ []byte) bool {
 	panic("cannot call 'Set' on an immutable IAVL tree")

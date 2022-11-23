@@ -1010,6 +1010,22 @@ func (rs *Store) GetNodeReadCount() int {
 	return count
 }
 
+func (rs *Store) GetXenDBReadCount() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetXenDBReadCount()
+	}
+	return count
+}
+
+func (rs *Store) GetXenNodeReadCount() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetXenNodeReadCount()
+	}
+	return count
+}
+
 func (rs *Store) ResetCount() {
 	for _, store := range rs.stores {
 		store.ResetCount()

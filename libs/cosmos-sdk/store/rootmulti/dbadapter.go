@@ -17,6 +17,14 @@ type commitDBStoreAdapter struct {
 	dbadapter.Store
 }
 
+func (cdsa commitDBStoreAdapter) GetXenDBReadCount() int {
+	return 0
+}
+
+func (cdsa commitDBStoreAdapter) GetXenNodeReadCount() int {
+	return 0
+}
+
 func (cdsa commitDBStoreAdapter) Commit(*iavl.TreeDelta, []byte) (types.CommitID, iavl.TreeDelta, []byte) {
 	return types.CommitID{
 		Version: -1,

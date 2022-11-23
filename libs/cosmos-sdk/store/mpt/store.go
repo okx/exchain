@@ -60,6 +60,14 @@ type MptStore struct {
 	cmLock       sync.Mutex
 }
 
+func (ms *MptStore) GetXenDBReadCount() int {
+	return 0
+}
+
+func (ms *MptStore) GetXenNodeReadCount() int {
+	return 0
+}
+
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
 	return
 }

@@ -325,6 +325,14 @@ func (tree *MutableTree) GetNodeReadCount() int {
 	return tree.ndb.getNodeReadCount()
 }
 
+func (tree *MutableTree) GetXenDBReadCount() int {
+	return tree.ndb.getXenDBReadCount()
+}
+
+func (tree *MutableTree) GetXenNodeReadCount() int {
+	return tree.ndb.getXenNodeReadCount()
+}
+
 func (tree *MutableTree) ResetCount() {
 	tree.ndb.resetCount()
 }
