@@ -646,7 +646,11 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
-	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
+		app.gpo = gasprice.NewOracle(gpoConfig)
+		app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
+	}
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -670,10 +674,6 @@ func NewOKExChainApp(
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
 
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
-		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
-		app.gpo = gasprice.NewOracle(gpoConfig)
-	}
 	return app
 }
 

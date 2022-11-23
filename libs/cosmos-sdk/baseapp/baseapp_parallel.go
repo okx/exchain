@@ -58,7 +58,10 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 			}
 			if tx != nil {
 				app.blockDataCache.SetTx(txBytes, tx)
-				para.dynamicGpInfos[index].SetGP(tx.GetGasPrice())
+				//todo
+				if app.updateGPOHandler != nil {
+					para.dynamicGpInfos[index].SetGP(tx.GetGasPrice())
+				}
 			}
 
 			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
@@ -344,8 +347,11 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
-		// int64 -> uint64 may not be safe
-		app.parallelTxManage.dynamicGpInfos[index].SetGU(uint64(txRes.resp.GasUsed))
+		//todo
+		if app.updateGPOHandler != nil {
+			// int64 -> uint64 may not be safe
+			app.parallelTxManage.dynamicGpInfos[index].SetGU(uint64(txRes.resp.GasUsed))
+		}
 		if txRes.FeeSpiltInfo.HasFee {
 			app.FeeSplitCollector = append(app.FeeSplitCollector, txRes.FeeSpiltInfo)
 		}
@@ -353,7 +359,9 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
-	app.updateGPOHandler(app.parallelTxManage.dynamicGpInfos)
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler(app.parallelTxManage.dynamicGpInfos)
+	}
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
@@ -660,7 +668,6 @@ func newParallelTxManager() *parallelTxManager {
 
 		blockMultiStores: newCacheMultiStoreList(),
 		chainMultiStores: newCacheMultiStoreList(),
-		dynamicGpInfos:   make([]sdk.DynamicGasInfo, 0),
 	}
 }
 
@@ -747,7 +754,6 @@ func (f *parallelTxManager) clear() {
 	f.cc.clear()
 	f.currIndex = -1
 	f.currTxFee = sdk.Coins{}
-	f.dynamicGpInfos = make([]sdk.DynamicGasInfo, 0)
 }
 
 func (f *parallelTxManager) init() {
