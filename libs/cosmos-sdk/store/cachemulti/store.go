@@ -189,9 +189,24 @@ func (cms Store) GetStoreType() types.StoreType {
 // Write calls Write on each underlying store.
 func (cms Store) Write() {
 	cms.db.Write()
+	ch := make(chan types.CacheWrap, len(cms.stores))
+	var wg sync.WaitGroup
+	wg.Add(len(cms.stores))
+	go func(stores chan types.CacheWrap, wg *sync.WaitGroup) {
+		for store := range stores {
+			store.Write()
+			wg.Done()
+		}
+	}(ch, &wg)
 	for _, store := range cms.stores {
-		store.Write()
+		ch <- store
 	}
+	close(ch)
+	for store := range ch {
+		store.Write()
+		wg.Done()
+	}
+	wg.Wait()
 }
 
 func (cms Store) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool, sKey types.StoreKey) bool {
