@@ -60,6 +60,10 @@ type MptStore struct {
 	cmLock       sync.Mutex
 }
 
+func (ms *MptStore) GetModulesNodeReadCount() (map[string]int, map[string]int) {
+	return nil, nil
+}
+
 func (ms *MptStore) GetXenDBReadCount() int {
 	return 0
 }

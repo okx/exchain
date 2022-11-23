@@ -40,6 +40,7 @@ type Analyser interface {
 	GetDBWriteCount() int
 	GetDBReadCount() int
 	GetNodeReadCount() int
+	GetModulesNodeReadCount() (map[string]int, map[string]int)
 	GetXenDBReadCount() int
 	GetXenNodeReadCount() int
 	GetFlatKVReadTime() int

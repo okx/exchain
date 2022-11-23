@@ -17,6 +17,10 @@ type commitDBStoreAdapter struct {
 	dbadapter.Store
 }
 
+func (cdsa commitDBStoreAdapter) GetModulesNodeReadCount() (map[string]int, map[string]int) {
+	return nil, nil
+}
+
 func (cdsa commitDBStoreAdapter) GetXenDBReadCount() int {
 	return 0
 }

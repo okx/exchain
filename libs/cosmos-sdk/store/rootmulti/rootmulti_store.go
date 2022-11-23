@@ -1010,6 +1010,16 @@ func (rs *Store) GetNodeReadCount() int {
 	return count
 }
 
+func (rs *Store) GetModulesNodeReadCount() (map[string]int, map[string]int) {
+	m1, m2 := make(map[string]int), make(map[string]int)
+	for key, store := range rs.stores {
+		m1[key.Name()] = store.GetNodeReadCount()
+		m2[key.Name()] = store.GetDBReadCount()
+		//fmt.Println(key.Name(), store.GetNodeReadCount(), store.GetDBReadCount())
+	}
+	return m1, m2
+}
+
 func (rs *Store) GetXenDBReadCount() int {
 	count := 0
 	for _, store := range rs.stores {

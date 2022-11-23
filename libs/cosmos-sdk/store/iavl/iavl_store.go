@@ -41,6 +41,10 @@ type Store struct {
 	upgradeVersion int64
 }
 
+func (st *Store) GetModulesNodeReadCount() (map[string]int, map[string]int) {
+	return nil, nil
+}
+
 func (st *Store) CurrentVersion() int64 {
 	tr := st.tree.(*iavl.MutableTree)
 	return tr.Version()

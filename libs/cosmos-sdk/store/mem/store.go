@@ -24,6 +24,10 @@ type Store struct {
 	dbadapter.Store
 }
 
+func (s *Store) GetModulesNodeReadCount() (map[string]int, map[string]int) {
+	return nil, nil
+}
+
 func (s *Store) GetXenDBReadCount() int {
 	return 0
 }
