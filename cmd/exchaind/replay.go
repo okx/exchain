@@ -12,7 +12,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
@@ -126,7 +125,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 }
 
 type Pair struct {
-	Key   common.Address
+	Key   string
 	Value int
 }
 
@@ -136,7 +135,7 @@ func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p PairList) Len() int           { return len(p) }
 func (p PairList) Less(i, j int) bool { return p[i].Value > p[j].Value }
 
-func sortMapByValue(m map[common.Address]int) PairList {
+func sortMapByValue(m map[string]int) PairList {
 	p := make(PairList, len(m))
 	i := 0
 	for k, v := range m {
