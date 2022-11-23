@@ -27,8 +27,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 		return
 	}
 
-	maxNums := runtime.NumCPU() / 2
-	maxNums += runtime.NumCPU()
+	maxNums := runtime.NumCPU()
 	keyCount := len(keys)
 	if maxNums > keyCount {
 		maxNums = keyCount
@@ -52,27 +51,27 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 		}(txJobChan, &wg)
 	}
 
-	for i := 0; i < keyCount; i++ {
-		j := i
-		if j%2 != 0 {
-			j = keyCount - (i / 2) - 1
-		} else {
-			j = i / 2
-		}
-
-		key := keys[j]
-		setOrDelFlag := setOrDel[j]
-		if setOrDelFlag != PreChangeNop {
-			txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDelFlag}
-		}
-	}
-
-	//for i, key := range keys {
-	//	setOrDelFlag := setOrDel[i]
+	//for i := 0; i < keyCount; i++ {
+	//	j := i
+	//	if j%2 != 0 {
+	//		j = keyCount - (i / 2) - 1
+	//	} else {
+	//		j = i / 2
+	//	}
+	//
+	//	key := keys[j]
+	//	setOrDelFlag := setOrDel[j]
 	//	if setOrDelFlag != PreChangeNop {
-	//		txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDel[i]}
+	//		txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDelFlag}
 	//	}
 	//}
+
+	for i, key := range keys {
+		setOrDelFlag := setOrDel[i]
+		if setOrDelFlag != PreChangeNop {
+			txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDel[i]}
+		}
+	}
 	close(txJobChan)
 	wg.Wait()
 
@@ -104,6 +103,10 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 
 func (tree *MutableTree) preGetNode(hash []byte) (n *Node) {
 	var fromDisk bool
+	n, ok := tree.ndb.findNodeFromPreWriteCache(hash)
+	if ok {
+		return n
+	}
 	n, fromDisk = tree.ImmutableTree.ndb.GetNodeWithoutUpdateCache(hash)
 	if fromDisk {
 		tree.ndb.cacheNodeToPreWriteCache(n)

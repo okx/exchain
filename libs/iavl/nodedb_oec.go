@@ -310,6 +310,14 @@ func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
 	ndb.preWriteNodeCache.Set(string(n.hash), n)
 }
 
+func (ndb *nodeDB) findNodeFromPreWriteCache(hash []byte) (*Node, bool) {
+	v, ok := ndb.preWriteNodeCache.Get(amino.BytesToStr(hash))
+	if ok {
+		return v.(*Node), true
+	}
+	return nil, false
+}
+
 func (ndb *nodeDB) finishPreWriteCache() {
 	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
 		ndb.cacheWithKey(key, v.(*Node))
