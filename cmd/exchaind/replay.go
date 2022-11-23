@@ -11,6 +11,9 @@ import (
 	"runtime/pprof"
 	"time"
 
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
@@ -180,6 +183,9 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
+
+	viper.SetDefault(watcher.FlagFastQuery, false)
+	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
 
 	return cmd
 }
