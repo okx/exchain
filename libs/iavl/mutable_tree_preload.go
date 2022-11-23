@@ -87,12 +87,12 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 	} else {
 		var isSet = setOrDel == PreChangeOpSet
 		if bytes.Compare(key, node.key) < 0 {
-			node.setLeftNodeSync(tree.preGetLeftNode(node))
+			node.leftNode = tree.preGetLeftNode(node)
 			if find = tree.preChangeWithOutCache(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
 				tree.preGetRightNode(node)
 			}
 		} else {
-			node.setRightNodeSync(tree.preGetRightNode(node))
+			node.rightNode = tree.preGetRightNode(node)
 			if find = tree.preChangeWithOutCache(node.rightNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
 				tree.preGetLeftNode(node)
 			}
@@ -111,15 +111,15 @@ func (tree *MutableTree) preGetNode(hash []byte) (n *Node) {
 }
 
 func (tree *MutableTree) preGetLeftNode(node *Node) (n *Node) {
-	if leftNode := node.getLeftNodeSync(); leftNode != nil {
-		return leftNode
+	if node.leftNode != nil {
+		return node.leftNode
 	}
 	return tree.preGetNode(node.leftHash)
 }
 
 func (tree *MutableTree) preGetRightNode(node *Node) (n *Node) {
-	if rightNode := node.getRightNodeSync(); rightNode != nil {
-		return rightNode
+	if node.rightNode != nil {
+		return node.rightNode
 	}
 	return tree.preGetNode(node.rightHash)
 }

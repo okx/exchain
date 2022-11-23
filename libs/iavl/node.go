@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"sync/atomic"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -647,20 +646,4 @@ func (node *Node) lmd(t *ImmutableTree) *Node {
 		return node
 	}
 	return node.getLeftNode(t).lmd(t)
-}
-
-func (node *Node) getLeftNodeSync() *Node {
-	return (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&node.leftNode))))
-}
-
-func (node *Node) getRightNodeSync() *Node {
-	return (*Node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&node.rightNode))))
-}
-
-func (node *Node) setLeftNodeSync(n *Node) {
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&node.leftNode)), unsafe.Pointer(n))
-}
-
-func (node *Node) setRightNodeSync(n *Node) {
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&node.rightNode)), unsafe.Pointer(n))
 }
