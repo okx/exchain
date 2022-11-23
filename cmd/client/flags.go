@@ -1,9 +1,6 @@
 package client
 
 import (
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
@@ -22,9 +19,8 @@ import (
 	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
+	"github.com/spf13/cobra"
 )
-
-const cmdReplay = "replay"
 
 func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagFastQuery, true, "Enable the fast query mode for rpc queries")
@@ -135,9 +131,4 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
 	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
 	wasm.AddModuleInitFlags(cmd)
-
-	if cmd.Use == cmdReplay {
-		viper.SetDefault(watcher.FlagFastQuery, false)
-		viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
-	}
 }
