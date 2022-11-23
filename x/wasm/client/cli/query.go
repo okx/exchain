@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 	"github.com/okex/exchain/x/wasm/keeper"
 
 	"github.com/spf13/cobra"
@@ -40,20 +42,22 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdListCode(cdc, reg),
 		NewCmdListContractByCode(cdc, reg),
 		NewCmdQueryCode(cdc, reg),
-		GetCmdQueryCodeInfo(cdc, reg),
+		NewCmdQueryCodeInfo(cdc, reg),
 		NewCmdGetContractInfo(cdc, reg),
 		NewCmdGetContractHistory(cdc, reg),
 		NewCmdGetContractState(cdc, reg),
 		NewCmdListPinnedCode(cdc, reg),
-		GetCmdLibVersion(cdc, reg),
-		NewCMDParams(cdc, reg),
+		NewCmdLibVersion(cdc, reg),
+		NewCmdListContractBlockedMethod(cdc),
+		NewCmdGetParams(cdc, reg),
+		NewCmdGetAddressWhitelist(cdc, reg),
 	)
 
 	return queryCmd
 }
 
-// GetCmdLibVersion gets current libwasmvm version.
-func GetCmdLibVersion(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+// NewCmdLibVersion gets current libwasmvm version.
+func NewCmdLibVersion(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "libwasmvm-version",
 		Short:   "Get libwasmvm version",
@@ -105,8 +109,7 @@ func NewCmdListCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobr
 	return cmd
 }
 
-// NewCmdListCode lists all wasm code uploaded
-func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+func NewCmdGetParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get-params",
 		Short:   "Get wasm parameters on the chain",
@@ -125,6 +128,36 @@ func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.
 			var params types.Params
 			m.GetCdc().MustUnmarshalJSON(res, &params)
 			return clientCtx.PrintOutput(params)
+		},
+	}
+	return cmd
+}
+
+func NewCmdGetAddressWhitelist(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "get-address-whitelist",
+		Short:   "Get wasm address whitelist on the chain",
+		Long:    "Get wasm address whitelist on the chain",
+		Aliases: []string{"whitelist", "gawl"},
+		Args:    cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryParams)
+
+			res, _, err := clientCtx.Query(route)
+			if err != nil {
+				return err
+			}
+
+			var params types.Params
+			m.GetCdc().MustUnmarshalJSON(res, &params)
+			var whitelist []string
+			whitelist = strings.Split(params.CodeUploadAccess.Address, ",")
+			if len(whitelist) == 1 && whitelist[0] == "" {
+				whitelist = []string{}
+			}
+			response := types.NewQueryAddressWhitelistResponse(whitelist)
+			return clientCtx.PrintOutput(response)
 		},
 	}
 	return cmd
@@ -205,8 +238,8 @@ func NewCmdQueryCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 	return cmd
 }
 
-// GetCmdQueryCodeInfo returns the code info for a given code id
-func GetCmdQueryCodeInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+// NewCmdQueryCodeInfo returns the code info for a given code id
+func NewCmdQueryCodeInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "code-info [code_id]",
 		Short: "Prints out metadata of a code id",
@@ -267,6 +300,31 @@ func NewCmdGetContractInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry
 				return err
 			}
 			return clientCtx.PrintProto(res)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+func NewCmdListContractBlockedMethod(m *codec.CodecProxy) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "list-contract-blocked-method [bech32_address]",
+		Short:   "List blocked methods of a contract given its address",
+		Long:    "List blocked methods of a contract given its address",
+		Aliases: []string{"lcbm"},
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc())
+
+			_, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+			res, _, err := clientCtx.Query(fmt.Sprintf("custom/wasm/list-contract-blocked-method/%s", args[0]))
+			if err != nil {
+				return err
+			}
+			return clientCtx.PrintOutput(res)
 		},
 	}
 	flags.AddQueryFlagsToCmd(cmd)

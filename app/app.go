@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/okex/exchain/x/vmbridge"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
@@ -208,27 +210,28 @@ type OKExChainApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
-	StakingKeeper  staking.Keeper
-	SlashingKeeper slashing.Keeper
-	MintKeeper     mint.Keeper
-	DistrKeeper    distr.Keeper
-	GovKeeper      gov.Keeper
-	CrisisKeeper   crisis.Keeper
-	UpgradeKeeper  upgrade.Keeper
-	ParamsKeeper   params.Keeper
-	EvidenceKeeper evidence.Keeper
-	EvmKeeper      *evm.Keeper
-	TokenKeeper    token.Keeper
-	DexKeeper      dex.Keeper
-	OrderKeeper    order.Keeper
-	SwapKeeper     ammswap.Keeper
-	FarmKeeper     farm.Keeper
-	wasmKeeper     wasm.Keeper
-	InfuraKeeper   infura.Keeper
-	FeeSplitKeeper feesplit.Keeper
+	AccountKeeper        auth.AccountKeeper
+	BankKeeper           bank.Keeper
+	SupplyKeeper         supply.Keeper
+	StakingKeeper        staking.Keeper
+	SlashingKeeper       slashing.Keeper
+	MintKeeper           mint.Keeper
+	DistrKeeper          distr.Keeper
+	GovKeeper            gov.Keeper
+	CrisisKeeper         crisis.Keeper
+	UpgradeKeeper        upgrade.Keeper
+	ParamsKeeper         params.Keeper
+	EvidenceKeeper       evidence.Keeper
+	EvmKeeper            *evm.Keeper
+	TokenKeeper          token.Keeper
+	DexKeeper            dex.Keeper
+	OrderKeeper          order.Keeper
+	SwapKeeper           ammswap.Keeper
+	FarmKeeper           farm.Keeper
+	WasmKeeper           wasm.Keeper
+	WasmPermissionKeeper wasm.ContractOpsKeeper
+	InfuraKeeper         infura.Keeper
+	FeeSplitKeeper       feesplit.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -249,6 +252,7 @@ type OKExChainApp struct {
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
+	VMBridgeKeeper       *vmbridge.Keeper
 
 	WasmHandler wasmkeeper.HandlerOption
 }
@@ -279,7 +283,7 @@ func NewOKExChainApp(
 	})
 
 	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
-
+	vmbridge.RegisterInterface(interfaceReg)
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(codecProxy), baseAppOptions...)
 
@@ -437,7 +441,7 @@ func NewOKExChainApp(
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	supportedFeatures := wasm.SupportedFeatures
-	app.wasmKeeper = wasm.NewKeeper(
+	app.WasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
@@ -452,7 +456,10 @@ func NewOKExChainApp(
 		wasmDir,
 		wasmConfig,
 		supportedFeatures,
+		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
 	)
+
+	app.ParamsKeeper.RegisterSignal(wasm.SetNeedParamsUpdate)
 
 	// register the proposal types
 	// 3.register the proposal types
@@ -467,7 +474,7 @@ func NewOKExChainApp(
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
 		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper)).
-		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.wasmKeeper, wasm.NecessaryProposals))
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals))
 
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
@@ -493,14 +500,6 @@ func NewOKExChainApp(
 	app.FeeSplitKeeper.SetGovKeeper(app.GovKeeper)
 	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
-	// Set EVM hooks
-	app.EvmKeeper.SetHooks(
-		evm.NewMultiEvmHooks(
-			evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
-				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)),
-			app.FeeSplitKeeper.Hooks(),
-		),
-	)
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
@@ -515,6 +514,22 @@ func NewOKExChainApp(
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
 	app.StakingKeeper = *stakingKeeper.SetHooks(
 		staking.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
+	)
+
+	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
+	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
+	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
+
+	// Set EVM hooks
+	app.EvmKeeper.SetHooks(
+		evm.NewMultiEvmHooks(
+			evm.NewLogProcessEvmHook(
+				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
+				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+			),
+			app.FeeSplitKeeper.Hooks(),
+		),
 	)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
@@ -544,7 +559,7 @@ func NewOKExChainApp(
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasmModule,
 		feesplit.NewAppModule(app.FeeSplitKeeper),
 	)
 
@@ -601,6 +616,8 @@ func NewOKExChainApp(
 	app.mm.RegisterServices(app.configurator)
 	app.setupUpgradeModules()
 
+	vmbridge.RegisterServices(app.configurator, *app.VMBridgeKeeper)
+
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
@@ -616,7 +633,7 @@ func NewOKExChainApp(
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
 		ibc.NewAppModule(app.IBCKeeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasm.NewAppModule(*app.marshal, &app.WasmKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -654,7 +671,7 @@ func NewOKExChainApp(
 		}
 		ctx := app.BaseApp.NewContext(true, abci.Header{})
 		// Initialize pinned codes in wasmvm as they are not persisted there
-		if err := app.wasmKeeper.InitializePinnedCodes(ctx); err != nil {
+		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
 	}
