@@ -10,6 +10,8 @@ import (
 )
 
 var (
+	startupTime = time.Now()
+
 	applyBlockWorkloadStatistic = newWorkloadStatistic(
 		[]time.Duration{time.Hour, 2 * time.Hour, 4 * time.Hour, 8 * time.Hour}, []string{LastRun, Persist})
 )
@@ -58,7 +60,7 @@ func newWorkloadStatistic(periods []time.Duration, tags_ []string) *WorkloadStat
 	}
 
 	wls := &WorkloadStatistic{tags: tags, workloads: workloads, workCh: make(chan workInfo, 1000)}
-	go wls.shrink_loop()
+	go wls.shrinkLoop()
 
 	return wls
 }
@@ -132,14 +134,19 @@ func (ws *WorkloadStatistic) summary() []summaryInfo {
 		return nil
 	}
 
+	startupDuration := time.Now().Sub(startupTime)
 	summary := make([]summaryInfo, 0, len(ws.workloads))
 	for _, wload := range ws.workloads {
-		summary = append(summary, summaryInfo{wload.period, time.Duration(atomic.LoadInt64(&wload.workload))})
+		period := wload.period
+		if startupDuration < period {
+			period = startupDuration
+		}
+		summary = append(summary, summaryInfo{period, time.Duration(atomic.LoadInt64(&wload.workload))})
 	}
 	return summary
 }
 
-func (ws *WorkloadStatistic) shrink_loop() {
+func (ws *WorkloadStatistic) shrinkLoop() {
 	shrinkInfos := make([]map[int64]int64, 0, len(ws.workloads))
 	for i := 0; i < len(ws.workloads); i++ {
 		shrinkInfos = append(shrinkInfos, make(map[int64]int64))
@@ -151,7 +158,7 @@ func (ws *WorkloadStatistic) shrink_loop() {
 	for {
 		select {
 		case work := <-ws.workCh:
-			var earilest int64 = int64(^uint64(0) >> 1)
+			earilest := int64(^uint64(0) >> 1)
 
 			for i, wload := range ws.workloads {
 				period := wload.period
