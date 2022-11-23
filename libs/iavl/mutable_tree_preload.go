@@ -27,7 +27,8 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 		return
 	}
 
-	maxNums := runtime.NumCPU()
+	maxNums := runtime.NumCPU() / 2
+	maxNums += runtime.NumCPU()
 	keyCount := len(keys)
 	if maxNums > keyCount {
 		maxNums = keyCount
