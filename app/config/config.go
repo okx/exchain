@@ -207,14 +207,15 @@ func NewOecConfig() *OecConfig {
 	c := defaultOecConfig()
 	c.loadFromConfig()
 
-	if viper.GetBool(FlagEnableDynamic) {
+	if viper.IsSet(FlagApollo) {
 		loaded := c.loadFromApollo()
 		if !loaded {
 			panic("failed to connect apollo or no config items in apollo")
 		}
+	} else {
 		ok, err := c.loadFromLocal()
 		if err != nil {
-			panic(fmt.Errorf("failed to load config from local: %v", err))
+			confLogger.Error("failed to load config from local", "err", err)
 		}
 		if !ok {
 			confLogger.Error("failed to load config from local")
