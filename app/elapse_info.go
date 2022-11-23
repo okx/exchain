@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"strings"
 	"sync"
+
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/spf13/viper"
 )
@@ -54,6 +55,7 @@ var (
 		trace.RunTx,
 		trace.Prerun,
 		trace.MempoolTxsCnt,
+		trace.Workload,
 	}
 
 	DefaultElapsedSchemas string
