@@ -1,10 +1,17 @@
 package keeper
 
 import (
+	"fmt"
+
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
@@ -28,14 +35,19 @@ type Keeper struct {
 	channelKeeper types.ChannelKeeper
 	portKeeper    types.PortKeeper
 	bankKeeper    types.BankKeeper
+	bk            bank.Keeper
+	supplyK       supply.Keeper
+	packets       map[string]exported.PacketI
 }
 
 // NewKeeper creates a new 29-fee Keeper instance
 func NewKeeper(
 	cdc *codec.CodecProxy, key sdk.StoreKey, paramSpace paramtypes.Subspace,
-	ics4Wrapper types.ICS4Wrapper, channelKeeper types.ChannelKeeper, portKeeper types.PortKeeper, authKeeper types.AccountKeeper, bankKeeper types.BankKeeper,
+	ics4Wrapper types.ICS4Wrapper, channelKeeper types.ChannelKeeper,
+	portKeeper types.PortKeeper,
+	authKeeper types.AccountKeeper, bankKeeper types.BankKeeper, supplyK supply.Keeper, bk bank.Keeper,
 ) Keeper {
-	return Keeper{
+	ret := Keeper{
 		cdc:           cdc,
 		storeKey:      key,
 		ics4Wrapper:   ics4Wrapper,
@@ -43,7 +55,11 @@ func NewKeeper(
 		portKeeper:    portKeeper,
 		authKeeper:    authKeeper,
 		bankKeeper:    bankKeeper,
+		supplyK:       supplyK,
+		bk:            bk,
 	}
+	ret.packets = make(map[string]exported.PacketI)
+	return ret
 }
 
 // Logger returns a module-specific logger.
@@ -379,4 +395,16 @@ func (k Keeper) MustUnmarshalFees(bz []byte) types.PacketFees {
 	var fees types.PacketFees
 	k.cdc.GetProtocMarshal().MustUnmarshal(bz, &fees)
 	return fees
+}
+
+func (k Keeper) AddPacket(p exported.PacketI) {
+	k.packets[buildPacketKey(p)] = p
+}
+
+func (k *Keeper) Flush() {
+	k.packets = make(map[string]exported.PacketI)
+}
+
+func buildPacketKey(p exported.PacketI) string {
+	return fmt.Sprintf("%s-%s-%s-%s-%d", p.GetSourceChannel(), p.GetSourcePort(), p.GetDestChannel(), p.GetDestPort(), p.GetSequence())
 }

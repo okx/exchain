@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
@@ -26,6 +28,7 @@ func (k Keeper) escrowPacketFee(ctx sdk.Context, packetID channeltypes.PacketId,
 	coins := packetFee.Fee.Total()
 
 	cm39Coins := coins.ToCoins()
+	k.Logger(ctx).Info("escrowPacketFee", "coins", cm39Coins.String())
 	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, refundAddr, types.ModuleName, cm39Coins); err != nil {
 		return err
 	}
@@ -41,6 +44,58 @@ func (k Keeper) escrowPacketFee(ctx sdk.Context, packetID channeltypes.PacketId,
 	k.SetFeesInEscrow(ctx, packetID, packetFees)
 
 	EmitIncentivizedPacketEvent(ctx, packetID, packetFees)
+
+	return nil
+}
+
+func (k Keeper) EscrowPacketFeeFromFeeCollector(ctx sdk.Context, fee sdk.Coins) error {
+	if len(k.packets) == 0 {
+		return nil
+	}
+
+	avail := make(map[string]exported.PacketI)
+	for key, p := range k.packets {
+		// NOTE: we only consume the recv-packet
+		if !k.IsFeeEnabled(ctx, p.GetSourcePort(), p.GetSourceChannel()) {
+			continue
+		}
+		avail[key] = p
+	}
+
+	bkk := k.bk
+	skk := k.supplyK
+	_, err := bkk.AddCoins(ctx, skk.GetModuleAccount(ctx, types.ModuleName).GetAddress(), fee)
+	if nil != err {
+		return err
+	}
+	//percent := 1 / float64(len(avail))
+	recPortion := sdk.NewDecWithPrec(50, 2)
+	ackPortion := sdk.NewDecWithPrec(30, 2)
+	timeoutPortion := sdk.NewDecWithPrec(20, 2)
+	perFee := fee
+	for key, v := range avail {
+		// 0.5,0.3,0.2
+		rev := perFee.MulDecTruncate(recPortion)
+		ack := perFee.MulDecTruncate(ackPortion)
+		tf := perFee.MulDecTruncate(timeoutPortion)
+		k.Logger(ctx).Info("register packet fee", "recvFee", rev.String(), "ack", ack.String(), "timeout", tf.String())
+		packetF := types.Fee{
+			RecvFee:    sdk.CoinsToCoinAdapters(rev),
+			AckFee:     sdk.CoinsToCoinAdapters(ack),
+			TimeoutFee: sdk.CoinsToCoinAdapters(tf),
+		}
+		k.Logger(ctx).Info("register packet fee", "packetKey", key, fee, packetF.String())
+		if err = k.escrowPacketFee(ctx, channeltypes.PacketId{
+			PortId:    v.GetSourcePort(),
+			ChannelId: v.GetSourceChannel(),
+			Sequence:  v.GetSequence(),
+		}, types.PacketFee{
+			Fee:           packetF,
+			RefundAddress: skk.GetModuleAccount(ctx, types.ModuleName).GetAddress().String(),
+		}); nil != err {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -161,8 +216,16 @@ func (k Keeper) distributeFee(ctx sdk.Context, receiver, refundAccAddress sdk.Ac
 	cacheCtx, writeFn := ctx.CacheContext()
 	sdkCoins := fee.ToCoins()
 	err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, receiver, sdkCoins)
+	k.Logger(ctx).Info("distribute fee", "fee", sdkCoins.String(),
+		"receiver", receiver.String(), "refundAccAddress", refundAccAddress.String(), "err", err)
 	if err != nil {
 		if bytes.Equal(receiver, refundAccAddress) {
+			if refundAccAddress.Equals(k.supplyK.GetModuleAddress(types.ModuleName)) {
+				if err = k.supplyK.BurnCoins(ctx, types.ModuleName, sdkCoins); nil != err {
+					k.Logger(ctx).Error("error distributing fee,burn failed",
+						"receiver address", receiver, "fee", sdkCoins, "err", err)
+				}
+			}
 			k.Logger(ctx).Error("error distributing fee", "receiver address", receiver, "fee", fee)
 			return // if sending to the refund address already failed, then return (no-op)
 		}

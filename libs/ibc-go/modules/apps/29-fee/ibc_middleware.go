@@ -20,11 +20,11 @@ var _ porttypes.Middleware = &IBCMiddleware{}
 // fee keeper and the underlying application.
 type IBCMiddleware struct {
 	app    porttypes.IBCModule
-	keeper keeper.Keeper
+	keeper *keeper.Keeper
 }
 
 // NewIBCMiddleware creates a new IBCMiddlware given the keeper and underlying application
-func NewIBCMiddleware(app porttypes.IBCModule, k keeper.Keeper) IBCMiddleware {
+func NewIBCMiddleware(app porttypes.IBCModule, k *keeper.Keeper) IBCMiddleware {
 	return IBCMiddleware{
 		app:    app,
 		keeper: k,
@@ -340,6 +340,7 @@ func (im IBCMiddleware) SendPacket(
 	chanCap *capabilitytypes.Capability,
 	packet exported.PacketI,
 ) error {
+	im.keeper.AddPacket(packet)
 	return im.keeper.SendPacket(ctx, chanCap, packet)
 }
 

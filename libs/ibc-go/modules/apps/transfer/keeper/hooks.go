@@ -3,6 +3,7 @@ package keeper
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	types2 "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 )
 
 // SetHooks sets the hooks for the IBC transfer module
@@ -23,9 +24,9 @@ func (k Keeper) CallAfterSendTransferHooks(
 	token sdk.SysCoin,
 	sender sdk.AccAddress,
 	receiver string,
-	isSource bool) error {
+	isSource bool, packet types2.Packet) error {
 	if k.hooks != nil {
-		return k.hooks.AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
+		return k.hooks.AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource, packet)
 	}
 	return nil
 }

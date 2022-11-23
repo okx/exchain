@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 
@@ -80,14 +82,16 @@ func (AppModuleBasic) Name() string {
 type AppModule struct {
 	*common.Veneus3BaseUpgradeModule
 	AppModuleBasic
-	keeper keeper.Keeper
+	keeper    *keeper.Keeper
+	grepCoins func() sdk.Coins
 }
 
-func NewAppModule(k keeper.Keeper) AppModule {
+func NewAppModule(k *keeper.Keeper, f func() sdk.Coins) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
 	ret.Veneus3BaseUpgradeModule = common.NewVeneus3BaseUpgradeModule(ret)
+	ret.grepCoins = f
 	return ret
 }
 
@@ -106,7 +110,7 @@ func (a AppModule) Route() string {
 }
 
 func (a AppModule) NewHandler() sdk.Handler {
-	return NewHandler(a.keeper)
+	return NewHandler(*a.keeper)
 }
 
 func (a AppModule) QuerierRoute() string {
@@ -117,9 +121,29 @@ func (a AppModule) NewQuerierHandler() sdk.Querier {
 	return nil
 }
 
-func (a AppModule) BeginBlock(s sdk.Context, block abci.RequestBeginBlock) {}
+func (a AppModule) BeginBlock(s sdk.Context, block abci.RequestBeginBlock) {
+	if !types2.HigherThanVenus4(s.BlockHeight()) {
+		return
+	}
+
+	a.keeper.Flush()
+}
 
 func (a AppModule) EndBlock(s sdk.Context, block abci.RequestEndBlock) []abci.ValidatorUpdate {
+	if !types2.HigherThanVenus4(s.BlockHeight()) {
+		return []abci.ValidatorUpdate{}
+	}
+	cc, writeFn := s.CacheContext()
+	coins := a.grepCoins()
+	if coins.Empty() {
+		return []abci.ValidatorUpdate{}
+	}
+	if err := a.keeper.EscrowPacketFeeFromFeeCollector(cc, coins); nil == err {
+		writeFn()
+	} else {
+		s.Logger().Error("failed ", "err", err)
+	}
+
 	return []abci.ValidatorUpdate{}
 }
 

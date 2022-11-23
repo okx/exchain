@@ -36,6 +36,5 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized  fee message type: %T", msg)
 		}
-
 	}
 }

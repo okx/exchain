@@ -155,7 +155,7 @@ func (k Keeper) SendTransfer(
 		return err
 	}
 
-	return k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
+	return k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource, packet)
 }
 
 // OnRecvPacket processes a cross chain fungible token transfer. If the

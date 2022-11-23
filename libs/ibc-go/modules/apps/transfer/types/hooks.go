@@ -1,6 +1,9 @@
 package types
 
-import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+)
 
 type TransferHooks interface {
 	AfterSendTransfer(
@@ -10,6 +13,7 @@ type TransferHooks interface {
 		sender sdk.AccAddress,
 		receiver string,
 		isSource bool,
+		p types.Packet,
 	) error
 	AfterRecvTransfer(
 		ctx sdk.Context,
@@ -41,9 +45,9 @@ func (mths MultiTransferHooks) AfterSendTransfer(
 	token sdk.SysCoin,
 	sender sdk.AccAddress,
 	receiver string,
-	isSource bool) error {
+	isSource bool, p types.Packet) error {
 	for i := range mths {
-		if err := mths[i].AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource); err != nil {
+		if err := mths[i].AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource, p); err != nil {
 			return err
 		}
 	}

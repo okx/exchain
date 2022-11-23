@@ -3,6 +3,7 @@ package keeper
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	trensferTypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	types2 "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/x/erc20/types"
 	"github.com/okex/exchain/x/evm/watcher"
 )
@@ -25,7 +26,7 @@ func (iths IBCTransferHooks) AfterSendTransfer(
 	token sdk.SysCoin,
 	sender sdk.AccAddress,
 	receiver string,
-	isSource bool) error {
+	isSource bool, p types2.Packet) error {
 	iths.Logger(ctx).Info(
 		"trigger ibc transfer hook",
 		"hook", "AfterSendTransfer",

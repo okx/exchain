@@ -208,7 +208,7 @@ var (
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		wasm.ModuleName:             nil,
 		feesplit.ModuleName:         nil,
-		ibcfeetypes.ModuleName:      nil,
+		ibcfeetypes.ModuleName:      {authtypes.Burner},
 		icatypes.ModuleName:         nil,
 	}
 
@@ -274,7 +274,7 @@ type OKExChainApp struct {
 	TransferKeeper       ibctransferkeeper.Keeper
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
-	IBCFeeKeeper         ibcfeekeeper.Keeper
+	IBCFeeKeeper         *ibcfeekeeper.Keeper
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
@@ -466,11 +466,12 @@ func NewOKExChainApp(
 		app.SupplyKeeper, supplyKeeperAdapter, scopedTransferKeeper, interfaceReg,
 	)
 	ibctransfertypes.SetMarshal(codecProxy)
-	app.IBCFeeKeeper = ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
+	feeKeeper := ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
 		v2keeper.ChannelKeeper, // may be replaced with IBC middleware
 		v2keeper.ChannelKeeper,
-		&v2keeper.PortKeeper, app.SupplyKeeper, supplyKeeperAdapter,
+		&v2keeper.PortKeeper, app.SupplyKeeper, supplyKeeperAdapter, app.SupplyKeeper, app.BankKeeper,
 	)
+	app.IBCFeeKeeper = &feeKeeper
 
 	// ICA Controller keeper
 	app.ICAControllerKeeper = icacontrollerkeeper.NewKeeper(
@@ -569,7 +570,7 @@ func NewOKExChainApp(
 	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
 	// Set IBC hooks
-	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(ibctransfertypes.NewMultiTransferHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper), ibcfeekeeper.NewFeeTransferHook(app.IBCFeeKeeper)))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	left := common.NewDisaleProxyMiddleware()
@@ -649,7 +650,9 @@ func NewOKExChainApp(
 		erc20.NewAppModule(app.Erc20Keeper),
 		wasmModule,
 		feesplit.NewAppModule(app.FeeSplitKeeper),
-		ibcfee.NewAppModule(app.IBCFeeKeeper),
+		ibcfee.NewAppModule(app.IBCFeeKeeper, func() sdk.Coins {
+			return app.GetCoins()
+		}),
 		ica.NewAppModule(codecProxy, &app.ICAControllerKeeper, &app.ICAHostKeeper),
 		icamauth.NewAppModule(codecProxy, app.ICAMauthKeeper),
 	)
@@ -674,6 +677,7 @@ func NewOKExChainApp(
 		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
 		wasm.ModuleName,
+		ibcfeetypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisis.ModuleName,
@@ -684,6 +688,7 @@ func NewOKExChainApp(
 		wasm.ModuleName,
 		evm.ModuleName, // we must sure evm.endblocker must be last endblocker for innerTx.infura can not gengerate tx, so infura can be last in the list.
 		infura.ModuleName,
+		ibcfeetypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
