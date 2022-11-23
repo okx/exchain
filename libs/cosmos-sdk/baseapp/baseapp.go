@@ -27,7 +27,6 @@ import (
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	hgutypes "github.com/okex/exchain/libs/tendermint/types/hgu"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
 )
@@ -1006,32 +1005,29 @@ func (app *BaseApp) GetRealTxFromRawTx(rawTx tmtypes.Tx) abci.TxEssentials {
 	return nil
 }
 
-func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) *hgutypes.HguRecord {
+func (app *BaseApp) EstimateGas(rawTx tmtypes.Tx, gasLimit int64) int64 {
 	tx, err := app.txDecoder(rawTx)
 	if err != nil {
-		return nil
+		return -1
 	}
 
 	txFnSig, toDeployContractSize := tx.GetTxFnSignatureInfo()
 	if txFnSig == nil {
-		return nil
+		return -1
 	}
 
 	hgu := InstanceOfHistoryGasUsedRecordDB().GetHgu(txFnSig)
 	if hgu == nil {
-		return nil
+		return -1
 	}
 
+	gu := estimateGas(gasLimit, hgu)
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		hgu.MaxGas = hgu.MaxGas*int64(toDeployContractSize) + 1000
-		hgu.LastBlockGas = hgu.LastBlockGas*int64(toDeployContractSize) + 1000
-		hgu.HighGas = hgu.HighGas*int64(toDeployContractSize) + 1000
-		hgu.StandardGas = hgu.StandardGas*int64(toDeployContractSize) + 1000
-		return hgu
+		gu = gu*int64(toDeployContractSize) + 1000
 	}
 
-	return hgu
+	return gu
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
