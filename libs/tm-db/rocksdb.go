@@ -53,7 +53,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 		bbto.SetBlockSize(int(size))
 	}
-	bbto.SetBlockCache(gorocksdb.NewLRUCache(1 << 30))
+	bbto.SetBlockCache(gorocksdb.NewLRUCache(1 << 31))
 	if v, ok := params[blockCache]; ok {
 		cache, err := toBytes(v)
 		if err != nil {
@@ -67,7 +67,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts.SetMaxBytesForLevelBase(1024 * 1024 * 1024)
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
-	opts.IncreaseParallelism(runtime.NumCPU())
+	opts.IncreaseParallelism(runtime.NumCPU() * 2)
 	opts.SetStatsDumpPeriodSec(300)
 
 	if v, ok := params[statistics]; ok {
@@ -109,7 +109,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	}
 
 	// 1.5GB maximum memory use for writebuffer.
-	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
+	// opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
