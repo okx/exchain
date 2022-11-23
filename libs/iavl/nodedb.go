@@ -217,7 +217,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 	return
 }
 
-var TopContract = make(map[common.Address]int)
+var TopContract = make(map[string]int)
 
 // GetNode gets a node from memory or disk. If it is an inner node, it does not
 // load its children.
@@ -228,9 +228,10 @@ func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 	if n != nil {
 		// 0d021d10ab9e155fc1e8705d12b73f9bd3de0a36 local
 		// 1cc4d981e897a3d2e7785093a648c0a75fad0453 mainnet
-		if len(n.key) == 53 {
+		if ndb.name == "evm" {
 			if from == fromDisk {
-				TopContract[common.BytesToAddress(n.key[1:21])]++
+				TopContract[common.Bytes2Hex(n.key)]++
+				fmt.Println(common.Bytes2Hex(n.key), TopContract[common.Bytes2Hex(n.key)])
 			}
 		}
 		if len(n.key) == 53 && bytes.Equal(n.key[1:21], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
