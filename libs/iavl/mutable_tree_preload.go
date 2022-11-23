@@ -103,10 +103,6 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 
 func (tree *MutableTree) preGetNode(hash []byte) (n *Node) {
 	var fromDisk bool
-	n, ok := tree.ndb.findNodeFromPreWriteCache(hash)
-	if ok {
-		return n
-	}
 	n, fromDisk = tree.ImmutableTree.ndb.GetNodeWithoutUpdateCache(hash)
 	if fromDisk {
 		tree.ndb.cacheNodeToPreWriteCache(n)
