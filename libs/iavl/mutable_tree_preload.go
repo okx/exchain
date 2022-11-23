@@ -78,6 +78,15 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	tree.ndb.finishPreWriteCache()
 }
 
+func (tree *MutableTree) PreChange(key string, setOrDel byte) {
+	if tree.root == nil {
+		return
+	}
+	if setOrDel != PreChangeNop {
+		tree.preChange(tree.root, amino.StrToBytes(key), setOrDel)
+	}
+}
+
 func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte) (find bool) {
 	if node.isLeaf() {
 		if bytes.Equal(node.key, key) {
@@ -101,6 +110,29 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 	}
 }
 
+func (tree *MutableTree) preChange(node *Node, key []byte, setOrDel byte) (find bool) {
+	if node.isLeaf() {
+		if bytes.Equal(node.key, key) {
+			return true
+		}
+		return
+	} else {
+		var isSet = setOrDel == PreChangeOpSet
+		if bytes.Compare(key, node.key) < 0 {
+			node.leftNode = tree.preGetLeftNode2(node)
+			if find = tree.preChange(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+				tree.preGetRightNode2(node)
+			}
+		} else {
+			node.rightNode = tree.preGetRightNode2(node)
+			if find = tree.preChange(node.rightNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+				tree.preGetLeftNode2(node)
+			}
+		}
+		return
+	}
+}
+
 func (tree *MutableTree) preGetNode(hash []byte) (n *Node) {
 	var fromDisk bool
 	n, fromDisk = tree.ImmutableTree.ndb.GetNodeWithoutUpdateCache(hash)
@@ -117,11 +149,25 @@ func (tree *MutableTree) preGetLeftNode(node *Node) (n *Node) {
 	return tree.preGetNode(node.leftHash)
 }
 
+func (tree *MutableTree) preGetLeftNode2(node *Node) (n *Node) {
+	if node.leftNode != nil {
+		return node.leftNode
+	}
+	return tree.ImmutableTree.ndb.GetNode(node.leftHash)
+}
+
 func (tree *MutableTree) preGetRightNode(node *Node) (n *Node) {
 	if node.rightNode != nil {
 		return node.rightNode
 	}
 	return tree.preGetNode(node.rightHash)
+}
+
+func (tree *MutableTree) preGetRightNode2(node *Node) (n *Node) {
+	if node.rightNode != nil {
+		return node.rightNode
+	}
+	return tree.ImmutableTree.ndb.GetNode(node.rightHash)
 }
 
 func (tree *MutableTree) makeOrphansSliceReady() []*Node {

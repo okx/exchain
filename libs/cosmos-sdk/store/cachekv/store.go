@@ -25,6 +25,7 @@ type cValue struct {
 }
 
 type PreChangesHandler func(keys []string, setOrDel []byte)
+type PreChangeHandler func(key string, setOrDel byte)
 
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
@@ -36,6 +37,7 @@ type Store struct {
 	parent        types.KVStore
 
 	preChangesHandler    PreChangesHandler
+	preChangeHandler     PreChangeHandler
 	disableCacheReadList bool // not cache readList for group-paralleled-tx
 }
 
@@ -51,9 +53,10 @@ func NewStore(parent types.KVStore) *Store {
 	}
 }
 
-func NewStoreWithPreChangeHandler(parent types.KVStore, preChangesHandler PreChangesHandler) *Store {
+func NewStoreWithPreChangeHandler(parent types.KVStore, preChangesHandler PreChangesHandler, handler PreChangeHandler) *Store {
 	s := NewStore(parent)
 	s.preChangesHandler = preChangesHandler
+	s.preChangeHandler = handler
 	return s
 }
 
@@ -371,6 +374,20 @@ func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 		value:   value,
 		deleted: deleted,
 	}
+	if store.preChangeHandler != nil {
+		go func() {
+			var setOrDel byte
+			switch {
+			case deleted:
+				setOrDel = iavl.PreChangeOpDelete
+			case value == nil:
+			// Skip, it already doesn't exist in parent.
+			default:
+				setOrDel = iavl.PreChangeOpSet
+			}
+			store.preChangeHandler(amino.BytesToStr(key), setOrDel)
+		}()
+	}
 	if dirty {
 		store.unsortedCache[keyStr] = struct{}{}
 	}
@@ -381,6 +398,7 @@ func (store *Store) Reset(parent types.KVStore) {
 	store.mtx.Lock()
 
 	store.preChangesHandler = nil
+	store.preChangeHandler = nil
 	store.parent = parent
 	store.clearCache()
 
