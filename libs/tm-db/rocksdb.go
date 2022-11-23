@@ -64,10 +64,10 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
 
 	opts := gorocksdb.NewDefaultOptions()
-	opts.SetMaxWriteBufferNumber(5)
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
-	opts.IncreaseParallelism(runtime.NumCPU())
+	opts.IncreaseParallelism(runtime.NumCPU() * 2)
+	opts.SetStatsDumpPeriodSec(300)
 
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
