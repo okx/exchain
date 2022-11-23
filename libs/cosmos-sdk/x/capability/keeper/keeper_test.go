@@ -54,12 +54,24 @@ func (suite *KeeperTestSuite) TestSeal() {
 		caps[i] = cap
 	}
 
+	//suite.Require().NotPanics(func() {
+	//	suite.keeper.Seal()
+	//})
+
 	for i, cap := range caps {
 		got, ok := sk.GetCapability(suite.ctx, fmt.Sprintf("transfer-%d", i))
 		suite.Require().True(ok)
 		suite.Require().Equal(cap, got)
 		suite.Require().Equal(uint64(i)+prevIndex, got.GetIndex())
 	}
+
+	//suite.Require().Panics(func() {
+	//	suite.keeper.Seal()
+	//})
+
+	//suite.Require().Panics(func() {
+	//	_ = suite.keeper.ScopeToModule(stakingtypes.ModuleName)
+	//})
 }
 
 func (suite *KeeperTestSuite) TestNewCapability() {
@@ -267,29 +279,24 @@ func (suite KeeperTestSuite) TestRevertCapability() {
 	ms := suite.ctx.MultiStore()
 
 	msCache := ms.CacheMultiStore()
-	//cacheCtx := *suite.ctx.SetMultiStore(msCache)
+	cacheCtx := *suite.ctx.SetMultiStore(msCache)
 
 	capName := "revert"
 	// Create capability on cached context
-	//cap, err := sk.NewCapability(cacheCtx, capName)
-	//suite.Require().NoError(err, "could not create capability")
-	//
-	//// Check that capability written in cached context
-	//gotCache, ok := sk.GetCapability(cacheCtx, capName)
-	//suite.Require().True(ok, "could not retrieve capability from cached context")
-	//suite.Require().Equal(cap, gotCache, "did not get correct capability from cached context")
+	cap, err := sk.NewCapability(cacheCtx, capName)
+	suite.Require().NoError(err, "could not create capability")
 
-	// Check that capability is NOT written to original context
-	got, ok := sk.GetCapability(suite.ctx, capName)
-	suite.Require().False(ok, "retrieved capability from original context before write")
-	suite.Require().Nil(got, "capability not nil in original store")
+	// Check that capability written in cached context
+	gotCache, ok := sk.GetCapability(cacheCtx, capName)
+	suite.Require().True(ok, "could not retrieve capability from cached context")
+	suite.Require().Equal(cap, gotCache, "did not get correct capability from cached context")
 
 	// Write to underlying memKVStore
 	msCache.Write()
 
-	got, ok = sk.GetCapability(suite.ctx, capName)
+	got, ok := sk.GetCapability(suite.ctx, capName)
 	suite.Require().True(ok, "could not retrieve capability from context")
-	//suite.Require().Equal(cap, got, "did not get correct capability from context")
+	suite.Require().Equal(cap, got, "did not get correct capability from context")
 }
 
 func TestKeeperTestSuite(t *testing.T) {
