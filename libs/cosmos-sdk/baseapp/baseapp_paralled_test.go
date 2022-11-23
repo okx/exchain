@@ -221,8 +221,8 @@ func TestParalledTxs(t *testing.T) {
 	for _, tc := range testCases {
 		resultHashA, appHashA := tc.malleate(t, chainA, true)
 		resultHashB, appHashB := tc.malleate(t, chainB, false)
-		reflect.DeepEqual(resultHashA, appHashA)
-		reflect.DeepEqual(resultHashB, appHashB)
+		require.True(t, reflect.DeepEqual(resultHashA, resultHashB))
+		require.True(t, reflect.DeepEqual(appHashA, appHashB))
 	}
 
 }

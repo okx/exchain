@@ -54,24 +54,12 @@ func (suite *KeeperTestSuite) TestSeal() {
 		caps[i] = cap
 	}
 
-	//suite.Require().NotPanics(func() {
-	//	suite.keeper.Seal()
-	//})
-
 	for i, cap := range caps {
 		got, ok := sk.GetCapability(suite.ctx, fmt.Sprintf("transfer-%d", i))
 		suite.Require().True(ok)
 		suite.Require().Equal(cap, got)
 		suite.Require().Equal(uint64(i)+prevIndex, got.GetIndex())
 	}
-
-	//suite.Require().Panics(func() {
-	//	suite.keeper.Seal()
-	//})
-
-	//suite.Require().Panics(func() {
-	//	_ = suite.keeper.ScopeToModule(stakingtypes.ModuleName)
-	//})
 }
 
 func (suite *KeeperTestSuite) TestNewCapability() {
