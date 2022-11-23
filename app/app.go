@@ -646,6 +646,7 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
+	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

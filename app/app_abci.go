@@ -5,11 +5,8 @@ import (
 	"time"
 
 	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/wasm/watcher"
 )
 
@@ -26,13 +23,13 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	resp := app.BaseApp.DeliverTx(req)
 
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
-		tx, err := evm.TxDecoder(app.marshal)(req.Tx)
-		if err == nil {
-			//optimize get tx gas price can not get value from verifySign method
-			app.gpo.CurrentBlockGPs.Update(tx.GetGasPrice(), uint64(resp.GasUsed))
-		}
-	}
+	//if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+	//	tx, err := evm.TxDecoder(app.marshal)(req.Tx)
+	//	if err == nil {
+	//		//optimize get tx gas price can not get value from verifySign method
+	//		app.gpo.CurrentBlockGPs.Update(tx.GetGasPrice(), uint64(resp.GasUsed))
+	//	}
+	//}
 
 	return resp
 }
@@ -46,17 +43,17 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 	resp := app.BaseApp.DeliverRealTx(req)
 	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
 
-	var err error
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
-		tx, _ := req.(sdk.Tx)
-		if tx == nil {
-			tx, err = evm.TxDecoder(app.Codec())(req.GetRaw())
-		}
-		if err == nil {
-			//optimize get tx gas price can not get value from verifySign method
-			app.gpo.CurrentBlockGPs.Update(tx.GetGasPrice(), uint64(resp.GasUsed))
-		}
-	}
+	//var err error
+	//if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+	//	tx, _ := req.(sdk.Tx)
+	//	if tx == nil {
+	//		tx, err = evm.TxDecoder(app.Codec())(req.GetRaw())
+	//	}
+	//	if err == nil {
+	//		//optimize get tx gas price can not get value from verifySign method
+	//		app.gpo.CurrentBlockGPs.Update(tx.GetGasPrice(), uint64(resp.GasUsed))
+	//	}
+	//}
 
 	return resp
 }

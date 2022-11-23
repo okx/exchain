@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
+
+	"github.com/okex/exchain/libs/system/trace"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -357,6 +358,12 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
+	dgi := sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)
+	dgis := make([]sdk.DynamicGasInfo, 1)
+	dgis[0] = dgi
+	// todo: if app.updateGPOHandler == nil
+	app.updateGPOHandler(dgis)
+
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
