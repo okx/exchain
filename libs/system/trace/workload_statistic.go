@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 var (
@@ -28,6 +30,7 @@ type WorkloadStatistic struct {
 
 	latestTag   string
 	latestBegin time.Time
+	logger      log.Logger
 
 	workCh chan workInfo
 }
@@ -58,6 +61,10 @@ func newWorkloadStatistic(periods []time.Duration, tags_ []string) *WorkloadStat
 	go wls.shrink_loop()
 
 	return wls
+}
+
+func (ws *WorkloadStatistic) SetLogger(logger log.Logger) {
+	ws.logger = logger
 }
 
 func (ws *WorkloadStatistic) Add(tag string, wl time.Duration) {
@@ -95,8 +102,15 @@ func (ws *WorkloadStatistic) end(tag string, t time.Time) {
 	if _, ok := ws.tags[tag]; !ok {
 		return
 	}
-	assert(ws.latestTag == tag, "WorkloadStatistic: begin tag is %s but end tag is %s", ws.latestTag, tag)
-	assert(!ws.latestBegin.IsZero(), "WorkloadStatistic: begin is not called before end")
+
+	if ws.latestTag != tag {
+		ws.logger.Error("WorkloadStatistic", ": begin tag", ws.latestTag, "end tag", tag)
+		return
+	}
+	if ws.latestBegin.IsZero() {
+		ws.logger.Error("WorkloadStatistic", "begin is not called before end")
+		return
+	}
 
 	dur := t.Sub(ws.latestBegin)
 	for i := range ws.workloads {
@@ -113,7 +127,10 @@ type summaryInfo struct {
 }
 
 func (ws *WorkloadStatistic) summary() []summaryInfo {
-	assert(ws.latestBegin.IsZero(), "WorkloadStatistic: some work is still running when calling summary")
+	if !ws.latestBegin.IsZero() {
+		ws.logger.Error("WorkloadStatistic", ": some work is still running when calling summary")
+		return nil
+	}
 
 	summary := make([]summaryInfo, 0, len(ws.workloads))
 	for _, wload := range ws.workloads {
@@ -184,10 +201,4 @@ func toTagsMap(keys []string) map[string]struct{} {
 		tags[tag] = struct{}{}
 	}
 	return tags
-}
-
-func assert(b bool, msg string, args ...interface{}) {
-	if !b {
-		panic(fmt.Sprintf(msg, args...))
-	}
 }
