@@ -223,7 +223,6 @@ func toTagsMap(keys []string) map[string]struct{} {
 func minDuration(d1 time.Duration, d2 time.Duration) time.Duration {
 	if d1 < d2 {
 		return d1
-	} else {
-		return d2
 	}
+	return d2
 }
