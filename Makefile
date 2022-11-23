@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 GO_VERSION=1.17
-ROCKSDB_VERSION=6.27.3
+ROCKSDB_VERSION=7.7.3
 IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 

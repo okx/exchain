@@ -1,7 +1,7 @@
 #!/bin/sh
 #set -e
 #set -x
-VERSION_NUM=6.27.3
+VERSION_NUM=7.7.3
 VERSION=v$VERSION_NUM
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -51,9 +51,9 @@ install_linux() {
   $sh_c "git clone https://github.com/facebook/rocksdb.git"
   $sh_c "cd rocksdb && git checkout ${VERSION}"
   $sh_c "cd rocksdb && make clean"
-  $sh_c "cd rocksdb && make uninstall"
+  $sh_c "cd rocksdb && make uninstall DEBUG_LEVEL=0"
   $sh_c "cd rocksdb && make clean PREFIX=/usr LIBDIR=/usr/lib"
-  $sh_c "cd rocksdb && make uninstall PREFIX=/usr LIBDIR=/usr/lib"
+  $sh_c "cd rocksdb && make uninstall DEBUG_LEVEL=0 PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make -j${num_proc} DISABLE_JEMALLOC=1 shared_lib PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make install-shared PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "ldconfig"
@@ -61,10 +61,10 @@ install_linux() {
 
 install_macos(){
   $sh_c "git clone https://github.com/facebook/rocksdb.git"
-  $sh_c "cd rocksdb && git checkout ${VERSION} && git apply --reject ../libs/rocksdb/arm64_crc.patch"
+  $sh_c "cd rocksdb && git checkout ${VERSION}"
   $sh_c "cd rocksdb && make clean"
-  $sh_c "cd rocksdb && make uninstall"
-  $sh_c "cd rocksdb && make -j${num_proc} shared_lib"
+  $sh_c "cd rocksdb && make uninstall DEBUG_LEVEL=0"
+  $sh_c "cd rocksdb && make -j${num_proc} shared_lib "
   $sh_c "cd rocksdb && make install-shared"
 }
 
