@@ -13,8 +13,6 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -23,11 +21,13 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	hgutypes "github.com/okex/exchain/libs/tendermint/types/hgu"
+	"github.com/tendermint/go-amino"
 )
 
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
-	GetTxHistoryGasUsed(tx types.Tx) int64
+	GetTxHistoryGasUsed(tx types.Tx) *hgutypes.HguRecord
 	GetRealTxFromRawTx(rawTx types.Tx) abci.TxEssentials
 }
 
@@ -288,9 +288,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 
 	var err error
 	var gasUsed int64
+	var txHgu *hgutypes.HguRecord
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
-		if gasUsed < 0 {
+		txHgu = mem.txInfoparser.GetTxHistoryGasUsed(tx)
+		if txHgu == nil {
 			simuRes, err := mem.simulateTx(tx)
 			if err != nil {
 				return err
@@ -316,6 +317,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
+			if txHgu != nil {
+				gasUsed = estimateGas(r.CheckTx.GasWanted, txHgu)
+			}
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
 				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
 			r.CheckTx.GasWanted = gasUsed
@@ -1228,4 +1232,27 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	}
 	err = cdc.UnmarshalBinaryBare(res.Value, &simuRes)
 	return &simuRes, err
+}
+
+func estimateGas(gasLimit int64, hgu *hgutypes.HguRecord) int64 {
+	if hgu == nil {
+		return gasLimit
+	}
+	switch {
+	case hgu.LastBlockGas >= hgu.HighGas:
+		return minInt64(gasLimit, hgu.MaxGas)
+	case hgu.LastBlockGas >= hgu.StandardGas*2:
+		return minInt64(gasLimit, hgu.MaxGas) * 3 / 4 // 75%
+	case hgu.LastBlockGas >= hgu.StandardGas:
+		return minInt64(gasLimit, (hgu.LastBlockGas+hgu.StandardGas)/2)
+	default:
+		return minInt64(gasLimit, hgu.StandardGas)
+	}
+}
+
+func minInt64(m, n int64) int64 {
+	if m < n {
+		return m
+	}
+	return n
 }

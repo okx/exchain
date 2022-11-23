@@ -1,0 +1,9 @@
+syntax = "proto3";
+option go_package = "hgu";
+
+message HguRecord {
+  int64 MaxGas = 1;
+  int64 LastBlockGas = 2;
+  int64 HighGas = 3;
+  int64 StandardGas = 4;
+}
