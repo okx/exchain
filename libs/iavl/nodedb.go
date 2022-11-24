@@ -217,7 +217,9 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 		// 1cc4d981e897a3d2e7785093a648c0a75fad0453 mainnet
 		if ndb.name == "evm" {
 			if from == fromDisk && len(n.key) == 53 {
+				MapLocker.Lock()
 				TopContract[common.Bytes2Hex(n.key[1:21])]++
+				MapLocker.Unlock()
 				//fmt.Println(common.Bytes2Hex(n.key), TopContract[common.Bytes2Hex(n.key)])
 			}
 		}
@@ -234,6 +236,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 	return
 }
 
+var MapLocker sync.RWMutex
 var TopContract = make(map[string]int)
 
 // GetNode gets a node from memory or disk. If it is an inner node, it does not
