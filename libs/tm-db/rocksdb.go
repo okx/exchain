@@ -31,12 +31,14 @@ type RocksDB struct {
 var _ DB = (*RocksDB)(nil)
 
 const (
-	blockSize    = "block_size"
-	blockCache   = "block_cache"
-	statistics   = "statistics"
-	maxOpenFiles = "max_open_files"
-	mmapRead     = "allow_mmap_reads"
-	mmapWrite    = "allow_mmap_writes"
+	blockSize      = "block_size"
+	blockCache     = "block_cache"
+	statistics     = "statistics"
+	maxOpenFiles   = "max_open_files"
+	mmapRead       = "allow_mmap_reads"
+	mmapWrite      = "allow_mmap_writes"
+	bloomFilter    = "bloom_filter"
+	newFormatBloom = "bloom_filter_new"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -61,7 +63,22 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 		bbto.SetBlockCache(gorocksdb.NewLRUCache(cache))
 	}
-	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
+
+	bitsPerKey := 10
+	if v, ok := params[bloomFilter]; ok {
+		bit, err := strconv.ParseInt(v, 10, 64)
+		if err == nil {
+			bitsPerKey = bit
+		}
+	}
+
+	if v, ok := params[newFormatBloom]; ok {
+		fmt.Println("*****lyh***** NewBloomFilterFull", bitsPerKey)
+		bbto.SetFilterPolicy(gorocksdb.NewBloomFilterFull(bitsPerKey))
+	} else {
+		fmt.Println("*****lyh***** NewBloomFilter", bitsPerKey)
+		bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(bitsPerKey))
+	}
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
