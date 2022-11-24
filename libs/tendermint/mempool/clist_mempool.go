@@ -296,9 +296,15 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	// END CACHE
 
-	mem.updateMtx.RLock()
-	// use defer to unlock mutex because application (*local client*) might panic
-	defer mem.updateMtx.RUnlock()
+	if err := mem.isFull(txSize); err != nil {
+		mem.updateMtx.Lock()
+		// use defer to unlock mutex because application (*local client*) might panic
+		defer mem.updateMtx.Unlock()
+	} else {
+		mem.updateMtx.RLock()
+		// use defer to unlock mutex because application (*local client*) might panic
+		defer mem.updateMtx.RUnlock()
+	}
 
 	var err error
 	var gasUsed int64
