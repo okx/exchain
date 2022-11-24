@@ -457,10 +457,11 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
 
-	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
-	if err != nil {
-		return nil, err
-	}
+	//blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	//if err != nil {
+	//	return nil, err
+	//}
+	blockNum := rpctypes.LatestBlockNumber
 	clientCtx := api.clientCtx
 	pending := blockNum == rpctypes.PendingBlockNumber
 	// pass the given block height to the context if the height is not pending or latest
