@@ -71,7 +71,7 @@ func setRpcConfig(ctx *server.Context) {
 
 func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
-	viper.SetDefault(appconfig.FlagDynamicGpMode, types.CloseMode)
+	viper.SetDefault(appconfig.FlagDynamicGpMode, types.MinimalGpMode)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
@@ -80,7 +80,7 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(appconfig.FlagMaxGasUsedPerBlock, 120000000)
 
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
-		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, types.CloseMode, iavl.FlagIavlEnableAsyncCommit, true,
+		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, types.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
 		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000))
 }

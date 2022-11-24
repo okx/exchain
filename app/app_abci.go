@@ -23,7 +23,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	resp := app.BaseApp.DeliverTx(req)
 
-	//if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+	//if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
 	//	tx, err := evm.TxDecoder(app.marshal)(req.Tx)
 	//	if err == nil {
 	//		//optimize get tx gas price can not get value from verifySign method
@@ -44,7 +44,7 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
 
 	//var err error
-	//if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+	//if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
 	//	tx, _ := req.(sdk.Tx)
 	//	if tx == nil {
 	//		tx, err = evm.TxDecoder(app.Codec())(req.GetRaw())
