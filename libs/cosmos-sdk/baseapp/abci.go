@@ -242,7 +242,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 	xenNodeReadCountStr := strconv.Itoa(app.cms.GetXenNodeReadCount())
 	xenDbReadCountStr := strconv.Itoa(app.cms.GetXenDBReadCount())
 
-	iavlInfo := strings.Join([]string{"xen_getnode<", xenNodeReadCountStr, ">, evm_getnode<", evmNodeReadStr, ">, acc_getnode<", accNodeReadStr, ">, getnode<", nodeReadCountStr, ">, xen_rdb<", xenDbReadCountStr, ">, evm_rdb<", evmDBReadStr, ">, acc_rdb<", accDBReadStr, "> , rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
+	iavlInfo := strings.Join([]string{"xen_getnode<", xenNodeReadCountStr, ">, evm_getnode<", evmNodeReadStr, ">, acc_getnode<", accNodeReadStr, ">, getnode<", nodeReadCountStr, ">, xen_rdb<", xenDbReadCountStr, ">, evm_rdb<", evmDBReadStr, ">, acc_rdb<", accDBReadStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
 
 	elapsedInfo := trace.GetElapsedInfo()
 	elapsedInfo.AddInfo(trace.Iavl, iavlInfo)

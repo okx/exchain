@@ -103,7 +103,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			list := sortMapByValue(iavl.TopContract)
 			iavl.MapLocker.RUnlock()
 			for i := 0; i < 100 && i < len(list); i++ {
-				log.Println(list[i].Key, list[i].Value)
+				fmt.Println(list[i].Key, list[i].Value)
 			}
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
