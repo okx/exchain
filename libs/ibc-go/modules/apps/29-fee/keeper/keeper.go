@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 
@@ -25,6 +26,8 @@ var (
 	_ types.PortKeeper    = Keeper{}
 )
 
+type GasPriceFunc func(ctx sdk.Context) big.Int
+
 // Keeper defines the IBC fungible transfer keeper
 type Keeper struct {
 	storeKey sdk.StoreKey
@@ -35,11 +38,14 @@ type Keeper struct {
 	channelKeeper types.ChannelKeeper
 	portKeeper    types.PortKeeper
 	bankKeeper    types.BankKeeper
-	bk            bank.Keeper
-	supplyK       supply.Keeper
-	packets       map[string]exported.PacketI
 
+	bk         bank.Keeper
+	supplyK    supply.Keeper
+	signers    map[string]sdk.Gas
+	packets    map[string]exported.PacketI
 	paramSpace paramtypes.Subspace
+
+	gasPrice GasPriceFunc
 }
 
 // NewKeeper creates a new 29-fee Keeper instance
@@ -48,6 +54,7 @@ func NewKeeper(
 	ics4Wrapper types.ICS4Wrapper, channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	authKeeper types.AccountKeeper, bankKeeper types.BankKeeper, supplyK supply.Keeper, bk bank.Keeper,
+	feeGreps func(ctx sdk.Context) big.Int,
 ) Keeper {
 	ret := Keeper{
 		cdc:           cdc,
@@ -59,6 +66,7 @@ func NewKeeper(
 		bankKeeper:    bankKeeper,
 		supplyK:       supplyK,
 		bk:            bk,
+		gasPrice:      feeGreps,
 	}
 	ret.packets = make(map[string]exported.PacketI)
 
@@ -407,12 +415,33 @@ func (k Keeper) MustUnmarshalFees(bz []byte) types.PacketFees {
 	return fees
 }
 
-func (k Keeper) AddPacket(p exported.PacketI) {
+func (k Keeper) AddPacket(p exported.SignerPacketI) {
+	signers := p.GetSigner()
+	if len(signers) == 0 {
+		return
+	}
+	gas := p.GetGas()
+	if gas <= 0 {
+		return
+	}
+	perGas := int64(gas) / int64(len(signers))
+	if perGas <= 0 {
+		return
+	}
+	for _, sig := range signers {
+		v, exist := k.signers[sig.String()]
+		if exist {
+			k.signers[sig.String()] = v + sdk.Gas(perGas)
+		} else {
+			k.signers[sig.String()] = sdk.Gas(perGas)
+		}
+	}
 	k.packets[buildPacketKey(p)] = p
 }
 
 func (k *Keeper) Flush() {
 	k.packets = make(map[string]exported.PacketI)
+	k.signers = make(map[string]sdk.Gas)
 }
 
 func buildPacketKey(p exported.PacketI) string {

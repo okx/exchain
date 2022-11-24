@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"math/big"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -12,11 +14,29 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
 }
 
-func (k Keeper) EscrowPacketFeeFromFeeCollector(ctx sdk.Context, fee sdk.Coins) error {
-	if len(k.packets) == 0 {
+func (k Keeper) InciteFee(ctx sdk.Context) error {
+	if k.gasPrice == nil || len(k.signers) == 0 || len(k.packets) == 0 {
 		return nil
 	}
+	gp := k.gasPrice(ctx)
+	var coins sdk.Coins
+	for _, gas := range k.signers {
+		txFee := new(big.Int).Mul(&gp, new(big.Int).SetUint64(gas))
+		fee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision)
+		if coins == nil {
+			coins = sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: fee}}
+		} else {
+			coins.Add(sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: fee})
+		}
+	}
 
+	return k.escrowPacketFeeFromFeeCollector(ctx, coins)
+}
+
+func (k Keeper) escrowPacketFeeFromFeeCollector(ctx sdk.Context, fee sdk.Coins) error {
+	if fee == nil || fee.Empty() {
+		return nil
+	}
 	if !k.AllowAutoDispatch(ctx) {
 		return nil
 	}

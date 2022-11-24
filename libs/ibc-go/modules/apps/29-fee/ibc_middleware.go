@@ -340,10 +340,16 @@ func (im IBCMiddleware) SendPacket(
 	chanCap *capabilitytypes.Capability,
 	packet exported.PacketI,
 ) error {
+	sp, ok := packet.(exported.SignerPacketI)
+	if ok {
+		packet = sp.GetInternal()
+	}
 	if err := im.keeper.SendPacket(ctx, chanCap, packet); nil != err {
 		return err
 	}
-	im.keeper.AddPacket(packet)
+	if ok {
+		im.keeper.AddPacket(sp)
+	}
 	return nil
 }
 

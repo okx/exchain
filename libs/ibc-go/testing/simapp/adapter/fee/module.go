@@ -27,10 +27,8 @@ type TestFeeAppModule struct {
 
 func NewTestFeeAppModule(keeper keeper.Keeper) *TestFeeAppModule {
 	ret := &TestFeeAppModule{
-		AppModule: fee.NewAppModule(&keeper, func() sdk.Coins {
-			return nil
-		}),
-		keeper: keeper,
+		AppModule: fee.NewAppModule(&keeper),
+		keeper:    keeper,
 	}
 	return ret
 }

@@ -1,5 +1,7 @@
 package exported
 
+import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 // ChannelI defines the standard interface for a channel end.
 type ChannelI interface {
 	GetState() int32
@@ -29,6 +31,13 @@ type PacketI interface {
 	GetDestChannel() string
 	GetData() []byte
 	ValidateBasic() error
+}
+
+type SignerPacketI interface {
+	PacketI
+	GetSigner() []sdk.AccAddress
+	GetInternal() PacketI
+	GetGas() sdk.Gas
 }
 
 // Acknowledgement defines the interface used to return

@@ -14,7 +14,7 @@ import (
 // If the base application has the capability to send on the provided portID. An appropriate
 // absolute timeoutTimestamp must be provided. If the packet is timed out, the channel will be closed.
 // In the case of channel closure, a new channel may be reopened to reconnect to the host chain.
-func (k Keeper) SendTx(ctx sdk.Context, chanCap *capabilitytypes.Capability, connectionID, portID string, icaPacketData icatypes.InterchainAccountPacketData, timeoutTimestamp uint64) (uint64, error) {
+func (k Keeper) SendTx(ctx sdk.Context, signers []sdk.AccAddress, chanCap *capabilitytypes.Capability, connectionID, portID string, icaPacketData icatypes.InterchainAccountPacketData, timeoutTimestamp uint64) (uint64, error) {
 	activeChannelID, found := k.GetOpenActiveChannel(ctx, connectionID, portID)
 	if !found {
 		return 0, sdkerrors.Wrapf(icatypes.ErrActiveChannelNotFound, "failed to retrieve active channel on connection %s for port %s", connectionID, portID)
@@ -32,11 +32,12 @@ func (k Keeper) SendTx(ctx sdk.Context, chanCap *capabilitytypes.Capability, con
 		return 0, icatypes.ErrInvalidTimeoutTimestamp
 	}
 
-	return k.createOutgoingPacket(ctx, portID, activeChannelID, destinationPort, destinationChannel, chanCap, icaPacketData, timeoutTimestamp)
+	return k.createOutgoingPacket(ctx, signers, portID, activeChannelID, destinationPort, destinationChannel, chanCap, icaPacketData, timeoutTimestamp)
 }
 
 func (k Keeper) createOutgoingPacket(
 	ctx sdk.Context,
+	signers []sdk.AccAddress,
 	sourcePort,
 	sourceChannel,
 	destinationPort,
@@ -65,8 +66,8 @@ func (k Keeper) createOutgoingPacket(
 		clienttypes.ZeroHeight(),
 		timeoutTimestamp,
 	)
-
-	if err := k.ics4Wrapper.SendPacket(ctx, chanCap, packet); err != nil {
+	pw := channeltypes.NewSignerPacketWrapper(packet, signers, ctx.GasMeter().GasConsumed())
+	if err := k.ics4Wrapper.SendPacket(ctx, chanCap, pw); err != nil {
 		return 0, err
 	}
 

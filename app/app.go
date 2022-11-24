@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	"github.com/okex/exchain/x/vmbridge"
 
 	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
@@ -470,7 +472,7 @@ func NewOKExChainApp(
 	feeKeeper := ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
 		v2keeper.ChannelKeeper, // may be replaced with IBC middleware
 		v2keeper.ChannelKeeper,
-		&v2keeper.PortKeeper, app.SupplyKeeper, supplyKeeperAdapter, app.SupplyKeeper, app.BankKeeper,
+		&v2keeper.PortKeeper, app.SupplyKeeper, supplyKeeperAdapter, app.SupplyKeeper, app.BankKeeper, newIBCFeeIncite(app),
 	)
 	app.IBCFeeKeeper = &feeKeeper
 
@@ -651,9 +653,7 @@ func NewOKExChainApp(
 		erc20.NewAppModule(app.Erc20Keeper),
 		wasmModule,
 		feesplit.NewAppModule(app.FeeSplitKeeper),
-		ibcfee.NewAppModule(app.IBCFeeKeeper, func() sdk.Coins {
-			return app.GetCoins()
-		}),
+		ibcfee.NewAppModule(app.IBCFeeKeeper),
 		ica.NewAppModule(codecProxy, &app.ICAControllerKeeper, &app.ICAHostKeeper),
 		icamauth.NewAppModule(codecProxy, app.ICAMauthKeeper),
 	)
@@ -1014,5 +1014,12 @@ func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHa
 			return false
 		}
 		return ak.IsMatchSysContractAddress(ctx, addr)
+	}
+}
+
+func newIBCFeeIncite(app *OKExChainApp) func(ctx sdk.Context) big.Int {
+	return func(ctx sdk.Context) big.Int {
+		gp := (*hexutil.Big)(GlobalGp)
+		return *gp.ToInt()
 	}
 }

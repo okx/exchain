@@ -487,7 +487,9 @@ func NewSimApp(
 	app.IBCFeeKeeper = ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
 		v2keeper.ChannelKeeper, // may be replaced with IBC middleware
 		v2keeper.ChannelKeeper,
-		&v2keeper.PortKeeper, app.SupplyKeeper, app.SupplyKeeper, app.SupplyKeeper.Keeper, app.BankKeeper,
+		&v2keeper.PortKeeper, app.SupplyKeeper, app.SupplyKeeper, app.SupplyKeeper.Keeper, app.BankKeeper, func(signers map[string]struct{}) map[string]sdk.Coins {
+			return nil
+		},
 	)
 
 	// ICA Controller keeper

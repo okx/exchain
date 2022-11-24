@@ -23,7 +23,7 @@ func (f *FeeTransferHook) AfterSendTransfer(ctx sdk.Context, sourcePort, sourceC
 	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
 		return nil
 	}
-	f.k.AddPacket(p)
+	f.k.AddPacket(types.NewSignerPacketWrapper(p, []sdk.AccAddress{sender}, ctx.GasMeter().GasConsumed()))
 	return nil
 }
 

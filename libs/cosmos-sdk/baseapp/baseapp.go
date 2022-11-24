@@ -1040,16 +1040,3 @@ func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 	return app.txDecoder
 }
-
-func (app *BaseApp) GetCoins() sdk.Coins {
-	cp := make(sdk.Coins, len(app.feeCollector))
-	for i, v := range app.feeCollector {
-		cp[i] = sdk.DecCoin{
-			Denom: v.Denom,
-			Amount: sdk.Dec{
-				Int: v.Amount.Int,
-			},
-		}
-	}
-	return cp
-}

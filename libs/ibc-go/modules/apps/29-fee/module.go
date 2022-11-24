@@ -82,16 +82,14 @@ func (AppModuleBasic) Name() string {
 type AppModule struct {
 	*common.Veneus3BaseUpgradeModule
 	AppModuleBasic
-	keeper    *keeper.Keeper
-	grepCoins func() sdk.Coins
+	keeper *keeper.Keeper
 }
 
-func NewAppModule(k *keeper.Keeper, f func() sdk.Coins) AppModule {
+func NewAppModule(k *keeper.Keeper) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
 	ret.Veneus3BaseUpgradeModule = common.NewVeneus3BaseUpgradeModule(ret)
-	ret.grepCoins = f
 	return ret
 }
 
@@ -134,11 +132,7 @@ func (a AppModule) EndBlock(s sdk.Context, block abci.RequestEndBlock) []abci.Va
 		return []abci.ValidatorUpdate{}
 	}
 	cc, writeFn := s.CacheContext()
-	coins := a.grepCoins()
-	if coins.Empty() {
-		return []abci.ValidatorUpdate{}
-	}
-	if err := a.keeper.EscrowPacketFeeFromFeeCollector(cc, coins); nil == err {
+	if err := a.keeper.InciteFee(cc); nil == err {
 		writeFn()
 	} else {
 		s.Logger().Error("failed ", "err", err)
