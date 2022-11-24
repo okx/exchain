@@ -90,6 +90,17 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
+
+	maxtime time.Duration
+	mintime time.Duration
+
+	addTxQueue chan CheckTxItem
+}
+
+type CheckTxItem struct {
+	tx     []byte
+	txInfo TxInfo
+	res    *abci.Response
 }
 
 var _ Mempool = &CListMempool{}
@@ -120,6 +131,8 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
+		maxtime:       time.Nanosecond,
+		mintime:       time.Hour,
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
@@ -137,6 +150,9 @@ func NewCListMempool(
 		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
 		go mempool.pendingPoolJob()
 	}
+
+	mempool.addTxQueue = make(chan CheckTxItem, config.Size)
+	go mempool.addTxJobForP2P()
 
 	return mempool
 }
@@ -282,9 +298,20 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	// END CACHE
 
+	begin := time.Now()
 	mem.updateMtx.RLock()
 	// use defer to unlock mutex because application (*local client*) might panic
-	defer mem.updateMtx.RUnlock()
+	defer func() {
+		mem.updateMtx.RUnlock()
+		dur := time.Since(begin)
+		if dur > mem.maxtime {
+			mem.maxtime = dur
+		}
+
+		if dur < mem.mintime {
+			mem.mintime = dur
+		}
+	}()
 
 	var err error
 	var gasUsed int64
@@ -337,6 +364,15 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	return nil
+}
+
+func (mem *CListMempool) addTxJobForP2P() {
+	for item := range mem.addTxQueue {
+		err := mem.CheckTx(item.tx, nil, item.txInfo)
+		if err != nil {
+			//mem.logger.Debug("Could not check tx", "tx", item.tx, "err", err)
+		}
+	}
 }
 
 // Global callback that will be called after every ABCI response.
@@ -843,6 +879,9 @@ func (mem *CListMempool) Update(
 	preCheck PreCheckFunc,
 	postCheck PostCheckFunc,
 ) error {
+	mem.logger.Error("mempool_to_update checktx time", "maxtime", mem.maxtime, "mintime", mem.mintime)
+	mem.mintime = time.Hour
+	mem.maxtime = time.Nanosecond
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
@@ -924,8 +963,13 @@ func (mem *CListMempool) Update(
 	// Update metrics
 	mem.metrics.Size.Set(float64(mem.Size()))
 	if mem.pendingPool != nil {
-		mem.pendingPoolNotify <- addressNonce
-		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
+		if len(mem.pendingPoolNotify) >= 1 {
+			mem.logger.Error("pendingPoolNotify", "len ", "is full")
+		} else {
+			mem.pendingPoolNotify <- addressNonce
+			mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
+		}
+
 	}
 
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
