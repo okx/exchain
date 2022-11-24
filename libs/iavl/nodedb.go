@@ -212,19 +212,6 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 		from = fromDisk
 	}
 
-	// close onLoadNode as it leads to performance penalty
-	//ndb.state.onLoadNode(from)
-	return
-}
-
-var TopContract = make(map[string]int)
-
-// GetNode gets a node from memory or disk. If it is an inner node, it does not
-// load its children.
-func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
-	var from retrieveType
-	n, from = ndb.loadNode(hash, true)
-
 	if n != nil {
 		// 0d021d10ab9e155fc1e8705d12b73f9bd3de0a36 local
 		// 1cc4d981e897a3d2e7785093a648c0a75fad0453 mainnet
@@ -242,6 +229,17 @@ func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 			}
 		}
 	}
+	// close onLoadNode as it leads to performance penalty
+	//ndb.state.onLoadNode(from)
+	return
+}
+
+var TopContract = make(map[string]int)
+
+// GetNode gets a node from memory or disk. If it is an inner node, it does not
+// load its children.
+func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
+	n, _ = ndb.loadNode(hash, true)
 	return
 }
 

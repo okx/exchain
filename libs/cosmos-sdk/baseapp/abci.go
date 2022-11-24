@@ -311,6 +311,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	commitID, output := app.cms.CommitterCommitMap(input) // CommitterCommitMap
 
 	app.addCommitTraceInfo()
+	fmt.Println("keyslen:", len(iavl.TopContract))
 
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", amino.BytesHexStringer(commitID.Hash))
