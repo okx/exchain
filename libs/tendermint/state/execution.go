@@ -376,9 +376,20 @@ func (blockExec *BlockExecutor) commit(
 	deliverTxResponses []*abci.ResponseDeliverTx,
 	trc *trace.Tracer,
 ) (*abci.ResponseCommit, int64, error) {
+	blockExec.logger.Error(
+		"mempool_to_commit begin",
+		"height", block.Height,
+		"tx.length", len(block.Txs),
+	)
+	begin := time.Now()
 	blockExec.mempool.Lock()
 	defer func() {
 		blockExec.mempool.Unlock()
+		blockExec.logger.Error(
+			"mempool_to_commit end",
+			"height", block.Height,
+			"time during", time.Since(begin),
+		)
 		// Forced flushing mempool
 		if cfg.DynamicConfig.GetMempoolFlush() {
 			blockExec.mempool.Flush()
