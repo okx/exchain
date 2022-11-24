@@ -267,10 +267,12 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	err = memR.mempool.CheckTx(tx, nil, txInfo)
-	if err != nil {
-		memR.logCheckTxError(tx, memR.mempool.height, err)
-	}
+	go func() {
+		err = memR.mempool.CheckTx(tx, nil, txInfo)
+		if err != nil {
+			memR.logCheckTxError(tx, memR.mempool.height, err)
+		}
+	}()
 }
 
 // PeerState describes the state of a peer.
