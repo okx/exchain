@@ -459,6 +459,7 @@ func LoadValidators(db dbm.DB, height int64) (*types.ValidatorSet, error) {
 	}
 	if valInfo.ValidatorSet == nil {
 		lastStoredHeight := lastStoredHeightFor(height, valInfo.LastHeightChanged)
+		fmt.Println("--load validator from lastStoredHeight", lastStoredHeight, ", cur Height", height)
 		valInfo2 := loadValidatorsInfo(db, lastStoredHeight)
 		if valInfo2 == nil || valInfo2.ValidatorSet == nil {
 			panic(
@@ -470,6 +471,8 @@ func LoadValidators(db dbm.DB, height int64) (*types.ValidatorSet, error) {
 		}
 		valInfo2.ValidatorSet.IncrementProposerPriority(int(height - lastStoredHeight)) // mutate
 		valInfo = valInfo2
+	} else {
+		fmt.Println("validator lastStoredHeight is cur Height", height)
 	}
 
 	return valInfo.ValidatorSet, nil
@@ -519,6 +522,10 @@ func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *type
 	if height == lastHeightChanged || height%valSetCheckpointInterval == 0 {
 		valInfo.ValidatorSet = valSet
 	}
+	fmt.Println("--save validator:lastHeightChanged",
+		lastHeightChanged,
+		" cur height:", height,
+		" set isNil:", valInfo.ValidatorSet == nil)
 	db.Set(calcValidatorsKey(height), valInfo.Bytes())
 }
 
