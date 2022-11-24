@@ -340,8 +340,11 @@ func (im IBCMiddleware) SendPacket(
 	chanCap *capabilitytypes.Capability,
 	packet exported.PacketI,
 ) error {
+	if err := im.keeper.SendPacket(ctx, chanCap, packet); nil != err {
+		return err
+	}
 	im.keeper.AddPacket(packet)
-	return im.keeper.SendPacket(ctx, chanCap, packet)
+	return nil
 }
 
 // WriteAcknowledgement implements the ICS4 Wrapper interface
