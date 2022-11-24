@@ -307,7 +307,9 @@ func (ndb *nodeDB) initPreWriteCache() {
 }
 
 func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
-	ndb.preWriteNodeCache.Set(string(n.hash), n)
+	if n.isLeaf() {
+		ndb.preWriteNodeCache.Set(string(n.hash), n)
+	}
 }
 
 func (ndb *nodeDB) finishPreWriteCache() {

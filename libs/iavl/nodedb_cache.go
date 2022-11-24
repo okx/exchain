@@ -76,9 +76,6 @@ func (ndb *NodeCache) cache(node *Node) {
 
 func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
 	ndb.nodeCacheMutex.Lock()
-	if node.height > 30 {
-		return
-	}
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[key] = elem
 
