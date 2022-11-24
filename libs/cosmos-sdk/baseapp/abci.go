@@ -119,7 +119,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
-	if req.Header.Height >= 15541000 {
+	if req.Header.Height >= 15540200 {
 		app.closeMultiCache()
 	}
 	app.logger.Info("multi-cache info", "useCache", sdk.UseCache)
