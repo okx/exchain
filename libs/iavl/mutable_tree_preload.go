@@ -45,7 +45,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	for index := 0; index < maxNums; index++ {
 		go func(ch chan preWriteJob, wg *sync.WaitGroup) {
 			for j := range ch {
-				tree.preChangeWithOutCache(tree.root, j.key, j.setOrDel)
+				tree.preChangeWithOutCache(tree.root, j.key, j.setOrDel, 0)
 				wg.Done()
 			}
 		}(txJobChan, &wg)
@@ -63,7 +63,10 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	tree.ndb.finishPreWriteCache()
 }
 
-func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte) (find bool) {
+func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte, height int8) (find bool) {
+	if height > 30 {
+		return
+	}
 	if node.isLeaf() {
 		if bytes.Equal(node.key, key) {
 			return true
@@ -73,12 +76,14 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 		var isSet = setOrDel == PreChangeOpSet
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode = tree.preGetLeftNode(node)
-			if find = tree.preChangeWithOutCache(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+			height++
+			if find = tree.preChangeWithOutCache(node.leftNode, key, setOrDel, height); (!find && isSet) || (find && !isSet) {
 				tree.preGetRightNode(node)
 			}
 		} else {
 			node.rightNode = tree.preGetRightNode(node)
-			if find = tree.preChangeWithOutCache(node.rightNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+			height++
+			if find = tree.preChangeWithOutCache(node.rightNode, key, setOrDel, height); (!find && isSet) || (find && !isSet) {
 				tree.preGetLeftNode(node)
 			}
 		}
