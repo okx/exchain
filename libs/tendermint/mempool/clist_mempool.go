@@ -90,6 +90,17 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
+
+	maxtime time.Duration
+	mintime time.Duration
+
+	addTxQueue chan CheckTxItem
+}
+
+type CheckTxItem struct {
+	tx     []byte
+	txInfo TxInfo
+	res    *abci.Response
 }
 
 var _ Mempool = &CListMempool{}
@@ -120,6 +131,8 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
+		maxtime:       time.Nanosecond,
+		mintime:       time.Hour,
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
@@ -137,6 +150,9 @@ func NewCListMempool(
 		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
 		go mempool.pendingPoolJob()
 	}
+
+	mempool.addTxQueue = make(chan CheckTxItem, config.Size)
+	go mempool.addTxJobForP2P()
 
 	return mempool
 }
@@ -282,9 +298,20 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	// END CACHE
 
+	begin := time.Now()
 	mem.updateMtx.RLock()
 	// use defer to unlock mutex because application (*local client*) might panic
-	defer mem.updateMtx.RUnlock()
+	defer func() {
+		mem.updateMtx.RUnlock()
+		dur := time.Since(begin)
+		if dur > mem.maxtime {
+			mem.maxtime = dur
+		}
+
+		if dur < mem.mintime {
+			mem.mintime = dur
+		}
+	}()
 
 	var err error
 	var gasUsed int64
@@ -337,6 +364,149 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	return nil
+}
+
+// It blocks if we're waiting on Update() or Reap().
+// cb: A callback from the CheckTx command.
+//     It gets called from another goroutine.
+// CONTRACT: Either cb will get called, or err returned.
+//
+// Safe for concurrent use by multiple goroutines.
+func (mem *CListMempool) CheckTxForP2P(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	timeStart := int64(0)
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
+		timeStart = time.Now().UnixMicro()
+	}
+
+	txSize := len(tx)
+	if err := mem.isFull(txSize); err != nil {
+		return err
+	}
+	// The size of the corresponding amino-encoded TxMessage
+	// can't be larger than the maxMsgSize, otherwise we can't
+	// relay it to peers.
+	if txSize > mem.config.MaxTxBytes {
+		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
+	}
+
+	txkey := txKey(tx)
+
+	// CACHE
+	if !mem.cache.PushKey(txkey) {
+		// Record a new sender for a tx we've already seen.
+		// Note it's possible a tx is still in the cache but no longer in the mempool
+		// (eg. after committing a block, txs are removed from mempool but not cache),
+		// so we only record the sender for txs still in the mempool.
+		if ele, ok := mem.txs.Load(txkey); ok {
+			memTx := ele.Value.(*mempoolTx)
+			memTx.senderMtx.Lock()
+			memTx.senders[txInfo.SenderID] = struct{}{}
+			memTx.senderMtx.Unlock()
+			// TODO: consider punishing peer for dups,
+			// its non-trivial since invalid txs can become valid,
+			// but they can spam the same tx with little cost to them atm.
+		}
+		return ErrTxInCache
+	}
+	// END CACHE
+
+	begin := time.Now()
+	mem.updateMtx.RLock()
+	// use defer to unlock mutex because application (*local client*) might panic
+	defer func() {
+		mem.updateMtx.RUnlock()
+		dur := time.Since(begin)
+		if dur > mem.maxtime {
+			mem.maxtime = dur
+		}
+
+		if dur < mem.mintime {
+			mem.mintime = dur
+		}
+	}()
+
+	var err error
+	var gasUsed int64
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
+		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
+		if gasUsed < 0 {
+			simuRes, err := mem.simulateTx(tx)
+			if err != nil {
+				return err
+			}
+			gasUsed = int64(simuRes.GasUsed)
+		}
+	}
+
+	if mem.preCheck != nil {
+		if err = mem.preCheck(tx); err != nil {
+			return ErrPreCheck{err}
+		}
+	}
+
+	// NOTE: proxyAppConn may error if tx buffer is full
+	if err = mem.proxyAppConn.Error(); err != nil {
+		return err
+	}
+
+	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
+		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
+			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
+				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
+			r.CheckTx.GasWanted = gasUsed
+		}
+	}
+	reqRes.SetCallback(mem.reqResCbForP2P(tx, txInfo, cb))
+	atomic.AddInt64(&mem.checkCnt, 1)
+
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
+		pastTime := time.Now().UnixMicro() - timeStart
+		if txInfo.SenderID != 0 {
+			atomic.AddInt64(&mem.checkP2PCnt, 1)
+			atomic.AddInt64(&mem.checkP2PTotalTime, pastTime)
+		} else {
+			atomic.AddInt64(&mem.checkRPCCnt, 1)
+			atomic.AddInt64(&mem.checkRpcTotalTime, pastTime)
+		}
+		atomic.AddInt64(&mem.checkTotalTime, pastTime)
+	}
+
+	return nil
+}
+
+// Request specific callback that should be set on individual reqRes objects
+// to incorporate local information when processing the response.
+// This allows us to track the peer that sent us this tx, so we can avoid sending it back to them.
+// NOTE: alternatively, we could include this information in the ABCI request itself.
+//
+// External callers of CheckTx, like the RPC, can also pass an externalCb through here that is called
+// when all other response processing is complete.
+//
+// Used in CheckTx to record PeerID who sent us the tx.
+func (mem *CListMempool) reqResCbForP2P(
+	tx []byte,
+	txInfo TxInfo,
+	externalCb func(*abci.Response),
+) func(res *abci.Response) {
+	return func(res *abci.Response) {
+		if mem.recheckCursor != nil {
+			// this should never happen
+			panic("recheck cursor is not nil in reqResCb")
+		}
+		if len(mem.addTxQueue) >= 2*mem.config.Size {
+			mem.logger.Error("CListMempool", "queue is full")
+		} else {
+			mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo, res: res}
+		}
+		//mem.resCbFirstTime(tx, txInfo, res)
+	}
+}
+
+func (mem *CListMempool) addTxJobForP2P() {
+	for item := range mem.addTxQueue {
+		mem.resCbFirstTime(item.tx, item.txInfo, item.res)
+	}
 }
 
 // Global callback that will be called after every ABCI response.
@@ -843,6 +1013,9 @@ func (mem *CListMempool) Update(
 	preCheck PreCheckFunc,
 	postCheck PostCheckFunc,
 ) error {
+	mem.logger.Error("mempool_to_update checktx time", "maxtime", mem.maxtime, "mintime", mem.mintime)
+	mem.mintime = time.Hour
+	mem.maxtime = time.Nanosecond
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
