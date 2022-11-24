@@ -162,7 +162,10 @@ func (tree *MutableTree) persist(version int64, cb func()) {
 	go func() {
 		var err error
 		batch := tree.NewBatch()
-		tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		tree.commitCh <- commitEvent{-1, nil, nil, nil, &wg, 0, nil}
+		wg.Wait()
 		var tpp map[string]*Node = nil
 		fnc := newFastNodeChanges()
 		if EnablePruningHistoryState {
