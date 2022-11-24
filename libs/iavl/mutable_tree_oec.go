@@ -110,6 +110,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	}
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
+	tree.ndb.nc.iterate()
+
 	return tree.setNewWorkingTree(version, shouldPersist)
 }
 

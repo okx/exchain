@@ -1,9 +1,12 @@
 package iavl
 
 import (
+	"bytes"
 	"container/list"
+	"fmt"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/tendermint/go-amino"
 )
@@ -104,6 +107,22 @@ func (ndb *NodeCache) get(hash []byte, promoteRecentNode bool) (n *Node) {
 
 func (ndb *NodeCache) nodeCacheLen() int {
 	return len(ndb.nodeCache)
+}
+
+func (ndb *NodeCache) iterate() {
+	ndb.nodeCacheMutex.RLock()
+	total := len(ndb.nodeCache)
+	xen := 0
+	var n *Node
+	for _, elem := range ndb.nodeCache {
+		n = elem.Value.(*Node)
+		if len(n.key) == 53 && bytes.Equal(n.key[1:21], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
+			xen++
+		}
+
+	}
+	ndb.nodeCacheMutex.RUnlock()
+	fmt.Println("total:", total, "xen:", xen, "ratio:", float64(xen)/float64(total))
 }
 
 // =========================================================
