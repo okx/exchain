@@ -95,7 +95,8 @@ type OecConfig struct {
 	deliverTxsMode int
 
 	// active view change
-	activeVC bool
+	activeVC     bool
+	avcWhitelist []string
 
 	blockPartSizeBytes int
 	blockCompressType  int
@@ -139,6 +140,8 @@ const (
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
 	FlagDebugGcInterval         = "debug.gc-interval"
+
+	FlagAVCWhiteList = "avc-white-list"
 )
 
 var (
@@ -267,6 +270,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
+	c.SetAVCWhitelist(viper.GetString(FlagAVCWhiteList))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -563,6 +567,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetGcInterval(r)
+	case FlagAVCWhiteList:
+		r, ok := value.(string)
+		if !ok {
+			return
+		}
+		c.SetAVCWhitelist(r)
 	}
 }
 
@@ -918,4 +928,16 @@ func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 
 func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
 	c.enableHasBlockPartMsg = value
+}
+
+func (c *OecConfig) GetAVCWhiteList() []string {
+	return c.avcWhitelist
+}
+
+func (c *OecConfig) SetAVCWhitelist(value string) {
+	idList := resolveNodeKeyWhitelist(value)
+
+	for _, id := range idList {
+		c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, id)
+	}
 }

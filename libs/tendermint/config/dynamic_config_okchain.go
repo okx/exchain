@@ -22,6 +22,7 @@ type IDynamicConfig interface {
 	GetEnableWtx() bool
 	GetDeliverTxsExecuteMode() int
 	GetEnableHasBlockPartMsg() bool
+	GetAVCWhiteList() []string
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -100,4 +101,8 @@ func (d MockDynamicConfig) GetDeliverTxsExecuteMode() int {
 
 func (d MockDynamicConfig) GetEnableHasBlockPartMsg() bool {
 	return false
+}
+
+func (d MockDynamicConfig) GetAVCWhiteList() []string {
+	return []string{}
 }

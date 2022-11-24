@@ -13,6 +13,7 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
+	"github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/bits"
 	tmevents "github.com/okex/exchain/libs/tendermint/libs/events"
@@ -69,6 +70,7 @@ type Reactor struct {
 	rs *cstypes.RoundState
 
 	hasViewChanged int64
+	avcWhiteList   map[string]bool
 }
 
 type ReactorOption func(*Reactor)
@@ -92,6 +94,10 @@ func NewReactor(consensusState *State, fastSync bool, autoFastSync bool, options
 
 	for _, option := range options {
 		option(conR)
+	}
+
+	for _, nodeKey := range config.DynamicConfig.GetAVCWhiteList() {
+		conR.avcWhiteList[nodeKey] = true
 	}
 
 	return conR
@@ -398,6 +404,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			if val == nil {
 				return
 			}
+
 			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 				return
