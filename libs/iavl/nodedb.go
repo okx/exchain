@@ -220,7 +220,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 				MapLocker.Lock()
 				TopContract[common.Bytes2Hex(n.key[1:21])]++
 				MapLocker.Unlock()
-				//fmt.Println(common.Bytes2Hex(n.key), TopContract[common.Bytes2Hex(n.key)])
+				fmt.Println(common.Bytes2Hex(n.key), common.Bytes2Hex(n.key[1:21]), TopContract[common.Bytes2Hex(n.key[1:21])])
 			}
 		}
 		if len(n.key) == 53 && bytes.Equal(n.key[1:21], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
