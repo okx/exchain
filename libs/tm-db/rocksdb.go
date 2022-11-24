@@ -68,11 +68,11 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	if v, ok := params[bloomFilter]; ok {
 		bit, err := strconv.ParseInt(v, 10, 64)
 		if err == nil {
-			bitsPerKey = bit
+			bitsPerKey = int(bit)
 		}
 	}
 
-	if v, ok := params[newFormatBloom]; ok {
+	if _, ok := params[newFormatBloom]; ok {
 		fmt.Println("*****lyh***** NewBloomFilterFull", bitsPerKey)
 		bbto.SetFilterPolicy(gorocksdb.NewBloomFilterFull(bitsPerKey))
 	} else {
