@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	db "github.com/okex/exchain/libs/tm-db"
@@ -22,6 +23,7 @@ const (
 var (
 	once          sync.Once
 	jobQueueLen   = 10
+	cacheSize     = 10000
 	GasUsedFactor = 0.4
 )
 
@@ -34,6 +36,7 @@ type HistoryGasUsedRecordDB struct {
 	guDB        db.DB
 	latestGuMtx sync.Mutex
 	latestGu    map[string][]int64
+	cache       *lru.Cache
 	jobQueue    chan func()
 }
 
@@ -41,9 +44,11 @@ var historyGasUsedRecordDB HistoryGasUsedRecordDB
 
 func InstanceOfHistoryGasUsedRecordDB() *HistoryGasUsedRecordDB {
 	once.Do(func() {
+		cache, _ := lru.New(cacheSize)
 		historyGasUsedRecordDB = HistoryGasUsedRecordDB{
 			guDB:     initDb(),
 			latestGu: make(map[string][]int64),
+			cache:    cache,
 			jobQueue: make(chan func(), jobQueueLen),
 		}
 		go historyGasUsedRecordDB.updateRoutine()
@@ -69,6 +74,10 @@ func (h *HistoryGasUsedRecordDB) UpdateGasUsed(key []byte, gasUsed int64) {
 }
 
 func (h *HistoryGasUsedRecordDB) GetHgu(key []byte) *HguRecord {
+	v, ok := h.cache.Get(string(key))
+	if ok {
+		return v.(*HguRecord)
+	}
 	var record HguRecord
 	data, err := h.guDB.Get(key)
 	if err != nil || len(data) == 0 {
@@ -127,12 +136,17 @@ func (h *HistoryGasUsedRecordDB) flushHgu(gks ...gasKey) {
 				hgu.StandardGas = meanGu
 			}
 		}
-		data, err := proto.Marshal(hgu)
-		if err != nil {
-			return
-		}
-		_ = h.guDB.Set(key, data)
+		h.setHgu(key, hgu)
 	}
+}
+
+func (h *HistoryGasUsedRecordDB) setHgu(key []byte, hgu *HguRecord) {
+	h.cache.Add(string(key), hgu)
+	data, err := proto.Marshal(hgu)
+	if err != nil {
+		return
+	}
+	_ = h.guDB.Set(key, data)
 }
 
 func (h *HistoryGasUsedRecordDB) updateRoutine() {
