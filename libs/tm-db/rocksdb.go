@@ -80,6 +80,8 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(bitsPerKey))
 	}
 
+	//bbto.SetCacheIndexAndFilterBlocksWithHighPriority()
+
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
