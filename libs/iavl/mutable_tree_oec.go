@@ -100,7 +100,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%30 == 0
+	shouldPersist := version%10 == 0
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
@@ -159,6 +159,7 @@ func (tree *MutableTree) removeVersion(version int64) {
 
 func (tree *MutableTree) persist(version int64, cb func()) {
 	tree.lastPersistHeight = version
+	ct := tree.clone()
 	go func() {
 		var err error
 		batch := tree.NewBatch()
@@ -169,14 +170,14 @@ func (tree *MutableTree) persist(version int64, cb func()) {
 		var tpp map[string]*Node = nil
 		fnc := newFastNodeChanges()
 		if EnablePruningHistoryState {
-			tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
+			ct.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 		}
-		if tree.root == nil {
+		if ct.root == nil {
 			// There can still be orphans, for example if the root is the node being removed.
-			err = tree.ndb.SaveEmptyRoot(batch, version)
+			err = ct.ndb.SaveEmptyRoot(batch, version)
 		} else {
-			err = tree.ndb.SaveRoot(batch, tree.root, version)
-			tpp, fnc = tree.ndb.asyncPersistTppStart(version)
+			err = ct.ndb.SaveRoot(batch, ct.root, version)
+			tpp, fnc = ct.ndb.asyncPersistTppStart(version)
 		}
 
 		if err != nil {
