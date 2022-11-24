@@ -37,6 +37,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolVar(&types2.TrieUseCompositeKey, types2.FlagTrieUseCompositeKey, true, "Use composite key to store contract state")
 	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
 	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
+	cmd.Flags().Bool(sdk.FlagMultiCache, true, "Enable multi cache")
 
 	return cmd
 }
