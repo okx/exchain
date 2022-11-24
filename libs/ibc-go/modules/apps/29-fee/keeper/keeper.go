@@ -38,6 +38,8 @@ type Keeper struct {
 	bk            bank.Keeper
 	supplyK       supply.Keeper
 	packets       map[string]exported.PacketI
+
+	paramSpace paramtypes.Subspace
 }
 
 // NewKeeper creates a new 29-fee Keeper instance
@@ -59,6 +61,14 @@ func NewKeeper(
 		bk:            bk,
 	}
 	ret.packets = make(map[string]exported.PacketI)
+
+	// set KeyTable if it has not already been set
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
+	ret.paramSpace = paramSpace
+
 	return ret
 }
 

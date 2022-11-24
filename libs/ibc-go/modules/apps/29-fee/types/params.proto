@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package ibc.apps.fee.types;
+
+
+message Params {
+  bool allowAutoDispath = 1;
+  uint32 feePercent = 2;
+  uint32 recvPercent = 3;
+  uint32 ackPercent = 4;
+  uint32 timeOutPercent = 5;
+}
