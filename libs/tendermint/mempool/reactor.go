@@ -267,7 +267,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	err = memR.mempool.CheckTx(tx, nil, txInfo)
+	err = memR.mempool.CheckTxForP2P(tx, nil, txInfo)
 	if err != nil {
 		memR.logCheckTxError(tx, memR.mempool.height, err)
 	}
