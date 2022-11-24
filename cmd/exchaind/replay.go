@@ -98,7 +98,10 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			ts := time.Now()
 			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
+
+			iavl.MapLocker.RLock()
 			list := sortMapByValue(iavl.TopContract)
+			iavl.MapLocker.RUnlock()
 			for i := 0; i < 100 && i < len(list); i++ {
 				log.Println(list[i].Key, list[i].Value)
 			}
