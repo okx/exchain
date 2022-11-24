@@ -118,6 +118,12 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+
+	if req.Header.Height >= 100 {
+		app.closeMultiCache()
+	}
+	app.logger.Info("multi-cache info", "useCache", sdk.UseCache)
+
 	app.blockDataCache.Clear()
 	app.PutCacheMultiStore(nil)
 	if app.cms.TracingEnabled() {

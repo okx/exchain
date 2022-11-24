@@ -468,3 +468,9 @@ func (app *BaseApp) commitBlockCache() {
 	app.blockCache.Write(true)
 	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }
+
+func (app *BaseApp) closeMultiCache() {
+	sdk.UseCache = false
+	app.blockCache = nil
+	app.chainCache = nil
+}
