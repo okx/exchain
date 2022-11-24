@@ -375,13 +375,14 @@ func (blockExec *BlockExecutor) commit(
 		"height", block.Height,
 		"tx.length", len(block.Txs),
 	)
+	begin := time.Now()
 	blockExec.mempool.Lock()
 	defer func() {
 		blockExec.mempool.Unlock()
 		blockExec.logger.Error(
 			"mempool_to_commit end",
 			"height", block.Height,
-			"tx.length", len(block.Txs),
+			"time during", time.Since(begin),
 		)
 		// Forced flushing mempool
 		if cfg.DynamicConfig.GetMempoolFlush() {
