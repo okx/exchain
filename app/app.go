@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/vmbridge"
 	"io"
 	"math/big"
 	"os"
@@ -70,6 +71,8 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
+	"github.com/okex/exchain/x/feesplit"
+	fsclient "github.com/okex/exchain/x/feesplit/client"
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
@@ -124,15 +127,19 @@ var (
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
+			evmclient.ManageSysContractAddressProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
+			fsclient.FeeSplitSharesProposalHandler,
+			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateContractAdminProposalHandler,
 			wasmclient.ClearContractAdminProposalHandler,
+			wasmclient.PinCodesProposalHandler,
+			wasmclient.UnpinCodesProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
-			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
@@ -152,6 +159,7 @@ var (
 		ibctransfer.AppModuleBasic{},
 		erc20.AppModuleBasic{},
 		wasm.AppModuleBasic{},
+		feesplit.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -172,6 +180,7 @@ var (
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		wasm.ModuleName:             nil,
+		feesplit.ModuleName:         nil,
 	}
 
 	GlobalGp = &big.Int{}
@@ -197,26 +206,28 @@ type OKExChainApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
-	StakingKeeper  staking.Keeper
-	SlashingKeeper slashing.Keeper
-	MintKeeper     mint.Keeper
-	DistrKeeper    distr.Keeper
-	GovKeeper      gov.Keeper
-	CrisisKeeper   crisis.Keeper
-	UpgradeKeeper  upgrade.Keeper
-	ParamsKeeper   params.Keeper
-	EvidenceKeeper evidence.Keeper
-	EvmKeeper      *evm.Keeper
-	TokenKeeper    token.Keeper
-	DexKeeper      dex.Keeper
-	OrderKeeper    order.Keeper
-	SwapKeeper     ammswap.Keeper
-	FarmKeeper     farm.Keeper
-	wasmKeeper     wasm.Keeper
-	InfuraKeeper   infura.Keeper
+	AccountKeeper        auth.AccountKeeper
+	BankKeeper           bank.Keeper
+	SupplyKeeper         supply.Keeper
+	StakingKeeper        staking.Keeper
+	SlashingKeeper       slashing.Keeper
+	MintKeeper           mint.Keeper
+	DistrKeeper          distr.Keeper
+	GovKeeper            gov.Keeper
+	CrisisKeeper         crisis.Keeper
+	UpgradeKeeper        upgrade.Keeper
+	ParamsKeeper         params.Keeper
+	EvidenceKeeper       evidence.Keeper
+	EvmKeeper            *evm.Keeper
+	TokenKeeper          token.Keeper
+	DexKeeper            dex.Keeper
+	OrderKeeper          order.Keeper
+	SwapKeeper           ammswap.Keeper
+	FarmKeeper           farm.Keeper
+	WasmKeeper           wasm.Keeper
+	WasmPermissionKeeper wasm.ContractOpsKeeper
+	InfuraKeeper         infura.Keeper
+	FeeSplitKeeper       feesplit.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -237,6 +248,7 @@ type OKExChainApp struct {
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
+	VMBridgeKeeper       *vmbridge.Keeper
 
 	WasmHandler wasmkeeper.HandlerOption
 }
@@ -255,6 +267,10 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
+		"Venus1Height", tmtypes.GetVenus1Height(),
+		"Venus2Height", tmtypes.GetVenus2Height(),
+		"Venus3Height", tmtypes.GetVenus3Height(),
+		"EarthHeight", tmtypes.GetEarthHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
@@ -263,7 +279,7 @@ func NewOKExChainApp(
 	})
 
 	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
-
+	vmbridge.RegisterInterface(interfaceReg)
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(codecProxy), baseAppOptions...)
 
@@ -284,6 +300,7 @@ func NewOKExChainApp(
 		erc20.StoreKey,
 		mpt.StoreKey,
 		wasm.StoreKey,
+		feesplit.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -320,6 +337,7 @@ func NewOKExChainApp(
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.DefaultParamspace)
 	app.subspaces[wasm.ModuleName] = app.ParamsKeeper.Subspace(wasm.ModuleName)
+	app.subspaces[feesplit.ModuleName] = app.ParamsKeeper.Subspace(feesplit.ModuleName)
 
 	//proxy := codec.NewMarshalProxy(cc, cdc)
 	app.marshal = codecProxy
@@ -358,7 +376,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, &stakingKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -407,6 +425,11 @@ func NewOKExChainApp(
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
 
+	app.FeeSplitKeeper = feesplit.NewKeeper(
+		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
+		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
+	app.ParamsKeeper.RegisterSignal(feesplit.SetParamsNeedUpdate)
+
 	//wasm keeper
 	wasmDir := wasm.WasmDir()
 	wasmConfig := wasm.WasmConfig()
@@ -414,7 +437,7 @@ func NewOKExChainApp(
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	supportedFeatures := wasm.SupportedFeatures
-	app.wasmKeeper = wasm.NewKeeper(
+	app.WasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
@@ -429,7 +452,10 @@ func NewOKExChainApp(
 		wasmDir,
 		wasmConfig,
 		supportedFeatures,
+		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
 	)
+
+	app.ParamsKeeper.RegisterSignal(wasm.SetNeedParamsUpdate)
 
 	// register the proposal types
 	// 3.register the proposal types
@@ -443,7 +469,9 @@ func NewOKExChainApp(
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
-		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.wasmKeeper, wasm.NecessaryProposals))
+		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper)).
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals))
+
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
@@ -451,7 +479,9 @@ func NewOKExChainApp(
 		AddRoute(evm.RouterKey, app.EvmKeeper).
 		AddRoute(mint.RouterKey, &app.MintKeeper).
 		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
+		AddRoute(feesplit.RouterKey, &app.FeeSplitKeeper).
 		AddRoute(distr.RouterKey, &app.DistrKeeper)
+
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -463,11 +493,9 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
+	app.FeeSplitKeeper.SetGovKeeper(app.GovKeeper)
 	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
-	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
-		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
@@ -482,6 +510,22 @@ func NewOKExChainApp(
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
 	app.StakingKeeper = *stakingKeeper.SetHooks(
 		staking.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
+	)
+
+	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
+	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
+	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
+
+	// Set EVM hooks
+	app.EvmKeeper.SetHooks(
+		evm.NewMultiEvmHooks(
+			evm.NewLogProcessEvmHook(
+				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
+				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+			),
+			app.FeeSplitKeeper.Hooks(),
+		),
 	)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
@@ -511,7 +555,8 @@ func NewOKExChainApp(
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasmModule,
+		feesplit.NewAppModule(app.FeeSplitKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -558,6 +603,7 @@ func NewOKExChainApp(
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		erc20.ModuleName,
 		wasm.ModuleName,
+		feesplit.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -565,6 +611,8 @@ func NewOKExChainApp(
 	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
 	app.setupUpgradeModules()
+
+	vmbridge.RegisterServices(app.configurator, *app.VMBridgeKeeper)
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
@@ -581,7 +629,7 @@ func NewOKExChainApp(
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
 		ibc.NewAppModule(app.IBCKeeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasm.NewAppModule(*app.marshal, &app.WasmKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -604,10 +652,12 @@ func NewOKExChainApp(
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
+	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
 	if loadLatest {
@@ -617,7 +667,7 @@ func NewOKExChainApp(
 		}
 		ctx := app.BaseApp.NewContext(true, abci.Header{})
 		// Initialize pinned codes in wasmvm as they are not persisted there
-		if err := app.wasmKeeper.InitializePinnedCodes(ctx); err != nil {
+		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
 	}
@@ -847,5 +897,19 @@ func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
 			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
 		}
+	}
+}
+
+func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHandler {
+	if ak == nil {
+		panic("NewEvmSysContractAddressHandler ak is nil")
+	}
+	return func(
+		ctx sdk.Context, addr sdk.AccAddress,
+	) bool {
+		if addr.Empty() {
+			return false
+		}
+		return ak.IsMatchSysContractAddress(ctx, addr)
 	}
 }

@@ -37,9 +37,24 @@ type (
 		Deposit      sdk.SysCoins              `json:"deposit" yaml:"deposit"`
 	}
 
+	// ManageSysContractAddressProposalJSON defines a ManageSysContractAddressProposal with a deposit used to parse
+	// manage system contract address proposals from a JSON file.
+	ManageSysContractAddressProposalJSON struct {
+		Title       string `json:"title" yaml:"title"`
+		Description string `json:"description" yaml:"description"`
+		// Contract Address
+		ContractAddr sdk.AccAddress `json:"contract_address" yaml:"contract_address"`
+		IsAdded      bool           `json:"is_added" yaml:"is_added"`
+		Deposit      sdk.SysCoins   `json:"deposit" yaml:"deposit"`
+	}
+
 	ResponseBlockContract struct {
 		Address      string                `json:"address" yaml:"address"`
 		BlockMethods types.ContractMethods `json:"block_methods" yaml:"block_methods"`
+	}
+
+	ResponseSysContractAddress struct {
+		Address string `json:"address" yaml:"address"`
 	}
 )
 
@@ -71,6 +86,18 @@ func ParseManageContractBlockedListProposalJSON(cdc *codec.Codec, proposalFilePa
 // ParseManageContractMethodBlockedListProposalJSON parses json from proposal file to ManageContractBlockedListProposalJSON struct
 func ParseManageContractMethodBlockedListProposalJSON(cdc *codec.Codec, proposalFilePath string) (
 	proposal ManageContractMethodBlockedListProposalJSON, err error) {
+	contents, err := ioutil.ReadFile(proposalFilePath)
+	if err != nil {
+		return
+	}
+
+	cdc.MustUnmarshalJSON(contents, &proposal)
+	return
+}
+
+// ManageSysContractAddressProposalJSON parses json from proposal file to ManageSysContractAddressProposal struct
+func ParseManageSysContractAddressProposalJSON(cdc *codec.Codec, proposalFilePath string) (
+	proposal ManageSysContractAddressProposalJSON, err error) {
 	contents, err := ioutil.ReadFile(proposalFilePath)
 	if err != nil {
 		return

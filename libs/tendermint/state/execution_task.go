@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -15,6 +16,7 @@ import (
 
 type executionResult struct {
 	res *ABCIResponses
+	duration time.Duration
 	err error
 }
 
@@ -67,11 +69,11 @@ func (t *executionTask) stop() {
 
 func (t *executionTask) run() {
 	t.dump("Start prerun")
-	trc := trace.NewTracer("lastRun")
 
 	var abciResponses *ABCIResponses
 	var err error
 
+	t0 := time.Now()
 	mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
 	switch mode {
 	case DeliverTxsExecModeSerial:
@@ -81,12 +83,13 @@ func (t *executionTask) run() {
 	default:
 		abciResponses, err = execBlockOnProxyApp(t)
 	}
+	duration := time.Now().Sub(t0)
 
 	if !t.stopped {
 		t.result = &executionResult{
-			abciResponses, err,
+			abciResponses, duration,err,
 		}
-		trace.GetElapsedInfo().AddInfo(trace.Prerun, fmt.Sprintf("num<%d>, lastRun<%s>", t.index, trc.Format()))
+		trace.GetElapsedInfo().AddInfo(trace.Prerun, fmt.Sprintf("%d", t.index))
 	}
 	automation.PrerunTimeOut(t.block.Height, int(t.index)-1)
 	t.dump("Prerun completed")
