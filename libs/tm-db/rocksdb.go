@@ -41,6 +41,7 @@ const (
 	newFormatBloom = "bloom_filter_new"
 	disableComp    = "disable_comp"
 	writeBuff      = "write_buff_size"
+	level0Trigger  = "level0_trigger"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -145,8 +146,14 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
 	}
 
+	if v, ok := params[level0Trigger]; ok {
+		size, err := strconv.Atoi(v)
+		if err == nil {
+			opts.SetLevel0FileNumCompactionTrigger(size)
+		}
+	}
+
 	// 1.5GB maximum memory use for writebuffer.
-	//opts.SetMaxBytesForLevelBase()
 
 	return NewRocksDBWithOptions(name, dir, opts)
 }
