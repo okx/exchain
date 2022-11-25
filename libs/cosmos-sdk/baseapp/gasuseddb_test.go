@@ -131,7 +131,50 @@ func TestHgu10PercentChange(t *testing.T) {
 		}
 	}
 	t.Logf("Mean deviation rate: %.2f%%, deviation more than 20%% rate: %.2f%%\n", float64(totalChangedPercent)/100/float64(totalCount), float64(highChangedCount)*100/float64(totalCount))
+}
 
+func TestHgu10PercentChange2(t *testing.T) {
+	t.Cleanup(func() {
+		InstanceOfHistoryGasUsedRecordDB().close()
+		os.RemoveAll(HistoryGasUsedDbDir)
+	})
+
+	const (
+		gasLimit    = int64(50000000)
+		baseGasUsed = int64(6746245)
+		gasFloor    = int64(21000)
+	)
+
+	gasUsed := baseGasUsed
+
+	InstanceOfHistoryGasUsedRecordDB().flushHgu(gasKey{gas: gasUsed, key: testKey})
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	var hgu *HguRecord
+	_ = hgu
+	var totalChangedPercent int64
+	var highChangedCount int
+	totalCount := 100000
+	for i := 0; i < totalCount; i++ {
+		if gasUsed < gasFloor+gasFloor/5 {
+			// add 10%
+			gasUsed = gasUsed + gasUsed/10
+		} else if gasUsed > gasLimit-gasLimit/5 {
+			// sub 10%
+			gasUsed = gasUsed - gasUsed/10
+		} else {
+			// random add 10% or sub 10%
+			gasUsed = gasUsed - gasUsed/10 + r.Int63n(gasUsed/5)
+		}
+		hgu = InstanceOfHistoryGasUsedRecordDB().GetHgu(testKey)
+		eg := estimateGas(gasUsed*3/2, hgu)
+		InstanceOfHistoryGasUsedRecordDB().flushHgu(gasKey{gas: gasUsed, key: testKey})
+		changedPercent := absInt64(gasUsed*10000/eg - 10000)
+		totalChangedPercent += changedPercent
+		if changedPercent > 2000 {
+			highChangedCount += 1
+		}
+	}
+	t.Logf("Mean deviation rate: %.2f%%, deviation more than 20%% rate: %.2f%%\n", float64(totalChangedPercent)/100/float64(totalCount), float64(highChangedCount)*100/float64(totalCount))
 }
 
 func TestHguRandomChange(t *testing.T) {
@@ -167,6 +210,52 @@ func TestHguRandomChange(t *testing.T) {
 		} else {
 			// random add 10% or sub 10%
 			gasUsed = gasUsed - gasUsed/10 + gasUsed/5*r.Int63n(2)
+		}
+		hgu = InstanceOfHistoryGasUsedRecordDB().GetHgu(testKey)
+		eg := estimateGas(gasUsed*3/2, hgu)
+		InstanceOfHistoryGasUsedRecordDB().flushHgu(gasKey{gas: gasUsed, key: testKey})
+		changedPercent := absInt64(gasUsed*10000/eg - 10000)
+		totalChangedPercent += changedPercent
+		if changedPercent > 5000 {
+			highChangedCount += 1
+		}
+	}
+	t.Logf("Mean deviation rate: %.2f%%, deviation more than 50%% rate: %.2f%%\n", float64(totalChangedPercent)/100/float64(totalCount), float64(highChangedCount)*100/float64(totalCount))
+}
+
+func TestHguRandomChange2(t *testing.T) {
+	t.Cleanup(func() {
+		InstanceOfHistoryGasUsedRecordDB().close()
+		os.RemoveAll(HistoryGasUsedDbDir)
+	})
+
+	const (
+		gasLimit    = int64(50000000)
+		baseGasUsed = int64(6746245)
+		gasFloor    = int64(21000)
+	)
+
+	gasUsed := baseGasUsed
+
+	InstanceOfHistoryGasUsedRecordDB().flushHgu(gasKey{gas: gasUsed, key: testKey})
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	var hgu *HguRecord
+	var totalChangedPercent int64
+	var highChangedCount int
+	totalCount := 100000
+	for i := 0; i < totalCount; i++ {
+		if gasUsed < gasFloor+gasFloor/5 {
+			// add 10%
+			gasUsed = gasUsed + gasUsed/10
+		} else if gasUsed > gasLimit-gasLimit/5 {
+			// sub 10%
+			gasUsed = gasUsed - gasUsed/10
+		} else if r.Int63n(100) == 0 {
+			// random change
+			gasUsed = gasFloor + r.Int63n(baseGasUsed)
+		} else {
+			// random add 10% or sub 10%
+			gasUsed = gasUsed - gasUsed/10 + r.Int63n(gasUsed/5)
 		}
 		hgu = InstanceOfHistoryGasUsedRecordDB().GetHgu(testKey)
 		eg := estimateGas(gasUsed*3/2, hgu)
