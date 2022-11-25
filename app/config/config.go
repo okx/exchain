@@ -193,6 +193,34 @@ var (
 
 	mainnetNodeIdWhitelist = []string{}
 
+	testnetAVCWhiteList = []string{
+		// validator nodes
+		"c39ca38c650b920f9b6c5a9aed7ff904124ec3ad",
+		"d937e21fd489809add23dc3e55ed78d947217aa8",
+		"a3eb3c129e49137d5e1665bbf87b6f2be70a0b85",
+		"b171a9ef83b95c28182bc7aa7ea8639d04e572e7",
+		"3a700a3849c401396b1c51eb65b1cfc1a8c4394b",
+		"0208e66d4ca746ec535a0bf05409dc87df408b15",
+		"ed1819fa1eae52ddec4c0f8cddd80b9cb7c68a22",
+		"0b3ab9597a66f2f94c8efa4ccb6ed2a1f44d4184",
+		"67b29551c7c3839ad6c93379991344266aec3829",
+		"cd07b20b596aac923a1d5bb022581e279755aff1",
+		"6ce06a89a968a4204d9dcb470f2275767c8dfa68",
+		"6dd38d96df3ccbca95769ee15bdfdd952ad007c5",
+		"fcc95bfee6ea74bdf385be3a29072329603676e5",
+		"7b5b3041d2b3546a236b6df7ff7e06a19a5cae46",
+		"c098585e299ff7afe6f354c4431550d6919bdd0d",
+		"5b44fb4af4cfb72286162cb49a3bc04cb8187775",
+		"358e3399b68fb67787f1386c685db2e75352d9eb",
+		"96d9cb96041c053e63ff7d0c7d81dfab706136e4",
+		"0de948586fb30293d1dd14a99ebc3f719deb7c6f",
+		"284e87518752c8f655fe217113fa86ba7d6ca72f",
+		"7f2b8a6b9b8b12247e6992aeb32d69e169c2f5ac",
+	}
+	mainnetAVCWhiteList = []string{
+		//todo add mainnet nodeID
+	}
+
 	oecConfig  *OecConfig
 	once       sync.Once
 	confLogger log.Logger
@@ -938,6 +966,12 @@ func (c *OecConfig) SetAVCWhitelist(value string) {
 	idList := resolveNodeKeyWhitelist(value)
 
 	for _, id := range idList {
-		c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, id)
+		if id == "testnet-node-ids" {
+			c.avcWhitelist = append(c.avcWhitelist, testnetAVCWhiteList...)
+		} else if id == "mainnet-node-ids" {
+			c.avcWhitelist = append(c.avcWhitelist, mainnetAVCWhiteList...)
+		} else {
+			c.avcWhitelist = append(c.avcWhitelist, id)
+		}
 	}
 }

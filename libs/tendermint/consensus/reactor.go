@@ -372,7 +372,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	switch chID {
 	case ViewChangeChannel:
-		if !GetActiveVC() {
+		if !GetActiveVC() || !conR.avcWhiteList[string(src.ID())] {
 			return
 		}
 		switch msg := msg.(type) {
@@ -404,7 +404,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			if val == nil {
 				return
 			}
-
 			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 				return
