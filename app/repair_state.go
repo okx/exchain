@@ -296,7 +296,7 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 
 func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
 	stateCopy := state.Copy()
-	validators, err := sm.LoadValidators(stateStoreDB, startHeight)
+	validators, lastStoredHeight, err := sm.LoadValidatorsWithStoredHeight(stateStoreDB, startHeight)
 	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight-1)
 	if err != nil {
 		return stateCopy
@@ -314,6 +314,7 @@ func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64)
 	stateCopy.NextValidators = nextValidators
 	stateCopy.ConsensusParams = consensusParams
 	stateCopy.LastBlockHeight = startHeight
+	stateCopy.LastHeightValidatorsChanged = lastStoredHeight
 	return stateCopy
 }
 
