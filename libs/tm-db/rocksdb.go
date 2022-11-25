@@ -134,14 +134,6 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		opts.SetDisableAutoCompactions(true)
 	}
 
-	if v, ok := params[level0Trigger]; ok {
-		size, err := strconv.Atoi(v)
-		if err == nil {
-			opts.SetLevel0FileNumCompactionTrigger(size)
-		}
-		opts.SetMaxBytesForLevelBase(1024 * 10 * 1024 * 1024)
-	}
-
 	if v, ok := params[writeBuff]; ok {
 		size, err := strconv.Atoi(v)
 		if err == nil {
@@ -152,6 +144,15 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 	} else {
 		opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
+	}
+
+	if v, ok := params[level0Trigger]; ok {
+		size, err := strconv.Atoi(v)
+		if err == nil {
+			fmt.Println("*****lyh***** SetLevel0FileNumCompactionTrigger", size)
+			opts.SetLevel0FileNumCompactionTrigger(size)
+		}
+		opts.SetMaxBytesForLevelBase(1024 * 10 * 1024 * 1024)
 	}
 
 	// 1.5GB maximum memory use for writebuffer.
