@@ -207,9 +207,7 @@ func (tree *MutableTree) commitSchedule() {
 			if !node.persisted {
 				panic("unexpected logic")
 			}
-			if !node.isLeaf() {
-				tree.ndb.cacheWithKey(k, node)
-			}
+			tree.ndb.cacheWithKey(k, node)
 		}
 
 		trc.Pin("Pruning")
