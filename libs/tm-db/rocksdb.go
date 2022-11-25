@@ -136,15 +136,18 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	if v, ok := params[writeBuff]; ok {
 		size, err := strconv.Atoi(v)
 		if err == nil {
-			size = size * 1024 * 1024 * 64
+			size = size * 1024 * 1024 * 128
 			fmt.Println("*****lyh***** writeBuffsize", size)
 			opts.SetWriteBufferSize(size)
+			opts.OptimizeLevelStyleCompaction(size * 4)
 		}
+	} else {
+		opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
 	}
 
 	// 1.5GB maximum memory use for writebuffer.
 	//opts.SetMaxBytesForLevelBase()
-	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
+
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
