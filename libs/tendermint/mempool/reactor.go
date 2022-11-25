@@ -198,6 +198,9 @@ func (memR *Reactor) checkTx(tx types.Tx, txInfo TxInfo) {
 
 func (memR *Reactor) checkTxRoutine() {
 	var concurrency = viper.GetInt(FlagGrpcCheckTxConcurrency)
+	if concurrency == 0 {
+		concurrency = 1
+	}
 	memR.Logger.Error("grpc checkTxRoutine", "concurrency", concurrency)
 	memR.txChs = make([]chan txJob, concurrency)
 	chCapacity := 200_000 / concurrency
