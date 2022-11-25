@@ -81,7 +81,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	}
 
 	bbto.SetCacheIndexAndFilterBlocks(true)
-	//bbto.SetCacheIndexAndFilterBlocksWithHighPriority(true)
+	bbto.SetCacheIndexAndFilterBlocksWithHighPriority(true)
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
