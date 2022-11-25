@@ -105,7 +105,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tree.ndb.updateLatestMemoryVersion(version)
 
 	if shouldPersist {
-		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version, func() {
 			tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 		})
@@ -160,7 +159,12 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64, cb func()) {
 	tree.lastPersistHeight = version
 	ct := tree.clone()
+	os := make([]*Node, len(tree.orphans))
+	for i := 0; i < len(tree.orphans); i++ {
+		os[i] = tree.orphans[i]
+	}
 	go func() {
+		ct.ndb.saveNewOrphans(version, os, true)
 		var err error
 		batch := tree.NewBatch()
 		wg := sync.WaitGroup{}
