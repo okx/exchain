@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -35,6 +37,8 @@ type OecConfig struct {
 	mempoolForceRecheckGap int64
 	// mempool.size
 	mempoolSize int
+	// mempool.cache_size
+	mempoolCacheSize int
 	// mempool.flush
 	mempoolFlush bool
 	// mempool.max_tx_num_per_block
@@ -115,6 +119,7 @@ const (
 	FlagMempoolRecheck          = "mempool.recheck"
 	FlagMempoolForceRecheckGap  = "mempool.force_recheck_gap"
 	FlagMempoolSize             = "mempool.size"
+	FlagMempoolCacheSize        = "mempool.cache_size"
 	FlagMempoolFlush            = "mempool.flush"
 	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
@@ -207,9 +212,21 @@ func NewOecConfig() *OecConfig {
 	c.loadFromConfig()
 
 	if viper.GetBool(FlagEnableDynamic) {
-		loaded := c.loadFromApollo()
-		if !loaded {
-			panic("failed to connect apollo or no config items in apollo")
+		if viper.IsSet(FlagApollo) {
+			loaded := c.loadFromApollo()
+			if !loaded {
+				panic("failed to connect apollo or no config items in apollo")
+			}
+		} else {
+			ok, err := c.loadFromLocal()
+			if err != nil {
+				confLogger.Error("failed to load config from local", "err", err)
+			}
+			if !ok {
+				confLogger.Error("failed to load config from local")
+			} else {
+				confLogger.Info("load config from local success")
+			}
 		}
 	}
 
@@ -238,6 +255,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool(FlagMempoolRecheck))
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
+	c.SetMempoolCacheSize(viper.GetInt(FlagMempoolCacheSize))
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
@@ -291,11 +309,30 @@ func (c *OecConfig) loadFromApollo() bool {
 	return client.LoadConfig()
 }
 
+func (c *OecConfig) loadFromLocal() (bool, error) {
+	var err error
+	rootDir := viper.GetString("home")
+	configPath := path.Join(rootDir, "config", LocalDynamicConfigPath)
+	configPath, err = filepath.Abs(configPath)
+	if err != nil {
+		return false, err
+	}
+	client, err := NewLocalClient(configPath, c, confLogger)
+	if err != nil {
+		return false, err
+	}
+	ok := client.LoadConfig()
+	err = client.Enable()
+	return ok, err
+}
+
 func (c *OecConfig) format() string {
 	return fmt.Sprintf(`%s config:
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d
+	mempool.cache_size: %d
+
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
 	mempool.max_gas_used_per_block: %d
@@ -325,6 +362,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
+		c.GetMempoolCacheSize(),
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
 		c.GetMaxGasUsedPerBlock(),
@@ -353,6 +391,10 @@ func (c *OecConfig) format() string {
 
 func (c *OecConfig) update(key, value interface{}) {
 	k, v := key.(string), value.(string)
+	c.updateFromKVStr(k, v)
+}
+
+func (c *OecConfig) updateFromKVStr(k, v string) {
 	switch k {
 	case FlagMempoolRecheck:
 		r, err := strconv.ParseBool(v)
@@ -372,6 +414,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMempoolSize(r)
+	case FlagMempoolCacheSize:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetMempoolCacheSize(r)
 	case FlagMempoolFlush:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -385,11 +433,7 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetMaxTxNumPerBlock(r)
 	case FlagNodeKeyWhitelist:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetNodeKeyWhitelist(r)
+		c.SetNodeKeyWhitelist(v)
 	case FlagMempoolCheckTxCost:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -397,11 +441,7 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetMempoolCheckTxCost(r)
 	case FlagSentryAddrs:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetSentryAddrs(r)
+		c.SetSentryAddrs(v)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -599,6 +639,16 @@ func (c *OecConfig) SetMempoolSize(value int) {
 		return
 	}
 	c.mempoolSize = value
+}
+
+func (c *OecConfig) GetMempoolCacheSize() int {
+	return c.mempoolCacheSize
+}
+func (c *OecConfig) SetMempoolCacheSize(value int) {
+	if value < 0 {
+		return
+	}
+	c.mempoolCacheSize = value
 }
 
 func (c *OecConfig) GetMempoolFlush() bool {
