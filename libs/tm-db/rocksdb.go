@@ -39,6 +39,7 @@ const (
 	mmapWrite      = "allow_mmap_writes"
 	bloomFilter    = "bloom_filter"
 	newFormatBloom = "bloom_filter_new"
+	disableComp    = "disable_comp"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -80,8 +81,8 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(bitsPerKey))
 	}
 
-	bbto.SetCacheIndexAndFilterBlocks(true)
-	bbto.SetCacheIndexAndFilterBlocksWithHighPriority(true)
+	//bbto.SetCacheIndexAndFilterBlocks(true)
+	//bbto.SetCacheIndexAndFilterBlocksWithHighPriority(true)
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
@@ -124,6 +125,11 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		if enable {
 			opts.SetAllowMmapWrites(enable)
 		}
+	}
+
+	if _, ok := params[disableComp]; ok {
+		fmt.Println("*****lyh***** disableComp")
+		opts.SetDisableAutoCompactions(true)
 	}
 
 	// 1.5GB maximum memory use for writebuffer.
