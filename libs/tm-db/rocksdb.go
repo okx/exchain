@@ -40,6 +40,7 @@ const (
 	bloomFilter    = "bloom_filter"
 	newFormatBloom = "bloom_filter_new"
 	disableComp    = "disable_comp"
+	writeBuff      = "write_buff_size"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -132,7 +133,17 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		opts.SetDisableAutoCompactions(true)
 	}
 
+	if v, ok := params[writeBuff]; ok {
+		size, err := strconv.Atoi(v)
+		if err == nil {
+			size = size * 1024 * 1024 * 64
+			fmt.Println("*****lyh***** writeBuffsize", size)
+			opts.SetWriteBufferSize(size)
+		}
+	}
+
 	// 1.5GB maximum memory use for writebuffer.
+	//opts.SetMaxBytesForLevelBase()
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
 	return NewRocksDBWithOptions(name, dir, opts)
 }
