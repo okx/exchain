@@ -127,7 +127,7 @@ func initEnv() {
 	checkSetEnv("mempool_force_recheck_gap", "2000")
 	checkSetEnv("mempool_recheck", "false")
 	checkSetEnv("consensus_timeout_commit", "3.8s")
-	checkSetEnv("consensus_waiting", "true")
+	checkSetEnv("db_backend", "rocksdb")
 }
 
 func checkSetEnv(envName string, value string) {
