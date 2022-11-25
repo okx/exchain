@@ -3,11 +3,12 @@ package mempool
 import (
 	"bytes"
 	"fmt"
-	"github.com/spf13/viper"
 	"math"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -509,7 +510,10 @@ func (memR *Reactor) txs4Grpc(next *clist.CElement, peerID uint16) ([][]byte, *c
 	for {
 		memTx := next.Value.(*mempoolTx)
 
-		if _, ok := memTx.senders.Load(peerID); !ok {
+		memTx.senderMtx.RLock()
+		_, ok := memTx.senders[peerID]
+		memTx.senderMtx.RUnlock()
+		if !ok {
 			// If size of {current batch + this tx} is greater than MaxBatchBytes => return.
 			size += len(memTx.tx)
 			if size > GrpcBroadcastMaxTxSize {

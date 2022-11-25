@@ -271,7 +271,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		// so we only record the sender for txs still in the mempool.
 		if ele, ok := mem.txs.Load(txkey); ok {
 			memTx := ele.Value.(*mempoolTx)
-			memTx.senders.LoadOrStore(txInfo.SenderID, true)
+			memTx.senderMtx.Lock()
+			memTx.senders[txInfo.SenderID] = struct{}{}
+			memTx.senderMtx.Unlock()
 			// TODO: consider punishing peer for dups,
 			// its non-trivial since invalid txs can become valid,
 			// but they can spam the same tx with little cost to them atm.
@@ -391,7 +393,7 @@ func (mem *CListMempool) reqResCb(
 }
 
 // Called from:
-//  - resCbFirstTime (lock not held) if tx is valid
+//   - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
@@ -409,8 +411,8 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 }
 
 // Called from:
-//  - Update (lock held) if tx was committed
-// 	- resCbRecheck (lock not held) if tx was invalidated
+//   - Update (lock held) if tx was committed
+//   - resCbRecheck (lock not held) if tx was invalidated
 func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	mem.txs.Remove(elem)
 	tx := elem.Value.(*mempoolTx).tx
@@ -595,7 +597,8 @@ func (mem *CListMempool) resCbFirstTime(
 				senderNonce: r.CheckTx.SenderNonce,
 			}
 
-			memTx.senders.Store(txInfo.SenderID, true)
+			memTx.senders = make(map[uint16]struct{})
+			memTx.senders[txInfo.SenderID] = struct{}{}
 
 			var err error
 			if mem.pendingPool != nil {
@@ -1057,7 +1060,8 @@ type mempoolTx struct {
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
-	senders sync.Map
+	senders   map[uint16]struct{}
+	senderMtx sync.RWMutex
 }
 
 // Height returns the height for this transaction
@@ -1066,10 +1070,10 @@ func (memTx *mempoolTx) Height() int64 {
 }
 
 func (memTx *mempoolTx) findSender(peerID uint16) bool {
-	if _, ok := memTx.senders.Load(peerID); ok {
-		return true
-	}
-	return false
+	memTx.senderMtx.RLock()
+	_, ok := memTx.senders[peerID]
+	memTx.senderMtx.RUnlock()
+	return ok
 }
 
 //--------------------------------------------------------------------------------
