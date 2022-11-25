@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -73,6 +76,7 @@ type Backend interface {
 	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
 	// Block returns the block at the given block number, block data is readonly
 	Block(height *int64) (*coretypes.ResultBlock, error)
+	PruneEverything() bool
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -92,6 +96,7 @@ type EthermintBackend struct {
 	logsLimit         int
 	logsTimeout       int // timeout second
 	blockCache        *lru.Cache
+	pruneEverything   bool
 }
 
 // New creates a new EthermintBackend instance
@@ -109,9 +114,14 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		backendCache:      NewLruCache(),
 		logsLimit:         viper.GetInt(FlagLogsLimit),
 		logsTimeout:       viper.GetInt(FlagLogsTimeout),
+		pruneEverything:   viper.GetString(server.FlagPruning) == types.PruningOptionEverything,
 	}
 	b.blockCache, _ = lru.New(blockCacheSize)
 	return b
+}
+
+func (b *EthermintBackend) PruneEverything() bool {
+	return b.pruneEverything
 }
 
 func (b *EthermintBackend) LogsLimit() int {
