@@ -139,7 +139,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 			size = size * 1024 * 1024 * 128
 			fmt.Println("*****lyh***** writeBuffsize", size)
 			opts.SetWriteBufferSize(size)
-			opts.OptimizeLevelStyleCompaction(size * 4)
+			opts.OptimizeLevelStyleCompaction(uint64(size * 4))
 		}
 	} else {
 		opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
