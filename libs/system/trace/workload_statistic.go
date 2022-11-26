@@ -23,15 +23,6 @@ var (
 // out-of-date timestamp; `shrinkLoop` also has a ticker promote current time once a second.
 // If current time is larger or equal than recorded timestamp, it remove that workload and subtract
 // it's value from `summaries`.
-//
-// NOTE: CAN NOT use `WorkloadStatistic` concurrently for those reasons:
-// read/write almost all fields
-// workload summary may be wrong if a work is still running(latestBegin.IsZero isn't true)
-//
-// calling sequence:
-// 1. newWorkloadStatistic
-// 2. calling begin/end before and after doing some work
-// 3. calling summary to get a summary statistic
 type WorkloadStatistic struct {
 	concernedTags map[string]struct{}
 	summaries     []workloadSummary
