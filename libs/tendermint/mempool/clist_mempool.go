@@ -91,7 +91,7 @@ type CListMempool struct {
 
 	txs ITransactionQueue
 
-	simQueue chan types.Tx
+	simQueue chan *mempoolTx
 }
 
 var _ Mempool = &CListMempool{}
@@ -122,7 +122,7 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
-		simQueue:      make(chan types.Tx, 100000),
+		simQueue:      make(chan *mempoolTx, 100000),
 	}
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
@@ -413,18 +413,17 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 		return err
 	}
 	select {
-	case mem.simQueue <- memTx.tx:
+	case mem.simQueue <- memTx:
 	default:
 		mem.logger.Error("tx simulation queue is full")
 	}
+
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
 	mem.metrics.TxSizeBytes.Observe(float64(len(memTx.tx)))
 	mem.eventBus.PublishEventPendingTx(types.EventDataTx{TxResult: types.TxResult{
 		Height: memTx.height,
 		Tx:     memTx.tx,
 	}})
-
-	types.SignatureCache().Remove(memTx.realTx.TxHash())
 
 	return nil
 }
@@ -887,6 +886,7 @@ func (mem *CListMempool) Update(
 		addr := ""
 		nonce := uint64(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
+			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
 			if ele.Value.(*mempoolTx).isSim {
 				simCount++
 			}
@@ -1089,7 +1089,8 @@ type mempoolTx struct {
 	from        string
 	senderNonce uint64
 
-	isSim bool
+	isOutdated uint32
+	isSim      bool
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
@@ -1254,18 +1255,23 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 }
 
 func (mem *CListMempool) simulationRoutine() {
-	for tx := range mem.simQueue {
-		ele, ok := mem.txs.Load(txKey(tx))
-		if !ok {
-			// in case that the tx is updated
-			continue
-		}
-		simuRes, err := mem.simulateTx(tx)
-		if err != nil {
-			mem.logger.Error("simulateTx", "error", err, "txHash", tx.Hash(mem.Height()))
-			continue
-		}
-		ele.Value.(*mempoolTx).gasWanted = int64(simuRes.GasUsed)
-		ele.Value.(*mempoolTx).isSim = true
+	for memTx := range mem.simQueue {
+		mem.simulationJob(memTx)
 	}
+}
+
+func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
+	defer types.SignatureCache().Remove(memTx.realTx.TxHash())
+	if atomic.LoadUint32(&memTx.isOutdated) != 0 {
+		// memTx is outdated
+		return
+	}
+	simuRes, err := mem.simulateTx(memTx.tx)
+	if err != nil {
+		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
+		return
+	}
+	memTx.gasWanted = int64(simuRes.GasUsed)
+	memTx.isSim = true
+
 }
