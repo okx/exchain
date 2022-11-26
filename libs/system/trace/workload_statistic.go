@@ -40,6 +40,8 @@ type singleWorkInfo struct {
 	endTime  time.Time
 }
 
+// GetApplyBlockWorkloadSttistic return a global `WorkloadStatistic` object.
+// WARNING: if you call `WorkloadStatistic.Add` concurrently, the summary result will be incorrect.
 func GetApplyBlockWorkloadSttistic() *WorkloadStatistic {
 	return applyBlockWorkloadStatistic
 }
@@ -58,6 +60,8 @@ func newWorkloadStatistic(periods []time.Duration, tags []string) *WorkloadStati
 	return wls
 }
 
+// Add accumulate workload to summary.
+// WARNING: if you call `Add` concurrently, the summary result will be incorrect.
 func (ws *WorkloadStatistic) Add(tag string, endTime time.Time, duration time.Duration) {
 	if _, ok := ws.concernedTags[tag]; !ok {
 		return
