@@ -881,11 +881,15 @@ func (mem *CListMempool) Update(
 	if mem.pendingPool != nil {
 		addressNonce = make(map[string]uint64)
 	}
+	var simCount int64
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
+			if ele.Value.(*mempoolTx).isSim {
+				simCount++
+			}
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
@@ -914,6 +918,7 @@ func (mem *CListMempool) Update(
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
+	trace.GetElapsedInfo().AddInfo(trace.SimTx, strconv.FormatInt(simCount, 10))
 
 	for accAddr, accMaxNonce := range toCleanAccMap {
 		mem.txs.CleanItems(accAddr, accMaxNonce)
@@ -1083,6 +1088,8 @@ type mempoolTx struct {
 	signature   []byte
 	from        string
 	senderNonce uint64
+
+	isSim bool
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
@@ -1258,5 +1265,6 @@ func (mem *CListMempool) simulationRoutine() {
 			mem.logger.Error("simulateTx", "error", err, "txHash", tx.Hash(mem.Height()))
 		}
 		ele.Value.(*mempoolTx).gasWanted = int64(simuRes.GasUsed)
+		ele.Value.(*mempoolTx).isSim = true
 	}
 }

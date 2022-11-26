@@ -46,6 +46,7 @@ var (
 	mandatorySchemas = []string{
 		trace.Height,
 		trace.Tx,
+		trace.SimTx,
 		trace.BlockSize,
 		trace.TimeoutInterval,
 		trace.LastBlockTime,
