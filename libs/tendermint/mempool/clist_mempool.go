@@ -243,6 +243,9 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 	return mem.txs.TxsWaitChan()
 }
 
+var checkTxMaxCost int64
+var checkTxMaxCost2 int64
+
 // It blocks if we're waiting on Update() or Reap().
 // cb: A callback from the CheckTx command.
 //     It gets called from another goroutine.
@@ -250,6 +253,18 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	start := time.Now()
+	start2 := time.Now()
+	defer func() {
+		cost := time.Since(start).Milliseconds()
+		if cost > atomic.LoadInt64(&checkTxMaxCost) {
+			atomic.StoreInt64(&checkTxMaxCost, cost)
+		}
+		cost2 := time.Since(start2).Milliseconds()
+		if cost2 > atomic.LoadInt64(&checkTxMaxCost2) {
+			atomic.StoreInt64(&checkTxMaxCost2, cost2)
+		}
+	}()
 	timeStart := int64(0)
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		timeStart = time.Now().UnixMicro()
@@ -288,6 +303,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	// END CACHE
 
 	mem.updateMtx.RLock()
+	start2 = time.Now()
 	// use defer to unlock mutex because application (*local client*) might panic
 	defer mem.updateMtx.RUnlock()
 
@@ -961,7 +977,10 @@ func (mem *CListMempool) Update(
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
 	// already sorted int the last round (will only affect the account that send these txs).
-
+	fmt.Printf("Height: %d, checkTx max cost: %dms, %dms, simulate max cost: %dms\n", mem.Height(), atomic.LoadInt64(&checkTxMaxCost), atomic.LoadInt64(&checkTxMaxCost2), atomic.LoadInt64(&simulateCost))
+	atomic.StoreInt64(&checkTxMaxCost, 0)
+	atomic.StoreInt64(&checkTxMaxCost2, 0)
+	atomic.StoreInt64(&simulateCost, 0)
 	return nil
 }
 
@@ -1260,12 +1279,21 @@ func (mem *CListMempool) simulationRoutine() {
 	}
 }
 
+var simulateCost int64
+
 func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	defer types.SignatureCache().Remove(memTx.realTx.TxHash())
 	if atomic.LoadUint32(&memTx.isOutdated) != 0 {
 		// memTx is outdated
 		return
 	}
+	start := time.Now()
+	defer func() {
+		cost := time.Since(start).Milliseconds()
+		if cost > atomic.LoadInt64(&simulateCost) {
+			atomic.StoreInt64(&simulateCost, cost)
+		}
+	}()
 	simuRes, err := mem.simulateTx(memTx.tx)
 	if err != nil {
 		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
