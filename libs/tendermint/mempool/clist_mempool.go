@@ -90,6 +90,8 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
+
+	simQueue chan types.Tx
 }
 
 var _ Mempool = &CListMempool{}
@@ -120,6 +122,7 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
+		simQueue:      make(chan types.Tx, 100000),
 	}
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
@@ -138,6 +141,7 @@ func NewCListMempool(
 		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
 		go mempool.pendingPoolJob()
 	}
+	go mempool.simulationRoutine()
 
 	return mempool
 }
@@ -291,13 +295,18 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnableHGU() {
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
-		if gasUsed < 0 {
-			simuRes, err := mem.simulateTx(tx)
-			if err != nil {
-				return err
-			}
-			gasUsed = int64(simuRes.GasUsed)
+		select {
+		case mem.simQueue <- tx:
+		default:
+			mem.logger.Error("tx simulation queue is full")
 		}
+		//if gasUsed < 0 {
+		//	simuRes, err := mem.simulateTx(tx)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	gasUsed = int64(simuRes.GasUsed)
+		//}
 	} else if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		simuRes, err := mem.simulateTx(tx)
 		if err != nil {
@@ -1235,4 +1244,19 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	}
 	err = cdc.UnmarshalBinaryBare(res.Value, &simuRes)
 	return &simuRes, err
+}
+
+func (mem *CListMempool) simulationRoutine() {
+	for tx := range mem.simQueue {
+		ele, ok := mem.txs.Load(txKey(tx))
+		if !ok {
+			// in case that the tx is updated
+			continue
+		}
+		simuRes, err := mem.simulateTx(tx)
+		if err != nil {
+			mem.logger.Error("simulateTx", "error", err, "txHash", tx.Hash(mem.Height()))
+		}
+		ele.Value.(*mempoolTx).gasWanted = int64(simuRes.GasUsed)
+	}
 }
