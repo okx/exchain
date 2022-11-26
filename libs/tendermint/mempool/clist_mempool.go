@@ -298,11 +298,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnableHGU() {
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
-		select {
-		case mem.simQueue <- tx:
-		default:
-			mem.logger.Error("tx simulation queue is full")
-		}
 		//if gasUsed < 0 {
 		//	simuRes, err := mem.simulateTx(tx)
 		//	if err != nil {
@@ -419,6 +414,11 @@ func (mem *CListMempool) reqResCb(
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
+	}
+	select {
+	case mem.simQueue <- memTx.tx:
+	default:
+		mem.logger.Error("tx simulation queue is full")
 	}
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
 	mem.metrics.TxSizeBytes.Observe(float64(len(memTx.tx)))
@@ -1259,6 +1259,7 @@ func (mem *CListMempool) simulationRoutine() {
 		simuRes, err := mem.simulateTx(tx)
 		if err != nil {
 			mem.logger.Error("simulateTx", "error", err, "txHash", tx.Hash(mem.Height()))
+			continue
 		}
 		ele.Value.(*mempoolTx).gasWanted = int64(simuRes.GasUsed)
 	}
