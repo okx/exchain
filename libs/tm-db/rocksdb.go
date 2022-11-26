@@ -44,6 +44,7 @@ const (
 	level0Trigger  = "level0_trigger"
 	parallelism    = "parallelism"
 	backComp       = "back_comp"
+	backFlush      = "back_flush"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -107,6 +108,14 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		if err == nil {
 			fmt.Println("*****lyh***** backComp", size)
 			opts.SetMaxBackgroundCompactions(size)
+		}
+	}
+
+	if v, ok := params[backFlush]; ok {
+		size, err := strconv.Atoi(v)
+		if err == nil {
+			fmt.Println("*****lyh***** backFlush", size)
+			opts.SetMaxBackgroundFlushes(size)
 		}
 	}
 
