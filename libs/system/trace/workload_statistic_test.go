@@ -30,7 +30,7 @@ func TestWorkload(t *testing.T) {
 
 	trc.Pin(Abci)
 	time.Sleep(abciWorkload)
-	GetApplyBlockWorkloadSttistic().Add(LastRun, lastRunWorkload)
+	GetApplyBlockWorkloadSttistic().Add(LastRun, time.Now(), lastRunWorkload)
 
 	trc.Pin(Persist)
 	time.Sleep(persistWorkload)

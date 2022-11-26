@@ -73,10 +73,6 @@ func (t *Tracer) pinByFormat(tag string) {
 
 	now := time.Now()
 
-	if t.wls != nil {
-		t.wls.begin(tag, now)
-	}
-
 	if len(t.lastPin) > 0 {
 		t.pins = append(t.pins, t.lastPin)
 		duration := now.Sub(t.lastPinStartTime)
@@ -86,7 +82,7 @@ func (t *Tracer) pinByFormat(tag string) {
 		}
 
 		if t.wls != nil {
-			t.wls.end(t.lastPin, now)
+			t.wls.Add(t.lastPin, now, duration)
 		}
 	}
 	t.lastPinStartTime = now
