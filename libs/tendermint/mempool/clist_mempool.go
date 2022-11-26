@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -142,9 +141,7 @@ func NewCListMempool(
 		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
 		go mempool.pendingPoolJob()
 	}
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go mempool.simulationRoutine()
-	}
+	go mempool.simulationRoutine()
 
 	return mempool
 }
