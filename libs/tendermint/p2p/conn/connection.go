@@ -355,9 +355,10 @@ func (c *MConnection) _recover() {
 	}
 }
 
-func (c *MConnection) stopForError(r interface{}) {
+func (c *MConnection) stopForError(r error) {
 	c.Stop()
 	if atomic.CompareAndSwapUint32(&c.errored, 0, 1) {
+		fmt.Println("stopForError", r)
 		if c.onError != nil {
 			c.onError(r)
 		}
@@ -601,17 +602,19 @@ func (c *MConnection) recvRoutine() {
 		message = "packet message"
 	)
 	var packetType string
+	var packetChannelID uint8
 	var packetCost int64
+	var lastPongTime = time.Now()
 FOR_LOOP:
 	for {
 		if packetCost > 1000 {
-			fmt.Printf("debug p2p: %s cost %dms\n", packetType, packetCost)
+			fmt.Printf("debug p2p: %s to channel %d cost %dms\n", packetType, packetChannelID, packetCost)
 		}
 		// Block until .recvMonitor says we can read.
 		start := time.Now()
 		c.recvMonitor.Limit(c._maxPacketMsgSize, atomic.LoadInt64(&c.config.RecvRate), true)
 		cost := time.Since(start).Milliseconds()
-		if cost > 10000 {
+		if cost > 1000 {
 			fmt.Println("limit cost:", cost)
 		}
 
@@ -642,7 +645,7 @@ FOR_LOOP:
 			// receiving is excpected to fail since we will close the connection
 			select {
 			case <-c.quitRecvRoutine:
-				fmt.Printf("debug p2p last packet: %s cost %dms\n", packetType, packetCost)
+				fmt.Printf("quitRecvRoutine, p2p last packet: %s to channel %d cost %dms\n", packetType, packetChannelID, packetCost)
 				break FOR_LOOP
 			default:
 			}
@@ -676,15 +679,20 @@ FOR_LOOP:
 			begin := time.Now()
 			packetType = pong
 			c.Logger.Debug("Receive Pong")
+			fmt.Printf("pong: since last pong %dms\n", time.Since(lastPongTime).Milliseconds()/1000)
+			lastPongTime = time.Now()
 			select {
 			case c.pongTimeoutCh <- false:
 			default:
+				c.Logger.Error("Pong timeout was dropped")
+				fmt.Println("Pong timeout was dropped")
 				// never block
 			}
 			packetCost = time.Since(begin).Milliseconds()
 		case *PacketMsg:
 			begin := time.Now()
 			packetType = message
+			packetChannelID = pkt.ChannelID
 			channel, ok := c.channelsIdx[pkt.ChannelID]
 			if !ok || channel == nil {
 				err := fmt.Errorf("unknown channel %X", pkt.ChannelID)
@@ -714,6 +722,7 @@ FOR_LOOP:
 			break FOR_LOOP
 		}
 	}
+	fmt.Printf("before close, p2p last packet: %s to channel %d cost %dms\n", packetType, packetChannelID, packetCost)
 
 	// Cleanup
 	close(c.pong)
