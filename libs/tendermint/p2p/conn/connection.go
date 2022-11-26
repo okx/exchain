@@ -673,13 +673,14 @@ FOR_LOOP:
 			case c.pong <- struct{}{}:
 			default:
 				// never block
+				fmt.Println("pong signal dropped")
 			}
 			packetCost = time.Since(begin).Milliseconds()
 		case PacketPong:
 			begin := time.Now()
 			packetType = pong
 			c.Logger.Debug("Receive Pong")
-			fmt.Printf("pong: since last pong %dms\n", time.Since(lastPongTime).Milliseconds()/1000)
+			fmt.Printf("pong: since last pong %ds\n", time.Since(lastPongTime).Milliseconds()/1000)
 			lastPongTime = time.Now()
 			select {
 			case c.pongTimeoutCh <- false:
