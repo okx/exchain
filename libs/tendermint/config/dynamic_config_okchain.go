@@ -9,6 +9,7 @@ type IDynamicConfig interface {
 	GetMempoolCacheSize() int
 	GetMaxTxNumPerBlock() int64
 	GetMaxGasUsedPerBlock() int64
+	GetEnableHGU() bool
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
 	GetMempoolCheckTxCost() bool
@@ -56,6 +57,10 @@ func (d MockDynamicConfig) GetMaxTxNumPerBlock() int64 {
 
 func (d MockDynamicConfig) GetMaxGasUsedPerBlock() int64 {
 	return DefaultMempoolConfig().MaxGasUsedPerBlock
+}
+
+func (d MockDynamicConfig) GetEnableHGU() bool {
+	return false
 }
 
 func (d MockDynamicConfig) GetMempoolFlush() bool {

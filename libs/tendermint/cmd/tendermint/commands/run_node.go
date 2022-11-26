@@ -122,6 +122,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"Maximum gas used of transactions in a block",
 	)
 	cmd.Flags().Bool(
+		"mempool.enable-hgu",
+		false,
+		"enable history gas used",
+	)
+	cmd.Flags().Bool(
 		"mempool.sort_tx_by_gp",
 		config.Mempool.SortTxByGp,
 		"Sort tx by gas price in mempool",

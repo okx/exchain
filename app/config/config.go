@@ -45,6 +45,8 @@ type OecConfig struct {
 	maxTxNumPerBlock int64
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
+	// mempool.enable-hgu
+	enableHGU bool
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
 	//mempool.check_tx_cost
@@ -123,6 +125,7 @@ const (
 	FlagMempoolFlush            = "mempool.flush"
 	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
+	FlagEnableHGU               = "mempool.enable-hgu"
 	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
 	FlagGasLimitBuffer          = "gas-limit-buffer"
@@ -260,6 +263,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
+	c.SetEnableHGU(viper.GetBool(FlagEnableHGU))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
@@ -448,6 +452,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetMaxGasUsedPerBlock(r)
+	case FlagEnableHGU:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableHGU(r)
 	case FlagGasLimitBuffer:
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -723,11 +733,20 @@ func (c *OecConfig) SetMaxTxNumPerBlock(value int64) {
 func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
 	return c.maxGasUsedPerBlock
 }
+
 func (c *OecConfig) SetMaxGasUsedPerBlock(value int64) {
 	if value < -1 {
 		return
 	}
 	c.maxGasUsedPerBlock = value
+}
+
+func (c *OecConfig) GetEnableHGU() bool {
+	return c.enableHGU
+}
+
+func (c *OecConfig) SetEnableHGU(value bool) {
+	c.enableHGU = value
 }
 
 func (c *OecConfig) GetGasLimitBuffer() uint64 {
