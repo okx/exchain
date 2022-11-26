@@ -598,7 +598,12 @@ func (c *MConnection) recvRoutine() {
 FOR_LOOP:
 	for {
 		// Block until .recvMonitor says we can read.
+		start := time.Now()
 		c.recvMonitor.Limit(c._maxPacketMsgSize, atomic.LoadInt64(&c.config.RecvRate), true)
+		cost := time.Since(start).Milliseconds()
+		if cost > 10000 {
+			fmt.Println("limit cost:", cost)
+		}
 
 		// Peek into bufConnReader for debugging
 		/*
@@ -654,6 +659,7 @@ FOR_LOOP:
 				// never block
 			}
 		case PacketPong:
+			fmt.Println("pong:", time.Now().String(), c.conn.RemoteAddr().String())
 			c.Logger.Debug("Receive Pong")
 			select {
 			case c.pongTimeoutCh <- false:
