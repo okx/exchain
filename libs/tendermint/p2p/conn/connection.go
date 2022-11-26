@@ -595,8 +595,18 @@ func (c *MConnection) recvRoutine() {
 	defer c._recover()
 
 	var packetMsg PacketMsg
+	const (
+		ping    = "packet ping"
+		pong    = "packet pong"
+		message = "packet message"
+	)
+	var packetType string
+	var packetCost int64
 FOR_LOOP:
 	for {
+		if packetCost > 1000 {
+			fmt.Printf("debug p2p: %s cost %dms\n", packetType, packetCost)
+		}
 		// Block until .recvMonitor says we can read.
 		start := time.Now()
 		c.recvMonitor.Limit(c._maxPacketMsgSize, atomic.LoadInt64(&c.config.RecvRate), true)
@@ -632,6 +642,7 @@ FOR_LOOP:
 			// receiving is excpected to fail since we will close the connection
 			select {
 			case <-c.quitRecvRoutine:
+				fmt.Printf("debug p2p last packet: %s cost %dms\n", packetType, packetCost)
 				break FOR_LOOP
 			default:
 			}
@@ -650,6 +661,8 @@ FOR_LOOP:
 		// Read more depending on packet type.
 		switch pkt := packet.(type) {
 		case PacketPing:
+			begin := time.Now()
+			packetType = ping
 			// TODO: prevent abuse, as they cause flush()'s.
 			// https://github.com/tendermint/tendermint/issues/1190
 			c.Logger.Debug("Receive Ping")
@@ -658,15 +671,20 @@ FOR_LOOP:
 			default:
 				// never block
 			}
+			packetCost = time.Since(begin).Milliseconds()
 		case PacketPong:
-			fmt.Println("pong:", time.Now().String(), c.conn.RemoteAddr().String())
+			begin := time.Now()
+			packetType = pong
 			c.Logger.Debug("Receive Pong")
 			select {
 			case c.pongTimeoutCh <- false:
 			default:
 				// never block
 			}
+			packetCost = time.Since(begin).Milliseconds()
 		case *PacketMsg:
+			begin := time.Now()
+			packetType = message
 			channel, ok := c.channelsIdx[pkt.ChannelID]
 			if !ok || channel == nil {
 				err := fmt.Errorf("unknown channel %X", pkt.ChannelID)
@@ -688,6 +706,7 @@ FOR_LOOP:
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
 			}
+			packetCost = time.Since(begin).Milliseconds()
 		default:
 			err := fmt.Errorf("unknown message type %v", reflect.TypeOf(packet))
 			c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
