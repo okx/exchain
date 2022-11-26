@@ -5,6 +5,8 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+	"runtime"
+	"sync"
 
 	cmap "github.com/orcaman/concurrent-map"
 
@@ -90,14 +92,51 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	ndb.mtx.Unlock()
 }
 
+const smallBatchSize = 50000
+
+func (ndb *nodeDB) batchBatch(tpp map[string]*Node, batchNum int) {
+	ch := make(chan *Node, smallBatchSize*batchNum)
+	var wg sync.WaitGroup
+	wg.Add(len(tpp) + batchNum)
+	for i := 0; i < batchNum; i++ {
+		go func() {
+			localBatch := ndb.db.NewBatch()
+			for node := range ch {
+				ndb.batchSet(node, localBatch)
+				wg.Done()
+			}
+			err := ndb.Commit(localBatch)
+			if err != nil {
+				panic(err)
+			}
+			wg.Done()
+		}()
+	}
+	for _, node := range tpp {
+		ch <- node
+	}
+	close(ch)
+	wg.Wait()
+}
+
 func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	batch := event.batch
 	tpp := event.tpp
 
 	trc.Pin("batchSet")
-	for _, node := range tpp {
-		ndb.batchSet(node, batch)
+
+	batchNum := (len(tpp) / smallBatchSize) + 1
+	if batchNum != 1 {
+		if batchNum > runtime.NumCPU() {
+			batchNum = runtime.NumCPU()
+		}
+		ndb.batchBatch(tpp, batchNum)
+	} else {
+		for _, node := range tpp {
+			ndb.batchSet(node, batch)
+		}
 	}
+
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
