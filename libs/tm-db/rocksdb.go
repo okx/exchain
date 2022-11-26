@@ -42,6 +42,8 @@ const (
 	disableComp    = "disable_comp"
 	writeBuff      = "write_buff_size"
 	level0Trigger  = "level0_trigger"
+	parallelism    = "parallelism"
+	backComp       = "back_comp"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -89,7 +91,24 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
-	opts.IncreaseParallelism(runtime.NumCPU())
+
+	if v, ok := params[parallelism]; ok {
+		size, err := strconv.Atoi(v)
+		if err == nil {
+			fmt.Println("*****lyh***** parallelism", size, runtime.NumCPU())
+			opts.IncreaseParallelism(size)
+		}
+	} else {
+		opts.IncreaseParallelism(runtime.NumCPU())
+	}
+
+	if v, ok := params[backComp]; ok {
+		size, err := strconv.Atoi(v)
+		if err == nil {
+			fmt.Println("*****lyh***** backComp", size)
+			opts.SetMaxBackgroundCompactions(size)
+		}
+	}
 
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
