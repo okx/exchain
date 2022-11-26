@@ -5,8 +5,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 var (
@@ -25,22 +23,9 @@ var (
 // out-of-date timestamp; `shrinkLoop` also has a ticker promote current time once a second.
 // If current time is larger or equal than recorded timestamp, it remove that workload and subtract
 // it's value from `summaries`.
-//
-// NOTE: CAN NOT use `WorkloadStatistic` concurrently for those reasons:
-// read/write almost all fields
-// workload summary may be wrong if a work is still running(latestBegin.IsZero isn't true)
-//
-// calling sequence:
-// 1. newWorkloadStatistic
-// 2. calling begin/end before and after doing some work
-// 3. calling summary to get a summary statistic
 type WorkloadStatistic struct {
 	concernedTags map[string]struct{}
 	summaries     []workloadSummary
-
-	latestTag   string
-	latestBegin time.Time
-	logger      log.Logger
 
 	workCh chan singleWorkInfo
 }
@@ -55,6 +40,8 @@ type singleWorkInfo struct {
 	endTime  time.Time
 }
 
+// GetApplyBlockWorkloadSttistic return a global `WorkloadStatistic` object.
+// WARNING: if you call `WorkloadStatistic.Add` concurrently, the summary result will be incorrect.
 func GetApplyBlockWorkloadSttistic() *WorkloadStatistic {
 	return applyBlockWorkloadStatistic
 }
@@ -73,21 +60,18 @@ func newWorkloadStatistic(periods []time.Duration, tags []string) *WorkloadStati
 	return wls
 }
 
-func (ws *WorkloadStatistic) SetLogger(logger log.Logger) {
-	ws.logger = logger
-}
-
-func (ws *WorkloadStatistic) Add(tag string, dur time.Duration) {
+// Add accumulate workload to summary.
+// WARNING: if you call `Add` concurrently, the summary result will be incorrect.
+func (ws *WorkloadStatistic) Add(tag string, endTime time.Time, duration time.Duration) {
 	if _, ok := ws.concernedTags[tag]; !ok {
 		return
 	}
 
-	now := time.Now()
 	for i := range ws.summaries {
-		atomic.AddInt64(&ws.summaries[i].workload, int64(dur))
+		atomic.AddInt64(&ws.summaries[i].workload, int64(duration))
 	}
 
-	ws.workCh <- singleWorkInfo{int64(dur), now}
+	ws.workCh <- singleWorkInfo{int64(duration), endTime}
 }
 
 func (ws *WorkloadStatistic) Format() string {
@@ -99,49 +83,12 @@ func (ws *WorkloadStatistic) Format() string {
 	return strings.Join(sumItem, "|")
 }
 
-func (ws *WorkloadStatistic) begin(tag string, t time.Time) {
-	if _, ok := ws.concernedTags[tag]; !ok {
-		return
-	}
-
-	ws.latestTag = tag
-	ws.latestBegin = t
-}
-
-func (ws *WorkloadStatistic) end(tag string, t time.Time) {
-	if _, ok := ws.concernedTags[tag]; !ok {
-		return
-	}
-
-	if ws.latestTag != tag {
-		ws.logger.Error("WorkloadStatistic", ": begin tag", ws.latestTag, "end tag", tag)
-		return
-	}
-	if ws.latestBegin.IsZero() {
-		ws.logger.Error("WorkloadStatistic", "begin is not called before end")
-		return
-	}
-
-	dur := t.Sub(ws.latestBegin)
-	for i := range ws.summaries {
-		atomic.AddInt64(&ws.summaries[i].workload, int64(dur))
-	}
-
-	ws.workCh <- singleWorkInfo{int64(dur), t}
-	ws.latestBegin = time.Time{}
-}
-
 type summaryInfo struct {
 	period   time.Duration
 	workload time.Duration
 }
 
 func (ws *WorkloadStatistic) summary() []summaryInfo {
-	if !ws.latestBegin.IsZero() {
-		ws.logger.Error("WorkloadStatistic", ": some work is still running when calling summary")
-		return nil
-	}
-
 	startupDuration := time.Now().Sub(startupTime)
 	result := make([]summaryInfo, 0, len(ws.summaries))
 

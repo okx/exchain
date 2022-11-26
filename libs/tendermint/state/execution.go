@@ -240,7 +240,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
-	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, duration)
+	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, time.Now(), duration)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
