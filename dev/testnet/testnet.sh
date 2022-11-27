@@ -158,6 +158,7 @@ run() {
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --enable-gid \
+    --consensus.timeout_commit 6000ms \
     --enable-blockpart-ack=false \
     --append-pid=true \
     ${LOG_SERVER} \
@@ -174,7 +175,6 @@ run() {
 #     --enable-preruntx \
 #     --mempool.node_key_whitelist="nodeKey1,nodeKey2" \
 #    --mempool.node_key_whitelist ${WHITE_LIST} \
-#    --consensus.timeout_commit 6000ms \
 }
 
 function start() {
