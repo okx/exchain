@@ -126,7 +126,7 @@ func initEnv() {
 	checkSetEnv("mempool_cache_size", "300000")
 	checkSetEnv("mempool_force_recheck_gap", "2000")
 	checkSetEnv("mempool_recheck", "false")
-	checkSetEnv("consensus_timeout_commit", "3.8s")
+	checkSetEnv("consensus_timeout_commit", fmt.Sprintf("%dms", tmtypes.TimeoutCommit))
 }
 
 func checkSetEnv(envName string, value string) {
