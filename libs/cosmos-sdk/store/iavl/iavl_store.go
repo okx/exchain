@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -13,6 +14,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	"github.com/okex/exchain/libs/system/trace/persist"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
@@ -39,6 +41,8 @@ type Store struct {
 	flatKVStore *flatkv.Store
 	//for upgrade
 	upgradeVersion int64
+	//for time statistics
+	beginTime time.Time
 }
 
 func (st *Store) CurrentVersion() int64 {
@@ -211,7 +215,10 @@ func (st *Store) GetStoreType() types.StoreType {
 
 // Implements Store.
 func (st *Store) CacheWrap() types.CacheWrap {
-	return cachekv.NewStoreWithPreChangeHandler(st, st.tree.PreChanges)
+	stores := cachekv.NewStoreWithPreChangeHandler(st, st.tree.PreChanges)
+	stores.StatisticsCell = st
+
+	return stores
 }
 
 // CacheWrapWithTrace implements the Store interface.
@@ -398,6 +405,14 @@ func (st *Store) GetNodeReadCount() int {
 func (st *Store) ResetCount() {
 	st.tree.ResetCount()
 	st.resetFlatKVCount()
+}
+
+func (st *Store) StartTiming() {
+	st.beginTime = time.Now()
+}
+
+func (st *Store) EndTiming(tag string) {
+	persist.GetStatistics().Accumulate(tag, st.beginTime)
 }
 
 //----------------------------------------
