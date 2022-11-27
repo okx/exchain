@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/spf13/viper"
+	_ "net/http/pprof"
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/utils/appstatus"
@@ -18,6 +17,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	types2 "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func repairStateCmd(ctx *server.Context) *cobra.Command {
