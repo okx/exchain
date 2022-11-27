@@ -130,8 +130,8 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, errors.New("storage version is not fast")
 	}
 
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
+	//ndb.mtx.Lock()
+	//defer ndb.mtx.Unlock()
 
 	if len(key) == 0 {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
