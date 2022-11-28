@@ -95,23 +95,59 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 const smallBatchSize = 50000
 
 func (ndb *nodeDB) batchBatch(tpp map[string]*Node, batchNum int) {
-	ch := make(chan *Node, smallBatchSize*batchNum)
 	var wg sync.WaitGroup
-	wg.Add(len(tpp) + batchNum)
-	for i := 0; i < batchNum; i++ {
+	goNum := runtime.NumCPU() / 2
+	if goNum == 0 {
+		goNum = 1
+	}
+	wg.Add(len(tpp) + goNum)
+	ch := make(chan *Node, smallBatchSize*goNum*2)
+
+	for i := 0; i < goNum; i++ {
 		go func() {
 			localBatch := ndb.db.NewBatch()
+			count := 0
 			for node := range ch {
+				if localBatch == nil {
+					localBatch = ndb.db.NewBatch()
+				}
 				ndb.batchSet(node, localBatch)
 				wg.Done()
+				count++
+
+				if count == smallBatchSize {
+					err := ndb.Commit(localBatch)
+					if err != nil {
+						panic(err)
+					}
+					localBatch = nil
+					count = 0
+				}
 			}
-			err := ndb.Commit(localBatch)
-			if err != nil {
-				panic(err)
+			if localBatch != nil {
+				err := ndb.Commit(localBatch)
+				if err != nil {
+					panic(err)
+				}
 			}
 			wg.Done()
 		}()
 	}
+
+	//for i := 0; i < batchNum; i++ {
+	//	go func() {
+	//		localBatch := ndb.db.NewBatch()
+	//		for node := range ch {
+	//			ndb.batchSet(node, localBatch)
+	//			wg.Done()
+	//		}
+	//		err := ndb.Commit(localBatch)
+	//		if err != nil {
+	//			panic(err)
+	//		}
+	//		wg.Done()
+	//	}()
+	//}
 	for _, node := range tpp {
 		ch <- node
 	}
@@ -127,9 +163,6 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 
 	batchNum := (len(tpp) / smallBatchSize) + 1
 	if batchNum != 1 {
-		if max := runtime.NumCPU() * 2; batchNum > max {
-			batchNum = max
-		}
 		ndb.batchBatch(tpp, batchNum)
 	} else {
 		for _, node := range tpp {
