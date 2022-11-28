@@ -87,6 +87,32 @@ func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
 	ndb.nodeCacheMutex.Unlock()
 }
 
+func (ndb *NodeCache) cacheMultiWithKey(kv map[string]*Node) {
+	cacheSize := config.DynamicConfig.GetIavlCacheSize()
+	ndb.nodeCacheMutex.Lock()
+	if len(kv) >= cacheSize {
+		for k := range ndb.nodeCache {
+			delete(ndb.nodeCache, k)
+		}
+		ndb.nodeCacheQueue.Init()
+	}
+	for key, node := range kv {
+		if ele, ok := ndb.nodeCache[string(node.hash)]; ok {
+			ndb.nodeCacheQueue.MoveToBack(ele)
+		} else {
+			elem := ndb.nodeCacheQueue.PushBack(node)
+			ndb.nodeCache[key] = elem
+
+			for ndb.nodeCacheQueue.Len() > cacheSize {
+				oldest := ndb.nodeCacheQueue.Front()
+				hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
+				delete(ndb.nodeCache, amino.BytesToStr(hash))
+			}
+		}
+	}
+	ndb.nodeCacheMutex.Unlock()
+}
+
 func (ndb *NodeCache) get(hash []byte, promoteRecentNode bool) (n *Node) {
 	// Check the cache.
 	ndb.nodeCacheMutex.RLock()

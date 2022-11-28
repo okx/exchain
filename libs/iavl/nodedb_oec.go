@@ -343,6 +343,10 @@ func (ndb *nodeDB) cacheWithKey(key string, node *Node) {
 	ndb.nc.cacheWithKey(key, node)
 }
 
+func (ndb *nodeDB) cacheMultiWithKey(kv map[string]*Node) {
+	ndb.nc.cacheMultiWithKey(kv)
+}
+
 func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nc.uncache(hash)
 }

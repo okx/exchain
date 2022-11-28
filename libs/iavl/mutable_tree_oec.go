@@ -203,12 +203,12 @@ func (tree *MutableTree) commitSchedule() {
 		trc := trace.NewTracer("commitSchedule")
 
 		trc.Pin("cacheNode")
-		for k, node := range event.tpp {
+		for _, node := range event.tpp {
 			if !node.persisted {
 				panic("unexpected logic")
 			}
-			tree.ndb.cacheWithKey(k, node)
 		}
+		tree.ndb.cacheMultiWithKey(event.tpp)
 
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
