@@ -774,13 +774,6 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
 		if maxGas > -1 && newTotalGas > maxGas {
-			if len(txs) <= 1 && mem.Size() > 0 {
-				mem.logger.Error("Unexpected gas", "txHash", hex.EncodeToString(memTx.tx.Hash(mem.Height())), "gasWanted", gasWanted, "totalGas", newTotalGas)
-				for ; e != nil && len(txs) < 15; e = e.Next() {
-					memTx = e.Value.(*mempoolTx)
-					txs = append(txs, memTx.tx)
-				}
-			}
 			return txs
 		}
 		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
