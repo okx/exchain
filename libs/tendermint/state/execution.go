@@ -377,6 +377,11 @@ func (blockExec *BlockExecutor) commit(
 	)
 	begin := time.Now()
 	blockExec.mempool.Lock()
+	blockExec.logger.Error(
+		"mempool_to_commit middle",
+		"height", block.Height,
+		"middletime during", time.Since(begin),
+	)
 	defer func() {
 		blockExec.mempool.Unlock()
 		blockExec.logger.Error(

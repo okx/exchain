@@ -367,7 +367,7 @@ func (mem *CListMempool) addTxJobForP2P() {
 	for item := range mem.addTxQueue {
 		err := mem.CheckTx(item.tx, nil, item.txInfo)
 		if err != nil {
-			mem.logger.Error("Could not check tx", "tx", item.tx, "err", err)
+			//mem.logger.Debug("Could not check tx", "tx", item.tx, "err", err)
 		}
 	}
 }

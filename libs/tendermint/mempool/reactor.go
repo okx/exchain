@@ -268,7 +268,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 	mem := memR.mempool
 	if len(mem.addTxQueue) >= mem.config.Size {
-		memR.Logger.Error(fmt.Sprintf("mempool tx queue is full"))
+		//memR.Logger.Error(fmt.Sprintf("mempool tx queue is full"))
 	} else {
 		mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo}
 	}
