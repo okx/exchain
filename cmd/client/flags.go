@@ -1,8 +1,6 @@
 package client
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
@@ -21,6 +19,7 @@ import (
 	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
+	"github.com/spf13/cobra"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {

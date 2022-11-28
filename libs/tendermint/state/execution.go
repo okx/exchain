@@ -208,6 +208,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
 	trc.EnableSummary()
+	trc.SetWorkloadStatistic(trace.GetApplyBlockWorkloadSttistic())
 	dc := blockExec.deltaContext
 
 	defer func() {
@@ -215,6 +216,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
+		trace.GetElapsedInfo().AddInfo(trace.Workload, trace.GetApplyBlockWorkloadSttistic().Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
 		now := time.Now().UnixNano()
@@ -238,13 +240,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
+	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, duration)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
 	}
 
 	fail.Fail() // XXX
-
 
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
@@ -290,7 +292,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.evpool.Update(block, state)
 
 	fail.Fail() // XXX
-
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data

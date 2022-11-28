@@ -283,6 +283,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.blockGasMeterMu.Unlock()
 			// merge tx
 			pm.SetCurrentIndex(txIndex, res)
+			pm.finalResult[txIndex] = res
 
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
@@ -339,7 +340,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	txs := make([]sdk.Tx, app.parallelTxManage.txSize)
 	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
-		txRes := app.parallelTxManage.txResultCollector.getTxResult(index)
+		txRes := app.parallelTxManage.finalResult[index]
 		logIndex[index] = txRes.paraMsg.LogIndex
 		errs[index] = txRes.paraMsg.AnteErr
 		hasEnterEvmTx[index] = txRes.paraMsg.HasRunEvmTx
@@ -628,6 +629,7 @@ type parallelTxManager struct {
 
 	extraTxsInfo      []*extraDataForTx
 	txResultCollector *txResultCollector
+	finalResult       []*executeResult
 
 	groupList     map[int][]int
 	nextTxInGroup map[int]int
@@ -759,6 +761,7 @@ func (f *parallelTxManager) init() {
 	f.dynamicGpInfos = make([]sdk.DynamicGasInfo, txSize)
 
 	f.txResultCollector.init(txSize)
+	f.finalResult = make([]*executeResult, txSize)
 
 	txsInfoCap := cap(f.extraTxsInfo)
 	if f.extraTxsInfo == nil || txsInfoCap < txSize {
