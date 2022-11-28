@@ -58,7 +58,6 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 			}
 			if tx != nil {
 				app.blockDataCache.SetTx(txBytes, tx)
-				//todo
 				if app.updateGPOHandler != nil {
 					para.dynamicGpInfos[index].SetGP(tx.GetGasPrice())
 				}
@@ -347,7 +346,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
-		//todo
 		if app.updateGPOHandler != nil {
 			// int64 -> uint64 may not be safe
 			app.parallelTxManage.dynamicGpInfos[index].SetGU(uint64(txRes.resp.GasUsed))

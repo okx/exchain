@@ -306,7 +306,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
-	// todo
 	if app.updateGPOHandler != nil {
 		dgi := sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)
 		dgis := make([]sdk.DynamicGasInfo, 1)
@@ -367,7 +366,6 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
-	// todo
 	if app.updateGPOHandler != nil {
 		dgi := sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)
 		dgis := make([]sdk.DynamicGasInfo, 1)
