@@ -32,6 +32,7 @@ const (
 
 const (
 	GasUsed     = "GasUsed"
+	SimGasUsed  = "SimGasUsed"
 	Produce     = "Produce"
 	RunTx       = "RunTx"
 	LastRun     = "lastRun"

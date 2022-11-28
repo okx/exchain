@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+
 	"math/big"
 	"strconv"
 	"sync"
@@ -13,8 +14,7 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 
-	"github.com/tendermint/go-amino"
-
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -23,6 +23,7 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 type TxInfoParser interface {
@@ -92,6 +93,8 @@ type CListMempool struct {
 	txs ITransactionQueue
 
 	simQueue chan *mempoolTx
+
+	gasCache *lru.Cache
 }
 
 var _ Mempool = &CListMempool{}
@@ -112,6 +115,10 @@ func NewCListMempool(
 	} else {
 		txQueue = NewBaseTxQueue()
 	}
+	gasCache, err := lru.New(1000000)
+	if err != nil {
+		panic(err)
+	}
 	mempool := &CListMempool{
 		config:        config,
 		proxyAppConn:  proxyAppConn,
@@ -123,6 +130,7 @@ func NewCListMempool(
 		metrics:       NopMetrics(),
 		txs:           txQueue,
 		simQueue:      make(chan *mempoolTx, 100000),
+		gasCache:      gasCache,
 	}
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
@@ -704,6 +712,15 @@ func (mem *CListMempool) notifyTxsAvailable() {
 	}
 }
 
+func (mem *CListMempool) GetTxSimulateGas(txHash string) int64 {
+	hash := hex.EncodeToString([]byte(txHash))
+	v, ok := mem.gasCache.Get(hash)
+	if !ok {
+		return -1
+	}
+	return v.(int64)
+}
+
 func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 	if ele, ok := mem.txs.Load(txKey(tx)); ok {
 		return ele.Value.(*mempoolTx).realTx
@@ -868,12 +885,14 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	var simCount int64
+	var simGas int64
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
+			simGas += ele.Value.(*mempoolTx).gasWanted
 			if ele.Value.(*mempoolTx).isSim {
 				simCount++
 			}
@@ -906,6 +925,7 @@ func (mem *CListMempool) Update(
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
 	trace.GetElapsedInfo().AddInfo(trace.SimTx, strconv.FormatInt(simCount, 10))
+	trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, strconv.FormatInt(simGas, 10))
 
 	for accAddr, accMaxNonce := range toCleanAccMap {
 		mem.txs.CleanItems(accAddr, accMaxNonce)
@@ -1260,5 +1280,5 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	}
 	memTx.gasWanted = int64(simuRes.GasUsed)
 	memTx.isSim = true
-
+	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), memTx.gasWanted)
 }

@@ -89,6 +89,8 @@ type Mempool interface {
 	SetAccountRetriever(retriever AccountRetriever)
 
 	SetTxInfoParser(parser TxInfoParser)
+
+	GetTxSimulateGas(txHash string) int64
 }
 
 //--------------------------------------------------------------------------------
