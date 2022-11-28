@@ -121,8 +121,9 @@ func NewCListMempool(
 		metrics:       NopMetrics(),
 		txs:           txQueue,
 	}
-	if config.CacheSize > 0 {
-		mempool.cache = newMapTxCache(config.CacheSize)
+
+	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
+		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
 	} else {
 		mempool.cache = nopTxCache{}
 	}

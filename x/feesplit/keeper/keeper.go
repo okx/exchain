@@ -35,7 +35,6 @@ func NewKeeper(
 	ek types.EvmKeeper,
 	sk types.SupplyKeeper,
 	ak types.AccountKeeper,
-	handler sdk.UpdateFeeSplitHandler,
 ) Keeper {
 	// set KeyTable if it has not already been set
 	if !ps.HasKeyTable() {
@@ -43,13 +42,12 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		storeKey:              storeKey,
-		cdc:                   cdc,
-		paramSpace:            ps,
-		evmKeeper:             ek,
-		supplyKeeper:          sk,
-		accountKeeper:         ak,
-		updateFeeSplitHandler: handler,
+		storeKey:      storeKey,
+		cdc:           cdc,
+		paramSpace:    ps,
+		evmKeeper:     ek,
+		supplyKeeper:  sk,
+		accountKeeper: ak,
 	}
 }
 
