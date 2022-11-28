@@ -37,6 +37,7 @@ func (ea EvmModuleAdapter) initGenesis(ctx sdk.Context, data json.RawMessage) []
 
 	adapter.ModuleCdc.MustUnmarshalJSON(data, &genState)
 	genState.Params.EnableCall = true
+	genState.Params.MaxGasLimitPerTx = 10000000000000
 	evm.InitGenesis(ctx, *ea.tkeeper, ea.ak, genState)
 
 	return []abci.ValidatorUpdate{}
