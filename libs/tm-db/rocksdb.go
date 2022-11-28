@@ -109,6 +109,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 
 	// 1.5GB maximum memory use for writebuffer.
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
+	opts.SetMaxWriteBufferNumber(10)
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
