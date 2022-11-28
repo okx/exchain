@@ -756,8 +756,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
-		trace.GetElapsedInfo().AddInfo(trace.SimTx, strconv.FormatInt(simCount, 10))
-		trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, strconv.FormatInt(simGas, 10))
+		trace.GetElapsedInfo().AddInfo(trace.SimTx, fmt.Sprintf("%d:%d", mem.Height()+1, simCount))
+		trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, fmt.Sprintf("%d:%d", mem.Height()+1, simGas))
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
@@ -771,10 +771,11 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// If maxGas is negative, skip this check.
 		// Since newTotalGas < masGas, which
 		// must be non-negative, it follows that this won't overflow.
-		newTotalGas := totalGas + memTx.gasWanted
+		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
+		newTotalGas := totalGas + gasWanted
 		if maxGas > -1 && newTotalGas > maxGas {
 			if len(txs) <= 1 && mem.Size() > 0 {
-				mem.logger.Error("Unexpected gas", "txHash", hex.EncodeToString(memTx.tx.Hash(mem.Height())), "gasWanted", memTx.gasWanted, "totalGas", newTotalGas)
+				mem.logger.Error("Unexpected gas", "txHash", hex.EncodeToString(memTx.tx.Hash(mem.Height())), "gasWanted", gasWanted, "totalGas", newTotalGas)
 				for ; e != nil && len(txs) < 15; e = e.Next() {
 					memTx = e.Value.(*mempoolTx)
 					txs = append(txs, memTx.tx)
@@ -789,8 +790,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		totalTxNum++
 		totalGas = newTotalGas
 		txs = append(txs, memTx.tx)
-		simGas += memTx.gasWanted
-		if memTx.isSim {
+		simGas += gasWanted
+		if atomic.LoadUint32(&memTx.isSim) > 0 {
 			simCount++
 		}
 	}
@@ -1107,7 +1108,7 @@ type mempoolTx struct {
 	senderNonce uint64
 
 	isOutdated uint32
-	isSim      bool
+	isSim      uint32
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
@@ -1288,7 +1289,8 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
 		return
 	}
-	memTx.gasWanted = int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
-	memTx.isSim = true
-	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), memTx.gasWanted)
+	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
+	atomic.StoreInt64(&memTx.gasWanted, gas)
+	atomic.AddUint32(&memTx.isSim, 1)
+	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), gas)
 }
