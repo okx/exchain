@@ -415,7 +415,7 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
 	}
-	if cfg.DynamicConfig.GetEnablePGU() {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnablePGU() {
 		select {
 		case mem.simQueue <- memTx:
 		default:
