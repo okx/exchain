@@ -115,6 +115,7 @@ func NewCListMempool(
 	} else {
 		txQueue = NewBaseTxQueue()
 	}
+
 	gasCache, err := lru.New(1000000)
 	if err != nil {
 		panic(err)
@@ -132,6 +133,7 @@ func NewCListMempool(
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
 	}
+	go mempool.simulationRoutine()
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
 		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
@@ -149,7 +151,6 @@ func NewCListMempool(
 		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
 		go mempool.pendingPoolJob()
 	}
-	go mempool.simulationRoutine()
 
 	return mempool
 }
@@ -303,6 +304,13 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
+		if gasUsed < 0 {
+			simuRes, err := mem.simulateTx(tx)
+			if err != nil {
+				return err
+			}
+			gasUsed = int64(simuRes.GasUsed)
+		}
 	}
 
 	if mem.preCheck != nil {
@@ -407,10 +415,12 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
 	}
-	select {
-	case mem.simQueue <- memTx:
-	default:
-		mem.logger.Error("tx simulation queue is full")
+	if cfg.DynamicConfig.GetEnablePGU() {
+		select {
+		case mem.simQueue <- memTx:
+		default:
+			mem.logger.Error("tx simulation queue is full")
+		}
 	}
 
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -742,9 +752,12 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	var simCount, simGas int64
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
+		trace.GetElapsedInfo().AddInfo(trace.SimTx, strconv.FormatInt(simCount, 10))
+		trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, strconv.FormatInt(simGas, 10))
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
@@ -776,6 +789,10 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		totalTxNum++
 		totalGas = newTotalGas
 		txs = append(txs, memTx.tx)
+		simGas += memTx.gasWanted
+		if memTx.isSim {
+			simCount++
+		}
 	}
 
 	return txs
@@ -884,18 +901,13 @@ func (mem *CListMempool) Update(
 	if mem.pendingPool != nil {
 		addressNonce = make(map[string]uint64)
 	}
-	var simCount int64
-	var simGas int64
+
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
-			simGas += ele.Value.(*mempoolTx).gasWanted
-			if ele.Value.(*mempoolTx).isSim {
-				simCount++
-			}
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
@@ -924,8 +936,6 @@ func (mem *CListMempool) Update(
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
-	trace.GetElapsedInfo().AddInfo(trace.SimTx, strconv.FormatInt(simCount, 10))
-	trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, strconv.FormatInt(simGas, 10))
 
 	for accAddr, accMaxNonce := range toCleanAccMap {
 		mem.txs.CleanItems(accAddr, accMaxNonce)
@@ -1278,7 +1288,7 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
 		return
 	}
-	memTx.gasWanted = int64(simuRes.GasUsed)
+	memTx.gasWanted = int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
 	memTx.isSim = true
 	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), memTx.gasWanted)
 }
