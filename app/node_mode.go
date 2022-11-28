@@ -78,11 +78,13 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
 	viper.SetDefault(watcher.FlagFastQuery, false)
 	viper.SetDefault(appconfig.FlagMaxGasUsedPerBlock, 120000000)
+	viper.SetDefault(mempool.FlagEnablePendingPool, false)
 
-	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
+	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, types.CloseMode, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
-		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000))
+		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000,
+		mempool.FlagEnablePendingPool, false))
 }
 
 func setArchiveConfig(ctx *server.Context) {
