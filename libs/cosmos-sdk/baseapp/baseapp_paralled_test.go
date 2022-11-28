@@ -94,8 +94,8 @@ func createEthTx(t *testing.T, chain *Chain, i int) []byte {
 //function store(uint256 num) public {
 //number = num;
 //}
-//function add(uint256 num) public {
-//number += num;
+//function add() public {
+//number += 1;
 //}
 ///**
 // * @dev Return value
