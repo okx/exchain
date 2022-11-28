@@ -66,7 +66,8 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
-	opts.IncreaseParallelism(runtime.NumCPU())
+	opts.IncreaseParallelism(runtime.NumCPU() * 3)
+	opts.SetStatsDumpPeriodSec(60)
 
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
