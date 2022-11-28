@@ -127,8 +127,8 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 
 	batchNum := (len(tpp) / smallBatchSize) + 1
 	if batchNum != 1 {
-		if batchNum > runtime.NumCPU() {
-			batchNum = runtime.NumCPU()
+		if max := runtime.NumCPU() * 2; batchNum > max {
+			batchNum = max
 		}
 		ndb.batchBatch(tpp, batchNum)
 	} else {
