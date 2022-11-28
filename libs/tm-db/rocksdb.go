@@ -64,7 +64,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
 
 	//	opts := gorocksdb.NewDefaultOptions()
-	opts, err := gorocksdb.GetOptionsFromString(nil, "manual_wal_flush:true")
+	opts, err := gorocksdb.GetOptionsFromString(nil, "manual_wal_flush=true")
 	if err != nil {
 		panic(err)
 	}
