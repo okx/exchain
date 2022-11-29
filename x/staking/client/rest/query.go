@@ -70,12 +70,6 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		validatorsHandlerFn(cliCtx),
 	).Methods("GET")
 
-	// get a single validator info
-	r.HandleFunc(
-		"/cosmos/staking/v1beta1/validators/{validatorAddr}",
-		validatorHandlerFn(cliCtx),
-	).Methods("GET")
-
 	// Get HistoricalInfo at a given height
 	r.HandleFunc(
 		"/staking/historical_info/{height}",
@@ -116,6 +110,12 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/validators",
 		validatorsCM45HandlerFn(cliCtx),
+	).Methods("GET")
+
+	// get a single validator info
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/validators/{validatorAddr}",
+		validatorHandlerFn(cliCtx),
 	).Methods("GET")
 }
 

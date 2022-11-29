@@ -649,7 +649,10 @@ func queryTallyOnProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
+		var tr types.TallyResult
+		cliCtx.Codec.MustUnmarshalJSON(res, &tr)
+		wrappedTallyResult := types.NewWrappedTallyResult(tr)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedTallyResult)
 	}
 }

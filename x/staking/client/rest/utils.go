@@ -100,7 +100,8 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
-		//format validator to be compatible with cosmos
+
+		//format validator to be compatible with cosmos v0.45.1
 		var val types.Validator
 		cliCtx.Codec.MustUnmarshalJSON(res, &val)
 		pubkey, ok := val.ConsPubKey.(ed25519.PubKeyEd25519)

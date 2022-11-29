@@ -33,7 +33,7 @@ func NewWrappedProposals(ps []CM45Proposal) WrappedProposals {
 type CM45Proposal struct {
 	Content `json:"content" yaml:"content"` // Proposal content interface
 
-	ProposalID       uint64      `json:"id" yaml:"id"`                                 //  ID of the proposal
+	ProposalID       uint64      `json:"proposal_id" yaml:"proposal_id"`               //  ID of the proposal
 	Status           string      `json:"status" yaml:"proposal_status"`                // Status of the Proposal {Pending, Active, Passed, Rejected}
 	FinalTallyResult TallyResult `json:"final_tally_result" yaml:"final_tally_result"` // Result of Tallys
 
@@ -300,6 +300,16 @@ func (status ProposalStatus) Format(s fmt.State, verb rune) {
 	default:
 		// TODO: Do this conversion more directly
 		s.Write([]byte(fmt.Sprintf("%v", byte(status))))
+	}
+}
+
+type WrappedTallyResult struct {
+	TR TallyResult `json:"tally"`
+}
+
+func NewWrappedTallyResult(tr TallyResult) WrappedTallyResult {
+	return WrappedTallyResult{
+		TR: tr,
 	}
 }
 

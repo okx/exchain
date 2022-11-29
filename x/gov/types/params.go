@@ -87,7 +87,7 @@ func validateDepositParams(i interface{}) error {
 type TallyParams struct {
 	Quorum          sdk.Dec `json:"quorum,omitempty" yaml:"quorum,omitempty"`                         //  Minimum percentage of total stake needed to vote for a result to be considered valid
 	Threshold       sdk.Dec `json:"threshold,omitempty" yaml:"threshold,omitempty"`                   //  Minimum proportion of Yes votes for proposal to pass. Initial value: 0.5
-	Veto            sdk.Dec `json:"veto,omitempty" yaml:"veto,omitempty"`                             //  Minimum value of Veto votes to Total votes ratio for proposal to be vetoed. Initial value: 1/3
+	Veto            sdk.Dec `json:"veto_threshold,omitempty" yaml:"veto_threshold,omitempty"`         //  Minimum value of Veto votes to Total votes ratio for proposal to be vetoed. Initial value: 1/3
 	YesInVotePeriod sdk.Dec `json:"yes_in_vote_period,omitempty" yaml:"yes_in_vote_period,omitempty"` //
 }
 
