@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 
 	"github.com/okex/exchain/libs/iavl/config"
@@ -13,6 +14,9 @@ type NodeCache struct {
 	nodeCacheSize  int                      // Node cache size limit in elements.
 	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
 	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
+
+	// for test
+	count int
 }
 
 func newNodeCache(dbName string, cacheSize int) *NodeCache {
@@ -52,6 +56,7 @@ func (ndb *NodeCache) uncache(hash []byte) {
 		ndb.nodeCacheQueue.Remove(elem)
 		delete(ndb.nodeCache, string(hash))
 	}
+	ndb.count--
 	ndb.nodeCacheMutex.Unlock()
 }
 
@@ -59,6 +64,7 @@ func (ndb *NodeCache) uncache(hash []byte) {
 // reached the cache size limit.
 func (ndb *NodeCache) cache(node *Node) {
 	ndb.nodeCacheMutex.Lock()
+	ndb.count++
 	if ele, ok := ndb.nodeCache[string(node.hash)]; ok {
 		ndb.nodeCacheQueue.MoveToBack(ele)
 	} else {
@@ -76,10 +82,12 @@ func (ndb *NodeCache) cache(node *Node) {
 
 func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
 	ndb.nodeCacheMutex.Lock()
+	ndb.count++
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[key] = elem
 
 	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
+		fmt.Println("")
 		oldest := ndb.nodeCacheQueue.Front()
 		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
 		delete(ndb.nodeCache, amino.BytesToStr(hash))

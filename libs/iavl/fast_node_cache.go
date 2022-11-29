@@ -12,6 +12,9 @@ type FastNodeCache struct {
 	cacheSize  int                      // cache size limit in elements.
 	cacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
 	cacheMutex sync.RWMutex             // Mutex for node cache.
+
+	// for test
+	count int
 }
 
 func newFastNodeCache(dbName string, cacheSize int) *FastNodeCache {
@@ -47,6 +50,7 @@ func makeFastNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Ele
 
 func (fnc *FastNodeCache) uncache(key []byte) {
 	fnc.cacheMutex.Lock()
+	fnc.count--
 	if elem, ok := fnc.items[string(key)]; ok {
 		fnc.cacheQueue.Remove(elem)
 		delete(fnc.items, string(key))
@@ -58,7 +62,7 @@ func (fnc *FastNodeCache) uncache(key []byte) {
 // reached the cache size limit.
 func (fnc *FastNodeCache) cache(node *FastNode) {
 	fnc.cacheMutex.Lock()
-
+	fnc.count++
 	if elem, ok := fnc.items[string(node.key)]; ok {
 		fnc.cacheQueue.MoveToBack(elem)
 		elem.Value = node

@@ -68,6 +68,14 @@ var (
 	errInvalidFastStorageVersion = fmt.Sprintf("Fast storage version must be in the format <storage version>%s<latest fast cache version>", fastStorageVersionDelimiter)
 )
 
+type Static struct {
+	fromPpnc        int
+	fromTpp         int
+	fromNodeCache   int
+	fromOrphanCache int
+	fromDB          int
+}
+
 type nodeDB struct {
 	mtx            sync.RWMutex     // Read/write lock.
 	db             dbm.DB           // Persistent node storage.
@@ -91,6 +99,9 @@ type nodeDB struct {
 	tpfv                *fastNodeChangesWithVersion
 	prePersistFastNode  *fastNodeChanges
 	latestMemoryVersion int64
+
+	// for test
+	staticTest *Static
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -117,6 +128,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		storageVersion:      string(storeVersion),
 		prePersistFastNode:  newFastNodeChanges(),
 		tpfv:                newFastNodeChangesWithVersion(),
+		staticTest:          &Static{},
 	}
 
 	ndb.fastNodeCache = newFastNodeCache(ndb.name, GetFastNodeCacheSize())
@@ -176,18 +188,22 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node
 	ndb.mtx.RLock()
 	defer ndb.mtx.RUnlock()
 	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
+		ndb.staticTest.fromPpnc++
 		return elem, fromPpnc
 	}
 
 	if elem, ok := ndb.tpp.getNode(hash); ok {
+		ndb.staticTest.fromTpp++
 		return elem, fromTpp
 	}
 
 	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
+		ndb.staticTest.fromNodeCache++
 		return elem, fromNodeCache
 	}
 
 	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
+		ndb.staticTest.fromOrphanCache++
 		return elem, fromOrphanCache
 	}
 
@@ -208,6 +224,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 	n, from = ndb.getNodeFromMemory(hash, update)
 	if n == nil {
 		n = ndb.getNodeFromDisk(hash, update)
+		ndb.staticTest.fromDB++
 		from = fromDisk
 	}
 
