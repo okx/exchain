@@ -496,7 +496,7 @@ func (mem *CListMempool) reqResCbForP2P(
 		} else {
 			mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo, res: res}
 		}
-		mem.resCbFirstTime(tx, txInfo, res)
+		//mem.resCbFirstTime(tx, txInfo, res)
 	}
 }
 
