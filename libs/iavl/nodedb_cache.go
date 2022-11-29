@@ -53,7 +53,7 @@ func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element
 func (ndb *NodeCache) uncache(hash []byte) {
 	ndb.nodeCacheMutex.Lock()
 	if elem, ok := ndb.nodeCache[string(hash)]; ok {
-		ndb.count--
+		//ndb.count--
 		ndb.nodeCacheQueue.Remove(elem)
 		delete(ndb.nodeCache, string(hash))
 	}
@@ -64,7 +64,7 @@ func (ndb *NodeCache) uncache(hash []byte) {
 // reached the cache size limit.
 func (ndb *NodeCache) cache(node *Node) {
 	ndb.nodeCacheMutex.Lock()
-	ndb.count++
+	//ndb.count++
 	if ele, ok := ndb.nodeCache[string(node.hash)]; ok {
 		ndb.nodeCacheQueue.MoveToBack(ele)
 	} else {
@@ -82,7 +82,7 @@ func (ndb *NodeCache) cache(node *Node) {
 
 func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
 	ndb.nodeCacheMutex.Lock()
-	ndb.count++
+	//ndb.count++
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[key] = elem
 

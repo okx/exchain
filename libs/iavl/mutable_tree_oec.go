@@ -112,13 +112,13 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	}
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
-	fmt.Println("*******lyh******* static", "height", version, tree.ndb.name, "fromPpnc", tree.ndb.staticTest.fromPpnc,
-		"fromTpp", tree.ndb.staticTest.fromTpp,
-		"fromNodeCache", tree.ndb.staticTest.fromNodeCache,
-		"fromOrphanCache", tree.ndb.staticTest.fromOrphanCache,
-		"fromDB", tree.ndb.staticTest.fromDB,
-		"NodeCache occupation", tree.ndb.nc.count,
-		"fastNodeCache occupation", tree.ndb.fastNodeCache.count)
+	//fmt.Println("*******lyh******* static", "height", version, tree.ndb.name, "fromPpnc", tree.ndb.staticTest.fromPpnc,
+	//	"fromTpp", tree.ndb.staticTest.fromTpp,
+	//	"fromNodeCache", tree.ndb.staticTest.fromNodeCache,
+	//	"fromOrphanCache", tree.ndb.staticTest.fromOrphanCache,
+	//	"fromDB", tree.ndb.staticTest.fromDB,
+	//	"NodeCache occupation", tree.ndb.nc.count,
+	//	"fastNodeCache occupation", tree.ndb.fastNodeCache.count)
 	return tree.setNewWorkingTree(version, shouldPersist)
 }
 
