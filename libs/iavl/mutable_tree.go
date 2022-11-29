@@ -467,7 +467,12 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	iTree := &ImmutableTree{
 		ndb:     tree.ndb,
 		version: targetVersion,
-		root:    tree.ndb.GetNode(rootHash),
+	}
+
+	if len(rootHash) != 0 {
+		iTree.root = tree.ndb.GetNode(rootHash)
+	} else {
+		fmt.Println("**root is zer0")
 	}
 
 	tree.savedNodes = map[string]*Node{}
@@ -547,6 +552,8 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 
 	if len(latestRoot) != 0 {
 		t.root = tree.ndb.GetNode(latestRoot)
+	} else {
+		fmt.Println("**root is zer0")
 	}
 
 	tree.savedNodes = map[string]*Node{}

@@ -95,7 +95,7 @@ func NewStore(db dbm.DB) *Store {
 	}
 
 	lazyLoadFlag := viper.GetBool(FlagLazyLoad)
-	fmt.Println("layzeLoading:", lazyLoadFlag)
+	fmt.Println("--layzeLoading:", lazyLoadFlag)
 
 	ret := &Store{
 		db:             db,
@@ -432,8 +432,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			if evmAccStoreFilter(key.Name(), ver) {
 				continue
 			}
-
+			fmt.Println("---load sub store, key:", key.Name(), key.String())
 			store, err := rs.loadSubStoreVersion(ver, key, sp, upgrades, infos)
+			fmt.Println("---end load sub store, key:", key.Name(), key.String())
 			if err != nil {
 				return err
 			}

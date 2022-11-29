@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -49,6 +50,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
 	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	cmd.Flags().Bool(sdk.FlagMultiCache, true, "Enable multi cache")
+	cmd.Flags().Bool(rootmulti.FlagLazyLoad, false, "Enable lazy load")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:6060", "Address and port of pprof HTTP server listening")
 
 	return cmd
