@@ -63,10 +63,16 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	}
 	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
 
-	opts := gorocksdb.NewDefaultOptions()
+	//	opts := gorocksdb.NewDefaultOptions()
+	opts, err := gorocksdb.GetOptionsFromString(nil, "manual_wal_flush=true")
+	if err != nil {
+		panic(err)
+	}
+
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
-	opts.IncreaseParallelism(runtime.NumCPU())
+	opts.IncreaseParallelism(runtime.NumCPU() * 3)
+	opts.SetStatsDumpPeriodSec(60)
 
 	if v, ok := params[statistics]; ok {
 		enable, err := strconv.ParseBool(v)
@@ -108,6 +114,8 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 
 	// 1.5GB maximum memory use for writebuffer.
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
+	opts.SetMaxWriteBufferNumber(10)
+
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
