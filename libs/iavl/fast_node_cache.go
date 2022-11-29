@@ -50,8 +50,8 @@ func makeFastNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Ele
 
 func (fnc *FastNodeCache) uncache(key []byte) {
 	fnc.cacheMutex.Lock()
-	fnc.count--
 	if elem, ok := fnc.items[string(key)]; ok {
+		fnc.count--
 		fnc.cacheQueue.Remove(elem)
 		delete(fnc.items, string(key))
 	}
