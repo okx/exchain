@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"runtime"
 	"sort"
 	"sync"
 
@@ -982,6 +983,29 @@ func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, ve
 	return ndb.setFastStorageVersionToBatch(batch, version)
 }
 
+func (ndb *nodeDB) saveFastNodeVersionBatchBatch(batch dbm.Batch, fnc *fastNodeChanges, version int64) error {
+	if !GetEnableFastStorage() || fnc == nil {
+		return nil
+	}
+	adds := fnc.getAdditions()
+	batchNum := (len(adds) / smallBatchSize) + 1
+	if batchNum != 1 {
+		if err := ndb.saveFastNodeAdditions(batch, adds); err != nil {
+			return err
+		}
+	} else {
+		if err := ndb.saveFastNodeAdditionsBatch(adds); err != nil {
+			return err
+		}
+	}
+
+	if err := ndb.saveFastNodeRemovals(batch, fnc.getRemovals()); err != nil {
+		return err
+	}
+
+	return ndb.setFastStorageVersionToBatch(batch, version)
+}
+
 // nolint: unused
 func (tree *MutableTree) getUnsavedFastNodeAdditions() map[string]*FastNode {
 	return tree.unsavedFastNodes.getAdditions()
@@ -1013,6 +1037,57 @@ func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*
 			return err
 		}
 	}
+	return nil
+}
+
+func (ndb *nodeDB) saveFastNodeAdditionsBatch(additions map[string]*FastNode) error {
+	var wg sync.WaitGroup
+	goNum := runtime.NumCPU() / 2
+	if goNum == 0 {
+		goNum = 1
+	}
+	wg.Add(len(additions) + goNum)
+	ch := make(chan *FastNode, smallBatchSize*goNum*2)
+
+	for i := 0; i < goNum; i++ {
+		go func() {
+			localBatch := ndb.db.NewBatch()
+			count := 0
+			for node := range ch {
+				if localBatch == nil {
+					localBatch = ndb.db.NewBatch()
+				}
+				if err := ndb.SaveFastNode(node, localBatch); err != nil {
+					panic(err)
+				}
+				wg.Done()
+				count++
+
+				if count == smallBatchSize {
+					err := ndb.Commit(localBatch)
+					if err != nil {
+						panic(err)
+					}
+					localBatch = nil
+					count = 0
+				}
+			}
+			if localBatch != nil {
+				err := ndb.Commit(localBatch)
+				if err != nil {
+					panic(err)
+				}
+			}
+			wg.Done()
+		}()
+	}
+
+	for _, node := range additions {
+		ch <- node
+	}
+	close(ch)
+	wg.Wait()
+
 	return nil
 }
 

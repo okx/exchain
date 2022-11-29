@@ -134,20 +134,6 @@ func (ndb *nodeDB) batchBatch(tpp map[string]*Node, batchNum int) {
 		}()
 	}
 
-	//for i := 0; i < batchNum; i++ {
-	//	go func() {
-	//		localBatch := ndb.db.NewBatch()
-	//		for node := range ch {
-	//			ndb.batchSet(node, localBatch)
-	//			wg.Done()
-	//		}
-	//		err := ndb.Commit(localBatch)
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//		wg.Done()
-	//	}()
-	//}
 	for _, node := range tpp {
 		ch <- node
 	}
@@ -173,7 +159,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
+	if err := ndb.saveFastNodeVersionBatchBatch(batch, event.fnc, event.version); err != nil {
 		panic(err)
 	}
 
