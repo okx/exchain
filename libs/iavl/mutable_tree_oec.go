@@ -6,19 +6,23 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/okex/exchain/libs/iavl/config"
+
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (
-	minHistoryStateNum             = 30
-	FlagIavlCommitIntervalHeight   = "iavl-commit-interval-height"
-	FlagIavlMinCommitItemCount     = "iavl-min-commit-item-count"
-	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
-	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
-	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
-	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
-	FlagIavlFastStorageCacheSize   = "iavl-fast-storage-cache-size"
+	minHistoryStateNum              = 30
+	FlagIavlCommitIntervalHeight    = "iavl-commit-interval-height"
+	FlagIavlMinCommitItemCount      = "iavl-min-commit-item-count"
+	FlagIavlHeightOrphansCacheSize  = "iavl-height-orphans-cache-size"
+	FlagIavlMaxCommittedHeightNum   = "iavl-max-committed-height-num"
+	FlagIavlEnableAsyncCommit       = "iavl-enable-async-commit"
+	FlagIavlFastStorageCacheSize    = "iavl-fast-storage-cache-size"
+	FlagIavlEnableFastStorage       = "iavl-enable-fast-storage"
+	FlagIavlDiscardFastStorage      = "discard-fast-storage"
+	DefaultIavlFastStorageCacheSize = 10000000
 )
 
 var (
@@ -32,9 +36,8 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
-	CommitGapHeight           int64 = 100
-	enableFastStorage               = false
-	fastNodeCacheSize               = 100000
+	CommitGapHeight           int64 = config.DefaultCommitGapHeight
+	enableFastStorage               = true
 )
 
 type commitEvent struct {
@@ -62,14 +65,13 @@ func GetEnableFastStorage() bool {
 	return enableFastStorage
 }
 
-// SetFastNodeCacheSize set fast node cache size
-func SetFastNodeCacheSize(size int) {
-	fastNodeCacheSize = size
-}
-
 // GetFastNodeCacheSize get fast node cache size
 func GetFastNodeCacheSize() int {
-	return fastNodeCacheSize
+	return int(config.DynamicConfig.GetIavlFSCacheSize())
+}
+
+func UpdateCommitGapHeight(gap int64) {
+	CommitGapHeight = gap
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
@@ -81,7 +83,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	}
 
 	if tree.root != nil {
-		if useDeltas {
+		if useDeltas && tree.hasNewNode() {
 			tree.updateBranchWithDelta(tree.root)
 		} else if produceDelta {
 			tree.ndb.updateBranchConcurrency(tree.root, tree.savedNodes)
@@ -92,7 +94,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 		// generate state delta
 		if produceDelta {
-			if len(tree.savedNodes) > 0 {
+			if tree.hasNewNode() {
 				delete(tree.savedNodes, string(tree.root.hash))
 				tree.savedNodes["root"] = tree.root
 			}
@@ -159,7 +161,7 @@ func (tree *MutableTree) persist(version int64) {
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
-	var fnc *fastNodeChanges
+	fnc := newFastNodeChanges()
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}

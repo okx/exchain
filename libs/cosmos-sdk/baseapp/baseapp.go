@@ -9,7 +9,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -139,6 +138,8 @@ type BaseApp struct { // nolint: maligned
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
 	accNonceHandler  sdk.AccNonceHandler  // account handler for cm tx nonce
 
+	EvmSysContractAddressHandler sdk.EvmSysContractAddressHandler // evm system contract address handler for judge whether convert evm tx to cm tx
+
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
 	endBlocker     sdk.EndBlocker   // logic to run after all txs, and to determine valset changes
@@ -200,7 +201,7 @@ type BaseApp struct { // nolint: maligned
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	feeCollector          sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
-	FeeSplitCollector     *sync.Map
+	FeeSplitCollector     []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -259,7 +260,7 @@ func NewBaseApp(
 		interceptors:     make(map[string]Interceptor),
 
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
-		FeeSplitCollector:       &sync.Map{},
+		FeeSplitCollector:       make([]*sdk.FeeSplitInfo, 0),
 	}
 
 	for _, option := range options {
@@ -700,6 +701,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeDeliver {
 		ctx.SetDeliver()
 	}
+	ctx.SetFeeSplitInfo(&sdk.FeeSplitInfo{})
 
 	return ctx
 }
@@ -882,6 +884,19 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			break
 		}
 		msgRoute := msg.Route()
+
+		var isConvert bool
+
+		if app.JudgeEvmConvert(ctx, msg) {
+			newmsg, err := ConvertMsg(msg, ctx.BlockHeight())
+			if err != nil {
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
+			}
+			isConvert = true
+			msg = newmsg
+			msgRoute = msg.Route()
+		}
+
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
@@ -903,6 +918,15 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		//
 		// Note: Each message result's data must be length-prefixed in order to
 		// separate each result.
+
+		if isConvert {
+			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+			v, err := EvmResultConvert(txHash, msgResult.Data)
+			if err == nil {
+				msgResult.Data = v
+			}
+		}
+
 		events = events.AppendEvents(msgEvents)
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))

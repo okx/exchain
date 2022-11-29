@@ -42,6 +42,11 @@ func GetActiveVC() bool {
 	return activeViewChange
 }
 
+type preBlockTaskRes struct {
+	block      *types.Block
+	blockParts *types.PartSet
+}
+
 //-----------------------------------------------------------------------------
 
 const (
@@ -156,7 +161,17 @@ type State struct {
 	prerunTx bool
 	bt       *BlockTransport
 
-	vcMsg *ViewChangeMessage
+	vcMsg    *ViewChangeMessage
+	vcHeight map[int64]string
+
+	preBlockTaskChan chan *preBlockTask
+	taskResultChan   chan *preBlockTaskRes
+}
+
+// preBlockSignal
+type preBlockTask struct {
+	height   int64
+	duration time.Duration
 }
 
 // StateOption sets an optional parameter on the State.
@@ -192,6 +207,9 @@ func NewState(
 		bt:                 &BlockTransport{},
 		blockTimeTrc:       trace.NewTracer(trace.LastBlockTime),
 		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
+		vcHeight:           make(map[int64]string),
+		taskResultChan:     make(chan *preBlockTaskRes, 1),
+		preBlockTaskChan:   make(chan *preBlockTask, 100),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -379,6 +397,8 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
+
+	go cs.preMakeBlockRoutine()
 
 	// schedule the first round!
 	// use GetRoundState so we don't race the receiveRoutine for access

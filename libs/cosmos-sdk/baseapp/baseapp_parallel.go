@@ -279,6 +279,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.blockGasMeterMu.Unlock()
 			// merge tx
 			pm.SetCurrentIndex(txIndex, res)
+			pm.finalResult[txIndex] = res
 
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
@@ -333,14 +334,19 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	resp := make([]abci.ResponseDeliverTx, app.parallelTxManage.txSize)
 	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
 	txs := make([]sdk.Tx, app.parallelTxManage.txSize)
+	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
-		txRes := app.parallelTxManage.txResultCollector.getTxResult(index)
+		txRes := app.parallelTxManage.finalResult[index]
 		logIndex[index] = txRes.paraMsg.LogIndex
 		errs[index] = txRes.paraMsg.AnteErr
 		hasEnterEvmTx[index] = txRes.paraMsg.HasRunEvmTx
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
+		if txRes.FeeSpiltInfo.HasFee {
+			app.FeeSplitCollector = append(app.FeeSplitCollector, txRes.FeeSpiltInfo)
+		}
+
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
@@ -355,7 +361,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 
 	if txStatus.stdTx == nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
-			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{}, nil)
+			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{}, nil, nil)
 		return asyncExe
 	}
 	var (
@@ -377,31 +383,37 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	}
 
 	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
-		0, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
+		0, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs(), info.ctx.GetFeeSplitInfo())
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }
 
 type executeResult struct {
-	resp        abci.ResponseDeliverTx
-	ms          sdk.CacheMultiStore
-	counter     uint32
-	paraMsg     *sdk.ParaMsg
-	blockHeight int64
-	watcher     sdk.IWatcher
-	msgs        []sdk.Msg
+	resp         abci.ResponseDeliverTx
+	ms           sdk.CacheMultiStore
+	counter      uint32
+	paraMsg      *sdk.ParaMsg
+	blockHeight  int64
+	watcher      sdk.IWatcher
+	msgs         []sdk.Msg
+	FeeSpiltInfo *sdk.FeeSplitInfo
 }
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32,
-	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg) *executeResult {
+	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg, feeSpiltInfo *sdk.FeeSplitInfo) *executeResult {
+
+	if feeSpiltInfo == nil {
+		feeSpiltInfo = &sdk.FeeSplitInfo{}
+	}
 	ans := &executeResult{
-		resp:        r,
-		ms:          ms,
-		counter:     counter,
-		paraMsg:     paraMsg,
-		blockHeight: height,
-		watcher:     watcher,
-		msgs:        msgs,
+		resp:         r,
+		ms:           ms,
+		counter:      counter,
+		paraMsg:      paraMsg,
+		blockHeight:  height,
+		watcher:      watcher,
+		msgs:         msgs,
+		FeeSpiltInfo: feeSpiltInfo,
 	}
 
 	if paraMsg == nil {
@@ -606,6 +618,7 @@ type parallelTxManager struct {
 
 	extraTxsInfo      []*extraDataForTx
 	txResultCollector *txResultCollector
+	finalResult       []*executeResult
 
 	groupList     map[int][]int
 	nextTxInGroup map[int]int
@@ -734,6 +747,7 @@ func (f *parallelTxManager) init() {
 	txSize := f.txSize
 
 	f.txResultCollector.init(txSize)
+	f.finalResult = make([]*executeResult, txSize)
 
 	txsInfoCap := cap(f.extraTxsInfo)
 	if f.extraTxsInfo == nil || txsInfoCap < txSize {

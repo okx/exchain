@@ -19,7 +19,7 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 type (
 	// Enum mode for executing [deliverTx, ...]
 	DeliverTxsExecMode int
@@ -34,6 +34,7 @@ const (
 	// 1: execute [deliverTx,...] deprecated
 	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
+	FlagEnableConcurrency  = "enable-concurrency"
 )
 
 // BlockExecutor handles block execution and state updates.
@@ -207,6 +208,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
 	trc.EnableSummary()
+	trc.SetWorkloadStatistic(trace.GetApplyBlockWorkloadSttistic())
 	dc := blockExec.deltaContext
 
 	defer func() {
@@ -214,6 +216,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
+		trace.GetElapsedInfo().AddInfo(trace.Workload, trace.GetApplyBlockWorkloadSttistic().Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
 		now := time.Now().UnixNano()
@@ -234,15 +237,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	//wait till the last block async write be saved
 	blockExec.tryWaitLastBlockSave(block.Height - 1)
 
-	abciResponses, err := blockExec.runAbci(block, deltaInfo)
+	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
+
+	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
+	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, duration)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
 	}
 
 	fail.Fail() // XXX
-
-	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
@@ -289,8 +293,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-	trc.Pin(trace.SaveState)
-
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
@@ -320,22 +322,25 @@ func (blockExec *BlockExecutor) ApplyBlockWithTrace(
 	return s, id, err
 }
 
-func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
+func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, time.Duration, error) {
 	var abciResponses *ABCIResponses
 	var err error
+	var duration time.Duration
 
 	if deltaInfo != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deltaLen)
-
+		t0 := time.Now()
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
+		duration = time.Now().Sub(t0)
 	} else {
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
-			abciResponses, err = pc.getPrerunResult(block)
+			abciResponses, duration, err = pc.getPrerunResult(block)
 		}
 
 		if abciResponses == nil {
+			t0 := time.Now()
 			ctx := &executionTask{
 				logger:   blockExec.logger,
 				block:    block,
@@ -351,10 +356,11 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
+			duration = time.Now().Sub(t0)
 		}
 	}
 
-	return abciResponses, err
+	return abciResponses, duration, err
 }
 
 // Commit locks the mempool, runs the ABCI Commit message, and updates the
@@ -421,7 +427,7 @@ func (blockExec *BlockExecutor) commit(
 		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
-	trc.Pin(trace.MempoolUpdate)
+	//trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
 	err = blockExec.mempool.Update(
 		block.Height,

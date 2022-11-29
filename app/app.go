@@ -12,11 +12,14 @@ import (
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
 
+	"github.com/okex/exchain/app/utils/appstatus"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
-	gasprice "github.com/okex/exchain/app/gasprice"
+	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
+	"github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -126,16 +129,19 @@ var (
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
+			evmclient.ManageSysContractAddressProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
 			fsclient.FeeSplitSharesProposalHandler,
+			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateContractAdminProposalHandler,
 			wasmclient.ClearContractAdminProposalHandler,
+			wasmclient.PinCodesProposalHandler,
+			wasmclient.UnpinCodesProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
-			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
@@ -370,7 +376,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, &stakingKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -421,7 +427,7 @@ func NewOKExChainApp(
 
 	app.FeeSplitKeeper = feesplit.NewKeeper(
 		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
-		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
+		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper)
 	app.ParamsKeeper.RegisterSignal(feesplit.SetParamsNeedUpdate)
 
 	//wasm keeper
@@ -638,6 +644,7 @@ func NewOKExChainApp(
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
+	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
 	if loadLatest {
@@ -662,7 +669,7 @@ func NewOKExChainApp(
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
 
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
 		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		app.gpo = gasprice.NewOracle(gpoConfig)
 	}
@@ -698,8 +705,9 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		_ = app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+		currentBlockGPsCopy := app.gpo.CurrentBlockGPs.Copy()
+		_ = app.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
 		GlobalGp = app.gpo.RecommendGP()
 		app.gpo.CurrentBlockGPs.Clear()
 	}
@@ -854,9 +862,11 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 
+	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 
+	ctx.Logger.Info("The database storage strategy", "fast-storage", iavl.GetEnableFastStorage())
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
@@ -877,5 +887,19 @@ func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
 			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
 		}
+	}
+}
+
+func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHandler {
+	if ak == nil {
+		panic("NewEvmSysContractAddressHandler ak is nil")
+	}
+	return func(
+		ctx sdk.Context, addr sdk.AccAddress,
+	) bool {
+		if addr.Empty() {
+			return false
+		}
+		return ak.IsMatchSysContractAddress(ctx, addr)
 	}
 }

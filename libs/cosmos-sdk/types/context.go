@@ -51,6 +51,7 @@ type Context struct {
 	//	txCount            uint32
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 	watcher        *TxWatcher
+	feesplitInfo   *FeeSplitInfo
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -102,6 +103,13 @@ func (c *Context) Cache() *Cache {
 }
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
+}
+
+func (c Context) GetFeeSplitInfo() *FeeSplitInfo {
+	if c.feesplitInfo == nil {
+		c.feesplitInfo = &FeeSplitInfo{}
+	}
+	return c.feesplitInfo
 }
 
 func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
@@ -361,6 +369,11 @@ func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 	return c
 }
 
+func (c *Context) SetFeeSplitInfo(f *FeeSplitInfo) *Context {
+	c.feesplitInfo = f
+	return c
+}
+
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
 	return c
@@ -374,11 +387,7 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 var emptyWatcher IWatcher = EmptyWatcher{}
 
 func (c *Context) ResetWatcher() {
-	if c.watcher != nil {
-		*c.watcher = TxWatcher{emptyWatcher}
-	} else {
-		c.watcher = &TxWatcher{emptyWatcher}
-	}
+	c.watcher = &TxWatcher{emptyWatcher}
 }
 
 func (c *Context) SetWatcher(w IWatcher) {
@@ -391,7 +400,7 @@ func (c *Context) SetWatcher(w IWatcher) {
 
 func (c *Context) GetWatcher() IWatcher {
 	if c.watcher == nil {
-		return EmptyWatcher{}
+		return emptyWatcher
 	}
 	return c.watcher.IWatcher
 }

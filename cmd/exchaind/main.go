@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 
 	"github.com/okex/exchain/app/logevents"
 	"github.com/okex/exchain/cmd/exchaind/fss"
@@ -42,6 +44,7 @@ import (
 )
 
 const flagInvCheckPeriod = "inv-check-period"
+const OkcEnvPrefix = "OKEXCHAIN"
 
 var invCheckPeriod uint
 
@@ -106,14 +109,30 @@ func main() {
 		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
 
 	// prepare and add flags
-	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
+	executor := cli.PrepareBaseCmd(rootCmd, OkcEnvPrefix, app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
 	rootCmd.PersistentFlags().Bool(server.FlagGops, false, "Enable gops metrics collection")
 
+	initEnv()
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
+	}
+}
+
+func initEnv() {
+	checkSetEnv("mempool_size", "200000")
+	checkSetEnv("mempool_cache_size", "300000")
+	checkSetEnv("mempool_force_recheck_gap", "2000")
+	checkSetEnv("mempool_recheck", "false")
+}
+
+func checkSetEnv(envName string, value string) {
+	realEnvName := OkcEnvPrefix + "_" + strings.ToUpper(envName)
+	_, ok := os.LookupEnv(realEnvName)
+	if !ok {
+		_ = os.Setenv(realEnvName, value)
 	}
 }
 

@@ -337,9 +337,19 @@ func RawTxResultToEthReceipt(chainID *big.Int, tr *ctypes.ResultTx, realTx sdk.T
 func GetEthSender(tr *ctypes.ResultTx) (string, error) {
 	for _, ev := range tr.TxResult.Events {
 		if ev.Type == sdk.EventTypeMessage {
+			fromAddr := ""
+			realEvmTx := false
 			for _, attr := range ev.Attributes {
 				if string(attr.Key) == sdk.AttributeKeySender {
-					return string(attr.Value), nil
+					fromAddr = string(attr.Value)
+				}
+				if string(attr.Key) == sdk.AttributeKeyModule &&
+					string(attr.Value) == evmtypes.AttributeValueCategory { // to avoid the evm to cm tx enter
+					realEvmTx = true
+				}
+				// find the sender
+				if fromAddr != "" && realEvmTx {
+					return fromAddr, nil
 				}
 			}
 		}

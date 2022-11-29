@@ -1,8 +1,6 @@
 package client
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
@@ -21,10 +19,11 @@ import (
 	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
+	"github.com/spf13/cobra"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
-	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Bool(watcher.FlagFastQuery, true, "Enable the fast query mode for rpc queries")
 	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 10, "Set the threshold of fast query")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().Int(backend.FlagApiBackendBlockLruCache, 30000, "Set the size of block LRU cache for backend mem cache")
@@ -32,7 +31,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagCheckWd, false, "Enable check watchDB in log")
 	cmd.Flags().Bool(rpc.FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(rpc.FlagDebugAPI, false, "Enable the debug_ prefixed set of APIs in the Web3 JSON-RPC spec")
-	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
+	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, true, "Enable bloom filter for event logs")
 	cmd.Flags().Int64(filters.FlagGetLogsHeightSpan, 2000, "config the block height span for get logs")
 	// register application rpc to nacos
 	cmd.Flags().String(rpc.FlagRestApplicationName, "", "rest application name in  nacos")
@@ -56,9 +55,16 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(rpc.FlagRateLimitBurst, 1, "Set the concurrent count of requests allowed of rpc rate limiter")
 	cmd.Flags().Uint64(config.FlagGasLimitBuffer, 50, "Percentage to increase gas limit")
 	cmd.Flags().String(rpc.FlagDisableAPI, "", "Set the RPC API to be disabled, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
+
+	cmd.Flags().Bool(config.FlagEnableDynamicGp, false, "Enable node to dynamic support gas price suggest")
+	cmd.Flags().MarkHidden(config.FlagEnableDynamicGp)
+	cmd.Flags().Int64(config.FlagDynamicGpMaxTxNum, 300, "If tx number in the block is more than this, the network is congested.")
+	cmd.Flags().Int64(config.FlagDynamicGpMaxGasUsed, types.NoGasUsedCap, "If the block gas used is more than this, the network is congested.")
 	cmd.Flags().Int(config.FlagDynamicGpWeight, 80, "The recommended weight of dynamic gas price [1,100])")
 	cmd.Flags().Int(config.FlagDynamicGpCheckBlocks, 5, "The recommended number of blocks checked of dynamic gas price [1,100])")
-	cmd.Flags().Bool(config.FlagEnableDynamicGp, true, "Enable node to dynamic support gas price suggest")
+	cmd.Flags().Int(config.FlagDynamicGpCoefficient, 1, "Adjustment coefficient of dynamic gas price [1,100])")
+	cmd.Flags().Int(config.FlagDynamicGpMode, types.CongestionHigherGpMode, "Dynamic gas price mode (0: higher price|1: normal|2: close) is used to manage flags")
+
 	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")
 
@@ -98,9 +104,9 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().String(tmdb.FlagGoLeveldbOpts, "", "Options of goleveldb. (cache_size=128MB,handlers_num=1024)")
 	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1)")
-	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
+	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|val|archive) is used to manage flags")
 
-	cmd.Flags().Bool(consensus.EnablePrerunTx, false, "enable proactively runtx mode, default close")
+	cmd.Flags().Bool(consensus.EnablePrerunTx, true, "enable proactively runtx mode, default close")
 	cmd.Flags().String(automation.ConsensusRole, "", "consensus role")
 	cmd.Flags().String(automation.ConsensusTestcase, "", "consensus test case file")
 

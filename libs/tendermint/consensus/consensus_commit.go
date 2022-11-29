@@ -10,6 +10,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"time"
 )
 
 func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
@@ -230,14 +231,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
-	// publish event of the latest block time
-	if types.EnableEventBlockTime {
-		blockTime := sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
-		validators := cs.Validators.Copy()
-		validators.IncrementProposerPriority(1)
-		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
-	}
-
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -308,6 +301,11 @@ func (cs *State) updateToState(state sm.State) {
 	cs.HasVC = false
 	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
 		cs.vcMsg = nil
+	}
+	for k, _ := range cs.vcHeight {
+		if k <= cs.Height {
+			delete(cs.vcHeight, k)
+		}
 	}
 
 	// If state isn't further out than cs.state, just ignore.
@@ -398,4 +396,45 @@ func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 		return 0, fmt.Errorf("failed to prune state database: %w", err)
 	}
 	return pruned, nil
+}
+
+func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
+	tNow := tmtime.Now()
+	block, blockParts := cs.createProposalBlock()
+	if len(cs.taskResultChan) == 1 {
+		<-cs.taskResultChan
+	}
+	cs.taskResultChan <- &preBlockTaskRes{block: block, blockParts: blockParts}
+
+	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
+	proposal := types.NewProposal(height, 0, cs.ValidRound, propBlockID)
+
+	isBlockProducer, _ := cs.isBlockProducer()
+	if GetActiveVC() && isBlockProducer != "y" {
+		time.Sleep(waiting - tmtime.Now().Sub(tNow))
+		// request for proposer of new height
+		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
+		cs.requestForProposer(prMsg)
+	}
+}
+
+func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
+	if !GetActiveVC() {
+		return nil
+	}
+	t := time.NewTimer(time.Second)
+	for {
+		select {
+		case res := <-cs.taskResultChan:
+			if res.block.Height == height {
+				if !t.Stop() {
+					<-t.C
+				}
+				return res
+			}
+		case <-t.C:
+			return nil
+		}
+
+	}
 }

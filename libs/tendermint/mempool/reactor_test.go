@@ -117,7 +117,7 @@ const (
 	Timeout = 120 * time.Second // ridiculously high because CircleCI is slow
 )
 
-//TODO fix random failure case
+// TODO fix random failure case
 func testReactorBroadcastTxMessage(t *testing.T) {
 	config := cfg.TestConfig()
 	const N = 4
@@ -271,9 +271,9 @@ func TestVerifyWtx(t *testing.T) {
 func TestTxMessageAmino(t *testing.T) {
 	testcases := []TxMessage{
 		{},
-		{[]byte{}},
-		{[]byte{1, 2, 3, 4, 5, 6, 7}},
-		{[]byte{}},
+		{[]byte{}, ""},
+		{[]byte{1, 2, 3, 4, 5, 6, 7}, "From"},
+		{[]byte{}, "f"},
 	}
 
 	var typePrefix = make([]byte, 8)
@@ -346,7 +346,7 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	b.Run("amino", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			msg = TxMessage{bz}
+			msg = TxMessage{bz, ""}
 			_, err := cdc.MarshalBinaryBare(&msg)
 			if err != nil {
 				b.Fatal(err)
@@ -356,7 +356,7 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			msg = &TxMessage{bz}
+			msg = &TxMessage{bz, ""}
 			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(msg)
 			if err != nil {
 				b.Fatal(err)
@@ -366,7 +366,7 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	b.Run("encodeMsgOld", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			msg = &TxMessage{bz}
+			msg = &TxMessage{bz, ""}
 			reactor.encodeMsg(msg)
 		}
 	})

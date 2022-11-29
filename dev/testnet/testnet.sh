@@ -146,7 +146,7 @@ run() {
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
     --p2p.allow_duplicate_ip \
-    --enable-dynamic-gp=false \
+    --dynamic-gp-mode=2 \
     --enable-wtx=${WRAPPEDTX} \
     --mempool.node_key_whitelist ${WHITE_LIST} \
     --p2p.pex=false \
@@ -160,16 +160,13 @@ run() {
     --enable-gid \
     --consensus.timeout_commit 6000ms \
     --enable-blockpart-ack=false \
-    --block-part-size 16 \
-    --block-compress-type 0 \
-    --block-compress-flag 0 \
-    --block-compress-threshold 512 \
     --append-pid=true \
     ${LOG_SERVER} \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \
     --rest.laddr tcp://localhost:$restport \
     --enable-preruntx=$PRERUN \
     --consensus-role=v$index \
+    --active-view-change=true \
     ${Test_CASE} \
     --keyring-backend test >cache/val${index}.log 2>&1 &
 

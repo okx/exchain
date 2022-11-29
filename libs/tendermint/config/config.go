@@ -694,15 +694,16 @@ func DefaultMempoolConfig() *MempoolConfig {
 		Broadcast: true,
 		// Each signature verification takes .5ms, Size reduced until we implement
 		// ABCI Recheck
-		Size:                       10000,              // exchain memory pool size(max tx num)
+		Size:                       200_000,            // exchain memory pool size(max tx num)
 		MaxTxsBytes:                1024 * 1024 * 1024, // 1GB
-		CacheSize:                  10000,
+		CacheSize:                  300_000,
 		MaxTxBytes:                 1024 * 1024, // 1MB
 		MaxTxNumPerBlock:           300,
 		MaxGasUsedPerBlock:         -1,
 		SortTxByGp:                 true,
 		ForceRecheckGap:            2000,
 		TxPriceBump:                10,
+		EnablePendingPool:          true,
 		PendingPoolSize:            50000,
 		PendingPoolPeriod:          3,
 		PendingPoolReserveBlocks:   100,

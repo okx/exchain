@@ -4,9 +4,6 @@ import (
 	"encoding/hex"
 	"sort"
 	"strings"
-	"sync"
-
-	"github.com/ethereum/go-ethereum/common"
 
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -22,7 +19,7 @@ import (
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit *sync.Map) error {
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
 		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 		if err != nil {
 			return err
@@ -54,11 +51,6 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 	return func(ctx sdk.Context, tx sdk.Tx, onlyVerifySig bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-			if evmTx.BaseTx.From == "" {
-				if ctx.From() != "" {
-					evmTx.BaseTx.From = ctx.From()
-				}
-			}
 			if evmTx.BaseTx.From == "" {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			}
@@ -131,32 +123,14 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 	}
 }
 
-type feeSplitInfo struct {
-	addr string
-	fee  sdk.Coins
-}
-
-func updateFeeSplitHandler(txFeesplit *sync.Map) sdk.UpdateFeeSplitHandler {
-	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins) {
-		// For rerun tx of parallel, feeSplitInfo is rewritten
-		txFeesplit.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
-	}
-}
-
 // groupByAddrAndSortFeeSplits
 // feesplits must be ordered, not map(random),
 // to ensure that the account number of the withdrawer(new account) is consistent
-func groupByAddrAndSortFeeSplits(txFeesplit *sync.Map) (feesplits map[string]sdk.Coins, sortAddrs []string) {
+func groupByAddrAndSortFeeSplits(txFeesplit []*sdk.FeeSplitInfo) (feesplits map[string]sdk.Coins, sortAddrs []string) {
 	feesplits = make(map[string]sdk.Coins)
-	txFeesplit.Range(func(key, value interface{}) bool {
-		feeInfo := value.(feeSplitInfo)
-
-		orgFee := feesplits[feeInfo.addr]
-		feesplits[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
-
-		txFeesplit.Delete(key)
-		return true
-	})
+	for _, f := range txFeesplit {
+		feesplits[f.Addr.String()] = feesplits[f.Addr.String()].Add(f.Fee...)
+	}
 	if len(feesplits) == 0 {
 		return
 	}
