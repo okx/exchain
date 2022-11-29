@@ -77,6 +77,7 @@ func repairStateOnStart(ctx *server.Context) {
 func RepairState(ctx *server.Context, onStart bool) {
 	sm.SetIgnoreSmbCheck(true)
 	iavl.SetIgnoreVersionCheck(true)
+	viper.Set(rootmulti.FlagLazyLoad, true)
 
 	// load latest block height
 	dataDir := filepath.Join(ctx.Config.RootDir, "data")

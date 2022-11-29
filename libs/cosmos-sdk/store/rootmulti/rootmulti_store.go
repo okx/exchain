@@ -46,6 +46,8 @@ const (
 	versionsKey           = "s/versions"
 	commitInfoKeyFmt      = "s/%d" // s/<version>
 	maxPruneHeightsLength = 100
+
+	FlagLazyLoad = "lazyload"
 )
 
 // Store is composed of many CommitStores. Name contrasts with
@@ -91,6 +93,9 @@ func NewStore(db dbm.DB) *Store {
 	if viper.GetBool(flatkv.FlagEnable) {
 		flatKVDB = newFlatKVDB()
 	}
+
+	lazyLoadFlag := viper.GetBool(FlagLazyLoad)
+
 	ret := &Store{
 		db:             db,
 		flatKVDB:       flatKVDB,
@@ -101,6 +106,7 @@ func NewStore(db dbm.DB) *Store {
 		pruneHeights:   make([]int64, 0),
 		versions:       make([]int64, 0),
 		upgradeVersion: -1,
+		lazyLoading:    lazyLoadFlag,
 	}
 
 	return ret
@@ -253,7 +259,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 	return 0, fmt.Errorf("not found any proper version")
 }
 
-//hasVersion means every storesParam in store has this version.
+// hasVersion means every storesParam in store has this version.
 func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	latestVersion := rs.GetLatestVersion()
 	for key, storeParams := range rs.storesParams {
@@ -290,7 +296,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	return true, nil
 }
 
-//loadSubStoreVersion loads specific version for sub kvstore by given key and storeParams.
+// loadSubStoreVersion loads specific version for sub kvstore by given key and storeParams.
 func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams storeParams, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (types.CommitKVStore, error) {
 
 	commitID := rs.getCommitID(infos, key.Name())
@@ -329,7 +335,7 @@ func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams 
 	return store, nil
 }
 
-//loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
+// loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
 func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (map[types.StoreKey]types.CommitKVStore, map[int64][]byte, error) {
 	lock := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
