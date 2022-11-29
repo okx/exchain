@@ -126,7 +126,6 @@ func (ndb *NodeCache) get(hash []byte, promoteRecentNode bool) (n *Node) {
 		n = res.(*Node)
 	}
 	return
-	return
 }
 
 func (ndb *NodeCache) nodeCacheLen() int {

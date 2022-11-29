@@ -188,22 +188,22 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node
 	ndb.mtx.RLock()
 	defer ndb.mtx.RUnlock()
 	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-		ndb.staticTest.fromPpnc++
+		//ndb.staticTest.fromPpnc++
 		return elem, fromPpnc
 	}
 
 	if elem, ok := ndb.tpp.getNode(hash); ok {
-		ndb.staticTest.fromTpp++
+		//ndb.staticTest.fromTpp++
 		return elem, fromTpp
 	}
 
 	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
-		ndb.staticTest.fromNodeCache++
+		//ndb.staticTest.fromNodeCache++
 		return elem, fromNodeCache
 	}
 
 	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
-		ndb.staticTest.fromOrphanCache++
+		//ndb.staticTest.fromOrphanCache++
 		return elem, fromOrphanCache
 	}
 
@@ -224,7 +224,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 	n, from = ndb.getNodeFromMemory(hash, update)
 	if n == nil {
 		n = ndb.getNodeFromDisk(hash, update)
-		ndb.staticTest.fromDB++
+		//ndb.staticTest.fromDB++
 		from = fromDisk
 	}
 
