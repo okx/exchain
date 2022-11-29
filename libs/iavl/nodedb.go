@@ -263,8 +263,6 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 
 // SaveNode saves a FastNode to disk and add to cache.
 func (ndb *nodeDB) SaveFastNode(node *FastNode, batch dbm.Batch) error {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	return ndb.saveFastNodeUnlocked(node, true, batch)
 }
 
