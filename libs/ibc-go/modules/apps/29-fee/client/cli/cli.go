@@ -45,6 +45,7 @@ func NewTxCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobr
 		NewRegisterPayeeCmd(cdc, reg),
 		NewRegisterCounterpartyPayeeCmd(cdc, reg),
 		NewPayPacketFeeAsyncTxCmd(cdc, reg),
+		NewPayPacketFeeTxCmd(cdc, reg),
 	)
 
 	return txCmd

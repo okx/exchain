@@ -148,3 +148,75 @@ func NewPayPacketFeeAsyncTxCmd(codecProxy *codec.CodecProxy, reg interfacetypes.
 
 	return cmd
 }
+
+// NewPayPacketFeeAsyncTxCmd returns the command to create a MsgPayPacketFeeAsync
+func NewPayPacketFeeTxCmd(codecProxy *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "pay-packet-fee-sync [src-port] [src-channel]",
+		Short:   "Pay a fee to incentivize an existing IBC packet",
+		Long:    strings.TrimSpace(`Pay a fee to incentivize an existing IBC packet.`),
+		Example: fmt.Sprintf("%s tx ibc-fee pay-packet-fee-sync transfer channel-0  --recv-fee 10stake --ack-fee 10stake --timeout-fee 10stake", version.ServerName),
+		Args:    cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(codecProxy.GetCdc()))
+			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
+
+			// NOTE: specifying non-nil relayers is currently unsupported
+			var relayers []string
+
+			sender := clientCtx.GetFromAddress().String()
+
+			packetID := channeltypes.NewPacketId(args[0], args[1], 0)
+
+			recvFeeStr, err := cmd.Flags().GetString(flagRecvFee)
+			if err != nil {
+				return err
+			}
+
+			recvFee, err := sdk.ParseCoinsNormalized(recvFeeStr)
+			if err != nil {
+				return err
+			}
+
+			ackFeeStr, err := cmd.Flags().GetString(flagAckFee)
+			if err != nil {
+				return err
+			}
+
+			ackFee, err := sdk.ParseCoinsNormalized(ackFeeStr)
+			if err != nil {
+				return err
+			}
+
+			timeoutFeeStr, err := cmd.Flags().GetString(flagTimeoutFee)
+			if err != nil {
+				return err
+			}
+
+			timeoutFee, err := sdk.ParseCoinsNormalized(timeoutFeeStr)
+			if err != nil {
+				return err
+			}
+
+			fee := types.Fee{
+				RecvFee:    utils.CliConvertCoinToCoinAdapters(recvFee),
+				AckFee:     utils.CliConvertCoinToCoinAdapters(ackFee),
+				TimeoutFee: utils.CliConvertCoinToCoinAdapters(timeoutFee),
+			}
+			fmt.Println(fee.String())
+
+			packetFee := types.NewPacketFee(fee, sender, relayers)
+			msg := types.NewMsgPayPacketFee(packetFee.Fee, packetID.PortId, packetID.ChannelId, sender, nil)
+
+			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
+	cmd.Flags().String(flagRecvFee, "", "Fee paid to a relayer for relaying a packet receive.")
+	cmd.Flags().String(flagAckFee, "", "Fee paid to a relayer for relaying a packet acknowledgement.")
+	cmd.Flags().String(flagTimeoutFee, "", "Fee paid to a relayer for relaying a packet timeout.")
+	flags.AddTxFlagsToCmd(cmd)
+
+	return cmd
+}
