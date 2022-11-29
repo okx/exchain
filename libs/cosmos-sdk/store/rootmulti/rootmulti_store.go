@@ -95,6 +95,7 @@ func NewStore(db dbm.DB) *Store {
 	}
 
 	lazyLoadFlag := viper.GetBool(FlagLazyLoad)
+	fmt.Println("layzeLoading:", lazyLoadFlag)
 
 	ret := &Store{
 		db:             db,
