@@ -546,8 +546,6 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 }
 
 func (ndb *nodeDB) DeleteFastNode(key []byte, batch dbm.Batch) error {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	batch.Delete(ndb.fastNodeKey(key))
 	ndb.uncacheFastNode(key)
 	return nil
