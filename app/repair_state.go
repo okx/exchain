@@ -175,13 +175,9 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
-	fmt.Println("--before constructStartState, baseState, state.LastBlockHeight:", state.LastBlockHeight,
-		"state.LastHeightValidatorsChanged:", state.LastHeightValidatorsChanged)
-	state = constructStartState(state, stateStoreDB, startHeight)
-	fmt.Println("--after constructStartState, state.LastBlockHeight:", state.LastBlockHeight,
-		"state.LastHeightValidatorsChanged:", state.LastHeightValidatorsChanged,
-		"state.AppHash", fmt.Sprintf("%X", state.AppHash),
-		"Last BlockHash", fmt.Sprintf("%X", state.LastBlockID.Hash))
+	_, repairBlockMeta := loadBlock(startHeight+1, dataDir)
+	startHeightAppHash := repairBlockMeta.Header.AppHash
+	state = constructStartState(state, stateStoreDB, startHeight, startHeightAppHash)
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	// repair state
 	eventBus := types.NewEventBus()
@@ -208,27 +204,8 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
-		fmt.Println("---Before ApplyBlockWithTrace, repair height:", height,
-			" state LastHeightValidatorsChanged:", state.LastHeightValidatorsChanged,
-			" state.LastBlockHeight:", state.LastBlockHeight,
-			" state.AppHash", fmt.Sprintf("%X", state.AppHash),
-			" Last BlockHash", fmt.Sprintf("%X", state.LastBlockID.Hash))
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
-		fmt.Println("---After ApplyBlockWithTrace, repair height:", height,
-			" state LastHeightValidatorsChanged:", state.LastHeightValidatorsChanged,
-			" state.LastBlockHeight:", state.LastBlockHeight,
-			" state.AppHash", fmt.Sprintf("%X", state.AppHash),
-			" Last BlockHash", fmt.Sprintf("%X", state.LastBlockID.Hash))
 		panicError(err)
-		//// use stateCopy to correct the repaired state
-		//if state.LastBlockHeight == stateCopy.LastBlockHeight {
-		//	state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
-		//	state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
-		//	state.LastValidators = stateCopy.LastValidators.Copy()
-		//	state.Validators = stateCopy.Validators.Copy()
-		//	state.NextValidators = stateCopy.NextValidators.Copy()
-		//	sm.SaveState(stateStoreDB, state)
-		//}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 		panicError(err)
@@ -300,7 +277,7 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 	return nonEmptyStrings
 }
 
-func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
+func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64, appHash []byte) sm.State {
 	stateCopy := state.Copy()
 	validators, lastStoredHeight, err := sm.LoadValidatorsWithStoredHeight(stateStoreDB, startHeight)
 	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight-1)
@@ -321,6 +298,8 @@ func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64)
 	stateCopy.ConsensusParams = consensusParams
 	stateCopy.LastBlockHeight = startHeight
 	stateCopy.LastHeightValidatorsChanged = lastStoredHeight
+	stateCopy.AppHash = appHash
+
 	return stateCopy
 }
 

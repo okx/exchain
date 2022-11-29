@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -465,7 +466,6 @@ func LoadValidatorsWithStoredHeight(db dbm.DB, height int64) (*types.ValidatorSe
 	}
 	if valInfo.ValidatorSet == nil {
 		lastStoredHeight := lastStoredHeightFor(height, valInfo.LastHeightChanged)
-		fmt.Println("--load validator from lastStoredHeight", lastStoredHeight, ", cur Height", height)
 		valInfo2 := loadValidatorsInfo(db, lastStoredHeight)
 		if valInfo2 == nil || valInfo2.ValidatorSet == nil {
 			panic(
@@ -477,8 +477,6 @@ func LoadValidatorsWithStoredHeight(db dbm.DB, height int64) (*types.ValidatorSe
 		}
 		valInfo2.ValidatorSet.IncrementProposerPriority(int(height - lastStoredHeight)) // mutate
 		valInfo = valInfo2
-	} else {
-		fmt.Println("validator lastStoredHeight is cur Height", height)
 	}
 
 	return valInfo.ValidatorSet, valInfo.LastHeightChanged, nil
@@ -528,10 +526,6 @@ func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *type
 	if height == lastHeightChanged || height%valSetCheckpointInterval == 0 {
 		valInfo.ValidatorSet = valSet
 	}
-	fmt.Println("--save validator:lastHeightChanged",
-		lastHeightChanged,
-		" cur height:", height,
-		" set isNil:", valInfo.ValidatorSet == nil)
 	db.Set(calcValidatorsKey(height), valInfo.Bytes())
 }
 
