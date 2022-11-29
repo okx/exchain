@@ -66,8 +66,10 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	if from != "" {
 		return from
 	}
-	// from will be empty string if firstVerifySig returns an error
-	_ = tx.firstVerifySig(tx.ChainID())
+	err := tx.firstVerifySig(tx.ChainID())
+	if err != nil {
+		return ""
+	}
 	return tx.BaseTx.GetFrom()
 }
 
