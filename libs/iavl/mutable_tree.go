@@ -213,6 +213,10 @@ func (tree *MutableTree) Get(key []byte) []byte {
 	if tree.root == nil {
 		return nil
 	}
+	if getForceReadIavl() {
+		_, value := tree.ImmutableTree.GetWithIndex(key)
+		return value
+	}
 
 	if value, ok := tree.fastGetFromChanges(key); ok {
 		return value
