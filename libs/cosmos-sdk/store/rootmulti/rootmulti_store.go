@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -75,6 +76,13 @@ type Store struct {
 	commitFilters  []types.StoreFilter
 	pruneFilters   []types.StoreFilter
 	versionFilters []types.VersionFilter
+
+	enableAsyncJob bool
+	jobChan        chan func()
+	jobDone        *sync.WaitGroup
+
+	metadata          atomic.Value
+	commitInfoVersion sync.Map
 }
 
 var (
@@ -188,7 +196,7 @@ func (rs *Store) GetCommitKVStore(key types.StoreKey) types.CommitKVStore {
 
 // LoadLatestVersionAndUpgrade implements CommitMultiStore
 func (rs *Store) LoadLatestVersionAndUpgrade(upgrades *types.StoreUpgrades) error {
-	ver := getLatestVersion(rs.db)
+	ver := rs.getLatestVersion()
 	return rs.loadVersion(ver, upgrades)
 }
 
@@ -199,12 +207,12 @@ func (rs *Store) LoadVersionAndUpgrade(ver int64, upgrades *types.StoreUpgrades)
 
 // LoadLatestVersion implements CommitMultiStore.
 func (rs *Store) LoadLatestVersion() error {
-	ver := getLatestVersion(rs.db)
+	ver := rs.getLatestVersion()
 	return rs.loadVersion(ver, nil)
 }
 
 func (rs *Store) GetLatestVersion() int64 {
-	return getLatestVersion(rs.db)
+	return rs.getLatestVersion()
 }
 
 // LoadVersion implements CommitMultiStore.
@@ -379,7 +387,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load old data if we are not version 0
 	if ver != 0 {
 		var err error
-		cInfo, err = getCommitInfo(rs.db, ver)
+		cInfo, err = rs.getCommitInfoVersion(rs.db, ver)
 		if err != nil {
 			return err
 		}
@@ -447,7 +455,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err != nil {
 		return err
 	}
-	vs, err := getVersions(rs.db)
+	vs, err := rs.getVersions()
 	if err != nil {
 		return err
 	}
@@ -468,7 +476,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 
 func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 
-	ph, err := getPruningHeights(rs.db, false)
+	ph, err := rs.getPruningHeights()
 	if err != nil {
 		return err
 	}
@@ -632,12 +640,31 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 		rs.versions = append(rs.versions, version)
 	}
-	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	rs.commitMetadata(version)
 
 	return types.CommitID{
 		Version: version,
 		Hash:    rs.lastCommitInfo.Hash(),
 	}, outputDeltaMap
+}
+
+func (rs *Store) commitMetadata(version int64) {
+	if rs.enableAsyncJob {
+		metadata := &metaData{
+			version:      version,
+			cInfo:        rs.lastCommitInfo,
+			pruneHeights: rs.pruneHeights,
+			versions:     rs.versions,
+		}
+		metadata = metadata.copy()
+
+		rs.updateMetadataToCache(metadata)
+		rs.dispatchJob(func() {
+			flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+		})
+	} else {
+		flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	}
 }
 
 // pruneStores will batch delete a list of heights from each mounted sub-store.
@@ -849,7 +876,7 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	if res.Height == rs.lastCommitInfo.Version {
 		commitInfo = rs.lastCommitInfo
 	} else {
-		commitInfo, err = getCommitInfo(rs.db, res.Height)
+		commitInfo, err = rs.getCommitInfoVersion(rs.db, res.Height)
 		if err != nil {
 			return sdkerrors.QueryResult(err)
 		}
@@ -1073,6 +1100,18 @@ type commitInfo struct {
 	StoreInfos []storeInfo
 }
 
+// Copy return the copy of ci
+func (ci commitInfo) Copy() *commitInfo {
+	ret := &commitInfo{}
+	ret.Version = ci.Version
+	storeInfos := make([]storeInfo, len(ci.StoreInfos))
+	for i, v := range ci.StoreInfos {
+		storeInfos[i] = *v.Copy()
+	}
+
+	return ret
+}
+
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
 	if tmtypes.HigherThanVenus1(ci.Version) {
@@ -1121,6 +1160,16 @@ type storeCore struct {
 	// ... maybe add more state
 }
 
+func (sc storeCore) Copy() *storeCore {
+	ret := &storeCore{}
+	hash := make([]byte, len(sc.CommitID.Hash))
+	copy(hash, sc.CommitID.Hash)
+	ret.CommitID.Version = sc.CommitID.Version
+	ret.CommitID.Hash = hash
+
+	return ret
+}
+
 // Implements merkle.Hasher.
 func (si storeInfo) Hash() []byte {
 	// Doesn't write Name, since merkle.SimpleHashFromMap() will
@@ -1135,6 +1184,14 @@ func (si storeInfo) Hash() []byte {
 	}
 
 	return hasher.Sum(nil)
+}
+
+func (si storeInfo) Copy() *storeInfo {
+	ret := &storeInfo{}
+	ret.Name = si.Name
+	ret.Core = *si.Core.Copy()
+
+	return ret
 }
 
 //----------------------------------------
@@ -1567,7 +1624,7 @@ func (rs *Store) StopStore() {
 		default:
 		}
 	}
-
+	rs.stopJob()
 }
 
 func (rs *Store) SetLogger(log tmlog.Logger) {

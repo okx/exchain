@@ -262,6 +262,7 @@ func NewBaseApp(
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
 		FeeSplitCollector:       make([]*sdk.FeeSplitInfo, 0),
 	}
+	app.cms.EnableAsyncJob()
 
 	for _, option := range options {
 		option(app)

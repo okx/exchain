@@ -203,6 +203,8 @@ type CommitMultiStore interface {
 	StopStore()
 
 	SetLogger(log log.Logger)
+
+	EnableAsyncJob() // support async job
 }
 
 //---------subsp-------------------------------

@@ -234,3 +234,7 @@ func (ms multiStore) GetCommitVersion() (int64, error) {
 func (ms multiStore) CommitterCommitMap(inputDeltaMap iavl.TreeDeltaMap) (sdk.CommitID, iavl.TreeDeltaMap) {
 	panic("not implemented")
 }
+
+func (ms multiStore) EnableAsyncJob() {
+	panic("not implemented")
+}
