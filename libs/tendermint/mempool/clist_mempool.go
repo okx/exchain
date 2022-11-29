@@ -491,7 +491,7 @@ func (mem *CListMempool) reqResCbForP2P(
 			// this should never happen
 			panic("recheck cursor is not nil in reqResCb")
 		}
-		if len(mem.addTxQueue) >= mem.config.Size {
+		if len(mem.addTxQueue) >= 2*mem.config.Size {
 			mem.logger.Error("CListMempool", "queue is full")
 		} else {
 			mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo, res: res}
