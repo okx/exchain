@@ -12,6 +12,8 @@ import (
 	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
 	evmclient "github.com/okex/exchain/x/evm/client"
 
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -27,6 +29,7 @@ import (
 	dist "github.com/okex/exchain/x/distribution"
 	distr "github.com/okex/exchain/x/distribution"
 	distrest "github.com/okex/exchain/x/distribution/client/rest"
+	evidencerest "github.com/okex/exchain/x/evidence/client/rest"
 	evmrest "github.com/okex/exchain/x/evm/client/rest"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	farmrest "github.com/okex/exchain/x/farm/client/rest"
@@ -34,11 +37,11 @@ import (
 	govrest "github.com/okex/exchain/x/gov/client/rest"
 	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	slashingrest "github.com/okex/exchain/x/slashing/client/rest"
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
 	wasmrest "github.com/okex/exchain/x/wasm/client/rest"
-	"github.com/spf13/viper"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.
@@ -79,6 +82,8 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
 	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
+	evidencerest.RegisterRoutes(rs.CliCtx, v1Router, []evidencerest.EvidenceRESTHandler{})
+	slashingrest.RegisterRoutes(rs.CliCtx, v1Router)
 	fsrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{

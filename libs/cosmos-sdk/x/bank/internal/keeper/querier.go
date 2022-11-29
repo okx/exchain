@@ -12,18 +12,21 @@ import (
 
 const (
 	// query balance path
-	QueryBalance     = "balances"
-	GrpcQueryBalance = "grpc_balances"
+	QueryBalances         = "balances"
+	QueryBalanceWithDenom = "balance_with_denom"
+	GrpcQueryBalance      = "grpc_balances"
 )
 
 // NewQuerier returns a new sdk.Keeper instance.
 func NewQuerier(k Keeper) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
 		switch path[0] {
-		case QueryBalance:
+		case QueryBalances:
 			return queryBalance(ctx, req, k)
 		case GrpcQueryBalance:
 			return grpcQueryBalanceAdapter(ctx, req, k)
+		case QueryBalanceWithDenom:
+			return queryBalanceWithDenom(ctx, req, k)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown query path: %s", path[0])
 		}
@@ -44,6 +47,35 @@ func queryBalance(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, err
 	}
 
 	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, coins)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	ret = bz
+
+	return ret, nil
+}
+
+func queryBalanceWithDenom(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var ret []byte
+	var params types.QueryBalanceWithDenomParams
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+	coins := k.GetCoins(ctx, params.Address)
+	if coins == nil {
+		coins = sdk.NewCoins()
+	}
+	var coin sdk.DecCoin
+	for _, c := range coins {
+		if c.Denom == params.Denom {
+			coin = c
+			break
+		}
+	}
+	if coin.Denom == "" {
+		coin.Denom = params.Denom
+	}
+	bz, err := codec.MarshalJSONIndent(types.ModuleCdc, coin)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

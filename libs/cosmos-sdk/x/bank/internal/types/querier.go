@@ -13,3 +13,12 @@ type QueryBalanceParams struct {
 func NewQueryBalanceParams(addr sdk.AccAddress) QueryBalanceParams {
 	return QueryBalanceParams{Address: addr}
 }
+
+type QueryBalanceWithDenomParams struct {
+	Address sdk.AccAddress
+	Denom   string
+}
+
+func NewQueryBalanceWithDenomParams(addr sdk.AccAddress, denom string) QueryBalanceWithDenomParams {
+	return QueryBalanceWithDenomParams{Address: addr, Denom: denom}
+}
