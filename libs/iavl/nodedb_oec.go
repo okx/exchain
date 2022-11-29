@@ -141,6 +141,53 @@ func (ndb *nodeDB) batchBatch(tpp map[string]*Node, batchNum int) {
 	wg.Wait()
 }
 
+func (ndb *nodeDB) orphansBatchBatch(orphans []commitOrphan, toversion int64) {
+	var wg sync.WaitGroup
+	goNum := runtime.NumCPU() / 2
+	if goNum == 0 {
+		goNum = 1
+	}
+	wg.Add(len(orphans) + goNum)
+	ch := make(chan commitOrphan, smallBatchSize*goNum*2)
+
+	for i := 0; i < goNum; i++ {
+		go func() {
+			localBatch := ndb.db.NewBatch()
+			count := 0
+			for node := range ch {
+				if localBatch == nil {
+					localBatch = ndb.db.NewBatch()
+				}
+				ndb.saveOrphan(localBatch, node.NodeHash, node.Version, toversion)
+				wg.Done()
+				count++
+
+				if count == smallBatchSize {
+					err := ndb.Commit(localBatch)
+					if err != nil {
+						panic(err)
+					}
+					localBatch = nil
+					count = 0
+				}
+			}
+			if localBatch != nil {
+				err := ndb.Commit(localBatch)
+				if err != nil {
+					panic(err)
+				}
+			}
+			wg.Done()
+		}()
+	}
+
+	for _, node := range orphans {
+		ch <- node
+	}
+	close(ch)
+	wg.Wait()
+}
+
 func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	batch := event.batch
 	tpp := event.tpp
