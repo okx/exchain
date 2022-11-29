@@ -31,7 +31,6 @@ import (
 	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 
 	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
@@ -499,7 +498,7 @@ func NewOKExChainApp(
 
 	app.FeeSplitKeeper = feesplit.NewKeeper(
 		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
-		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
+		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper)
 	app.ParamsKeeper.RegisterSignal(feesplit.SetParamsNeedUpdate)
 
 	//wasm keeper
