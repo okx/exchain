@@ -112,7 +112,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	}
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
-	fmt.Println("*******lyh******* static", "height", version, "fromPpnc", tree.ndb.staticTest.fromPpnc,
+	fmt.Println("*******lyh******* static", "height", version, tree.ndb.name, "fromPpnc", tree.ndb.staticTest.fromPpnc,
 		"fromTpp", tree.ndb.staticTest.fromTpp,
 		"fromNodeCache", tree.ndb.staticTest.fromNodeCache,
 		"fromOrphanCache", tree.ndb.staticTest.fromOrphanCache,
