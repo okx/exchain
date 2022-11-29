@@ -3,8 +3,6 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"runtime/debug"
-
 	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -534,7 +532,6 @@ func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *type
 		lastHeightChanged,
 		" cur height:", height,
 		" set isNil:", valInfo.ValidatorSet == nil)
-	debug.PrintStack()
 	db.Set(calcValidatorsKey(height), valInfo.Bytes())
 }
 
