@@ -56,4 +56,5 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 
 func setExternalPackageValue() {
 	tmiavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
+	tmiavl.SetForceReadIavl(true)
 }
