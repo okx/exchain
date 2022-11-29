@@ -23,6 +23,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const FlagSubscribeLimit = "ws.max-subscriptions"
+
 // Server defines a server that handles Ethereum websockets.
 type Server struct {
 	rpcAddr string // listen address of rest-server
@@ -34,6 +36,7 @@ type Server struct {
 	connPoolLock   *sync.Mutex
 	currentConnNum metrics.Gauge
 	maxConnNum     metrics.Gauge
+	maxSubLimit    int
 }
 
 // NewServer creates a new websocket server instance.
@@ -69,6 +72,7 @@ func NewServer(clientCtx context.CLIContext, log log.Logger, wsAddr string) *Ser
 			Name:      "connection_capacity",
 			Help:      "the capacity number of websocket client connections",
 		}, nil),
+		maxSubLimit: viper.GetInt(FlagSubscribeLimit),
 	}
 }
 
@@ -110,7 +114,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.connPool <- struct{}{}
 	s.currentConnNum.Set(float64(len(s.connPool)))
 	go s.readLoop(&wsConn{
-		mux:  new(sync.Mutex),
+		mux:  new(sync.RWMutex),
 		conn: conn,
 	})
 }
@@ -131,8 +135,21 @@ func (s *Server) sendErrResponse(conn *wsConn, msg string) {
 }
 
 type wsConn struct {
-	conn *websocket.Conn
-	mux  *sync.Mutex
+	conn     *websocket.Conn
+	mux      *sync.RWMutex
+	subCount int
+}
+
+func (w *wsConn) GetSubCount() int {
+	w.mux.RLock()
+	defer w.mux.RUnlock()
+	return w.subCount
+}
+
+func (w *wsConn) AddSubCount(delta int) {
+	w.mux.Lock()
+	defer w.mux.Unlock()
+	w.subCount += delta
 }
 
 func (w *wsConn) WriteJSON(v interface{}) error {
@@ -181,6 +198,11 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			s.sendErrResponse(wsConn, "invalid request")
 		}
 		if methodStr == "eth_subscribe" {
+			if wsConn.GetSubCount() >= s.maxSubLimit {
+				s.sendErrResponse(wsConn,
+					fmt.Sprintf("subscription has reached the upper limit(%d)", s.maxSubLimit))
+				continue
+			}
 			params, ok := msg["params"].([]interface{})
 			if !ok || len(params) == 0 {
 				s.sendErrResponse(wsConn, "invalid parameters")
@@ -212,6 +234,7 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			}
 			s.logger.Debug("successfully subscribe", "ID", id)
 			subIds[id] = struct{}{}
+			wsConn.AddSubCount(1)
 			continue
 		} else if methodStr == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
@@ -245,43 +268,43 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			}
 			s.logger.Debug("successfully unsubscribe", "ID", id)
 			delete(subIds, rpc.ID(id))
+			wsConn.AddSubCount(-1)
 			continue
 		}
 
 		// otherwise, call the usual rpc server to respond
-		err = s.tcpGetAndSendResponse(wsConn, mb)
+		data, err := s.getRpcResponse(mb)
 		if err != nil {
 			s.sendErrResponse(wsConn, err.Error())
 		}
+		wsConn.WriteJSON(data)
 	}
 }
 
-// tcpGetAndSendResponse connects to the rest-server over tcp, posts a JSON-RPC request, and sends the response
-// to the client over websockets
-func (s *Server) tcpGetAndSendResponse(conn *wsConn, mb []byte) error {
+// getRpcResponse connects to the rest-server over tcp, posts a JSON-RPC request, and return response
+func (s *Server) getRpcResponse(mb []byte) (interface{}, error) {
 	req, err := http.NewRequest(http.MethodPost, s.rpcAddr, bytes.NewReader(mb))
 	if err != nil {
-		return fmt.Errorf("failed to request; %s", err)
+		return nil, fmt.Errorf("failed to request; %s", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to write to rest-server; %s", err)
+		return nil, fmt.Errorf("failed to write to rest-server; %s", err)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("could not read body from response; %s", err)
+		return nil, fmt.Errorf("could not read body from response; %s", err)
 	}
 
 	var wsSend interface{}
 	err = json.Unmarshal(body, &wsSend)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal rest-server response; %s", err)
+		return nil, fmt.Errorf("failed to unmarshal rest-server response; %s", err)
 	}
-
-	return conn.WriteJSON(wsSend)
+	return wsSend, nil
 }
 
 func (s *Server) closeWsConnection(subIds map[rpc.ID]struct{}) {
@@ -304,13 +327,18 @@ func (s *Server) batchCall(mb []byte, wsConn *wsConn) error {
 	for i := 0; i < len(msgs); i++ {
 		b, err := json.Marshal(msgs[i])
 		if err != nil {
-			s.sendErrResponse(wsConn, err.Error())
-			continue
+			s.sendErrResponse(wsConn, "invalid request")
+			s.logger.Error("web socket batchCall  failed", "error", err)
+			break
 		}
 
-		err = s.tcpGetAndSendResponse(wsConn, b)
+		data, err := s.getRpcResponse(b)
 		if err != nil {
 			s.sendErrResponse(wsConn, err.Error())
+		}
+
+		if err := wsConn.WriteJSON(data); err != nil {
+			break // connection broken
 		}
 	}
 	return nil
