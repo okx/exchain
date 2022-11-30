@@ -114,41 +114,41 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.connPool <- struct{}{}
 	s.currentConnNum.Set(float64(len(s.connPool)))
 	go s.readLoop(&wsConn{
-		mux:  new(sync.RWMutex),
+		mux:  new(sync.Mutex),
 		conn: conn,
 	})
 }
 
 func (s *Server) sendErrResponse(conn *wsConn, msg string) {
-	res := &ErrorResponseJSON{
-		Jsonrpc: "2.0",
-		Error: &ErrorMessageJSON{
-			Code:    big.NewInt(-32600),
-			Message: msg,
-		},
-		ID: big.NewInt(1),
-	}
+	res := makeErrResponse(msg)
 	err := conn.WriteJSON(res)
 	if err != nil {
 		s.logger.Error("websocket failed write message", "error", err)
 	}
 }
 
+func makeErrResponse(errMsg string) *ErrorResponseJSON {
+	return &ErrorResponseJSON{
+		Jsonrpc: "2.0",
+		Error: &ErrorMessageJSON{
+			Code:    big.NewInt(-32600),
+			Message: errMsg,
+		},
+		ID: big.NewInt(1),
+	}
+}
+
 type wsConn struct {
 	conn     *websocket.Conn
-	mux      *sync.RWMutex
+	mux      *sync.Mutex
 	subCount int
 }
 
 func (w *wsConn) GetSubCount() int {
-	w.mux.RLock()
-	defer w.mux.RUnlock()
 	return w.subCount
 }
 
 func (w *wsConn) AddSubCount(delta int) {
-	w.mux.Lock()
-	defer w.mux.Unlock()
 	w.subCount += delta
 }
 
@@ -276,8 +276,9 @@ func (s *Server) readLoop(wsConn *wsConn) {
 		data, err := s.getRpcResponse(mb)
 		if err != nil {
 			s.sendErrResponse(wsConn, err.Error())
+		} else {
+			wsConn.WriteJSON(data)
 		}
-		wsConn.WriteJSON(data)
 	}
 }
 
@@ -334,9 +335,8 @@ func (s *Server) batchCall(mb []byte, wsConn *wsConn) error {
 
 		data, err := s.getRpcResponse(b)
 		if err != nil {
-			s.sendErrResponse(wsConn, err.Error())
+			data = makeErrResponse(err.Error())
 		}
-
 		if err := wsConn.WriteJSON(data); err != nil {
 			break // connection broken
 		}
