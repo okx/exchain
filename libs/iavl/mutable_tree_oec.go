@@ -198,16 +198,9 @@ func (tree *MutableTree) commitSchedule() {
 		if event.version < 0 {
 			continue
 		}
-		if len(event.orpans) != 0 {
-			batchNum := (len(event.orpans) / smallBatchSize) + 1
-			if batchNum != 1 {
-				tree.ndb.orphansBatchBatch(event.orpans, event.orpanToVersion)
-			} else {
-				for _, orphan := range event.orpans {
-					// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
-					tree.ndb.saveOrphan(event.batch, orphan.NodeHash, orphan.Version, event.orpanToVersion)
-				}
-			}
+		for _, orphan := range event.orpans {
+			// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
+			tree.ndb.saveOrphanToDB(orphan.NodeHash, orphan.Version, event.orpanToVersion)
 		}
 		_, ok := tree.committedHeightMap[event.version]
 		if ok {

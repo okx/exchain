@@ -263,7 +263,7 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 
 // SaveNode saves a FastNode to disk and add to cache.
 func (ndb *nodeDB) SaveFastNode(node *FastNode, batch dbm.Batch) error {
-	return ndb.saveFastNodeUnlocked(node, true, batch)
+	return ndb.saveFastNodeUnlockedToDB(node, true)
 }
 
 // SaveNode saves a FastNode to disk without adding to cache.
@@ -337,6 +337,29 @@ func (ndb *nodeDB) saveFastNodeUnlocked(node *FastNode, shouldAddToCache bool, b
 	}
 
 	batch.Set(ndb.fastNodeKey(node.key), buf.Bytes())
+	if shouldAddToCache {
+		ndb.cacheFastNode(node)
+	}
+	return nil
+}
+
+func (ndb *nodeDB) saveFastNodeUnlockedToDB(node *FastNode, shouldAddToCache bool) error {
+	if node.key == nil {
+		return fmt.Errorf("cannot have FastNode with a nil value for key")
+	}
+
+	// Save node bytes to db.
+	var buf bytes.Buffer
+	buf.Grow(node.encodedSize())
+
+	if err := node.writeBytes(&buf); err != nil {
+		return fmt.Errorf("error while writing fastnode bytes. Err: %w", err)
+	}
+
+	err := ndb.db.Set(ndb.fastNodeKey(node.key), buf.Bytes())
+	if err != nil {
+		return err
+	}
 	if shouldAddToCache {
 		ndb.cacheFastNode(node)
 	}
@@ -546,7 +569,10 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 }
 
 func (ndb *nodeDB) DeleteFastNode(key []byte, batch dbm.Batch) error {
-	batch.Delete(ndb.fastNodeKey(key))
+	err := ndb.db.Delete(ndb.fastNodeKey(key))
+	if err != nil {
+		return err
+	}
 	ndb.uncacheFastNode(key)
 	return nil
 }
@@ -585,6 +611,17 @@ func (ndb *nodeDB) saveOrphan(batch dbm.Batch, hash []byte, fromVersion, toVersi
 	}
 	key := ndb.orphanKey(fromVersion, toVersion, hash)
 	batch.Set(key, hash)
+}
+
+func (ndb *nodeDB) saveOrphanToDB(hash []byte, fromVersion, toVersion int64) {
+	if fromVersion > toVersion {
+		panic(fmt.Sprintf("Orphan expires before it comes alive.  %d > %d", fromVersion, toVersion))
+	}
+	key := ndb.orphanKey(fromVersion, toVersion, hash)
+	err := ndb.db.Set(key, hash)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (ndb *nodeDB) log(level int, msg string, kv ...interface{}) {

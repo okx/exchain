@@ -194,19 +194,14 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 
 	trc.Pin("batchSet")
 
-	batchNum := (len(tpp) / smallBatchSize) + 1
-	if batchNum != 1 {
-		ndb.batchBatch(tpp, batchNum)
-	} else {
-		for _, node := range tpp {
-			ndb.batchSet(node, batch)
-		}
+	for _, node := range tpp {
+		ndb.setToDB(node)
 	}
 
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := ndb.saveFastNodeVersionBatchBatch(batch, event.fnc, event.version); err != nil {
+	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
 		panic(err)
 	}
 
@@ -286,6 +281,37 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
+	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
+	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
+	//node.persisted = true // move to function MovePrePersistCacheToTempCache
+}
+
+func (ndb *nodeDB) setToDB(node *Node) {
+	if node.hash == nil {
+		panic("Expected to find node.hash, but none found.")
+	}
+	if !node.persisted {
+		panic("Should set node.persisted to true before batchSet.")
+	}
+
+	if !node.prePersisted {
+		panic("Should be calling save on an prePersisted node.")
+	}
+
+	// Save node bytes to db.
+	var buf bytes.Buffer
+	buf.Grow(node.aminoSize())
+
+	if err := node.writeBytesToBuffer(&buf); err != nil {
+		panic(err)
+	}
+
+	nodeKey := ndb.nodeKey(node.hash)
+	nodeValue := buf.Bytes()
+	err := ndb.db.Set(nodeKey, nodeValue)
+	if err != nil {
+		panic(err)
+	}
 	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
