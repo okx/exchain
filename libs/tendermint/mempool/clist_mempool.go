@@ -92,8 +92,6 @@ type CListMempool struct {
 
 	txs ITransactionQueue
 
-	simQueue chan *mempoolTx
-
 	gasCache *lru.Cache
 }
 
@@ -130,7 +128,6 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
-		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
 	}
 	go mempool.simulationRoutine()
@@ -414,13 +411,6 @@ func (mem *CListMempool) reqResCb(
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
-	}
-	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnablePGU() {
-		select {
-		case mem.simQueue <- memTx:
-		default:
-			mem.logger.Error("tx simulation queue is full")
-		}
 	}
 
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -1266,17 +1256,36 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 }
 
 func (mem *CListMempool) simulationRoutine() {
-	for memTx := range mem.simQueue {
+	for {
+		memTx := mem.findSimTx()
+		if memTx == nil {
+			time.Sleep(time.Second)
+			continue
+		}
 		mem.simulationJob(memTx)
 	}
 }
 
-func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
-	defer types.SignatureCache().Remove(memTx.realTx.TxHash())
-	if atomic.LoadUint32(&memTx.isOutdated) != 0 {
-		// memTx is outdated
-		return
+func (mem *CListMempool) findSimTx() *mempoolTx {
+	if !cfg.DynamicConfig.GetEnablePGU() {
+		return nil
 	}
+	for ele := mem.TxsFront(); ele != nil; ele = ele.Next() {
+		memTx := ele.Value.(*mempoolTx)
+		if atomic.LoadUint32(&memTx.isOutdated) != 0 {
+			// memTx is outdated
+			continue
+		}
+		if atomic.LoadUint32(&(ele.Value.(*mempoolTx).isSim)) != 0 {
+			// tx has been simulated
+			continue
+		}
+		return memTx
+	}
+	return nil
+}
+
+func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	simuRes, err := mem.simulateTx(memTx.tx)
 	if err != nil {
 		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
