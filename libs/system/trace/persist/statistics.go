@@ -2,25 +2,23 @@ package persist
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/okex/exchain/libs/system/trace"
 )
 
-var once sync.Once
 var stats *statistics
+
+func init() {
+	stats = &statistics{
+		BaseStatistics: trace.NewSummary(),
+	}
+}
 
 type statistics struct {
 	trace.BaseStatistics
 }
 
 func GetStatistics() *statistics {
-	once.Do(func() {
-		stats = &statistics{
-			BaseStatistics: trace.NewSummary(),
-		}
-	})
-
 	return stats
 }
 

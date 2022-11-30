@@ -36,3 +36,13 @@ func (s *Summary) GetTags() []string {
 func (s *Summary) GetValue(tag string) int64 {
 	return s.statisticMap[tag]
 }
+
+type StatisticsCell interface {
+	StartTiming()
+	EndTiming(tag string)
+}
+
+type EmptyStatisticsCell struct{}
+
+func (es EmptyStatisticsCell) StartTiming()         {}
+func (es EmptyStatisticsCell) EndTiming(tag string) {}

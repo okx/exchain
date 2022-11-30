@@ -6,12 +6,10 @@ import (
 	"reflect"
 	"sort"
 	"sync"
-	"time"
 	"unsafe"
 
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/system/trace/persist"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
 
@@ -40,17 +38,19 @@ type Store struct {
 
 	preChangesHandler    PreChangesHandler
 	disableCacheReadList bool // not cache readList for group-paralleled-tx
+	trace.StatisticsCell
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
 
 func NewStore(parent types.KVStore) *Store {
 	return &Store{
-		dirty:         make(map[string]cValue),
-		readList:      make(map[string][]byte),
-		unsortedCache: make(map[string]struct{}),
-		sortedCache:   kv.NewList(),
-		parent:        parent,
+		dirty:          make(map[string]cValue),
+		readList:       make(map[string][]byte),
+		unsortedCache:  make(map[string]struct{}),
+		sortedCache:    kv.NewList(),
+		parent:         parent,
+		StatisticsCell: trace.EmptyStatisticsCell{},
 	}
 }
 
@@ -162,10 +162,10 @@ func (store *Store) Write() {
 	}
 
 	sort.Strings(keys)
-
 	store.preWrite(keys)
 
-	tsFlushCache := time.Now()
+	store.StartTiming()
+
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
@@ -182,9 +182,7 @@ func (store *Store) Write() {
 
 	// Clear the cache
 	store.clearCache()
-	if store.preChangesHandler != nil {
-		persist.GetStatistics().Accumulate(trace.FlushCache, time.Since(tsFlushCache).Nanoseconds())
-	}
+	store.EndTiming(trace.FlushCache)
 }
 
 func (store *Store) preWrite(keys []string) {
@@ -207,9 +205,7 @@ func (store *Store) preWrite(keys []string) {
 		}
 	}
 
-	tsPreChange := time.Now()
 	store.preChangesHandler(keys, setOrDel)
-	persist.GetStatistics().Accumulate(trace.PreChange, time.Since(tsPreChange).Nanoseconds())
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.

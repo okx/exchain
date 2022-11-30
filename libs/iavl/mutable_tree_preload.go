@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"time"
 
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/system/trace/persist"
 	"github.com/tendermint/go-amino"
 )
 
@@ -26,6 +29,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	if tree.root == nil {
 		return
 	}
+	tsPreChange := time.Now()
 
 	maxNums := runtime.NumCPU()
 	keyCount := len(keys)
@@ -61,6 +65,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	wg.Wait()
 
 	tree.ndb.finishPreWriteCache()
+	persist.GetStatistics().Accumulate(trace.PreChange, time.Since(tsPreChange).Nanoseconds())
 }
 
 func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte) (find bool) {
