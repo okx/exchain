@@ -429,12 +429,18 @@ func (blockExec *BlockExecutor) commit(
 
 	//trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
+	mempoolnoew := time.Now()
 	err = blockExec.mempool.Update(
 		block.Height,
 		block.Txs,
 		deliverTxResponses,
 		TxPreCheck(state),
 		TxPostCheck(state),
+	)
+	blockExec.logger.Error(
+		"mempool_to_commit end",
+		"height", block.Height,
+		"update time during", time.Since(mempoolnoew),
 	)
 
 	if !cfg.DynamicConfig.GetMempoolRecheck() && block.Height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
