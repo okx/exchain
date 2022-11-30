@@ -32,11 +32,13 @@ const (
 
 const (
 	GasUsed     = "GasUsed"
+	SimGasUsed  = "SimGasUsed"
 	Produce     = "Produce"
 	RunTx       = "RunTx"
 	LastRun     = "lastRun"
 	Height      = "Height"
 	Tx          = "Tx"
+	SimTx       = "SimTx"
 	BlockSize   = "BlockSize"
 	Elapsed     = "Elapsed"
 	CommitRound = "CommitRound"
