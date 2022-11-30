@@ -151,7 +151,7 @@ func NewCListMempool(
 		go mempool.pendingPoolJob()
 	}
 
-	mempool.addTxQueue = make(chan CheckTxItem, config.Size)
+	mempool.addTxQueue = make(chan CheckTxItem, config.Size/2)
 	go mempool.addTxJobForP2P()
 
 	return mempool
@@ -494,7 +494,8 @@ func (mem *CListMempool) reqResCbForP2P(
 			// this should never happen
 			panic("recheck cursor is not nil in reqResCb")
 		}
-		if len(mem.addTxQueue) >= 2*mem.config.Size {
+
+		if mem.isFull(0) != nil || len(mem.addTxQueue) >= mem.config.Size/2 {
 			mem.logger.Error("CListMempool", "queue is full")
 		} else {
 			mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo, res: res}
