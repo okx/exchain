@@ -403,7 +403,7 @@ func (blockExec *BlockExecutor) commit(
 		blockExec.logger.Error("Client error during mempool.FlushAppConn", "err", err)
 		return nil, 0, err
 	}
-
+	time1 := time.Now()
 	// Commit block, get hash back
 	var treeDeltaMap interface{}
 	if deltaInfo != nil {
@@ -417,7 +417,7 @@ func (blockExec *BlockExecutor) commit(
 		)
 		return nil, 0, err
 	}
-
+	time2 := time.Now()
 	// ResponseCommit has no error code - just data
 	blockExec.logger.Debug(
 		"Committed state",
@@ -429,7 +429,7 @@ func (blockExec *BlockExecutor) commit(
 
 	//trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
-	mempoolnoew := time.Now()
+
 	err = blockExec.mempool.Update(
 		block.Height,
 		block.Txs,
@@ -437,11 +437,7 @@ func (blockExec *BlockExecutor) commit(
 		TxPreCheck(state),
 		TxPostCheck(state),
 	)
-	blockExec.logger.Error(
-		"mempool_to_commit end",
-		"height", block.Height,
-		"update time during", time.Since(mempoolnoew),
-	)
+	time3 := time.Now()
 
 	if !cfg.DynamicConfig.GetMempoolRecheck() && block.Height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
 		proxyCb := func(req *abci.Request, res *abci.Response) {
@@ -453,7 +449,14 @@ func (blockExec *BlockExecutor) commit(
 			Key: "ResetCheckState",
 		})
 	}
-
+	blockExec.logger.Error(
+		"mempool_to_commit all",
+		"height", block.Height,
+		"flush", time1.Sub(begin),
+		"blk_commitsync", time2.Sub(time1),
+		"mempool_update", time3.Sub(time2),
+		"recheck", time.Since(time3),
+	)
 	return res, res.RetainHeight, err
 }
 
