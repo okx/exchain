@@ -703,7 +703,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		SortTxByGp:                 true,
 		ForceRecheckGap:            2000,
 		TxPriceBump:                10,
-		EnablePendingPool:          true,
+		EnablePendingPool:          false,
 		PendingPoolSize:            50000,
 		PendingPoolPeriod:          3,
 		PendingPoolReserveBlocks:   100,

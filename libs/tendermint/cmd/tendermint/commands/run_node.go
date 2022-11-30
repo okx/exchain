@@ -122,6 +122,16 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"Maximum gas used of transactions in a block",
 	)
 	cmd.Flags().Bool(
+		"mempool.enable-pgu",
+		false,
+		"enable precise gas used",
+	)
+	cmd.Flags().Float64(
+		"mempool.pgu-adjustment",
+		1,
+		"adjustment for pgu, such as 0.9 or 1.1",
+	)
+	cmd.Flags().Bool(
 		"mempool.sort_tx_by_gp",
 		config.Mempool.SortTxByGp,
 		"Sort tx by gas price in mempool",
