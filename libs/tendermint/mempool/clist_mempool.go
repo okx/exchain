@@ -98,9 +98,8 @@ type CListMempool struct {
 }
 
 type CheckTxItem struct {
-	tx     []byte
-	txInfo TxInfo
-	res    *abci.Response
+	memTx *mempoolTx
+	res   *abci.Response_CheckTx
 }
 
 var _ Mempool = &CListMempool{}
@@ -151,7 +150,7 @@ func NewCListMempool(
 		go mempool.pendingPoolJob()
 	}
 
-	mempool.addTxQueue = make(chan CheckTxItem, config.Size/2)
+	mempool.addTxQueue = make(chan CheckTxItem, config.Size)
 	go mempool.addTxJobForP2P()
 
 	return mempool
@@ -495,20 +494,124 @@ func (mem *CListMempool) reqResCbForP2P(
 			panic("recheck cursor is not nil in reqResCb")
 		}
 
-		if mem.isFull(0) != nil || len(mem.addTxQueue) >= mem.config.Size/2 {
-			mem.logger.Error("CListMempool", "queue is full")
-		} else {
-			mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo, res: res}
+		mem.resCbFirstTimeP2P(tx, txInfo, res)
+
+		// update metrics
+		mem.metrics.Size.Set(float64(mem.Size()))
+		if mem.pendingPool != nil {
+			mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 		}
-		//mem.resCbFirstTime(tx, txInfo, res)
+
+		// passed in by the caller of CheckTx, eg. the RPC
+		if externalCb != nil {
+			externalCb(res)
+		}
+	}
+}
+
+// callback, which is called after the app checked the tx for the first time.
+//
+// The case where the app checks the tx for the second and subsequent times is
+// handled by the resCbRecheck callback.
+func (mem *CListMempool) resCbFirstTimeP2P(
+	tx []byte,
+	txInfo TxInfo,
+	res *abci.Response,
+) {
+	switch r := res.Value.(type) {
+	case *abci.Response_CheckTx:
+		var postCheckErr error
+		if mem.postCheck != nil {
+			postCheckErr = mem.postCheck(tx, r.CheckTx)
+		}
+		var txHash []byte
+		if r.CheckTx != nil && r.CheckTx.Tx != nil {
+			txHash = r.CheckTx.Tx.TxHash()
+		}
+		txkey := txOrTxHashToKey(tx, txHash, mem.height)
+
+		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
+			// Check mempool isn't full again to reduce the chance of exceeding the
+			// limits.
+			if err := mem.isFull(len(tx)); err != nil {
+				// remove from cache (mempool might have a space later)
+				mem.cache.RemoveKey(txkey)
+				errStr := err.Error()
+				mem.logger.Info(errStr)
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = errStr
+				return
+			}
+
+			//var exTxInfo ExTxInfo
+			//if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
+			//	mem.cache.Remove(tx)
+			//	mem.logger.Error(fmt.Sprintf("Unmarshal ExTxInfo error:%s", err.Error()))
+			//	return
+			//}
+			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
+				mem.cache.RemoveKey(txkey)
+				errMsg := "Failed to get extra info for this tx!"
+				mem.logger.Error(errMsg)
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = errMsg
+				return
+			}
+
+			memTx := &mempoolTx{
+				height:      mem.Height(),
+				gasWanted:   r.CheckTx.GasWanted,
+				tx:          tx,
+				realTx:      r.CheckTx.Tx,
+				nodeKey:     txInfo.wtx.GetNodeKey(),
+				signature:   txInfo.wtx.GetSignature(),
+				from:        r.CheckTx.Tx.GetFrom(),
+				senderNonce: r.CheckTx.SenderNonce,
+			}
+
+			memTx.senders = make(map[uint16]struct{})
+			memTx.senders[txInfo.SenderID] = struct{}{}
+
+			if len(mem.addTxQueue) < mem.config.Size {
+				mem.addTxQueue <- CheckTxItem{memTx: memTx, res: r}
+			}
+
+		} else {
+			// ignore bad transaction
+			mem.logger.Info("Rejected bad transaction",
+				"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
+			mem.metrics.FailedTxs.Add(1)
+			// remove from cache (it might be good later)
+			mem.cache.RemoveKey(txkey)
+		}
+	default:
+		// ignore other messages
 	}
 }
 
 func (mem *CListMempool) addTxJobForP2P() {
 	for item := range mem.addTxQueue {
-		mem.updateMtx.RLock()
-		mem.resCbFirstTime(item.tx, item.txInfo, item.res)
-		mem.updateMtx.RUnlock()
+		var err error
+		if mem.pendingPool != nil {
+			err = mem.addPendingTx(item.memTx)
+		} else {
+			err = mem.addTx(item.memTx)
+		}
+		if err == nil {
+			mem.logAddTx(item.memTx, item.res)
+			mem.notifyTxsAvailable()
+		} else {
+			var txHash []byte
+			if item.res.CheckTx != nil && item.res.CheckTx.Tx != nil {
+				txHash = item.res.CheckTx.Tx.TxHash()
+			}
+			txkey := txOrTxHashToKey(item.memTx.tx, txHash, mem.height)
+
+			mem.metrics.FailedTxs.Add(1)
+			// remove from cache (it might be good later)
+			mem.cache.RemoveKey(txkey)
+
+		}
 	}
 }
 

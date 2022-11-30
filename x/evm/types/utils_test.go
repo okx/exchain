@@ -2,8 +2,10 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"math"
 	"math/big"
+	"math/rand"
 	"strings"
 	"sync"
 	"testing"
@@ -382,4 +384,54 @@ func BenchmarkEthHashStringer(b *testing.B) {
 			_ = EthHashStringer(h).String()
 		}
 	})
+}
+
+func BenchmarkEthHashStringe(b *testing.B) {
+
+	chainId := big.NewInt(64)
+	id := chainId.Int64()
+	cap := 100000
+	msgs := make([]*MsgEthereumTx, 0, cap)
+	priv, err := ethsecp256k1.GenerateKey()
+	require.NoError(b, err)
+
+	for i := 0; i < cap; i++ {
+		msg := makeMsg(priv, uint64(i), id)
+		msgs = append(msgs, msg)
+	}
+
+	b.ResetTimer()
+	b.Run("order", func(b *testing.B) {
+
+		for i := 0; i < b.N; i++ {
+			temp := i
+			if temp >= cap {
+				temp += cap
+			}
+			_, err := msgs[temp].firstVerifySig(chainId)
+			require.NoError(b, err)
+		}
+	})
+
+	b.ResetTimer()
+	b.Run("random", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			temp := rand.Intn(cap)
+			_, err := msgs[temp].firstVerifySig(chainId)
+			require.NoError(b, err)
+		}
+	})
+}
+
+func makeMsg(priv ethsecp256k1.PrivKey, nounce uint64, id int64) *MsgEthereumTx {
+	expectUint64, expectedBigInt, expectedBytes := nounce, big.NewInt(1024), []byte("default payload")
+	expectedEthAddr := ethcmn.BytesToAddress([]byte("test_address"))
+	expectedEthMsg := NewMsgEthereumTx(expectUint64, &expectedEthAddr, expectedBigInt, expectUint64, expectedBigInt, expectedBytes)
+	chainId := big.NewInt(id)
+
+	err := expectedEthMsg.Sign(chainId, priv.ToECDSA())
+	if err != nil {
+		panic(err)
+	}
+	return expectedEthMsg
 }
