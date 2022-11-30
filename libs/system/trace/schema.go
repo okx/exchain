@@ -30,10 +30,12 @@ const (
 	HandlerDefer = "handler_defer"
 )
 
+
 const (
 	GasUsed     = "GasUsed"
 	Produce     = "Produce"
 	RunTx       = "RunTx"
+	LastRun     = "lastRun"
 	Height      = "Height"
 	Tx          = "Tx"
 	BlockSize   = "BlockSize"
@@ -57,10 +59,10 @@ const (
 	InvalidTxs = "InvalidTxs"
 
 	Abci            = "abci"
-	SaveResp        = "saveResp"
+	//SaveResp        = "saveResp"
 	Persist         = "persist"
-	MempoolUpdate   = "mpUpdate"
-	SaveState       = "saveState"
+	//MempoolUpdate   = "mpUpdate"
+	//SaveState       = "saveState"
 	ApplyBlock      = "ApplyBlock"
 	Consensus       = "Consensus"
 	LastBlockTime   = "LastBlockTime"
