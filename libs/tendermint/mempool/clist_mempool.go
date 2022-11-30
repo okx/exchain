@@ -506,7 +506,9 @@ func (mem *CListMempool) reqResCbForP2P(
 
 func (mem *CListMempool) addTxJobForP2P() {
 	for item := range mem.addTxQueue {
+		mem.updateMtx.RLock()
 		mem.resCbFirstTime(item.tx, item.txInfo, item.res)
+		mem.updateMtx.RUnlock()
 	}
 }
 
