@@ -214,6 +214,15 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			" block.AppHash", fmt.Sprintf("%X", repairBlock.AppHash),
 			" Last BlockHash", fmt.Sprintf("%X", state.LastBlockID.Hash))
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
+		// try to re-correct the validator set
+		// https://github.com/tendermint/tendermint/issues/7394
+		if state.LastBlockHeight == stateCopy.LastBlockHeight {
+			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
+			state.LastValidators = stateCopy.LastValidators.Copy()
+			state.Validators = stateCopy.Validators.Copy()
+			state.NextValidators = stateCopy.NextValidators.Copy()
+			sm.SaveState(stateStoreDB, state)
+		}
 		fmt.Println("---After ApplyBlockWithTrace, repair height:", height,
 			" state LastHeightValidatorsChanged:", state.LastHeightValidatorsChanged,
 			" state.LastBlockHeight:", state.LastBlockHeight,
