@@ -147,7 +147,7 @@ func NewCListMempool(
 	if config.EnablePendingPool {
 		mempool.pendingPool = newPendingPool(config.PendingPoolSize, config.PendingPoolPeriod,
 			config.PendingPoolReserveBlocks, config.PendingPoolMaxTxPerAddress)
-		mempool.pendingPoolNotify = make(chan map[string]uint64, 1)
+		mempool.pendingPoolNotify = make(chan map[string]uint64, 1000)
 		go mempool.pendingPoolJob()
 	}
 
@@ -1098,7 +1098,12 @@ func (mem *CListMempool) Update(
 	// Update metrics
 	mem.metrics.Size.Set(float64(mem.Size()))
 	if mem.pendingPool != nil {
-		mem.pendingPoolNotify <- addressNonce
+		if len(mem.pendingPoolNotify) >= 1000 {
+			mem.logger.Error("mempool update", "can not consume pending pool")
+		} else {
+			mem.pendingPoolNotify <- addressNonce
+		}
+
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
 
