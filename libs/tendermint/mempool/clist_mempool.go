@@ -150,7 +150,7 @@ func NewCListMempool(
 		go mempool.pendingPoolJob()
 	}
 
-	mempool.addTxQueue = make(chan CheckTxItem, config.Size)
+	mempool.addTxQueue = make(chan CheckTxItem, 20000)
 	go mempool.addTxJobForP2P()
 
 	return mempool
@@ -572,7 +572,7 @@ func (mem *CListMempool) resCbFirstTimeP2P(
 			memTx.senders = make(map[uint16]struct{})
 			memTx.senders[txInfo.SenderID] = struct{}{}
 
-			if len(mem.addTxQueue) < mem.config.Size {
+			if len(mem.addTxQueue) < 20000 {
 				mem.addTxQueue <- CheckTxItem{memTx: memTx, res: r}
 			}
 
