@@ -1017,6 +1017,7 @@ func (mem *CListMempool) Update(
 	mem.logger.Error("mempool_to_update checktx time", "maxtime", mem.maxtime, "mintime", mem.mintime)
 	mem.mintime = time.Hour
 	mem.maxtime = time.Nanosecond
+	time0 := time.Now()
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
@@ -1070,6 +1071,7 @@ func (mem *CListMempool) Update(
 			mem.pendingPool.removeTxByHash(txID(tx, height))
 		}
 	}
+	time1 := time.Now()
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
 
@@ -1077,6 +1079,7 @@ func (mem *CListMempool) Update(
 		mem.txs.CleanItems(accAddr, accMaxNonce)
 	}
 
+	time2 := time.Now()
 	// Either recheck non-committed txs to see if they became invalid
 	// or just notify there're some txs left.
 	if mem.Size() > 0 {
@@ -1095,6 +1098,7 @@ func (mem *CListMempool) Update(
 		mem.cache.Reset()
 	}
 
+	time3 := time.Now()
 	// Update metrics
 	mem.metrics.Size.Set(float64(mem.Size()))
 	if mem.pendingPool != nil {
@@ -1107,6 +1111,7 @@ func (mem *CListMempool) Update(
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
 
+	time4 := time.Now()
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		mem.checkTxCost()
 	} else {
@@ -1115,11 +1120,12 @@ func (mem *CListMempool) Update(
 		atomic.StoreInt64(&mem.checkCnt, 0)
 	}
 
+	time5 := time.Now()
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
 	// already sorted int the last round (will only affect the account that send these txs).
-
+	mem.logger.Error("mempool update lifei", "time1", time1.Sub(time0), "time2", time2.Sub(time1), "time3", time3.Sub(time2), "time4", time4.Sub(time3), "time5", time5.Sub(time4))
 	return nil
 }
 
