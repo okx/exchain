@@ -12,7 +12,9 @@ import (
 // Used internally by handleTimeout and handleMsg to make state transitions
 
 // Enter: `timeoutNewHeight` by startTime (R0PrevoteTime+timeoutCommit),
-// 	or, if SkipTimeoutCommit==true, after receiving all precommits from (height,round-1)
+//
+//	or, if SkipTimeoutCommit==true, after receiving all precommits from (height,round-1)
+//
 // Enter: `timeoutPrecommits` after any +2/3 precommits from (height,round-1)
 // Enter: +2/3 precommits for nil at (height,round-1)
 // Enter: +2/3 prevotes any or +2/3 precommits for block or any from (height, round)
@@ -45,8 +47,14 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 		// Increment validators if necessary
 		validators := cs.Validators
 		if cs.Round < round {
+			logger.Error(" ---enterNewRound", fmt.Sprintf("%d:%d:%d", height, cs.Round, round))
+			// Update validator proposer priority and set state variables.
+			logger.Error("--Before IncrementProposerPriority, current vals")
+			logger.Error(fmt.Sprintf("%v", validators))
 			validators = validators.Copy()
 			validators.IncrementProposerPriority(round - cs.Round)
+			logger.Error("--After IncrementProposerPriority current vals:")
+			logger.Error(fmt.Sprintf("%v", validators))
 		}
 		cs.Validators = validators
 		cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping

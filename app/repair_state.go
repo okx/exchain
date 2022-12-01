@@ -113,6 +113,16 @@ func RepairState(ctx *server.Context, onStart bool) {
 	state, _, err := node.LoadStateFromDBOrGenesisDocProvider(stateStoreDB, genesisDocProvider)
 	panicError(err)
 
+	log.Println("--LoadStateFromDBOrGenesisDocProvider at Height:", state.LastBlockHeight,
+		",block hash", fmt.Sprintf("%X", state.LastBlockID.Hash),
+		".lastVSChanged:", state.LastHeightValidatorsChanged)
+	log.Println(" vals at Height:", state.LastBlockHeight)
+	log.Println(fmt.Sprintf("%v", state.LastValidators))
+	log.Println(" vals at Height:", state.LastBlockHeight+1)
+	log.Println(fmt.Sprintf("%v", state.Validators))
+	log.Println(" vals at Height:", state.LastBlockHeight+2)
+	log.Println(fmt.Sprintf("%v", state.NextValidators))
+
 	// load start version
 	startVersion := viper.GetInt64(FlagStartHeight)
 	if startVersion == 0 {
@@ -176,6 +186,14 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
+	log.Println("after constructStartState at Height:", state.LastBlockHeight,
+		".lastVSChanged:", state.LastHeightValidatorsChanged)
+	log.Println(" vals at Height:", state.LastBlockHeight)
+	log.Println(fmt.Sprintf("%v", state.LastValidators))
+	log.Println(" vals at Height:", state.LastBlockHeight+1)
+	log.Println(fmt.Sprintf("%v", state.Validators))
+	log.Println(" vals at Height:", state.LastBlockHeight+2)
+	log.Println(fmt.Sprintf("%v", state.NextValidators))
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	// repair state
 	eventBus := types.NewEventBus()
@@ -202,12 +220,12 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
+		log.Println("----Starts to repair block:", repairBlockMeta.Header.Height, fmt.Sprintf("%X", repairBlockMeta.Header.Hash()))
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
 		// use stateCopy to correct the repaired state
 		if state.LastBlockHeight == stateCopy.LastBlockHeight {
 			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
-			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
 			state.LastValidators = stateCopy.LastValidators.Copy()
 			state.Validators = stateCopy.Validators.Copy()
 			state.NextValidators = stateCopy.NextValidators.Copy()
@@ -286,7 +304,7 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 
 func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
 	stateCopy := state.Copy()
-	validators, err := sm.LoadValidators(stateStoreDB, startHeight)
+	validators, lastStoredHeight, err := sm.LoadValidatorsWithStoredHeight(stateStoreDB, startHeight)
 	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight-1)
 	if err != nil {
 		return stateCopy
@@ -304,6 +322,7 @@ func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64)
 	stateCopy.NextValidators = nextValidators
 	stateCopy.ConsensusParams = consensusParams
 	stateCopy.LastBlockHeight = startHeight
+	stateCopy.LastHeightValidatorsChanged = lastStoredHeight
 	return stateCopy
 }
 

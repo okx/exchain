@@ -270,8 +270,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
 	}
 
+	blockExec.logger.Error("updateState", "height", block.Height)
+	blockExec.logger.Error(" Before updateState current vals:")
+	blockExec.logger.Error(fmt.Sprintf("%v", state.Validators))
+	// Update validator proposer priority and set state variables.
+	blockExec.logger.Error("-- vals for height:", "height", block.Height+1)
+	blockExec.logger.Error(fmt.Sprintf("%v", state.NextValidators))
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
+	blockExec.logger.Error("-- After updateState, vals for height:", "height", block.Height+1+1)
+	blockExec.logger.Error(fmt.Sprintf("%v", state.NextValidators))
 	if err != nil {
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
