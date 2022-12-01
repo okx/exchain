@@ -306,7 +306,9 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
-	app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
+	}
 
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
@@ -361,7 +363,9 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
-	app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
+	}
 
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?

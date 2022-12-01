@@ -356,8 +356,9 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
-
-	app.updateGPOHandler(app.parallelTxManage.dynamicGpInfos)
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler(app.parallelTxManage.dynamicGpInfos)
+	}
 
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
