@@ -709,8 +709,8 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 		currentBlockGPsCopy := app.gpo.CurrentBlockGPs.Copy()
 		_ = app.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
 		GlobalGp = app.gpo.RecommendGP()
+		app.gpo.CurrentBlockGPs.Clear()
 	}
-	app.gpo.CurrentBlockGPs.Clear()
 
 	return app.mm.EndBlock(ctx, req)
 }
