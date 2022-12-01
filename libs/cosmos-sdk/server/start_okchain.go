@@ -198,7 +198,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmtypes.FlagBlockCompressFlag, 0, "block compress flag. 0|1|2")
 	cmd.Flags().Int(tmtypes.FlagBlockCompressThreshold, 1024000, "Compress only if block size exceeds the threshold.")
 	cmd.Flags().Bool(FlagActiveViewChange, false, "Enable active view change")
-	cmd.Flags().String(FlagAVCWhiteList, "mainnet", "active view change white list")
+	cmd.Flags().String(FlagAVCWhiteList, "mainnetnodeids", "active view change white list")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 10000000, "Max size of iavl cache")
 	cmd.Flags().Float64(tmiavl.FlagIavlCacheInitRatio, 1, "iavl cache init ratio, 0.0~1.0, default is 0, iavl cache map would be init with (cache size * init ratio)")
