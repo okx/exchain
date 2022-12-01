@@ -172,10 +172,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.feeCollector = sdk.Coins{}
 	app.feeChanged = false
 	// clean FeeSplitCollector
-	app.FeeSplitCollector.Range(func(key, value interface{}) bool {
-		app.FeeSplitCollector.Delete(key)
-		return true
-	})
+	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 
 	return res
 }
