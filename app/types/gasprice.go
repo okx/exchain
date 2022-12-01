@@ -53,7 +53,8 @@ func (bgp *SingleBlockGPs) AddSampledGP(gp *big.Int) {
 }
 
 func (bgp *SingleBlockGPs) Update(gp *big.Int, gas uint64) {
-	bgp.all = append(bgp.all, gp)
+	gpCopy := new(big.Int).Set(gp)
+	bgp.all = append(bgp.all, gpCopy)
 	bgp.gasUsed += gas
 }
 
