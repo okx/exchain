@@ -36,6 +36,18 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		w.saveTx(watchTx)
 		if resp != nil && !resp.IsOK() {
 			w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+			return
+		}
+		if resp != nil && resp.IsOK() && !w.IsRealEvmTx(resp) { // for evm2cm
+			msgs := realTx.GetMsgs()
+			if len(msgs) == 0 {
+				return
+			}
+			evmTx, ok := msgs[0].(*types.MsgEthereumTx)
+			if !ok {
+				return
+			}
+			w.SaveTransactionReceipt(TransactionSuccess, evmTx, watchTx.GetTxHash(), watchTx.GetIndex(), &types.ResultData{}, uint64(resp.GasUsed))
 		}
 	case sdk.StdTxType:
 		w.blockStdTxs = append(w.blockStdTxs, common.BytesToHash(realTx.TxHash()))
@@ -47,6 +59,20 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		}
 		w.saveStdTxResponse(txResult)
 	}
+}
+
+func (w *Watcher) IsRealEvmTx(resp *tm.ResponseDeliverTx) bool {
+	for _, ev := range resp.Events {
+		if ev.Type == sdk.EventTypeMessage {
+			for _, attr := range ev.Attributes {
+				if string(attr.Key) == sdk.AttributeKeyModule &&
+					string(attr.Value) == types.AttributeValueCategory {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (w *Watcher) getRealTx(tx tm.TxEssentials, txDecoder sdk.TxDecoder) (sdk.Tx, error) {
