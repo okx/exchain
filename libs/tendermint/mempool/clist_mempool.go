@@ -106,14 +106,12 @@ type CheckTxItem struct {
 
 func (item CheckTxItem) Do() {
 	mem := item.mem
-	mem.updateMtx.RLock()
 	var err error
 	if mem.pendingPool != nil {
 		err = mem.addPendingTx(item.memTx)
 	} else {
 		err = mem.addTx(item.memTx)
 	}
-	mem.updateMtx.RUnlock()
 	if err == nil {
 		mem.logAddTx(item.memTx, item.res)
 		mem.notifyTxsAvailable()
