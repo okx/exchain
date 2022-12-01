@@ -2,11 +2,12 @@ package websockets
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -428,7 +429,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn, isDetail bool) 
 				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
 				var res interface{} = txHash
 				if isDetail {
-					ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, data.Tx)
+					ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, data.Tx, data.Height)
 					if err != nil {
 						api.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
 						continue
