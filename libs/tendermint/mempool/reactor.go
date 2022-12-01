@@ -269,7 +269,9 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 	mem := memR.mempool
-	mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo}
+	if mem.isFull(len(tx)) == nil {
+		mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo}
+	}
 }
 
 // PeerState describes the state of a peer.
