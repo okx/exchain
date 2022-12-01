@@ -100,6 +100,39 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func queryValidatorCM45(cliCtx context.CLIContext, endpoint string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bech32ValAddr := mux.Vars(r)["validatorAddr"]
+
+		validatorAddr, err := sdk.ValAddressFromBech32(bech32ValAddr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, types.CodeBadValidatorAddr, "validator address is invalid")
+			return
+		}
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		params := types.NewQueryValidatorParams(validatorAddr)
+
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(endpoint, bz)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
 
 		//format validator to be compatible with cosmos v0.45.1
 		var val types.Validator

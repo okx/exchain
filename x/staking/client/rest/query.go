@@ -60,7 +60,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// query the all shares on a validator
 	r.HandleFunc(
-		"/cosmos/staking/v1beta1/validators/{validatorAddr}/shares",
+		"/staking/validators/{validatorAddr}/shares",
 		validatorAllSharesHandlerFn(cliCtx),
 	).Methods("GET")
 
@@ -68,6 +68,11 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
 		"/staking/validators",
 		validatorsHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/staking/validators/{validatorAddr}",
+		validatorHandlerFn(cliCtx),
 	).Methods("GET")
 
 	// Get HistoricalInfo at a given height
@@ -78,13 +83,13 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// get the current state of the staking pool
 	r.HandleFunc(
-		"/cosmos/staking/v1beta1/pool",
+		"/staking/pool",
 		poolHandlerFn(cliCtx),
 	).Methods("GET")
 
 	// get the current staking parameter values
 	r.HandleFunc(
-		"/cosmos/staking/v1beta1/params",
+		"/staking/params",
 		paramsHandlerFn(cliCtx),
 	).Methods("GET")
 
@@ -112,10 +117,29 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		validatorsCM45HandlerFn(cliCtx),
 	).Methods("GET")
 
-	// get a single validator info
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/validators/{validatorAddr}",
-		validatorHandlerFn(cliCtx),
+		validatorHandlerFnCM45(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/delegators/{delegatorAddr}/unbonding_delegations",
+		delegatorUnbondingDelegationsHandlerFnCM45(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/delegations/{delegatorAddr}",
+		delegatorHandlerFnCM45(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/pool",
+		poolHandlerFnCM45(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/params",
+		paramsHandlerFnCM45(cliCtx),
 	).Methods("GET")
 }
 
@@ -149,6 +173,42 @@ func delegatorUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.Hand
 	return queryDelegator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation))
 }
 
+func delegatorUnbondingDelegationsHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bech32DelAddr := mux.Vars(r)["delegatorAddr"]
+
+		delegatorAddr, err := sdk.AccAddressFromBech32(bech32DelAddr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, types.CodeNoDelegatorExisted, err.Error())
+			return
+		}
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		params := types.NewQueryDelegatorParams(delegatorAddr)
+
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, uint32(common.ErrorABCIQueryFails), err.Error())
+			return
+		}
+		var undelegationInfo types.UndelegationInfo
+		cliCtx.Codec.MustUnmarshalJSON(res, &undelegationInfo)
+		unbondingResp := types.NewUnbondingResponse(undelegationInfo)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, unbondingResp)
+	}
+}
+
 func delegatorUnbondingDelegationsHandlerFn2(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryBonds(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation2))
 }
@@ -156,6 +216,42 @@ func delegatorUnbondingDelegationsHandlerFn2(cliCtx context.CLIContext) http.Han
 // HTTP request handler to query the info of a delegator
 func delegatorHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryDelegator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator))
+}
+
+func delegatorHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bech32DelAddr := mux.Vars(r)["delegatorAddr"]
+
+		delegatorAddr, err := sdk.AccAddressFromBech32(bech32DelAddr)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, types.CodeNoDelegatorExisted, err.Error())
+			return
+		}
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		params := types.NewQueryDelegatorParams(delegatorAddr)
+
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator), bz)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, uint32(common.ErrorABCIQueryFails), err.Error())
+			return
+		}
+		var delegator types.Delegator
+		cliCtx.Codec.MustUnmarshalJSON(res, &delegator)
+		delegationResp := types.NewDelegationResponse(delegator)
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, delegationResp)
+	}
 }
 
 // HTTP request handler to query the all shares added to a validator
@@ -290,8 +386,29 @@ func validatorHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryValidator(cliCtx, "custom/staking/validator")
 }
 
+func validatorHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
+	return queryValidatorCM45(cliCtx, "custom/staking/validator")
+}
+
 // HTTP request handler to query the pool information
 func poolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData("custom/staking/pool", nil)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func poolHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
@@ -313,6 +430,23 @@ func poolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 // HTTP request handler to query the staking params values
 func paramsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData("custom/staking/parameters", nil)
+		if err != nil {
+			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
+			return
+		}
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func paramsHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {

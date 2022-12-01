@@ -75,6 +75,12 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 		"/distribution/delegators/{delegatorAddr}/validators",
 		delegatorValidatorsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
+
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc(
+		"/cosmos/distribution/v1beta1/delegators/{delegatorAddr}/rewards",
+		delegatorRewardsHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
 }
 
 // HTTP request handler to query a delegation rewards
