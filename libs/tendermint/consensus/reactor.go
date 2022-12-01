@@ -372,7 +372,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	switch chID {
 	case ViewChangeChannel:
-		if !GetActiveVC() || !conR.avcWhiteList[string(src.ID())] {
+		if !GetActiveVC() {
 			return
 		}
 		switch msg := msg.(type) {
@@ -387,6 +387,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeResponseMessage:
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
+			if !conR.avcWhiteList[string(src.ID())] {
+				return
+			}
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
 			height := conR.conS.Height
