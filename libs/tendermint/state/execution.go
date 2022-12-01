@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/tendermint/go-amino"
 )
 
 // -----------------------------------------------------------------------------
@@ -376,38 +375,8 @@ func (blockExec *BlockExecutor) commit(
 	deliverTxResponses []*abci.ResponseDeliverTx,
 	trc *trace.Tracer,
 ) (*abci.ResponseCommit, int64, error) {
-	blockExec.logger.Error(
-		"mempool_to_commit begin",
-		"height", block.Height,
-		"tx.length", len(block.Txs),
-	)
-	begin := time.Now()
-	blockExec.mempool.Lock()
-	blockExec.logger.Error(
-		"mempool_to_commit middle",
-		"height", block.Height,
-		"middletime during", time.Since(begin),
-	)
-	defer func() {
-		blockExec.mempool.Unlock()
-		blockExec.logger.Error(
-			"mempool_to_commit end",
-			"height", block.Height,
-			"time during", time.Since(begin),
-		)
-		// Forced flushing mempool
-		if cfg.DynamicConfig.GetMempoolFlush() {
-			blockExec.mempool.Flush()
-		}
-	}()
 
-	// while mempool is Locked, flush to ensure all async requests have completed
-	// in the ABCI app before Commit.
-	err := blockExec.mempool.FlushAppConn()
-	if err != nil {
-		blockExec.logger.Error("Client error during mempool.FlushAppConn", "err", err)
-		return nil, 0, err
-	}
+	begin := time.Now()
 
 	// Commit block, get hash back
 	var treeDeltaMap interface{}
@@ -423,14 +392,59 @@ func (blockExec *BlockExecutor) commit(
 		return nil, 0, err
 	}
 
-	// ResponseCommit has no error code - just data
-	blockExec.logger.Debug(
-		"Committed state",
+	go func() {
+		if err := blockExec.mempool_commit(state, block, deltaInfo, deliverTxResponses, trc); err != nil {
+			blockExec.logger.Error("blk_commit", "err", err)
+		}
+	}()
+
+	blockExec.logger.Error(
+		"blk_commit_end",
 		"height", block.Height,
-		"txs", len(block.Txs),
-		"appHash", amino.BytesHexStringer(res.Data),
-		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
+		"time during", time.Since(begin),
 	)
+	return res, res.RetainHeight, err
+}
+
+func (blockExec *BlockExecutor) mempool_commit(
+	state State,
+	block *types.Block,
+	deltaInfo *DeltaInfo,
+	deliverTxResponses []*abci.ResponseDeliverTx,
+	trc *trace.Tracer,
+) error {
+	blockExec.logger.Error(
+		"mempool_to_commit_begin",
+		"height", block.Height,
+		"tx.length", len(block.Txs),
+	)
+	begin := time.Now()
+	blockExec.mempool.Lock()
+	blockExec.logger.Error(
+		"mempool_to_commit_middle",
+		"height", block.Height,
+		"middletime during", time.Since(begin),
+	)
+	defer func() {
+		blockExec.mempool.Unlock()
+		blockExec.logger.Error(
+			"mempool_to_commit_end",
+			"height", block.Height,
+			"time during", time.Since(begin),
+		)
+		// Forced flushing mempool
+		if cfg.DynamicConfig.GetMempoolFlush() {
+			blockExec.mempool.Flush()
+		}
+	}()
+
+	// while mempool is Locked, flush to ensure all async requests have completed
+	// in the ABCI app before Commit.
+	err := blockExec.mempool.FlushAppConn()
+	if err != nil {
+		blockExec.logger.Error("Client error during mempool.FlushAppConn", "err", err)
+		return err
+	}
 
 	//trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
@@ -453,7 +467,7 @@ func (blockExec *BlockExecutor) commit(
 		})
 	}
 
-	return res, res.RetainHeight, err
+	return err
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
