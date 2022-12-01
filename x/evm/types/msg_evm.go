@@ -59,18 +59,18 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 // GetFrom returns sender address of MsgEthereumTx if signature is valid, or returns "".
 func (tx *MsgEthereumTx) GetFrom() string {
 	from := tx.BaseTx.GetFrom()
-	if from == "" {
-		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
-		if from == "" {
-			addr, err := tx.firstVerifySig(tx.ChainID())
-			if err != nil {
-				return ""
-			}
-			return EthAddressToString(&addr)
-		}
+	if from != "" {
+		return from
 	}
-
-	return from
+	from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
+	if from != "" {
+		return from
+	}
+	err := tx.firstVerifySig(tx.ChainID())
+	if err != nil {
+		return ""
+	}
+	return tx.BaseTx.GetFrom()
 }
 
 func (msg MsgEthereumTx) GetSender(ctx sdk.Context) string {
@@ -325,13 +325,13 @@ var sigBigNumPool = &sync.Pool{
 	},
 }
 
-func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, error) {
+func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 	var V *big.Int
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
-			return emptyEthAddr, errors.New("chainID cannot be zero")
+			return errors.New("chainID cannot be zero")
 		}
 
 		bigNum := sigBigNumPool.Get().(*big.Int)
@@ -352,9 +352,13 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, erro
 
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, &sigHash)
 	if err != nil {
-		return emptyEthAddr, err
+		return err
 	}
-	return sender, nil
+	from := EthAddressToString(&sender)
+	tmtypes.SignatureCache().Add(msg.TxHash(), from)
+	msg.BaseTx.From = from
+	msg.addr = sender
+	return nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
@@ -371,14 +375,10 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 		msg.SetFrom(from)
 		return nil
 	}
-	addr, err := msg.firstVerifySig(chainID)
+	err := msg.firstVerifySig(chainID)
 	if err != nil {
 		return err
 	}
-	from = EthAddressToString(&addr)
-	tmtypes.SignatureCache().Add(msg.TxHash(), from)
-	msg.BaseTx.From = from
-	msg.addr = addr
 	return nil
 }
 

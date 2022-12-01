@@ -9,6 +9,9 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -25,8 +28,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // exchain full-node start flags
@@ -40,6 +41,10 @@ const (
 	FlagHookstartInProcess = "startInProcess"
 	FlagWsMaxConnections   = "ws.max_connections"
 	FlagWsSubChannelLength = "ws.sub_channel_length"
+)
+
+var (
+	ChainID = "exchain-66"
 )
 
 //module hook
@@ -56,7 +61,7 @@ func InstallHookEx(flag string, hooker fnHookstartInProcess) {
 	gSrvHookTable.hookTable[flag] = hooker
 }
 
-//call hooker function
+// call hooker function
 func callHooker(flag string, args ...interface{}) error {
 	params := make([]interface{}, 0)
 	switch flag {
@@ -166,7 +171,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(FlagInterBlockCache, true, "Enable inter-block caching")
 	cmd.Flags().String(flagCPUProfile, "", "Enable CPU profiling and write to the provided file")
 
-	cmd.Flags().String(FlagPruning, storetypes.PruningOptionDefault, "Pruning strategy (default|nothing|everything|custom)")
+	cmd.Flags().String(FlagPruning, storetypes.PruningOptionEverything, "Pruning strategy (default|nothing|everything|custom)")
 	cmd.Flags().Uint64(FlagPruningKeepRecent, 0, "Number of recent heights to keep on disk (ignored if pruning is not 'custom')")
 	cmd.Flags().Uint64(FlagPruningKeepEvery, 0, "Offset heights to keep on disk after 'keep-every' (ignored if pruning is not 'custom')")
 	cmd.Flags().Uint64(FlagPruningInterval, 0, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom')")
@@ -194,17 +199,20 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmtypes.FlagBlockCompressThreshold, 1024000, "Compress only if block size exceeds the threshold.")
 	cmd.Flags().Bool(FlagActiveViewChange, false, "Enable active view change")
 
-	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
+	cmd.Flags().Int(iavl.FlagIavlCacheSize, 10000000, "Max size of iavl cache")
 	cmd.Flags().Float64(tmiavl.FlagIavlCacheInitRatio, 1, "iavl cache init ratio, 0.0~1.0, default is 0, iavl cache map would be init with (cache size * init ratio)")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64(tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
 	cmd.Flags().Int64(tmiavl.FlagIavlMinCommitItemCount, 1000000, "Min nodes num to triggle node cache commit")
 	cmd.Flags().Int(tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().Int(tmiavl.FlagIavlMaxCommittedHeightNum, 30, "Max committed version to cache in memory")
-	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, false, "Enable async commit")
+	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, true, "Enable async commit")
+	cmd.Flags().Bool(tmiavl.FlagIavlDiscardFastStorage, false, "Discard fast storage")
+	cmd.Flags().MarkHidden(tmiavl.FlagIavlDiscardFastStorage)
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableFastStorage, false, "Enable fast storage")
-	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 100000, "Max size of iavl fast storage cache")
-	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
+	cmd.Flags().MarkHidden(tmiavl.FlagIavlEnableFastStorage)
+	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, tmiavl.DefaultIavlFastStorageCacheSize, "Max size of iavl fast storage cache")
+	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, true, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
 	cmd.Flags().Bool(sdkstoretypes.FlagLoadVersionAsync, false, "Enable async for each kvstore to load version")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
@@ -217,7 +225,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 
-	cmd.Flags().Bool(sdk.FlagMultiCache, true, "Enable multi cache")
+	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
+	cmd.Flags().MarkHidden(sdk.FlagMultiCache)
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
@@ -237,6 +246,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	viper.BindPFlag(FlagGoroutineNum, cmd.Flags().Lookup(FlagGoroutineNum))
 
 	cmd.Flags().Int(state.FlagDeliverTxsExecMode, 0, "Execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
+	cmd.Flags().Bool(state.FlagEnableConcurrency, false, "Enable concurrency for deliver txs")
 
 	cmd.Flags().String(FlagListenAddr, "tcp://0.0.0.0:26659", "EVM RPC and cosmos-sdk REST API listen address.")
 	cmd.Flags().String(FlagUlockKey, "", "Select the keys to unlock on the RPC server")
@@ -247,7 +257,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
-	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
+	cmd.Flags().String(flags.FlagChainID, ChainID, "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
 	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
@@ -284,7 +294,7 @@ set --node-mode=rpc to manage the following flags:
 set --node-mode=validator to manage the following flags:
 	--disable-checktx-mutex=true
 	--disable-query-mutex=true
-	--enable-dynamic-gp=false
+	--dynamic-gp-mode=2
 	--iavl-enable-async-commit=true
 	--iavl-cache-size=10000000
 	--pruning=everything

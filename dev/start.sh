@@ -28,7 +28,7 @@ run() {
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
-      --enable-dynamic-gp=false \
+      --dynamic-gp-mode=2 \
       --consensus.timeout_commit 2000ms \
       --enable-preruntx=1 \
       --iavl-enable-async-commit \
