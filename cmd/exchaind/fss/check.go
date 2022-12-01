@@ -77,7 +77,7 @@ func checkIndex(mutableTree *iavl.MutableTree) error {
 	for fastIterator.Valid() && iterator.Valid() {
 		if bytes.Compare(fastIterator.Key(), iterator.Key()) != 0 ||
 			bytes.Compare(fastIterator.Value(), iterator.Value()) != 0 {
-			return fmt.Errorf("fast index key:%v value:%v, iavl node key:%v iavl node value:%v",
+			return fmt.Errorf("fast index key:%x value:%x, iavl node key:%x iavl node value:%x",
 				fastIterator.Key(), fastIterator.Value(), iterator.Key(), iterator.Value())
 		}
 		if counter%verboseGap == 0 {
