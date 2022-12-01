@@ -94,13 +94,48 @@ type CListMempool struct {
 	maxtime time.Duration
 	mintime time.Duration
 
-	addTxQueue chan CheckTxItem
+	addTxQueue chan *CheckTxItem
+	p          *WorkerPool
 }
 
 type CheckTxItem struct {
+	mem   *CListMempool
 	memTx *mempoolTx
 	res   *abci.Response_CheckTx
 }
+
+func (item CheckTxItem) Do() {
+	mem := item.mem
+	mem.updateMtx.RLock()
+	var err error
+	if mem.pendingPool != nil {
+		err = mem.addPendingTx(item.memTx)
+	} else {
+		err = mem.addTx(item.memTx)
+	}
+	mem.updateMtx.RUnlock()
+	if err == nil {
+		mem.logAddTx(item.memTx, item.res)
+		mem.notifyTxsAvailable()
+	} else {
+		var txHash []byte
+		if item.res.CheckTx != nil && item.res.CheckTx.Tx != nil {
+			txHash = item.res.CheckTx.Tx.TxHash()
+		}
+		txkey := txOrTxHashToKey(item.memTx.tx, txHash, mem.height)
+
+		mem.metrics.FailedTxs.Add(1)
+		// remove from cache (it might be good later)
+		mem.cache.RemoveKey(txkey)
+	}
+}
+
+func (item *CheckTxItem) Reset() {
+	item.memTx = nil
+	item.res = nil
+}
+
+var checkItem = sync.Pool{}
 
 var _ Mempool = &CListMempool{}
 
@@ -150,9 +185,16 @@ func NewCListMempool(
 		go mempool.pendingPoolJob()
 	}
 
-	mempool.addTxQueue = make(chan CheckTxItem, 20000)
+	mempool.addTxQueue = make(chan *CheckTxItem, 2000)
 	go mempool.addTxJobForP2P()
 
+	p := NewWorkerPool(40)
+	mempool.p = p
+	p.Run()
+
+	checkItem.New = func() interface{} {
+		return &CheckTxItem{mem: mempool}
+	}
 	return mempool
 }
 
@@ -572,9 +614,11 @@ func (mem *CListMempool) resCbFirstTimeP2P(
 			memTx.senders = make(map[uint16]struct{})
 			memTx.senders[txInfo.SenderID] = struct{}{}
 
-			if len(mem.addTxQueue) < 20000 {
-				mem.addTxQueue <- CheckTxItem{memTx: memTx, res: r}
-			}
+			item := checkItem.Get().(*CheckTxItem)
+			item.memTx = memTx
+			item.res = r
+
+			mem.addTxQueue <- item
 
 		} else {
 			// ignore bad transaction
@@ -591,29 +635,7 @@ func (mem *CListMempool) resCbFirstTimeP2P(
 
 func (mem *CListMempool) addTxJobForP2P() {
 	for item := range mem.addTxQueue {
-		mem.updateMtx.RLock()
-		var err error
-		if mem.pendingPool != nil {
-			err = mem.addPendingTx(item.memTx)
-		} else {
-			err = mem.addTx(item.memTx)
-		}
-		mem.updateMtx.RUnlock()
-		if err == nil {
-			mem.logAddTx(item.memTx, item.res)
-			mem.notifyTxsAvailable()
-		} else {
-			var txHash []byte
-			if item.res.CheckTx != nil && item.res.CheckTx.Tx != nil {
-				txHash = item.res.CheckTx.Tx.TxHash()
-			}
-			txkey := txOrTxHashToKey(item.memTx.tx, txHash, mem.height)
-
-			mem.metrics.FailedTxs.Add(1)
-			// remove from cache (it might be good later)
-			mem.cache.RemoveKey(txkey)
-
-		}
+		mem.p.JobQueue <- item
 	}
 }
 
