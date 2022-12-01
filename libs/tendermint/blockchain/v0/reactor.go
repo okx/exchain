@@ -3,7 +3,6 @@ package v0
 import (
 	"errors"
 	"fmt"
-	log2 "log"
 	"reflect"
 	"sync"
 	"time"
@@ -263,7 +262,7 @@ func (bcR *BlockchainReactor) poolRoutine() {
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
 		conState, err := conR.SwitchToFastSync()
-		log2.Println("--Init SwitchToFastSync vstate:", conState.Validators, conState.LastBlockHeight)
+		bcR.Logger.Error("--Init SwitchToFastSync vstate:", conState.Validators, conState.LastBlockHeight)
 		if err == nil {
 			bcR.curState = conState
 		}
@@ -385,7 +384,7 @@ FOR_LOOP:
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
-				log2.Println("--Fast sync ApplyBlockWithTrace", first.Height)
+				bcR.Logger.Error("--Fast sync ApplyBlockWithTrace", first.Height)
 				bcR.curState, _, err = bcR.blockExec.ApplyBlockWithTrace(bcR.curState, firstID, first) // rpc
 				if err != nil {
 					// TODO This is bad, are we zombie?

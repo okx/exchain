@@ -3,8 +3,6 @@ package state
 import (
 	"bytes"
 	"fmt"
-	log2 "log"
-
 	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -527,7 +525,7 @@ func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *type
 	if height == lastHeightChanged || height%valSetCheckpointInterval == 0 {
 		valInfo.ValidatorSet = valSet
 	}
-	log2.Println("--saveValidatorsInfo:", valInfo)
+	fmt.Println("--saveValidatorsInfo for height:", height, "valInfo:", valInfo)
 	db.Set(calcValidatorsKey(height), valInfo.Bytes())
 }
 

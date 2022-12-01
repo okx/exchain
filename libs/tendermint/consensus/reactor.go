@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/pkg/errors"
-	log2 "log"
 	"reflect"
 	"sync"
 	"time"
@@ -156,7 +155,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
-	log2.Println("SwitchToConsensus")
+	conR.Logger.Error("SwitchToConsensus")
 
 	defer func() {
 		conR.setFastSyncFlag(false, 0)
@@ -189,7 +188,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.Logger.Info("SwitchToFastSync")
-	log2.Println("SwitchToFastSync")
+	conR.Logger.Error("SwitchToFastSync")
 
 	defer func() {
 		conR.setFastSyncFlag(true, 1)

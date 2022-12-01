@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	log2 "log"
 	"strconv"
 	"time"
 
@@ -272,7 +271,12 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 
 	// Update the state with the block and responses.
+	blockExec.logger.Error("updateState at Height:", block.Height)
+	blockExec.logger.Error(" Before updateState, current vals:", state.Validators)
+	// Update validator proposer priority and set state variables.
+	blockExec.logger.Error("-- vals for height:", block.Height+1, "vals:", state.NextValidators)
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
+	blockExec.logger.Error("-- After updateState, vals for height:", block.Height+1+1, "vals:", state.NextValidators)
 	if err != nil {
 		return state, 0, fmt.Errorf("commit failed for application: %v", err)
 	}
@@ -662,12 +666,8 @@ func updateState(
 		// Change results from this height but only applies to the next next height.
 		lastHeightValsChanged = header.Height + 1 + 1
 	}
-	log2.Println("updateState at Height:", header.Height)
-	log2.Println(" current vals:", state.Validators)
-	// Update validator proposer priority and set state variables.
-	log2.Println("--Before IncrementProposerPriority, vals for height:", header.Height+1, "vals:", nValSet)
+
 	nValSet.IncrementProposerPriority(1)
-	log2.Println("--After IncrementProposerPriority, vals for height:", header.Height+1+1, "vals:", nValSet)
 
 	// Update the params with the latest abciResponses.
 	nextParams := state.ConsensusParams

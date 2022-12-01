@@ -5,7 +5,6 @@ import (
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	log2 "log"
 )
 
 //-----------------------------------------------------------------------------
@@ -49,11 +48,11 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 		validators := cs.Validators
 		if cs.Round < round {
 			validators = validators.Copy()
-			log2.Println(" ---enterNewRound", height, cs.Round, round)
+			logger.Error(" ---enterNewRound", height, cs.Round, round)
 			// Update validator proposer priority and set state variables.
-			log2.Println("--Before IncrementProposerPriority, current vals:", validators)
+			logger.Error("--Before IncrementProposerPriority, current vals:", validators)
 			validators.IncrementProposerPriority(round - cs.Round)
-			log2.Println("--After IncrementProposerPriority, current vals:", validators)
+			logger.Error("--After IncrementProposerPriority, current vals:", validators)
 		}
 		cs.Validators = validators
 		cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
