@@ -50,11 +50,67 @@ func TestMsgEthereumTx(t *testing.T) {
 	require.Equal(t, msg.GetMsgs(), []sdk.Msg{msg})
 	require.Panics(t, func() { msg.GetSigners() })
 	require.Panics(t, func() { msg.GetSignBytes() })
+	require.Equal(t, msg.GetNonce(), uint64(0))
 
 	msg = NewMsgEthereumTxContract(0, nil, 100000, nil, []byte("test"))
 	require.NotNil(t, msg)
 	require.Nil(t, msg.Data.Recipient)
 	require.Nil(t, msg.To())
+
+}
+
+func TestTxFnSignatureInfo(t *testing.T) {
+	type expected struct {
+		sig []byte
+		i   int
+	}
+	testCases := []struct {
+		msg      string
+		fn       func() *MsgEthereumTx
+		expected expected
+	}{
+		{
+			"receipt not nil should equal",
+			func() *MsgEthereumTx {
+				addr := ethcmn.BytesToAddress([]byte("test_address"))
+				msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
+				return msg
+			},
+			expected{
+				[]byte{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x74, 0x65, 0x73, 0x74, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x74, 0x65, 0x73, 0x74},
+				0,
+			},
+		},
+		{
+			"payload below 4 bytes should DefaultSendCoinFnSignature",
+			func() *MsgEthereumTx {
+				addr := ethcmn.BytesToAddress([]byte("test_address"))
+				msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("t"))
+				return msg
+			},
+			expected{
+				DefaultSendCoinFnSignature,
+				0,
+			},
+		},
+		{
+			"receipt nil should be DefaultDeployContractFnSignature",
+			func() *MsgEthereumTx {
+				msg := NewMsgEthereumTx(0, nil, nil, 100000, nil, []byte("t"))
+				return msg
+			},
+			expected{
+				DefaultDeployContractFnSignature,
+				1,
+			},
+		},
+	}
+	for _, tc := range testCases {
+		msg := tc.fn()
+		r, i := msg.GetTxFnSignatureInfo()
+		require.Equal(t, tc.expected.i, i)
+		require.Equal(t, tc.expected.sig, r)
+	}
 }
 
 func TestMsgEthereumTxValidation(t *testing.T) {
@@ -171,6 +227,15 @@ func TestMsgEthereumTx_ChainID(t *testing.T) {
 	msg.Data.V = math.MaxBig256
 	expectedChainID := new(big.Int).Div(new(big.Int).Sub(math.MaxBig256, big.NewInt(35)), big.NewInt(2))
 	require.True(t, expectedChainID.Cmp(msg.ChainID()) == 0)
+}
+
+func TestGetTxFnSignatureInfo(t *testing.T) {
+	chainID := big.NewInt(3)
+	priv, _ := ethsecp256k1.GenerateKey()
+	addr := ethcmn.BytesToAddress(priv.PubKey().Address().Bytes())
+	msg := NewMsgEthereumTx(0, &addr, nil, 100000, nil, []byte("test"))
+	err := msg.Sign(chainID, priv.ToECDSA())
+	require.Nil(t, err)
 }
 
 func TestMsgEthereumTxGetter(t *testing.T) {
@@ -445,7 +510,7 @@ func BenchmarkEvmTxVerifySig(b *testing.B) {
 	b.Run("firstVerifySig", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := msg.firstVerifySig(chainID)
+			err := msg.firstVerifySig(chainID)
 			if err != nil {
 				b.Fatal(err)
 			}

@@ -94,8 +94,11 @@ func (k Keeper) PostTxProcessing(
 	}
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
-	// distribute the fees to the contract deployer / withdraw address
-	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
+	//distribute the fees to the contract deployer / withdraw address
+	f := ctx.GetFeeSplitInfo()
+	f.Addr = withdrawer
+	f.Fee = fees
+	f.HasFee = true
 
 	// add innertx
 	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
