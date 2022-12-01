@@ -19,7 +19,7 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 type (
 	// Enum mode for executing [deliverTx, ...]
 	DeliverTxsExecMode int
@@ -34,6 +34,7 @@ const (
 	// 1: execute [deliverTx,...] deprecated
 	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
+	FlagEnableConcurrency  = "enable-concurrency"
 )
 
 // BlockExecutor handles block execution and state updates.
@@ -207,6 +208,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
 	trc.EnableSummary()
+	trc.SetWorkloadStatistic(trace.GetApplyBlockWorkloadSttistic())
 	dc := blockExec.deltaContext
 
 	defer func() {
@@ -214,6 +216,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
 		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
+		trace.GetElapsedInfo().AddInfo(trace.Workload, trace.GetApplyBlockWorkloadSttistic().Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
 		now := time.Now().UnixNano()
@@ -237,13 +240,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
+	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, time.Now(), duration)
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
 	}
 
 	fail.Fail() // XXX
-
 
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
@@ -290,7 +293,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
-
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
@@ -327,9 +329,10 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 
 	if deltaInfo != nil {
 		blockExec.logger.Info("Apply delta", "height", block.Height, "deltas-length", deltaInfo.deltaLen)
-
+		t0 := time.Now()
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
+		duration = time.Now().Sub(t0)
 	} else {
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {

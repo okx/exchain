@@ -2,14 +2,19 @@ package config
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	tmiavl "github.com/okex/exchain/libs/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
@@ -32,12 +37,18 @@ type OecConfig struct {
 	mempoolForceRecheckGap int64
 	// mempool.size
 	mempoolSize int
+	// mempool.cache_size
+	mempoolCacheSize int
 	// mempool.flush
 	mempoolFlush bool
 	// mempool.max_tx_num_per_block
 	maxTxNumPerBlock int64
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
+	// mempool.enable-pgu
+	enablePGU bool
+	// mempool.pgu-adjustment
+	pguAdjustment float64
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
 	//mempool.check_tx_cost
@@ -47,12 +58,21 @@ type OecConfig struct {
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
+
 	// enable-dynamic-gp
 	enableDynamicGp bool
 	// dynamic-gp-weight
 	dynamicGpWeight int
 	// dynamic-gp-check-blocks
 	dynamicGpCheckBlocks int
+	// dynamic-gp-coefficient
+	dynamicGpCoefficient int
+	// dynamic-gp-max-gas-used
+	dynamicGpMaxGasUsed int64
+	// dynamic-gp-max-tx-num
+	dynamicGpMaxTxNum int64
+	// dynamic-gp-mode
+	dynamicGpMode int
 
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
@@ -71,6 +91,11 @@ type OecConfig struct {
 
 	// iavl-cache-size
 	iavlCacheSize int
+	// commit-gap-height
+	commitGapHeight int64
+
+	// iavl-fast-storage-cache-size
+	iavlFSCacheSize int64
 
 	// enable-wtx
 	enableWtx bool
@@ -95,21 +120,27 @@ type OecConfig struct {
 const (
 	FlagEnableDynamic = "config.enable-dynamic"
 
-	FlagMempoolRecheck         = "mempool.recheck"
-	FlagMempoolForceRecheckGap = "mempool.force_recheck_gap"
-	FlagMempoolSize            = "mempool.size"
-	FlagMempoolFlush           = "mempool.flush"
-	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
-	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
-	FlagNodeKeyWhitelist       = "mempool.node_key_whitelist"
-	FlagMempoolCheckTxCost     = "mempool.check_tx_cost"
-	FlagGasLimitBuffer         = "gas-limit-buffer"
-	FlagEnableDynamicGp        = "enable-dynamic-gp"
-	FlagDynamicGpWeight        = "dynamic-gp-weight"
-	FlagDynamicGpCheckBlocks   = "dynamic-gp-check-blocks"
-	FlagEnableWrappedTx        = "enable-wtx"
-	FlagSentryAddrs            = "p2p.sentry_addrs"
-
+	FlagMempoolRecheck          = "mempool.recheck"
+	FlagMempoolForceRecheckGap  = "mempool.force_recheck_gap"
+	FlagMempoolSize             = "mempool.size"
+	FlagMempoolCacheSize        = "mempool.cache_size"
+	FlagMempoolFlush            = "mempool.flush"
+	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
+	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
+	FlagEnablePGU               = "mempool.enable-pgu"
+	FlagPGUAdjustment           = "mempool.pgu-adjustment"
+	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
+	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
+	FlagGasLimitBuffer          = "gas-limit-buffer"
+	FlagEnableDynamicGp         = "enable-dynamic-gp"
+	FlagDynamicGpMode           = "dynamic-gp-mode"
+	FlagDynamicGpWeight         = "dynamic-gp-weight"
+	FlagDynamicGpCheckBlocks    = "dynamic-gp-check-blocks"
+	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
+	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
+	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
+	FlagEnableWrappedTx         = "enable-wtx"
+	FlagSentryAddrs             = "p2p.sentry_addrs"
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
 	FlagCsTimeoutPrevote        = "consensus.timeout_prevote"
@@ -187,9 +218,21 @@ func NewOecConfig() *OecConfig {
 	c.loadFromConfig()
 
 	if viper.GetBool(FlagEnableDynamic) {
-		loaded := c.loadFromApollo()
-		if !loaded {
-			panic("failed to connect apollo or no config items in apollo")
+		if viper.IsSet(FlagApollo) {
+			loaded := c.loadFromApollo()
+			if !loaded {
+				panic("failed to connect apollo or no config items in apollo")
+			}
+		} else {
+			ok, err := c.loadFromLocal()
+			if err != nil {
+				confLogger.Error("failed to load config from local", "err", err)
+			}
+			if !ok {
+				confLogger.Error("failed to load config from local")
+			} else {
+				confLogger.Info("load config from local success")
+			}
 		}
 	}
 
@@ -200,6 +243,8 @@ func defaultOecConfig() *OecConfig {
 	return &OecConfig{
 		mempoolRecheck:         false,
 		mempoolForceRecheckGap: 2000,
+		commitGapHeight:        iavlconfig.DefaultCommitGapHeight,
+		iavlFSCacheSize:        tmiavl.DefaultIavlFastStorageCacheSize,
 	}
 }
 
@@ -216,14 +261,23 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool(FlagMempoolRecheck))
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
+	c.SetMempoolCacheSize(viper.GetInt(FlagMempoolCacheSize))
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
+	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
+	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
+
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
 	c.SetDynamicGpCheckBlocks(viper.GetInt(FlagDynamicGpCheckBlocks))
+	c.SetDynamicGpCoefficient(viper.GetInt(FlagDynamicGpCoefficient))
+	c.SetDynamicGpMaxGasUsed(viper.GetInt64(FlagDynamicGpMaxGasUsed))
+	c.SetDynamicGpMaxTxNum(viper.GetInt64(FlagDynamicGpMaxTxNum))
+
+	c.SetDynamicGpMode(viper.GetInt(FlagDynamicGpMode))
 	c.SetCsTimeoutPropose(viper.GetDuration(FlagCsTimeoutPropose))
 	c.SetCsTimeoutProposeDelta(viper.GetDuration(FlagCsTimeoutProposeDelta))
 	c.SetCsTimeoutPrevote(viper.GetDuration(FlagCsTimeoutPrevote))
@@ -232,6 +286,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetIavlFSCacheSize(viper.GetInt64(tmiavl.FlagIavlFastStorageCacheSize))
+	c.SetCommitGapHeight(viper.GetInt64(server.FlagCommitGapHeight))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
@@ -261,19 +317,42 @@ func (c *OecConfig) loadFromApollo() bool {
 	return client.LoadConfig()
 }
 
+func (c *OecConfig) loadFromLocal() (bool, error) {
+	var err error
+	rootDir := viper.GetString("home")
+	configPath := path.Join(rootDir, "config", LocalDynamicConfigPath)
+	configPath, err = filepath.Abs(configPath)
+	if err != nil {
+		return false, err
+	}
+	client, err := NewLocalClient(configPath, c, confLogger)
+	if err != nil {
+		return false, err
+	}
+	ok := client.LoadConfig()
+	err = client.Enable()
+	return ok, err
+}
+
 func (c *OecConfig) format() string {
 	return fmt.Sprintf(`%s config:
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d
+	mempool.cache_size: %d
+
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
 	mempool.max_gas_used_per_block: %d
 	mempool.check_tx_cost: %v
 
 	gas-limit-buffer: %d
-	enable-dynamic-gp: %v
 	dynamic-gp-weight: %d
+	dynamic-gp-check-blocks: %d
+	dynamic-gp-coefficient: %d
+	dynamic-gp-max-gas-used: %d
+	dynamic-gp-max-tx-num: %d
+	dynamic-gp-mode: %d
 
 	consensus.timeout_propose: %s
 	consensus.timeout_propose_delta: %s
@@ -284,18 +363,25 @@ func (c *OecConfig) format() string {
 	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
+    iavl-fast-storage-cache-size: %d
+    commit-gap-height: %d
 	enable-analyzer: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
+		c.GetMempoolCacheSize(),
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
 		c.GetMaxGasUsedPerBlock(),
 		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
-		c.GetEnableDynamicGp(),
 		c.GetDynamicGpWeight(),
+		c.GetDynamicGpCheckBlocks(),
+		c.GetDynamicGpCoefficient(),
+		c.GetDynamicGpMaxGasUsed(),
+		c.GetDynamicGpMaxTxNum(),
+		c.GetDynamicGpMode(),
 		c.GetCsTimeoutPropose(),
 		c.GetCsTimeoutProposeDelta(),
 		c.GetCsTimeoutPrevote(),
@@ -304,6 +390,8 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrecommitDelta(),
 		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
+		c.GetIavlFSCacheSize(),
+		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
 		c.GetActiveVC(),
 	)
@@ -311,6 +399,10 @@ func (c *OecConfig) format() string {
 
 func (c *OecConfig) update(key, value interface{}) {
 	k, v := key.(string), value.(string)
+	c.updateFromKVStr(k, v)
+}
+
+func (c *OecConfig) updateFromKVStr(k, v string) {
 	switch k {
 	case FlagMempoolRecheck:
 		r, err := strconv.ParseBool(v)
@@ -330,6 +422,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMempoolSize(r)
+	case FlagMempoolCacheSize:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetMempoolCacheSize(r)
 	case FlagMempoolFlush:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -343,11 +441,7 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetMaxTxNumPerBlock(r)
 	case FlagNodeKeyWhitelist:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetNodeKeyWhitelist(r)
+		c.SetNodeKeyWhitelist(v)
 	case FlagMempoolCheckTxCost:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -355,17 +449,25 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetMempoolCheckTxCost(r)
 	case FlagSentryAddrs:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetSentryAddrs(r)
+		c.SetSentryAddrs(v)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return
 		}
 		c.SetMaxGasUsedPerBlock(r)
+	case FlagEnablePGU:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnablePGU(r)
+	case FlagPGUAdjustment:
+		r, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return
+		}
+		c.SetPGUAdjustment(r)
 	case FlagGasLimitBuffer:
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -390,6 +492,30 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpCheckBlocks(r)
+	case FlagDynamicGpCoefficient:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpCoefficient(r)
+	case FlagDynamicGpMaxGasUsed:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpMaxGasUsed(r)
+	case FlagDynamicGpMaxTxNum:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpMaxTxNum(r)
+	case FlagDynamicGpMode:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpMode(r)
 	case FlagCsTimeoutPropose:
 		r, err := time.ParseDuration(v)
 		if err != nil {
@@ -438,6 +564,18 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
+	case tmiavl.FlagIavlFastStorageCacheSize:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetIavlFSCacheSize(int64(r))
+	case server.FlagCommitGapHeight:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetCommitGapHeight(r)
 	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
@@ -523,6 +661,16 @@ func (c *OecConfig) SetMempoolSize(value int) {
 	c.mempoolSize = value
 }
 
+func (c *OecConfig) GetMempoolCacheSize() int {
+	return c.mempoolCacheSize
+}
+func (c *OecConfig) SetMempoolCacheSize(value int) {
+	if value < 0 {
+		return
+	}
+	c.mempoolCacheSize = value
+}
+
 func (c *OecConfig) GetMempoolFlush() bool {
 	return c.mempoolFlush
 }
@@ -595,11 +743,28 @@ func (c *OecConfig) SetMaxTxNumPerBlock(value int64) {
 func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
 	return c.maxGasUsedPerBlock
 }
+
 func (c *OecConfig) SetMaxGasUsedPerBlock(value int64) {
 	if value < -1 {
 		return
 	}
 	c.maxGasUsedPerBlock = value
+}
+
+func (c *OecConfig) GetEnablePGU() bool {
+	return c.enablePGU
+}
+
+func (c *OecConfig) SetEnablePGU(value bool) {
+	c.enablePGU = value
+}
+
+func (c *OecConfig) GetPGUAdjustment() float64 {
+	return c.pguAdjustment
+}
+
+func (c *OecConfig) SetPGUAdjustment(value float64) {
+	c.pguAdjustment = value
 }
 
 func (c *OecConfig) GetGasLimitBuffer() uint64 {
@@ -612,6 +777,7 @@ func (c *OecConfig) SetGasLimitBuffer(value uint64) {
 func (c *OecConfig) GetEnableDynamicGp() bool {
 	return c.enableDynamicGp
 }
+
 func (c *OecConfig) SetEnableDynamicGp(value bool) {
 	c.enableDynamicGp = value
 }
@@ -619,6 +785,7 @@ func (c *OecConfig) SetEnableDynamicGp(value bool) {
 func (c *OecConfig) GetDynamicGpWeight() int {
 	return c.dynamicGpWeight
 }
+
 func (c *OecConfig) SetDynamicGpWeight(value int) {
 	if value <= 0 {
 		value = 1
@@ -626,6 +793,51 @@ func (c *OecConfig) SetDynamicGpWeight(value int) {
 		value = 100
 	}
 	c.dynamicGpWeight = value
+}
+
+func (c *OecConfig) GetDynamicGpCoefficient() int {
+	return c.dynamicGpCoefficient
+}
+func (c *OecConfig) SetDynamicGpCoefficient(value int) {
+	if value <= 0 {
+		value = 1
+	} else if value > 100 {
+		value = 100
+	}
+	c.dynamicGpCoefficient = value
+}
+
+func (c *OecConfig) GetDynamicGpMaxGasUsed() int64 {
+	return c.dynamicGpMaxGasUsed
+}
+
+func (c *OecConfig) SetDynamicGpMaxGasUsed(value int64) {
+	if value < -1 {
+		return
+	}
+	c.dynamicGpMaxGasUsed = value
+}
+
+func (c *OecConfig) GetDynamicGpMaxTxNum() int64 {
+	return c.dynamicGpMaxTxNum
+}
+
+func (c *OecConfig) SetDynamicGpMaxTxNum(value int64) {
+	if value < 0 {
+		return
+	}
+	c.dynamicGpMaxTxNum = value
+}
+
+func (c *OecConfig) GetDynamicGpMode() int {
+	return c.dynamicGpMode
+}
+
+func (c *OecConfig) SetDynamicGpMode(value int) {
+	if value < 0 || value > 2 {
+		return
+	}
+	c.dynamicGpMode = value
 }
 
 func (c *OecConfig) GetDynamicGpCheckBlocks() int {
@@ -716,6 +928,35 @@ func (c *OecConfig) GetIavlCacheSize() int {
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
+}
+
+func (c *OecConfig) GetIavlFSCacheSize() int64 {
+	return c.iavlFSCacheSize
+}
+
+func (c *OecConfig) SetIavlFSCacheSize(value int64) {
+	c.iavlFSCacheSize = value
+}
+
+func (c *OecConfig) GetCommitGapHeight() int64 {
+	return atomic.LoadInt64(&c.commitGapHeight)
+}
+func (c *OecConfig) SetCommitGapHeight(value int64) {
+	if IsPruningOptionNothing() { // pruning nothing the gap should 1
+		value = 1
+	}
+	if value <= 0 {
+		return
+	}
+	atomic.StoreInt64(&c.commitGapHeight, value)
+}
+
+func IsPruningOptionNothing() bool {
+	strategy := strings.ToLower(viper.GetString(server.FlagPruning))
+	if strategy == types.PruningOptionNothing {
+		return true
+	}
+	return false
 }
 
 func (c *OecConfig) GetActiveVC() bool {

@@ -160,3 +160,18 @@ func TestKeeper_SendCoinsFromModuleToAccountBlackList(t *testing.T) {
 	err := keeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, types.NewModuleAddress(types.ModuleName), initCoins)
 	require.Error(t, err)
 }
+
+func Test_SendCoinsAdapter(t *testing.T) {
+	app, ctx := createTestApp(false)
+	keeper := app.SupplyKeeper
+	ak := app.AccountKeeper
+	from := ak.NewAccountWithAddress(ctx, types.NewModuleAddress("baseAcc"))
+
+	to := ak.NewAccountWithAddress(ctx, types.NewModuleAddress("baseAcc1"))
+	transferAmount, ok := sdk.NewIntFromString("0")
+	require.Equal(t, ok, true)
+	transferAmountDec := sdk.NewDecFromIntWithPrec(transferAmount, sdk.Precision)
+	token := sdk.NewCoin(sdk.DefaultBondDenom, transferAmountDec)
+	err := keeper.SendCoins(ctx, from.GetAddress(), to.GetAddress(), token.ToCoins())
+	require.NoError(t, err)
+}

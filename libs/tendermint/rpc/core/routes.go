@@ -48,6 +48,8 @@ var Routes = map[string]*rpc.RPCFunc{
 
 	// evidence API
 	"broadcast_evidence": rpc.NewRPCFunc(BroadcastEvidence, "evidence"),
+
+	"tx_simulate_gas": rpc.NewRPCFunc(TxSimulateGasCost, "hash"),
 }
 
 func AddUnsafeRoutes() {
