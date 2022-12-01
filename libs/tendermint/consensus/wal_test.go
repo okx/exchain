@@ -46,7 +46,9 @@ func TestWALTruncate(t *testing.T) {
 	err = wal.Start()
 	require.NoError(t, err)
 	defer func() {
-		wal.Stop()
+		if err := wal.Stop(); err != nil {
+			t.Error(err)
+		}
 		// wait for the wal to finish shutting down so we
 		// can safely remove the directory
 		wal.Wait()
@@ -60,7 +62,9 @@ func TestWALTruncate(t *testing.T) {
 
 	time.Sleep(1 * time.Millisecond) //wait groupCheckDuration, make sure RotateFile run
 
-	wal.FlushAndSync()
+	if err := wal.FlushAndSync(); err != nil {
+		t.Error(err)
+	}
 
 	h := int64(50)
 	gr, found, err := wal.SearchForEndHeight(h, &WALSearchOptions{})
@@ -82,6 +86,7 @@ func TestWALEncoderDecoder(t *testing.T) {
 	msgs := []TimedWALMessage{
 		{Time: now, Msg: EndHeightMessage{0}},
 		{Time: now, Msg: timeoutInfo{Duration: time.Second, Height: 1, Round: 1, Step: types.RoundStepPropose}},
+		{Time: now, Msg: tmtypes.EventDataRoundState{Height: 1, Round: 1, Step: ""}},
 	}
 
 	b := new(bytes.Buffer)

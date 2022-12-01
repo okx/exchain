@@ -710,6 +710,38 @@ func TestNewRoundStepMessageValidateBasic(t *testing.T) {
 	}
 }
 
+func TestNewRoundStepMessageValidateHeight(t *testing.T) {
+	testCases := []struct { //nolint: maligned
+		expectErr              bool
+		messageLastCommitRound int32
+		messageHeight          int64
+		testName               string
+	}{
+		{false, 0, 11, "Valid Message"},
+		{true, 0, -1, "Negative height"},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.testName, func(t *testing.T) {
+			message := NewRoundStepMessage{
+				Height:          tc.messageHeight,
+				Round:           0,
+				Step:            cstypes.RoundStepNewHeight,
+				LastCommitRound: int(tc.messageLastCommitRound),
+			}
+
+			//err := message.ValidateHeight(initialHeight)
+			err := message.ValidateBasic()
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestNewValidBlockMessageValidateBasic(t *testing.T) {
 	testCases := []struct {
 		malleateFn func(*NewValidBlockMessage)
