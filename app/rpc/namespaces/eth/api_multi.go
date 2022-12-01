@@ -266,7 +266,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
 			LogsBloom:        data.Bloom,
 			Logs:             data.Logs,
-			TransactionHash:  common.BytesToHash(ethTx.Hash).String(),
+			TransactionHash:  common.BytesToHash(tx.Hash.Bytes()).String(),
 			ContractAddress:  contractAddr,
 			GasUsed:          hexutil.Uint64(gasUsed),
 			BlockHash:        blockHash.String(),
