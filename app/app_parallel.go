@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/gasprice"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -149,8 +150,10 @@ func groupByAddrAndSortFeeSplits(txFeesplit []*sdk.FeeSplitInfo) (feesplits map[
 
 func updateGPOHandler(gpo *gasprice.Oracle) sdk.UpdateGPOHandler {
 	return func(dynamicGpInfos []sdk.DynamicGasInfo) {
-		for _, dgi := range dynamicGpInfos {
-			gpo.CurrentBlockGPs.Update(dgi.GetGP(), dgi.GetGU())
+		if appconfig.GetOecConfig().GetDynamicGpMode() != ethermint.MinimalGpMode {
+			for _, dgi := range dynamicGpInfos {
+				gpo.CurrentBlockGPs.Update(dgi.GetGP(), dgi.GetGU())
+			}
 		}
 	}
 }
