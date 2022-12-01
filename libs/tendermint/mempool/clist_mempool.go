@@ -188,7 +188,7 @@ func NewCListMempool(
 	mempool.addTxQueue = make(chan *CheckTxItem, 2000)
 	go mempool.addTxJobForP2P()
 
-	p := NewWorkerPool(40)
+	p := NewWorkerPool(4000)
 	mempool.p = p
 	p.Run()
 
@@ -1011,8 +1011,8 @@ func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
-	mem.updateMtx.Lock()
-	defer mem.updateMtx.Unlock()
+	mem.updateMtx.RLock()
+	defer mem.updateMtx.RUnlock()
 
 	var (
 		totalBytes int64
