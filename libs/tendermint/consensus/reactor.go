@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	"github.com/pkg/errors"
+	log2 "log"
 	"reflect"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
 
@@ -156,6 +156,8 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
+	log2.Println("SwitchToConsensus")
+
 	defer func() {
 		conR.setFastSyncFlag(false, 0)
 	}()
@@ -187,6 +189,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.Logger.Info("SwitchToFastSync")
+	log2.Println("SwitchToFastSync")
 
 	defer func() {
 		conR.setFastSyncFlag(true, 1)
@@ -1762,7 +1765,7 @@ func (m *NewRoundStepMessage) String() string {
 //-------------------------------------
 
 // NewValidBlockMessage is sent when a validator observes a valid block B in some round r,
-//i.e., there is a Proposal for block B and 2/3+ prevotes for the block B in the round r.
+// i.e., there is a Proposal for block B and 2/3+ prevotes for the block B in the round r.
 // In case the block is also committed, then IsCommit flag is set to true.
 type NewValidBlockMessage struct {
 	Height           int64

@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	log2 "log"
 
 	"github.com/tendermint/go-amino"
 
@@ -526,6 +527,7 @@ func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *type
 	if height == lastHeightChanged || height%valSetCheckpointInterval == 0 {
 		valInfo.ValidatorSet = valSet
 	}
+	log2.Println("--saveValidatorsInfo:", valInfo)
 	db.Set(calcValidatorsKey(height), valInfo.Bytes())
 }
 

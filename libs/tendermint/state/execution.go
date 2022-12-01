@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	log2 "log"
 	"strconv"
 	"time"
 
@@ -661,9 +662,12 @@ func updateState(
 		// Change results from this height but only applies to the next next height.
 		lastHeightValsChanged = header.Height + 1 + 1
 	}
-
+	log2.Println("updateState at Height:", header.Height)
+	log2.Println(" current vals:", state.Validators)
 	// Update validator proposer priority and set state variables.
+	log2.Println("--Before IncrementProposerPriority, vals for height:", header.Height+1, "vals:", nValSet)
 	nValSet.IncrementProposerPriority(1)
+	log2.Println("--After IncrementProposerPriority, vals for height:", header.Height+1+1, "vals:", nValSet)
 
 	// Update the params with the latest abciResponses.
 	nextParams := state.ConsensusParams
