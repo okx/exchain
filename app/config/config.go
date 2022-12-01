@@ -106,7 +106,8 @@ type OecConfig struct {
 	deliverTxsMode int
 
 	// active view change
-	activeVC bool
+	activeVC     bool
+	avcWhitelist []string
 
 	blockPartSizeBytes int
 	blockCompressType  int
@@ -200,6 +201,54 @@ var (
 	}
 
 	mainnetNodeIdWhitelist = []string{}
+
+	testnetAVCWhiteList = []string{
+		// validator nodes
+		"c39ca38c650b920f9b6c5a9aed7ff904124ec3ad",
+		"d937e21fd489809add23dc3e55ed78d947217aa8",
+		"a3eb3c129e49137d5e1665bbf87b6f2be70a0b85",
+		"b171a9ef83b95c28182bc7aa7ea8639d04e572e7",
+		"3a700a3849c401396b1c51eb65b1cfc1a8c4394b",
+		"0208e66d4ca746ec535a0bf05409dc87df408b15",
+		"ed1819fa1eae52ddec4c0f8cddd80b9cb7c68a22",
+		"0b3ab9597a66f2f94c8efa4ccb6ed2a1f44d4184",
+		"67b29551c7c3839ad6c93379991344266aec3829",
+		"cd07b20b596aac923a1d5bb022581e279755aff1",
+		"6ce06a89a968a4204d9dcb470f2275767c8dfa68",
+		"6dd38d96df3ccbca95769ee15bdfdd952ad007c5",
+		"fcc95bfee6ea74bdf385be3a29072329603676e5",
+		"7b5b3041d2b3546a236b6df7ff7e06a19a5cae46",
+		"c098585e299ff7afe6f354c4431550d6919bdd0d",
+		"5b44fb4af4cfb72286162cb49a3bc04cb8187775",
+		"358e3399b68fb67787f1386c685db2e75352d9eb",
+		"96d9cb96041c053e63ff7d0c7d81dfab706136e4",
+		"0de948586fb30293d1dd14a99ebc3f719deb7c6f",
+		"284e87518752c8f655fe217113fa86ba7d6ca72f",
+		"7f2b8a6b9b8b12247e6992aeb32d69e169c2f5ac",
+	}
+	mainnetAVCWhiteList = []string{
+		"ac26f412aad002eb7f71a4cab77aa8901b9f27e7",
+		"bbd4aa19249ad42de4fe2ca99209894412fd4707",
+		"2a9c421d57909a2c2cb8a44fda4edbe5fc658bd3",
+		"add30aff52c2e43f071c7c2a8be797bef0ed8261",
+		"eb6f9b6c2056a3c37da719704c209e00cd4fabcb",
+		"e5c4c525df58bb072f2aacebea1cd92d36e83fd3",
+		"7ce43d169e955309e1cca22468ee3ed9e6fd6f45",
+		"f7c67632e51fde3c30bc8e41852c1e81aa1d9c2a",
+		"833777703584393d763b60169e5ca204da91dd83",
+		"54c195e08ff53e9fd31973dd73d530dcd1506807",
+		"0eb87d4eb92f8f04d9c2d444dd403671a634af56",
+		"01b21d39f250a3a5411113aae4a7032eaf9b344e",
+		"69ea6fb105a3f85d3dd44267d28fae4f0dedf5ab",
+		"b2a2f799a726b74f83f73b62e1bfef017575b21a",
+		"3449bb4d2180dfaa9ddb13776177b0e67f95ebb4",
+		"da32322e27dc9ef5002fed0416f05326fd27723f",
+		"c88044fb164896bd9ed29bbee7c290c6ac362133",
+		"725245d5eb58d5b764e90cd945bc67922b982e02",
+		"9e2aa6bd61c40f08782f7c2ff47d9ea197994b74",
+		"44cd4db42723a65d61e8803498703b9e4b353036",
+		"8c7affcb25e8e059f992d4c6494586587782d809",
+	}
 
 	oecConfig  *OecConfig
 	once       sync.Once
@@ -296,6 +345,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
+	c.SetAVCWhitelist(viper.GetString(server.FlagAVCWhiteList))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -624,6 +674,8 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetGcInterval(r)
+	case server.FlagAVCWhiteList:
+		c.SetAVCWhitelist(v)
 	}
 }
 
@@ -1011,4 +1063,22 @@ func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 
 func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
 	c.enableHasBlockPartMsg = value
+}
+
+func (c *OecConfig) GetAVCWhiteList() []string {
+	return c.avcWhitelist
+}
+
+func (c *OecConfig) SetAVCWhitelist(value string) {
+	idList := resolveNodeKeyWhitelist(value)
+
+	for _, id := range idList {
+		if id == "testnetnodeids" {
+			c.avcWhitelist = append(c.avcWhitelist, testnetAVCWhiteList...)
+		} else if id == "mainnetnodeids" {
+			c.avcWhitelist = append(c.avcWhitelist, mainnetAVCWhiteList...)
+		} else {
+			c.avcWhitelist = append(c.avcWhitelist, id)
+		}
+	}
 }

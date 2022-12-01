@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
@@ -69,6 +70,7 @@ type Reactor struct {
 	rs *cstypes.RoundState
 
 	hasViewChanged int64
+	avcWhiteList   map[string]bool
 }
 
 type ReactorOption func(*Reactor)
@@ -92,6 +94,10 @@ func NewReactor(consensusState *State, fastSync bool, autoFastSync bool, options
 
 	for _, option := range options {
 		option(conR)
+	}
+
+	for _, nodeKey := range config.DynamicConfig.GetAVCWhiteList() {
+		conR.avcWhiteList[nodeKey] = true
 	}
 
 	return conR
@@ -381,6 +387,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeResponseMessage:
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
+			if !conR.avcWhiteList[string(src.ID())] {
+				return
+			}
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
 			height := conR.conS.Height
