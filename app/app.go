@@ -646,11 +646,10 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
-		app.gpo = gasprice.NewOracle(gpoConfig)
-		app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
-	}
+
+	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
+	app.gpo = gasprice.NewOracle(gpoConfig)
+	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -710,8 +709,8 @@ func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) a
 		currentBlockGPsCopy := app.gpo.CurrentBlockGPs.Copy()
 		_ = app.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
 		GlobalGp = app.gpo.RecommendGP()
-		app.gpo.CurrentBlockGPs.Clear()
 	}
+	app.gpo.CurrentBlockGPs.Clear()
 
 	return app.mm.EndBlock(ctx, req)
 }
