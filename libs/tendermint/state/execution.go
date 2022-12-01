@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/tendermint/go-amino"
 )
 
 // -----------------------------------------------------------------------------
@@ -376,6 +375,53 @@ func (blockExec *BlockExecutor) commit(
 	deliverTxResponses []*abci.ResponseDeliverTx,
 	trc *trace.Tracer,
 ) (*abci.ResponseCommit, int64, error) {
+	begin := time.Now()
+
+	// Commit block, get hash back
+	var treeDeltaMap interface{}
+	if deltaInfo != nil {
+		treeDeltaMap = deltaInfo.treeDeltaMap
+	}
+	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{DeltaMap: treeDeltaMap})
+	if err != nil {
+		blockExec.logger.Error(
+			"Client error during proxyAppConn.CommitSync",
+			"err", err,
+		)
+		return nil, 0, err
+	}
+
+	blockExec.logger.Error(
+		"blk_to_commit_sync ",
+		"height", block.Height,
+		"blk_commitsync", time.Since(begin),
+	)
+	go func() {
+		if err := blockExec.commit_mempool(state, block, deltaInfo, deliverTxResponses, trc); err != nil {
+			blockExec.logger.Error(
+				"blk_to_commit_sync ",
+				"height", block.Height,
+				"err", err,
+			)
+		}
+
+	}()
+	return res, res.RetainHeight, err
+}
+
+// Commit locks the mempool, runs the ABCI Commit message, and updates the
+// mempool.
+// It returns the result of calling abci.Commit (the AppHash) and the height to retain (if any).
+// The Mempool must be locked during commit and update because state is
+// typically reset on Commit and old txs must be replayed against committed
+// state before new txs are run in the mempool, lest they be invalid.
+func (blockExec *BlockExecutor) commit_mempool(
+	state State,
+	block *types.Block,
+	deltaInfo *DeltaInfo,
+	deliverTxResponses []*abci.ResponseDeliverTx,
+	trc *trace.Tracer,
+) error {
 	blockExec.logger.Error(
 		"mempool_to_commit begin",
 		"height", block.Height,
@@ -401,31 +447,9 @@ func (blockExec *BlockExecutor) commit(
 	err := blockExec.mempool.FlushAppConn()
 	if err != nil {
 		blockExec.logger.Error("Client error during mempool.FlushAppConn", "err", err)
-		return nil, 0, err
+		return err
 	}
 	time1 := time.Now()
-	// Commit block, get hash back
-	var treeDeltaMap interface{}
-	if deltaInfo != nil {
-		treeDeltaMap = deltaInfo.treeDeltaMap
-	}
-	res, err := blockExec.proxyApp.CommitSync(abci.RequestCommit{DeltaMap: treeDeltaMap})
-	if err != nil {
-		blockExec.logger.Error(
-			"Client error during proxyAppConn.CommitSync",
-			"err", err,
-		)
-		return nil, 0, err
-	}
-	time2 := time.Now()
-	// ResponseCommit has no error code - just data
-	blockExec.logger.Debug(
-		"Committed state",
-		"height", block.Height,
-		"txs", len(block.Txs),
-		"appHash", amino.BytesHexStringer(res.Data),
-		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
-	)
 
 	//trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
@@ -437,7 +461,7 @@ func (blockExec *BlockExecutor) commit(
 		TxPreCheck(state),
 		TxPostCheck(state),
 	)
-	time3 := time.Now()
+	time2 := time.Now()
 
 	if !cfg.DynamicConfig.GetMempoolRecheck() && block.Height%cfg.DynamicConfig.GetMempoolForceRecheckGap() == 0 {
 		proxyCb := func(req *abci.Request, res *abci.Response) {
@@ -454,11 +478,10 @@ func (blockExec *BlockExecutor) commit(
 		"height", block.Height,
 		"get lock", time0.Sub(begin),
 		"flush", time1.Sub(time0),
-		"blk_commitsync", time2.Sub(time1),
-		"mempool_update", time3.Sub(time2),
-		"recheck", time.Since(time3),
+		"mempool_update", time2.Sub(time1),
+		"recheck", time.Since(time2),
 	)
-	return res, res.RetainHeight, err
+	return err
 }
 
 func transTxsToBytes(txs types.Txs) [][]byte {
