@@ -1010,9 +1010,10 @@ func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
+	beign := time.Now()
 	mem.updateMtx.RLock()
 	defer mem.updateMtx.RUnlock()
-
+	time1 := time.Now()
 	var (
 		totalBytes int64
 		totalGas   int64
@@ -1023,6 +1024,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
 	defer func() {
+		mem.logger.Error("ReapMaxBytesMaxGas", "costtime", time.Since(beign), "locktime", time.Since(time1))
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()

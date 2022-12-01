@@ -395,7 +395,7 @@ func (blockExec *BlockExecutor) commit(
 			blockExec.mempool.Flush()
 		}
 	}()
-
+	time0 := time.Now()
 	// while mempool is Locked, flush to ensure all async requests have completed
 	// in the ABCI app before Commit.
 	err := blockExec.mempool.FlushAppConn()
@@ -452,7 +452,8 @@ func (blockExec *BlockExecutor) commit(
 	blockExec.logger.Error(
 		"mempool_to_commit all",
 		"height", block.Height,
-		"flush", time1.Sub(begin),
+		"get lock", time0.Sub(begin),
+		"flush", time1.Sub(time0),
 		"blk_commitsync", time2.Sub(time1),
 		"mempool_update", time3.Sub(time2),
 		"recheck", time.Since(time3),
