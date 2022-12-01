@@ -151,7 +151,7 @@ func NewCListMempool(
 		go mempool.pendingPoolJob()
 	}
 
-	mempool.addTxQueue = make(chan CheckTxItem, config.Size)
+	mempool.addTxQueue = make(chan CheckTxItem, 8*config.Size)
 	go mempool.addTxJobForP2P()
 
 	return mempool
