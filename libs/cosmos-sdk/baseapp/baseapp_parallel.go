@@ -6,13 +6,12 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -58,7 +57,6 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 			}
 			if tx != nil {
 				app.blockDataCache.SetTx(txBytes, tx)
-				para.dynamicGpInfos[index].SetGP(tx.GetGasPrice())
 			}
 
 			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
@@ -345,10 +343,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
-
-		// int64 -> uint64 may not be safe
-		app.parallelTxManage.dynamicGpInfos[index].SetGU(uint64(txRes.resp.GasUsed))
-
 		if txRes.FeeSpiltInfo.HasFee {
 			app.FeeSplitCollector = append(app.FeeSplitCollector, txRes.FeeSpiltInfo)
 		}
@@ -356,9 +350,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
-
-	app.updateGPOHandler(app.parallelTxManage.dynamicGpInfos)
-
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
@@ -644,8 +635,6 @@ type parallelTxManager struct {
 
 	blockMultiStores *cacheMultiStoreList
 	chainMultiStores *cacheMultiStoreList
-
-	dynamicGpInfos []sdk.DynamicGasInfo
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -756,7 +745,6 @@ func (f *parallelTxManager) clear() {
 
 func (f *parallelTxManager) init() {
 	txSize := f.txSize
-	f.dynamicGpInfos = make([]sdk.DynamicGasInfo, txSize)
 
 	f.txResultCollector.init(txSize)
 	f.finalResult = make([]*executeResult, txSize)

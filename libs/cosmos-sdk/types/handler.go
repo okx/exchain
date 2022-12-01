@@ -27,7 +27,7 @@ type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, re
 type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins, isDelete bool)
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 type GetTxFeeHandler func(tx Tx) Coins
-type UpdateGPOHandler func(dynamicGpInfos []DynamicGasInfo)
+
 type CustomizeOnStop func(ctx Context) error
 
 type MptCommitHandler func(ctx Context)
