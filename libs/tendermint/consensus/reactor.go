@@ -86,6 +86,7 @@ func NewReactor(consensusState *State, fastSync bool, autoFastSync bool, options
 		conHeight:             consensusState.Height,
 		rs:                    consensusState.GetRoundState(),
 		metrics:               NopMetrics(),
+		avcWhiteList:          map[string]bool{},
 	}
 	conR.updateFastSyncingMetric()
 	conR.BaseReactor = *p2p.NewBaseReactor("Consensus", conR)
