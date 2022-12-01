@@ -307,10 +307,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 
 	if app.updateGPOHandler != nil {
-		dgi := sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)
-		dgis := make([]sdk.DynamicGasInfo, 1)
-		dgis[0] = dgi
-		app.updateGPOHandler(dgis)
+		app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
 	}
 
 	return abci.ResponseDeliverTx{
@@ -367,10 +364,7 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	}
 
 	if app.updateGPOHandler != nil {
-		dgi := sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)
-		dgis := make([]sdk.DynamicGasInfo, 1)
-		dgis[0] = dgi
-		app.updateGPOHandler(dgis)
+		app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
 	}
 
 	return abci.ResponseDeliverTx{
