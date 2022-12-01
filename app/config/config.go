@@ -140,8 +140,6 @@ const (
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
 	FlagDebugGcInterval         = "debug.gc-interval"
-
-	FlagAVCWhiteList = "avc-white-list"
 )
 
 var (
@@ -218,7 +216,27 @@ var (
 		"7f2b8a6b9b8b12247e6992aeb32d69e169c2f5ac",
 	}
 	mainnetAVCWhiteList = []string{
-		//todo add mainnet nodeID
+		"ac26f412aad002eb7f71a4cab77aa8901b9f27e7",
+		"bbd4aa19249ad42de4fe2ca99209894412fd4707",
+		"2a9c421d57909a2c2cb8a44fda4edbe5fc658bd3",
+		"add30aff52c2e43f071c7c2a8be797bef0ed8261",
+		"eb6f9b6c2056a3c37da719704c209e00cd4fabcb",
+		"e5c4c525df58bb072f2aacebea1cd92d36e83fd3",
+		"7ce43d169e955309e1cca22468ee3ed9e6fd6f45",
+		"f7c67632e51fde3c30bc8e41852c1e81aa1d9c2a",
+		"833777703584393d763b60169e5ca204da91dd83",
+		"54c195e08ff53e9fd31973dd73d530dcd1506807",
+		"0eb87d4eb92f8f04d9c2d444dd403671a634af56",
+		"01b21d39f250a3a5411113aae4a7032eaf9b344e",
+		"69ea6fb105a3f85d3dd44267d28fae4f0dedf5ab",
+		"b2a2f799a726b74f83f73b62e1bfef017575b21a",
+		"3449bb4d2180dfaa9ddb13776177b0e67f95ebb4",
+		"da32322e27dc9ef5002fed0416f05326fd27723f",
+		"c88044fb164896bd9ed29bbee7c290c6ac362133",
+		"725245d5eb58d5b764e90cd945bc67922b982e02",
+		"9e2aa6bd61c40f08782f7c2ff47d9ea197994b74",
+		"44cd4db42723a65d61e8803498703b9e4b353036",
+		"8c7affcb25e8e059f992d4c6494586587782d809",
 	}
 
 	oecConfig  *OecConfig
@@ -298,7 +316,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
-	c.SetAVCWhitelist(viper.GetString(FlagAVCWhiteList))
+	c.SetAVCWhitelist(viper.GetString(server.FlagAVCWhiteList))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -595,7 +613,7 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetGcInterval(r)
-	case FlagAVCWhiteList:
+	case server.FlagAVCWhiteList:
 		r, ok := value.(string)
 		if !ok {
 			return

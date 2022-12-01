@@ -66,6 +66,7 @@ const (
 	FlagLogServerUrl    = "log-server"
 
 	FlagActiveViewChange = "active-view-change"
+	FlagAVCWhiteList     = "avc-white-list"
 	FlagCommitGapHeight  = "commit-gap-height"
 
 	FlagBlockPartSizeBytes = "block-part-size"
