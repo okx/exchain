@@ -94,7 +94,8 @@ type CListMempool struct {
 	maxtime time.Duration
 	mintime time.Duration
 
-	addTxQueue chan CheckTxItem
+	addTxQueue chan *CheckTxJob
+	p          *WorkerPool
 }
 
 type CheckTxItem struct {
@@ -151,9 +152,15 @@ func NewCListMempool(
 		go mempool.pendingPoolJob()
 	}
 
-	mempool.addTxQueue = make(chan CheckTxItem, 8*config.Size)
+	mempool.addTxQueue = make(chan *CheckTxJob, config.Size)
 	go mempool.addTxJobForP2P()
+	p := NewWorkerPool(4000)
+	mempool.p = p
+	p.Run()
 
+	checkItem.New = func() interface{} {
+		return &CheckTxJob{mem: mempool}
+	}
 	return mempool
 }
 
@@ -368,10 +375,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 
 func (mem *CListMempool) addTxJobForP2P() {
 	for item := range mem.addTxQueue {
-		err := mem.CheckTx(item.tx, nil, item.txInfo)
-		if err != nil {
-			//mem.logger.Debug("Could not check tx", "tx", item.tx, "err", err)
-		}
+		mem.p.JobQueue <- item
 	}
 }
 

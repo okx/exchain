@@ -270,7 +270,10 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 	mem := memR.mempool
 	if mem.isFull(len(tx)) == nil {
-		mem.addTxQueue <- CheckTxItem{tx: tx, txInfo: txInfo}
+		item := checkItem.Get().(*CheckTxJob)
+		item.tx = &tx
+		item.txInfo = &txInfo
+		mem.addTxQueue <- item
 	}
 }
 
