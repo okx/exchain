@@ -357,6 +357,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, erro
 	if err != nil {
 		return emptyEthAddr, err
 	}
+
 	return sender, nil
 }
 
