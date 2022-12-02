@@ -17,11 +17,13 @@ import (
 )
 
 const (
-	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+	FlagIavlCacheInitRatio     = "iavl-cache-init-ratio"
+	FlagIavlCommitAsyncNoBatch = "iavl-commit-async-no-batch"
 )
 
 var (
-	IavlCacheInitRatio float64 = 0
+	IavlCacheInitRatio     float64 = 0
+	IavlCommitAsyncNoBatch bool    = false
 )
 
 type tppItem struct {
@@ -111,7 +113,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tra
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version, false); err != nil {
+	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version, writeToDB); err != nil {
 		panic(err)
 	}
 
