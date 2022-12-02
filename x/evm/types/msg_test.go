@@ -513,7 +513,7 @@ func BenchmarkEvmTxVerifySig(b *testing.B) {
 	b.Run("firstVerifySig", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := msg.firstVerifySig(chainID)
+			err := msg.firstVerifySig(chainID)
 			if err != nil {
 				b.Fatal(err)
 			}

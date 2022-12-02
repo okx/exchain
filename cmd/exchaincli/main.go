@@ -18,6 +18,7 @@ import (
 	clientrpc "github.com/okex/exchain/libs/cosmos-sdk/client/rpc"
 	sdkcodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -62,7 +63,7 @@ func main() {
 	}
 
 	// Add --chain-id to persistent flags and mark it required
-	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
+	rootCmd.PersistentFlags().String(flags.FlagChainID, server.ChainID, "Chain ID of tendermint node")
 	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
 		utils.SetParseAppTx(wrapDecoder(parseMsgEthereumTx, parseProtobufTx))
 		return client.InitConfig(rootCmd)

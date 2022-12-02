@@ -295,7 +295,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	if GetActiveVC() && cs.privValidator != nil {
-		go cs.preMakeBlock(cs.Height, sleepDuration)
+		cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
 	}
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
@@ -351,5 +351,18 @@ func (cs *State) handleTxsAvailable() {
 		cs.scheduleTimeout(timeoutCommit, cs.Height, 0, cstypes.RoundStepNewRound)
 	case cstypes.RoundStepNewRound: // after timeoutCommit
 		cs.enterPropose(cs.Height, 0)
+	}
+}
+
+func (cs *State) preMakeBlockRoutine() {
+	for {
+		select {
+		case task := <-cs.preBlockTaskChan:
+			if task.height == cs.Height {
+				cs.preMakeBlock(task.height, task.duration)
+			}
+		case <-cs.Quit():
+			return
+		}
 	}
 }

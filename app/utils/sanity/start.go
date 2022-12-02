@@ -3,6 +3,8 @@ package sanity
 import (
 	"fmt"
 
+	"github.com/spf13/viper"
+
 	apptype "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -14,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/infura"
-	"github.com/spf13/viper"
 )
 
 // CheckStart check start command's flags. if user set conflict flags return error.
@@ -37,7 +38,7 @@ import (
 // --node-mode=validator manage the following flags:
 //     --disable-checktx-mutex=true
 //     --disable-query-mutex=true
-//     --enable-dynamic-gp=false
+//     --dynamic-gp-mode=2
 //     --iavl-enable-async-commit=true
 //     --iavl-cache-size=10000000
 //     --pruning=everything

@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	gogogrpc "github.com/gogo/protobuf/grpc"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"google.golang.org/grpc"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"google.golang.org/grpc"
 )
 
 // QueryServiceTestHelper provides a helper for making grpc query service
