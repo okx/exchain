@@ -90,18 +90,28 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	ndb.mtx.Unlock()
 }
 
-func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
+func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tracer) {
 	batch := event.batch
 	tpp := event.tpp
 
 	trc.Pin("batchSet")
-	for _, node := range tpp {
-		ndb.batchSet(node, batch)
+	if !writeToDB {
+		for _, node := range tpp {
+			ndb.batchSet(node, batch)
+		}
+	} else {
+		for _, node := range tpp {
+			err := ndb.saveNodeToDB(node)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
+
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
+	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version, false); err != nil {
 		panic(err)
 	}
 

@@ -226,7 +226,7 @@ func (tree *MutableTree) commitSchedule() {
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
-		tree.ndb.persistTpp(&event, trc)
+		tree.ndb.persistTpp(&event, false, trc)
 		if event.wg != nil {
 			event.wg.Done()
 			break
