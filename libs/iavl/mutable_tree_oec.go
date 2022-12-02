@@ -39,6 +39,7 @@ var (
 	CommitGapHeight           int64 = config.DefaultCommitGapHeight
 	enableFastStorage               = true
 	forceReadIavl                   = false
+	ignoreAutoUpgrade               = false
 )
 
 type commitEvent struct {
@@ -74,6 +75,14 @@ func SetForceReadIavl(enable bool) {
 // GetForceReadIavl get force read from iavl
 func getForceReadIavl() bool {
 	return forceReadIavl
+}
+
+func SetIgnoreAutoUpgrade(enable bool) {
+	ignoreAutoUpgrade = enable
+}
+
+func getIgnoreAutoUpgrade() bool {
+	return ignoreAutoUpgrade
 }
 
 // GetFastNodeCacheSize get fast node cache size

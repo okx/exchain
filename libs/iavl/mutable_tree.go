@@ -610,6 +610,10 @@ func (tree *MutableTree) IsUpgradeable() bool {
 // from latest tree.
 // nolint: unparam
 func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) {
+	if getIgnoreAutoUpgrade() {
+		return false, nil
+	}
+
 	if !GetEnableFastStorage() {
 		return false, nil
 	}

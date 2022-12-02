@@ -110,6 +110,9 @@ type iaviewerContext struct {
 
 func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
+		PreRun: func(cmd *cobra.Command, args []string) {
+			iavl.SetEnableFastStorage(false)
+		},
 		Use:   "iaviewer",
 		Short: "Read iavl tree data from db",
 	}
