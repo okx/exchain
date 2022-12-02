@@ -201,6 +201,11 @@ func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 	}()
 
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+
+	if app.blockCache == nil {
+		ctx.Cache().DisableCache()
+	}
+
 	if isEndBlock {
 		// The feesplit is only processed at the endblock
 		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
