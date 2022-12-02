@@ -209,7 +209,10 @@ func (tree *MutableTree) commitSchedule() {
 
 		if len(event.orphans) != 0 {
 			trc.Pin("saveCommitOrphans")
-			tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans)
+			err := tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans, false)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		trc.Pin("cacheNode")
