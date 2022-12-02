@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"testing"
 	"time"
 
@@ -1679,4 +1680,24 @@ func subscribeUnBuffered(eventBus *types.EventBus, q tmpubsub.Query) <-chan tmpu
 		panic(fmt.Sprintf("failed to subscribe %s to %v", testSubscriber, q))
 	}
 	return sub.Out()
+}
+
+func TestSignSameVoteTwice(t *testing.T) {
+	_, vss := randState(2)
+
+	randBytes := tmrand.Bytes(tmhash.Size)
+
+	vote := signVote(vss[1],
+		types.PrecommitType,
+		randBytes,
+		types.PartSetHeader{Total: 10, Hash: randBytes},
+	)
+
+	vote2 := signVote(vss[1],
+		types.PrecommitType,
+		randBytes,
+		types.PartSetHeader{Total: 10, Hash: randBytes},
+	)
+
+	require.Equal(t, vote, vote2)
 }

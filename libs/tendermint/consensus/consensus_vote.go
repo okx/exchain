@@ -246,8 +246,12 @@ func (cs *State) signVote(
 		BlockID:          types.BlockID{Hash: hash, PartsHeader: header},
 		HasVC:            cs.HasVC,
 	}
+	voteTmp := *vote
 
 	err := cs.privValidator.SignVote(cs.state.ChainID, vote)
+	vote.Signature = voteTmp.Signature
+	vote.Timestamp = voteTmp.Timestamp
+
 	return vote, err
 }
 
