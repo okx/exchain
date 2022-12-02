@@ -315,6 +315,7 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, blockStoreDir string
 func SetExternalPackageValue(cmd *cobra.Command) {
 	iavl.IavlCacheSize = viper.GetInt(iavl.FlagIavlCacheSize)
 	tmiavl.IavlCacheInitRatio = viper.GetFloat64(tmiavl.FlagIavlCacheInitRatio)
+	tmiavl.IavlCommitAsyncNoBatch = viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch)
 	tmiavl.OutputModules, _ = cmd.Flags().GetStringToInt(tmiavl.FlagOutputModules)
 	tmiavl.CommitIntervalHeight = viper.GetInt64(tmiavl.FlagIavlCommitIntervalHeight)
 	tmiavl.MinCommitItemCount = viper.GetInt64(tmiavl.FlagIavlMinCommitItemCount)
