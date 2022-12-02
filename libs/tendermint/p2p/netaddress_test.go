@@ -190,3 +190,16 @@ func TestNetAddress_String(t *testing.T) {
 	s := netAddr.String()
 	require.Equal(t, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef@127.0.0.1:8080", s)
 }
+
+func TestSafeStoreLoad(t *testing.T) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8080")
+	require.Nil(t, err)
+
+	netAddr := NewNetAddress("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", tcpAddr)
+	str := netAddr.safeLoadStr()
+	require.Nil(t, str)
+	netAddr.safeStoreStr("test01")
+	str = netAddr.safeLoadStr()
+	require.NotNil(t, str)
+	require.Equal(t, *str, "test01")
+}
