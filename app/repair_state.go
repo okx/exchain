@@ -231,6 +231,14 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			state.Validators = stateCopy.Validators.Copy()
 			state.NextValidators = stateCopy.NextValidators.Copy()
 			sm.SaveState(stateStoreDB, state)
+
+			log.Println("----after recover from stateCopy, stateCopy.LastBlockHeight:", stateCopy.LastBlockHeight)
+			log.Println(" vals at Height:", state.LastBlockHeight)
+			log.Println(fmt.Sprintf("%v", state.LastValidators))
+			log.Println(" vals at Height:", state.LastBlockHeight+1)
+			log.Println(fmt.Sprintf("%v", state.Validators))
+			log.Println(" vals at Height:", state.LastBlockHeight+2)
+			log.Println(fmt.Sprintf("%v", state.NextValidators))
 		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)

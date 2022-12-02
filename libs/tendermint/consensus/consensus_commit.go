@@ -231,6 +231,13 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
+	cs.Logger.Error("-- Before ApplyBlock, vals for height:", "height", stateCopy.LastBlockHeight)
+	cs.Logger.Error(fmt.Sprintf("%v", stateCopy.LastValidators))
+	cs.Logger.Error("-- vals for height:", "height", height)
+	cs.Logger.Error(fmt.Sprintf("%v", stateCopy.Validators))
+	cs.Logger.Error("-- vals for height:", "height", height+1)
+	cs.Logger.Error(fmt.Sprintf("%v", stateCopy.NextValidators))
+
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
