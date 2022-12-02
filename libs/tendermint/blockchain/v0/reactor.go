@@ -262,7 +262,7 @@ func (bcR *BlockchainReactor) poolRoutine() {
 	conR, ok := bcR.Switch.Reactor("CONSENSUS").(consensusReactor)
 	if ok {
 		conState, err := conR.SwitchToFastSync()
-		bcR.Logger.Error("--Init SwitchToFastSync vstate", "Height:", conState.LastBlockHeight)
+		bcR.Logger.Error("--Init SwitchToFastSync vstate", "conState.LastBlockHeight:", conState.LastBlockHeight)
 		bcR.Logger.Error(fmt.Sprintf("%v", conState.LastValidators))
 		bcR.Logger.Error("--height", conState.LastBlockHeight+1)
 		bcR.Logger.Error(fmt.Sprintf("%v", conState.Validators))

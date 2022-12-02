@@ -113,9 +113,9 @@ func RepairState(ctx *server.Context, onStart bool) {
 	state, _, err := node.LoadStateFromDBOrGenesisDocProvider(stateStoreDB, genesisDocProvider)
 	panicError(err)
 
-	log.Println("--LoadStateFromDBOrGenesisDocProvider at Height:", state.LastBlockHeight,
-		",block hash", fmt.Sprintf("%X", state.LastBlockID.Hash),
-		".lastVSChanged:", state.LastHeightValidatorsChanged)
+	log.Println("--LoadStateFromDBOrGenesisDocProvider,state.LastBlockHeight:", state.LastBlockHeight,
+		",state.LastBlockID.Has", fmt.Sprintf("%X", state.LastBlockID.Hash),
+		",state.lastVSChanged:", state.LastHeightValidatorsChanged)
 	log.Println(" vals at Height:", state.LastBlockHeight)
 	log.Println(fmt.Sprintf("%v", state.LastValidators))
 	log.Println(" vals at Height:", state.LastBlockHeight+1)
@@ -184,10 +184,11 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	stateCopy := state.Copy()
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
+	log.Println("doRepair, startHeight", startHeight, "latestHeight", latestHeight)
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
-	log.Println("after constructStartState at Height:", state.LastBlockHeight,
-		".lastVSChanged:", state.LastHeightValidatorsChanged)
+	log.Println("after constructStartState state.LastBlockHeight:", state.LastBlockHeight,
+		"state.lastVSChanged:", state.LastHeightValidatorsChanged)
 	log.Println(" vals at Height:", state.LastBlockHeight)
 	log.Println(fmt.Sprintf("%v", state.LastValidators))
 	log.Println(" vals at Height:", state.LastBlockHeight+1)
