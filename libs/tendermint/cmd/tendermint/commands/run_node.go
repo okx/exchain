@@ -194,6 +194,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"",
 		"send tx/wtx to mempool, only for local performance test",
 	)
+	cmd.Flags().Bool(
+		"mempool.force-check-duptx",
+		false,
+		"force check dup tx before making block",
+	)
 
 	// db flags
 	cmd.Flags().String(
