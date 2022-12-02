@@ -1,14 +1,8 @@
 package app
 
 import (
-	"math/big"
-	"os"
-	"testing"
-
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/suite"
-
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	cosmossdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
@@ -16,6 +10,10 @@ import (
 	tendertypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/stretchr/testify/suite"
+	"math/big"
+	"os"
+	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/x/dex"
