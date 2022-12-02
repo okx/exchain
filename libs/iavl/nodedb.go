@@ -591,6 +591,14 @@ func (ndb *nodeDB) saveOrphan(batch dbm.Batch, hash []byte, fromVersion, toVersi
 	batch.Set(key, hash)
 }
 
+func (ndb *nodeDB) saveOrphanToDB(hash []byte, fromVersion, toVersion int64) error {
+	if fromVersion > toVersion {
+		panic(fmt.Sprintf("Orphan expires before it comes alive.  %d > %d", fromVersion, toVersion))
+	}
+	key := ndb.orphanKey(fromVersion, toVersion, hash)
+	return ndb.db.Set(key, hash)
+}
+
 func (ndb *nodeDB) log(level int, msg string, kv ...interface{}) {
 	iavlLog(ndb.name, level, msg, kv...)
 }
