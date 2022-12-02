@@ -209,7 +209,7 @@ func (tree *MutableTree) commitSchedule() {
 
 		if len(event.orphans) != 0 {
 			trc.Pin("saveCommitOrphans")
-			err := tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans, false)
+			err := tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans, IavlCommitAsyncNoBatch)
 			if err != nil {
 				panic(err)
 			}
@@ -226,7 +226,7 @@ func (tree *MutableTree) commitSchedule() {
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
-		tree.ndb.persistTpp(&event, false, trc)
+		tree.ndb.persistTpp(&event, IavlCommitAsyncNoBatch, trc)
 		if event.wg != nil {
 			event.wg.Done()
 			break
