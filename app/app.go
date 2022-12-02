@@ -31,7 +31,6 @@ import (
 	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 
 	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
