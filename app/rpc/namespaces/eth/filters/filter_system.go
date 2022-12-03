@@ -31,6 +31,8 @@ var (
 	evmEvents       = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
 	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
 	blockTimeEvents = tmtypes.QueryForEvent(tmtypes.EventBlockTime).String()
+
+	confirmedtxEvents = tmtypes.QueryForEvent(tmtypes.EventConfirmedTx).String()
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -234,7 +236,7 @@ func (es EventSystem) SubscribeConfirmedTx() (*Subscription, context.CancelFunc,
 	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.LogsSubscription,
-		event:     txEvents,
+		event:     confirmedtxEvents,
 		created:   time.Now().UTC(),
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),

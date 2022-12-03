@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	amino "github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -20,6 +21,7 @@ const (
 	EventNewBlockHeader      = "NewBlockHeader"
 	EventTx                  = "Tx"
 	EventPendingTx           = "PendingTx"
+	EventConfirmedTx         = "ConfirmedTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 	EventBlockTime           = "BlockTime"
 	EventTxs                 = "Txs"
@@ -191,9 +193,11 @@ type BlockEventPublisher interface {
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
 	PublishEventLatestBlockTime(time EventDataBlockTime) error
+	PublishEventConfirmedTx(EventDataTx) error
 }
 
 type TxEventPublisher interface {
 	PublishEventTx(EventDataTx) error
 	PublishEventPendingTx(EventDataTx) error
+	PublishEventConfirmedTx(EventDataTx) error
 }

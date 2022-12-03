@@ -95,6 +95,13 @@ type CListMempool struct {
 	simQueue chan *mempoolTx
 
 	gasCache *lru.Cache
+
+	confirmedTxChan chan confirmedTxEvent
+}
+
+type confirmedTxEvent struct {
+	height int64
+	tx     types.Tx
 }
 
 var _ Mempool = &CListMempool{}
@@ -132,8 +139,11 @@ func NewCListMempool(
 		txs:           txQueue,
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
+
+		confirmedTxChan: make(chan confirmedTxEvent, 1000),
 	}
 	go mempool.simulationRoutine()
+	go mempool.fireConfirmedTxEvents()
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
 		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
@@ -897,6 +907,11 @@ func (mem *CListMempool) Update(
 	}
 
 	for i, tx := range txs {
+		mem.confirmedTxChan <- confirmedTxEvent{
+			height: height,
+			tx:     tx,
+		}
+
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
@@ -974,6 +989,15 @@ func (mem *CListMempool) Update(
 	// already sorted int the last round (will only affect the account that send these txs).
 
 	return nil
+}
+
+func (mem *CListMempool) fireConfirmedTxEvents() {
+	for ct := range mem.confirmedTxChan {
+		mem.eventBus.PublishEventConfirmedTx(types.EventDataTx{TxResult: types.TxResult{
+			Height: ct.height,
+			Tx:     ct.tx,
+		}})
+	}
 }
 
 func (mem *CListMempool) checkTxCost() {
