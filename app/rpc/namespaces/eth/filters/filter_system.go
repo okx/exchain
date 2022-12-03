@@ -229,6 +229,19 @@ func (es EventSystem) SubscribeBlockTime() (*Subscription, context.CancelFunc, e
 	return es.subscribe(sub)
 }
 
+// SubscribeConfirmedTx subscribes to the confirmed tx events
+func (es EventSystem) SubscribeConfirmedTx() (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
+		id:        rpc.NewID(),
+		typ:       filters.LogsSubscription,
+		event:     txEvents,
+		created:   time.Now().UTC(),
+		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
+	}
+	return es.subscribe(sub)
+}
+
 type filterIndex map[filters.Type]map[rpc.ID]*Subscription
 
 func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
