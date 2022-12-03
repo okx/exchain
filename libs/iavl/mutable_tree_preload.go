@@ -65,7 +65,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	wg.Wait()
 
 	tree.ndb.finishPreWriteCache()
-	persist.GetStatistics().Accumulate(trace.PreChange, tsPreChange)
+	persist.GetStatistics().Accumulate(trace.PreChange, time.Since(tsPreChange).Nanoseconds())
 }
 
 func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte) (find bool) {

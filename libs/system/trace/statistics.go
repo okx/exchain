@@ -1,10 +1,8 @@
 package trace
 
-import "time"
-
 type BaseStatistics interface {
 	Init(tags ...string)
-	Accumulate(tag string, lastPinTime time.Time)
+	Accumulate(tag string, lastPinTime int64)
 	GetTags() []string
 	GetValue(tag string) int64
 }
@@ -27,8 +25,8 @@ func (s *Summary) Init(tags ...string) {
 	s.keys = tags
 }
 
-func (s *Summary) Accumulate(tag string, lastPinTime time.Time) {
-	s.statisticMap[tag] += time.Since(lastPinTime).Nanoseconds()
+func (s *Summary) Accumulate(tag string, lastPinTime int64) {
+	s.statisticMap[tag] += lastPinTime
 }
 
 func (s *Summary) GetTags() []string {
