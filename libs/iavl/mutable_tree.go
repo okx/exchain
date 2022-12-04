@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -756,7 +757,8 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 ) {
 	if tree.VersionExists(version) {
 		isFastCacheEnabled := tree.IsFastCacheEnabled()
-		if isFastCacheEnabled {
+		log.Println("----giskook-----")
+		if isFastCacheEnabled && !getForceReadIavl() {
 			fastNode, _ := tree.ndb.GetFastNode(key)
 			if fastNode == nil && version == tree.ndb.getLatestMemoryVersion() {
 				return -1, nil
