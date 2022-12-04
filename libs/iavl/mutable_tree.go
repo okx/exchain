@@ -186,6 +186,10 @@ func (tree *MutableTree) prepareOrphansSlice() []*Node {
 // not be modified after this call, since they point to slices stored within IAVL.
 func (tree *MutableTree) Set(key, value []byte) bool {
 	// orphaned, updated := tree.set(key, value) // old code
+	kt, _ := hex.DecodeString("010000009bcc1177bb926c533b53d6e1d4a789fa2dcf8e1b0f4d75ffa2067bb79e")
+	if bytes.Compare(kt, key) == 0 {
+		log.Printf("----giskook------Set height %v \n", tree.ndb.storageVersion)
+	}
 	orphaned := tree.makeOrphansSliceReady()
 	updated := tree.setWithOrphansSlice(key, value, &orphaned)
 	tree.addOrphans(orphaned)
@@ -213,6 +217,10 @@ func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 func (tree *MutableTree) Get(key []byte) []byte {
 	if tree.root == nil {
 		return nil
+	}
+	kt, _ := hex.DecodeString("010000009bcc1177bb926c533b53d6e1d4a789fa2dcf8e1b0f4d75ffa2067bb79e")
+	if bytes.Compare(kt, key) == 0 {
+		log.Printf("----giskook------Get height %v \n", tree.ndb.storageVersion)
 	}
 	if getForceReadIavl() {
 		_, value := tree.ImmutableTree.GetWithIndex(key)
