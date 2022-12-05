@@ -23,7 +23,8 @@ type Watcher struct {
 }
 
 type Sender interface {
-	Send(hash []byte, tx *watcher.Transaction) error
+	SendPending(hash []byte, tx *watcher.Transaction) error
+	SendConfirmed(hash []byte, tx *ConfirmedTx) error
 }
 
 func NewWatcher(clientCtx context.CLIContext, log log.Logger, sender Sender) *Watcher {
@@ -51,41 +52,46 @@ func (w *Watcher) Start() {
 		for {
 			select {
 			case re := <-pendingCh:
-				tx, txHash, err := w.newTransactionByEvent(re, "pending")
+				tx, err := w.newTransactionByEvent(re, "pending")
 				if err != nil {
 					continue
 				}
 
-				go func(hash []byte, tx *watcher.Transaction) {
-					w.logger.Debug("push pending tx to MQ", "txHash=", txHash.String())
-					err = w.sender.Send(hash, tx)
+				go func() {
+					w.logger.Debug("push pending tx to MQ", "txHash=", tx.Hash.String())
+					err = w.sender.SendPending(tx.Hash.Bytes(), tx)
 					if err != nil {
-						w.logger.Error("failed to send pending tx", "hash", txHash.String(), "error", err)
+						w.logger.Error("failed to send pending tx", "hash", tx.Hash.String(), "error", err)
 					}
-				}(txHash.Bytes(), tx)
+				}()
 			case re := <-confirmedCh:
-				tx, txHash, err := w.newTransactionByEvent(re, "confirmed")
+				tx, err := w.newTransactionByEvent(re, "confirmed")
 				if err != nil {
 					continue
 				}
 
-				go func(hash []byte, tx *watcher.Transaction) {
-					w.logger.Debug("push confirmed tx to MQ", "txHash=", txHash.String())
-					err = w.sender.Send(hash, tx)
+				go func() {
+					w.logger.Debug("push confirmed tx to MQ", "txHash=", tx.Hash.String())
+					err = w.sender.SendConfirmed(tx.Hash.Bytes(), &ConfirmedTx{
+						From:   tx.From.String(),
+						Hash:   tx.Hash.String(),
+						Nonce:  tx.Nonce.String(),
+						Delete: true,
+					})
 					if err != nil {
-						w.logger.Error("failed to send confirmed tx", "hash", txHash.String(), "error", err)
+						w.logger.Error("failed to send confirmed tx", "hash", tx.Hash.String(), "error", err)
 					}
-				}(txHash.Bytes(), tx)
+				}()
 			}
 		}
 	}(pendingSub.Event(), confirmedSub.Event())
 }
 
-func (w *Watcher) newTransactionByEvent(re coretypes.ResultEvent, txType string) (*watcher.Transaction, common.Hash, error) {
+func (w *Watcher) newTransactionByEvent(re coretypes.ResultEvent, txType string) (*watcher.Transaction, error) {
 	data, ok := re.Data.(tmtypes.EventDataTx)
 	if !ok {
 		w.logger.Error(fmt.Sprintf("invalid %s tx data type %T, expected EventDataTx", txType, re.Data))
-		return nil, common.Hash{}, errors.New("invalid tx data type")
+		return nil, errors.New("invalid tx data type")
 	}
 
 	txHash := common.BytesToHash(data.Tx.Hash(data.Height))
@@ -95,14 +101,14 @@ func (w *Watcher) newTransactionByEvent(re coretypes.ResultEvent, txType string)
 	ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx, data.Height)
 	if err != nil {
 		w.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
-		return nil, common.Hash{}, err
+		return nil, err
 	}
 
 	tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
 	if err != nil {
 		w.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
-		return nil, common.Hash{}, err
+		return nil, err
 	}
 
-	return tx, txHash, nil
+	return tx, nil
 }

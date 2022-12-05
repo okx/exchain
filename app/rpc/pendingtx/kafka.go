@@ -24,8 +24,28 @@ func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 	}
 }
 
-func (kc *KafkaClient) Send(hash []byte, tx *watcher.Transaction) error {
-	kafkaMsg := KafkaMsg{
+func (kc *KafkaClient) SendPending(hash []byte, tx *watcher.Transaction) error {
+	kafkaMsg := PendingMsg{
+		Topic: kc.Topic,
+		Data:  tx,
+	}
+
+	msg, err := kafkaMsg.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	// Automatic retries and reconnections on errors.
+	return kc.WriteMessages(context.Background(),
+		kafka.Message{
+			Key:   hash,
+			Value: msg,
+		},
+	)
+}
+
+func (kc *KafkaClient) SendConfirmed(hash []byte, tx *ConfirmedTx) error {
+	kafkaMsg := ConfirmedMsg{
 		Topic: kc.Topic,
 		Data:  tx,
 	}
