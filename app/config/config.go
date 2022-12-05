@@ -49,6 +49,8 @@ type OecConfig struct {
 	enablePGU bool
 	// mempool.pgu-adjustment
 	pguAdjustment float64
+	// mempool.force-filter-duptx
+	forceFilterDuptx bool
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
 	//mempool.check_tx_cost
@@ -129,6 +131,7 @@ const (
 	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
 	FlagEnablePGU               = "mempool.enable-pgu"
 	FlagPGUAdjustment           = "mempool.pgu-adjustment"
+	FlagForceFilterDuptx        = "mempool.force-filter-duptx"
 	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
 	FlagGasLimitBuffer          = "gas-limit-buffer"
@@ -268,6 +271,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
 	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
+	c.SetForceFilterDuptx(viper.GetBool(FlagForceFilterDuptx))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
@@ -468,6 +472,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetPGUAdjustment(r)
+	case FlagForceFilterDuptx:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetForceFilterDuptx(r)
 	case FlagGasLimitBuffer:
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -765,6 +775,14 @@ func (c *OecConfig) GetPGUAdjustment() float64 {
 
 func (c *OecConfig) SetPGUAdjustment(value float64) {
 	c.pguAdjustment = value
+}
+
+func (c *OecConfig) GetForceFilterDuptx() bool {
+	return c.forceFilterDuptx
+}
+
+func (c *OecConfig) SetForceFilterDuptx(value bool) {
+	c.forceFilterDuptx = value
 }
 
 func (c *OecConfig) GetGasLimitBuffer() uint64 {

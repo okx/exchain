@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/spf13/viper"
-
 	"math/big"
 	"strconv"
 	"sync"
@@ -95,8 +93,7 @@ type CListMempool struct {
 
 	simQueue chan *mempoolTx
 
-	gasCache        *lru.Cache
-	forceCheckDupTx bool
+	gasCache *lru.Cache
 }
 
 var _ Mempool = &CListMempool{}
@@ -124,18 +121,17 @@ func NewCListMempool(
 	}
 
 	mempool := &CListMempool{
-		config:          config,
-		proxyAppConn:    proxyAppConn,
-		height:          height,
-		recheckCursor:   nil,
-		recheckEnd:      nil,
-		eventBus:        types.NopEventBus{},
-		logger:          log.NewNopLogger(),
-		metrics:         NopMetrics(),
-		txs:             txQueue,
-		simQueue:        make(chan *mempoolTx, 100000),
-		gasCache:        gasCache,
-		forceCheckDupTx: viper.GetBool("mempool.force-check-duptx"),
+		config:        config,
+		proxyAppConn:  proxyAppConn,
+		height:        height,
+		recheckCursor: nil,
+		recheckEnd:    nil,
+		eventBus:      types.NopEventBus{},
+		logger:        log.NewNopLogger(),
+		metrics:       NopMetrics(),
+		txs:           txQueue,
+		simQueue:      make(chan *mempoolTx, 100000),
+		gasCache:      gasCache,
 	}
 	go mempool.simulationRoutine()
 
@@ -756,7 +752,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
-	txFilter := make(map[[32]byte]struct{})
+	var txFilter map[[32]byte]struct{}
 	var simCount, simGas int64
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
@@ -766,8 +762,11 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
-		if mem.forceCheckDupTx {
-			key := txKey(memTx.tx)
+		if cfg.DynamicConfig.GetForceFilterDuptx() {
+			if txFilter == nil {
+				txFilter = make(map[[32]byte]struct{})
+			}
+			key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
 			if _, ok := txFilter[key]; ok {
 				// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
 				mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
