@@ -64,7 +64,7 @@ install_macos(){
   $sh_c "cd rocksdb && git checkout ${VERSION}"
   $sh_c "cd rocksdb && make clean"
   $sh_c "cd rocksdb && make uninstall DEBUG_LEVEL=0"
-  $sh_c "cd rocksdb && make -j${num_proc} shared_lib"
+  $sh_c "cd rocksdb && make -j${num_proc} shared_lib EXTRA_CXXFLAGS='-Wno-deprecated-copy -Wno-unused-but-set-variable'"
   $sh_c "cd rocksdb && make install-shared"
 }
 

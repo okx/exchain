@@ -14,11 +14,14 @@ import (
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
 
+	"github.com/okex/exchain/app/utils/appstatus"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
-	gasprice "github.com/okex/exchain/app/gasprice"
+	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
+	"github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -683,7 +686,7 @@ func NewOKExChainApp(
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
 
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
 		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		app.gpo = gasprice.NewOracle(gpoConfig)
 	}
@@ -719,8 +722,9 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		_ = app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+		currentBlockGPsCopy := app.gpo.CurrentBlockGPs.Copy()
+		_ = app.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
 		GlobalGp = app.gpo.RecommendGP()
 		app.gpo.CurrentBlockGPs.Clear()
 	}
@@ -875,9 +879,11 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 
+	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 
+	ctx.Logger.Info("The database storage strategy", "fast-storage", iavl.GetEnableFastStorage())
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
