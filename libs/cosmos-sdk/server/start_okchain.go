@@ -232,6 +232,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
+	cmd.Flags().Bool(FlagEventBlockTime, false, "Enable to publish event of latest block time")
+
 	// Don`t use cmd.Flags().*Var functions(such as cmd.Flags.IntVar) here, because it doesn't work with environment variables.
 	// Use setExternalPackageValue function instead.
 	viper.BindPFlag(FlagTrace, cmd.Flags().Lookup(FlagTrace))
