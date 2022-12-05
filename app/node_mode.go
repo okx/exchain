@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/okex/exchain/app/config"
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/types"
@@ -79,6 +80,7 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(watcher.FlagFastQuery, false)
 	viper.SetDefault(appconfig.FlagMaxGasUsedPerBlock, 120000000)
 	viper.SetDefault(mempool.FlagEnablePendingPool, false)
+	viper.SetDefault(config.FlagEnablePGU, true)
 
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, types.CloseMode, iavl.FlagIavlEnableAsyncCommit, true,
