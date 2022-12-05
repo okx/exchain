@@ -412,7 +412,7 @@ func (st *Store) StartTiming() {
 }
 
 func (st *Store) EndTiming(tag string) {
-	persist.GetStatistics().Accumulate(tag, st.beginTime)
+	persist.GetStatistics().Accumulate(tag, time.Since(st.beginTime).Nanoseconds())
 }
 
 //----------------------------------------

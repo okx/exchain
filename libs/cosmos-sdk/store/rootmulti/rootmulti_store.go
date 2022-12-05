@@ -636,11 +636,11 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 		rs.versions = append(rs.versions, version)
 	}
-	persist.GetStatistics().Accumulate(trace.CommitStores, tsCommitStores)
+	persist.GetStatistics().Accumulate(trace.CommitStores, time.Since(tsCommitStores).Nanoseconds())
 
 	tsFlushMeta := time.Now()
 	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
-	persist.GetStatistics().Accumulate(trace.FlushMeta, tsFlushMeta)
+	persist.GetStatistics().Accumulate(trace.FlushMeta, time.Since(tsFlushMeta).Nanoseconds())
 
 	return types.CommitID{
 		Version: version,
