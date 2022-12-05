@@ -526,7 +526,6 @@ func saveValidatorsInfo(db dbm.DB, height, lastHeightChanged int64, valSet *type
 	if height == lastHeightChanged || height%valSetCheckpointInterval == 0 {
 		valInfo.ValidatorSet = valSet
 	}
-	fmt.Println("--saveValidatorsInfo for height:", height, "valInfo:", valInfo)
 	db.Set(calcValidatorsKey(height), valInfo.Bytes())
 }
 

@@ -47,14 +47,8 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 		// Increment validators if necessary
 		validators := cs.Validators
 		if cs.Round < round {
-			logger.Error(" ---enterNewRound", fmt.Sprintf("%d:%d:%d", height, cs.Round, round))
-			// Update validator proposer priority and set state variables.
-			logger.Error("--Before IncrementProposerPriority, current vals")
-			logger.Error(fmt.Sprintf("%v", validators))
 			validators = validators.Copy()
 			validators.IncrementProposerPriority(round - cs.Round)
-			logger.Error("--After IncrementProposerPriority current vals:")
-			logger.Error(fmt.Sprintf("%v", validators))
 		}
 		cs.Validators = validators
 		cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping

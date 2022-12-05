@@ -113,16 +113,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 	state, _, err := node.LoadStateFromDBOrGenesisDocProvider(stateStoreDB, genesisDocProvider)
 	panicError(err)
 
-	log.Println("--LoadStateFromDBOrGenesisDocProvider,state.LastBlockHeight:", state.LastBlockHeight,
-		",state.LastBlockID.Has", fmt.Sprintf("%X", state.LastBlockID.Hash),
-		",state.lastVSChanged:", state.LastHeightValidatorsChanged)
-	log.Println(" vals at Height:", state.LastBlockHeight)
-	log.Println(fmt.Sprintf("%v", state.LastValidators))
-	log.Println(" vals at Height:", state.LastBlockHeight+1)
-	log.Println(fmt.Sprintf("%v", state.Validators))
-	log.Println(" vals at Height:", state.LastBlockHeight+2)
-	log.Println(fmt.Sprintf("%v", state.NextValidators))
-
 	// load start version
 	startVersion := viper.GetInt64(FlagStartHeight)
 	if startVersion == 0 {
@@ -184,17 +174,8 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	stateCopy := state.Copy()
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
-	log.Println("doRepair, startHeight", startHeight, "latestHeight", latestHeight)
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
-	log.Println("after constructStartState state.LastBlockHeight:", state.LastBlockHeight,
-		"state.lastVSChanged:", state.LastHeightValidatorsChanged)
-	log.Println(" vals at Height:", state.LastBlockHeight)
-	log.Println(fmt.Sprintf("%v", state.LastValidators))
-	log.Println(" vals at Height:", state.LastBlockHeight+1)
-	log.Println(fmt.Sprintf("%v", state.Validators))
-	log.Println(" vals at Height:", state.LastBlockHeight+2)
-	log.Println(fmt.Sprintf("%v", state.NextValidators))
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	// repair state
 	eventBus := types.NewEventBus()
@@ -221,7 +202,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
-		log.Println("----Starts to repair block:", repairBlockMeta.Header.Height, fmt.Sprintf("%X", repairBlockMeta.Header.Hash()))
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))

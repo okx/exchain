@@ -155,7 +155,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	if conR.conS.IsRunning() {
 		return false
 	}
-	conR.Logger.Error("SwitchToConsensus")
+
 	defer func() {
 		conR.setFastSyncFlag(false, 0)
 	}()

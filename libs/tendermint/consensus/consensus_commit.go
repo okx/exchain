@@ -159,11 +159,6 @@ func (cs *State) finalizeCommit(height int64) {
 			cs.Step))
 		return
 	}
-	cs.Logger.Error("--finalizeCommit", "height", height)
-	cs.Logger.Error("--cs.Validators")
-	cs.Logger.Error(fmt.Sprintf("%v", cs.Validators))
-	cs.Logger.Error("--cs.state.Validators")
-	cs.Logger.Error(fmt.Sprintf("%v", cs.state.Validators))
 
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
 	block, blockParts := cs.ProposalBlock, cs.ProposalBlockParts
@@ -225,7 +220,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	fail.Fail() // XXX
 
-	cs.Logger.Error("--cs.state.Copy() into ApplyBlock")
 	// Create a copy of the state for staging and an event cache for txs.
 	stateCopy := cs.state.Copy()
 
