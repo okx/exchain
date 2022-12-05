@@ -461,7 +461,6 @@ func (app *BaseApp) newBlockCache() {
 	}
 
 	app.blockCache = sdk.NewCache(app.chainCache, useCache)
-	app.deliverState.ctx.SetCache(app.blockCache)
 }
 
 func (app *BaseApp) commitBlockCache() {
