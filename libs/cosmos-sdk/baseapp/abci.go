@@ -202,7 +202,7 @@ func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
-	ctx.SetCache(sdk.NewCache(app.blockCache, true))
+	ctx.SetCache(sdk.NewCache(app.blockCache, sdk.UseCache))
 
 	if isEndBlock {
 		// The feesplit is only processed at the endblock
@@ -215,6 +215,7 @@ func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 		}
 	}
 	cache.Write()
+	ctx.Cache().Write(true)
 }
 
 // EndBlock implements the ABCI interface.
