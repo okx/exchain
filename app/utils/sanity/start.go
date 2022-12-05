@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/okex/exchain/app/config"
 	apptype "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -87,6 +88,18 @@ var (
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
 			configB: boolItem{name: watcher.FlagFastQuery, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.RpcNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.InnertxNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
 		},
 		{
 			configA: boolItem{name: iavl.FlagIavlEnableFastStorage, expect: true},
