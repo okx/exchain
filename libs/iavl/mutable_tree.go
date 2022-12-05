@@ -5,6 +5,8 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
+	"runtime/debug"
 	"sort"
 	"sync"
 
@@ -613,6 +615,8 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 	if !tree.IsUpgradeable() {
 		return false, nil
 	}
+	log.Printf("---giskook upgrade %v latesd %v storage %v\n", tree.ndb.name, tree.ndb.getLatestVersion(), tree.ndb.storageVersion)
+	debug.PrintStack()
 
 	// If there is a mismatch between which fast nodes are on disk and the live state due to temporary
 	// downgrade and subsequent re-upgrade, we cannot know for sure which fast nodes have been removed while downgraded,
