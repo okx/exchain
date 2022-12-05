@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	maxTxNumberInParallelChan   = 20000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
 )
@@ -267,7 +266,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	pm.resultCb = asyncCb
 	pm.StartResultHandle()
 	for index := 0; index < len(pm.groupList); index++ {
-		pm.groupTasks = append(pm.groupTasks, newGroupTask(pm.addMultiCache, pm.nextTxInThisGroup, app.asyncDeliverTx, pm.putResult))
+		pm.groupTasks = append(pm.groupTasks, newGroupTask(len(pm.groupList[index]), pm.addMultiCache, pm.nextTxInThisGroup, app.asyncDeliverTx, pm.putResult))
 		pm.groupTasks[index].addTask(pm.groupList[index][0])
 	}
 	if len(pm.groupList) == 0 {
@@ -498,13 +497,13 @@ type groupTask struct {
 	ms        sdk.CacheMultiStore
 }
 
-func newGroupTask(addMultiCache func(msAnte types.CacheMultiStore, msCache types.CacheMultiStore), nextTx func(int2 int) (int, bool), task func(int2 int) *executeResult, putResult func(index int, txResult *executeResult)) *groupTask {
+func newGroupTask(txSizeInGroup int, addMultiCache func(msAnte types.CacheMultiStore, msCache types.CacheMultiStore), nextTx func(int2 int) (int, bool), task func(int2 int) *executeResult, putResult func(index int, txResult *executeResult)) *groupTask {
 	g := &groupTask{
 		addMultiCache: addMultiCache,
 		mu:            sync.Mutex{},
 		nextTx:        nextTx,
 		taskRun:       task,
-		txChan:        make(chan int, maxTxNumberInParallelChan),
+		txChan:        make(chan int, txSizeInGroup),
 		reRunChan:     make(chan int, 1000),
 		stopChan:      make(chan struct{}, 1),
 		putResult:     putResult,
@@ -584,7 +583,6 @@ func newParallelTxManager() *parallelTxManager {
 	para := &parallelTxManager{
 		blockGasMeterMu:  sync.Mutex{},
 		isAsyncDeliverTx: isAsync,
-		resultCh:         make(chan int, maxTxNumberInParallelChan),
 		stop:             make(chan struct{}, 1),
 
 		conflictCheck: make(types.MsRWSet),
@@ -726,6 +724,8 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	pm.cms = deliverStateMs.CacheMultiStore()
 	pm.cms.DisableCacheReadList()
 	deliverStateMs.DisableCacheReadList()
+
+	pm.resultCh = make(chan int, txSize)
 
 	pm.nextTxInGroup = make(map[int]int)
 
