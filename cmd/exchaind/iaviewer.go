@@ -112,6 +112,10 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "iaviewer",
 		Short: "Read iavl tree data from db",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			iavl.SetEnableFastStorage(false)
+			viper.Set(iavl.FlagIavlEnableFastStorage, false)
+		},
 	}
 	iavlCtx := &iaviewerContext{Codec: cdc, DbBackend: dbm.BackendType(ctx.Config.DBBackend)}
 
@@ -194,7 +198,6 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 		Short: "Read iavl tree key-value from db",
 		Long:  "Read iavl tree key-value from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			iavl.SetEnableFastStorage(false)
 			iaviewerCmdParseFlags(ctx)
 			return iaviewerCmdParseArgs(ctx, args)
 		},
@@ -215,7 +218,6 @@ func iaviewerReadNodeCmd(ctx *iaviewerContext) *cobra.Command {
 		Short: "Read iavl tree node from db",
 		Long:  "Read iavl tree node from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			iavl.SetEnableFastStorage(false)
 			iaviewerCmdParseFlags(ctx)
 			return iaviewerCmdParseArgs(ctx, args)
 		},
@@ -233,7 +235,6 @@ func iaviewerStatusCmd(ctx *iaviewerContext) *cobra.Command {
 		Short: "print iavl tree status",
 		Long:  "print iavl tree status, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			iavl.SetEnableFastStorage(false)
 			iaviewerCmdParseFlags(ctx)
 			return iaviewerCmdParseArgs(ctx, args)
 		},
@@ -249,7 +250,6 @@ func iaviewerVersionsCmd(ctx *iaviewerContext) *cobra.Command {
 		Use:   "versions <data_dir> <module> [version]",
 		Short: "list iavl tree versions",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
-			iavl.SetEnableFastStorage(false)
 			iaviewerCmdParseFlags(ctx)
 			return iaviewerCmdParseArgs(ctx, args)
 		},
@@ -266,7 +266,6 @@ func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 		Use:   "diff <data_dir> <module> <version1> <version2>",
 		Short: "compare different key-value between two versions",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			iavl.SetEnableFastStorage(false)
 			iaviewerCmdParseFlags(ctx)
 			if len(args) != 4 {
 				return fmt.Errorf("must specify data_dir, module, version1 and version2")

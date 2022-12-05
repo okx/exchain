@@ -2,7 +2,6 @@ package appstatus
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"path/filepath"
 
@@ -97,7 +96,6 @@ func GetFastStorageVersion() int64 {
 	var ret int64 = math.MaxInt64
 	for _, v := range storeKeys {
 		version := getVersion(db, v)
-		log.Printf("%v version %v", v, version)
 		if version < ret {
 			ret = version
 		}

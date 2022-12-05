@@ -26,7 +26,7 @@ MercuryHeight=1
 VenusHeight=1
 Venus1Height=1
 Venus2Height=0
-Venus3Height=0
+Venus3Height=1
 EarthHeight=0
 MarsHeight=0
 
