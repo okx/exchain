@@ -66,11 +66,14 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	if from != "" {
 		return from
 	}
-	err := tx.firstVerifySig(tx.ChainID())
+	// Verify the signature with chain-id in the tx, so it can be a tx from other chain with unexpected chain.
+	// Only use from addr for some safe usage and do not update the signature cache or the `From` field of the tx.
+	sender, err := tx.firstVerifySig(tx.ChainID())
 	if err != nil {
 		return ""
 	}
-	return tx.BaseTx.GetFrom()
+	from = EthAddressToString(&sender)
+	return from
 }
 
 func (msg MsgEthereumTx) GetSender(ctx sdk.Context) string {
@@ -325,13 +328,13 @@ var sigBigNumPool = &sync.Pool{
 	},
 }
 
-func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
+func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	var V *big.Int
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
-			return errors.New("chainID cannot be zero")
+			return emptyEthAddr, errors.New("chainID cannot be zero")
 		}
 
 		bigNum := sigBigNumPool.Get().(*big.Int)
@@ -352,13 +355,9 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) error {
 
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, &sigHash)
 	if err != nil {
-		return err
+		return emptyEthAddr, err
 	}
-	from := EthAddressToString(&sender)
-	tmtypes.SignatureCache().Add(msg.TxHash(), from)
-	msg.BaseTx.From = from
-	msg.addr = sender
-	return nil
+	return sender, nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
@@ -375,10 +374,14 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 		msg.SetFrom(from)
 		return nil
 	}
-	err := msg.firstVerifySig(chainID)
+	sender, err := msg.firstVerifySig(chainID)
 	if err != nil {
 		return err
 	}
+	from = EthAddressToString(&sender)
+	tmtypes.SignatureCache().Add(msg.TxHash(), from)
+	msg.BaseTx.From = from
+	msg.addr = sender
 	return nil
 }
 
