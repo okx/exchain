@@ -238,7 +238,7 @@ func iaviewerReadNodeCmd(ctx *iaviewerContext) *cobra.Command {
 func iaviewerDBNodeCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "db-node <data_dir> <module>",
-		Short: "read iavl tree node from db",
+		Short: "read iavl tree node from db direct",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx.noParseVersion = true
 			iaviewerCmdParseFlags(ctx)
