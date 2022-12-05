@@ -4,6 +4,7 @@
 package db
 
 // #include "rocksdb/c.h"
+// #include "tmrocksdb.h"
 import "C"
 
 import (
