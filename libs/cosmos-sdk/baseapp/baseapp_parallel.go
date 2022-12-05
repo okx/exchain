@@ -28,45 +28,63 @@ type extraDataForTx struct {
 	decodeErr error
 }
 
+type txWithIndex struct {
+	index   int
+	txBytes []byte
+}
+
 // getExtraDataByTxs preprocessing tx : verify tx, get sender, get toAddress, get txFee
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 	para := app.parallelTxManage
 
 	var wg sync.WaitGroup
-	for index, txBytes := range txs {
-		wg.Add(1)
-		go func(index int, txBytes []byte) {
-			defer wg.Done()
+	wg.Add(len(txs))
+	jobChan := make(chan txWithIndex, len(txs))
+	for groupIndex := 0; groupIndex < maxGoroutineNumberInParaTx; groupIndex++ {
+		go func(ch chan txWithIndex) {
+			for j := range ch {
+				index := j.index
+				txBytes := j.txBytes
+				var tx sdk.Tx
+				var err error
 
-			var tx sdk.Tx
-			var err error
-
-			if mem := GetGlobalMempool(); mem != nil {
-				tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
-			}
-			if tx == nil {
-				tx, err = app.txDecoder(txBytes)
-				if err != nil {
-					para.extraTxsInfo[index] = &extraDataForTx{
-						decodeErr: err,
-					}
-					return
+				if mem := GetGlobalMempool(); mem != nil {
+					tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
 				}
-			}
-			if tx != nil {
-				app.blockDataCache.SetTx(txBytes, tx)
-			}
+				if tx == nil {
+					tx, err = app.txDecoder(txBytes)
+					if err != nil {
+						para.extraTxsInfo[index] = &extraDataForTx{
+							decodeErr: err,
+						}
+						wg.Done()
+						continue
+					}
+				}
+				if tx != nil {
+					app.blockDataCache.SetTx(txBytes, tx)
+				}
 
-			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
-			para.extraTxsInfo[index] = &extraDataForTx{
-				fee:   coin,
-				isEvm: isEvm,
-				from:  s,
-				to:    toAddr,
-				stdTx: tx,
+				coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+				para.extraTxsInfo[index] = &extraDataForTx{
+					fee:   coin,
+					isEvm: isEvm,
+					from:  s,
+					to:    toAddr,
+					stdTx: tx,
+				}
+				wg.Done()
 			}
-		}(index, txBytes)
+		}(jobChan)
 	}
+
+	for index, v := range txs {
+		jobChan <- txWithIndex{
+			index:   index,
+			txBytes: v,
+		}
+	}
+	close(jobChan)
 	wg.Wait()
 }
 
@@ -379,15 +397,16 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 		feeSpiltInfo = &sdk.FeeSplitInfo{}
 	}
 	ans := &executeResult{
-		resp:        r,
-		ms:          ms,
-		msIsNil:     ms == nil,
-		counter:     counter,
-		paraMsg:     paraMsg,
-		blockHeight: height,
-		watcher:     watcher,
-		msgs:        msgs,
-		rwSet:       rwSet,
+		resp:         r,
+		ms:           ms,
+		msIsNil:      ms == nil,
+		counter:      counter,
+		paraMsg:      paraMsg,
+		blockHeight:  height,
+		watcher:      watcher,
+		msgs:         msgs,
+		rwSet:        rwSet,
+		FeeSpiltInfo: feeSpiltInfo,
 	}
 
 	if paraMsg == nil {
