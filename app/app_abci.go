@@ -5,6 +5,7 @@ import (
 	"time"
 
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -25,7 +26,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	resp := app.BaseApp.DeliverTx(req)
 
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
 		tx, err := evm.TxDecoder(app.marshal)(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
@@ -46,7 +47,7 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
 
 	var err error
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
 		tx, _ := req.(sdk.Tx)
 		if tx == nil {
 			tx, err = evm.TxDecoder(app.Codec())(req.GetRaw())

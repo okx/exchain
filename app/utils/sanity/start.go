@@ -1,16 +1,22 @@
 package sanity
 
 import (
+	"fmt"
+
+	"github.com/spf13/viper"
+
+	"github.com/okex/exchain/app/config"
 	apptype "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/infura"
-	"github.com/spf13/viper"
 )
 
 // CheckStart check start command's flags. if user set conflict flags return error.
@@ -33,7 +39,7 @@ import (
 // --node-mode=validator manage the following flags:
 //     --disable-checktx-mutex=true
 //     --disable-query-mutex=true
-//     --enable-dynamic-gp=false
+//     --dynamic-gp-mode=2
 //     --iavl-enable-async-commit=true
 //     --iavl-cache-size=10000000
 //     --pruning=everything
@@ -53,42 +59,61 @@ import (
 var (
 	startDependentElems = []dependentPair{
 		{ // if infura.FlagEnable=true , watcher.FlagFastQuery must be set to true
-			config:       boolItem{name: infura.FlagEnable, value: true},
-			reliedConfig: boolItem{name: watcher.FlagFastQuery, value: true},
+			config:       boolItem{name: infura.FlagEnable, expect: true},
+			reliedConfig: boolItem{name: watcher.FlagFastQuery, expect: true},
 		},
 	}
 	// conflicts flags
 	startConflictElems = []conflictPair{
 		// --fast-query      conflict with --pruning=nothing
 		{
-			configA: boolItem{name: watcher.FlagFastQuery, value: true},
-			configB: stringItem{name: server.FlagPruning, value: cosmost.PruningOptionNothing},
+			configA: boolItem{name: watcher.FlagFastQuery, expect: true},
+			configB: stringItem{name: server.FlagPruning, expect: cosmost.PruningOptionNothing},
 		},
 		// --enable-preruntx conflict with --download-delta
 		{
-			configA: boolItem{name: consensus.EnablePrerunTx, value: true},
-			configB: boolItem{name: types.FlagDownloadDDS, value: true},
+			configA: boolItem{name: consensus.EnablePrerunTx, expect: true},
+			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
 		},
 		// --multi-cache conflict with --download-delta
 		{
-			configA: boolItem{name: sdk.FlagMultiCache, value: true},
-			configB: boolItem{name: types.FlagDownloadDDS, value: true},
+			configA: boolItem{name: sdk.FlagMultiCache, expect: true},
+			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
 		},
 		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
-			configB: stringItem{name: server.FlagPruning, value: cosmost.PruningOptionNothing},
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.RpcNode)},
+			configB: stringItem{name: server.FlagPruning, expect: cosmost.PruningOptionNothing},
 		},
 		// --node-mode=archive(--pruning=nothing) conflicts with --fast-query
 		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.ArchiveNode)},
-			configB: boolItem{name: watcher.FlagFastQuery, value: true},
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
+			configB: boolItem{name: watcher.FlagFastQuery, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.RpcNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.InnertxNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
+		},
+		{
+			configA: boolItem{name: iavl.FlagIavlEnableFastStorage, expect: true},
+			configB: funcItem{name: "Upgraded to fast IAVL", expect: false, f: appstatus.IsFastStorageStrategy},
+			tips: fmt.Sprintf("Upgrade to IAVL fast storage may take several hours, "+
+				"you can use exchaind fss create command to upgrade, or unset --%v", iavl.FlagIavlEnableFastStorage),
 		},
 	}
 
-	checkRangeItems = []rangeItem{{
-		enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
-		name:      state.FlagDeliverTxsExecMode,
-	},
+	checkRangeItems = []rangeItem{
+		{
+			enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
+			name:      state.FlagDeliverTxsExecMode,
+		},
 	}
 )
 

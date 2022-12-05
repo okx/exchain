@@ -19,10 +19,9 @@ func (k *Keeper) FixLog(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteE
 	k.Bloom = new(big.Int)
 
 	for index := 0; index < txSize; index++ {
-		if !hasEnterEvmTx[index] {
-			continue
+		if hasEnterEvmTx[index] {
+			txInBlock++
 		}
-		txInBlock++
 		rs, ok := k.LogsManages.Get(logIndex[index])
 		if ok && anteErrs[index] == nil && rs.ResultData != nil {
 			for _, v := range rs.ResultData.Logs {

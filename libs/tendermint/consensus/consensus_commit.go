@@ -430,13 +430,17 @@ func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
 	if !GetActiveVC() {
 		return nil
 	}
+	t := time.NewTimer(time.Second)
 	for {
 		select {
 		case res := <-cs.taskResultChan:
 			if res.block.Height == height {
+				if !t.Stop() {
+					<-t.C
+				}
 				return res
 			}
-		case <-time.After(time.Second):
+		case <-t.C:
 			return nil
 		}
 

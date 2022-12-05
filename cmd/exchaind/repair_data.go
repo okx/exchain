@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -26,6 +30,13 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- repair data start ---------")
 
+			go func() {
+				pprofAddress := viper.GetString(pprofAddrFlag)
+				err := http.ListenAndServe(pprofAddress, nil)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}()
 			app.RepairState(ctx, false)
 			log.Println("--------- repair data success ---------")
 		},
@@ -36,14 +47,13 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().BoolVar(&types2.TrieUseCompositeKey, types2.FlagTrieUseCompositeKey, true, "Use composite key to store contract state")
 	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
-	cmd.Flags().Bool(tmiavl.FlagIavlEnableFastStorage, false, "Enable fast storage")
-	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 100000, "Max size of iavl fast storage cache")
 	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
+	cmd.Flags().Bool(sdk.FlagMultiCache, true, "Enable multi cache")
+	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:6060", "Address and port of pprof HTTP server listening")
 
 	return cmd
 }
 
 func setExternalPackageValue() {
-	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
-	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
+	tmiavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 }

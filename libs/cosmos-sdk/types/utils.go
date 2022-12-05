@@ -103,6 +103,12 @@ type ParaMsg struct {
 	HasRunEvmTx         bool
 }
 
+type FeeSplitInfo struct {
+	Addr   AccAddress
+	Fee    Coins
+	HasFee bool
+}
+
 type TxWatcher struct {
 	IWatcher
 }

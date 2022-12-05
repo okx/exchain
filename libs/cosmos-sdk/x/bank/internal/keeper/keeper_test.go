@@ -18,6 +18,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 )
 
+const (
+	fooDenom = "foo"
+	barDenom = "bar"
+)
+
 func TestKeeper(t *testing.T) {
 	app, ctx := createTestApp(false)
 
@@ -573,4 +578,33 @@ func TestUndelegateCoins(t *testing.T) {
 	macc = ak.GetAccount(ctx, addrModule)
 	require.Equal(t, origCoins, vacc.GetCoins())
 	require.True(t, macc.GetCoins().Empty())
+}
+
+func newFooCoin(amt int64) sdk.Coin {
+	return sdk.NewInt64Coin(fooDenom, amt)
+}
+
+func newBarCoin(amt int64) sdk.Coin {
+	return sdk.NewInt64Coin(barDenom, amt)
+}
+
+func TestUndelegateCoins_Invalid(t *testing.T) {
+	app, ctx := createTestApp(false)
+	now := tmtime.Now()
+	ctx.SetBlockHeader(abci.Header{Time: now})
+	delCoins := sdk.NewCoins(newFooCoin(50))
+
+	addr1 := sdk.AccAddress([]byte("addr1_______________"))
+	addrModule := sdk.AccAddress([]byte("moduleAcc___________"))
+	macc := app.AccountKeeper.NewAccountWithAddress(ctx, addrModule) // we don't need to define an actual module account bc we just need the address for testing
+	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
+
+	require.Error(t, app.BankKeeper.UndelegateCoins(ctx, addrModule, addr1, delCoins))
+
+	app.AccountKeeper.SetAccount(ctx, macc)
+
+	require.Error(t, app.BankKeeper.UndelegateCoins(ctx, addrModule, addr1, delCoins))
+	app.AccountKeeper.SetAccount(ctx, acc)
+
+	require.Error(t, app.BankKeeper.UndelegateCoins(ctx, addrModule, addr1, delCoins))
 }
