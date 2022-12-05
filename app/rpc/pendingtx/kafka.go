@@ -18,7 +18,7 @@ func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 		Writer: kafka.NewWriter(kafka.WriterConfig{
 			Brokers:  addrs,
 			Topic:    topic,
-			Balancer: &kafka.LeastBytes{},
+			Balancer: &kafka.Hash{},
 			Async:    true,
 		}),
 	}
