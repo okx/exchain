@@ -3,6 +3,7 @@ package v0
 import (
 	"errors"
 	"fmt"
+	stdlog "log"
 	"reflect"
 	"sync"
 	"time"
@@ -383,6 +384,11 @@ FOR_LOOP:
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
+				stdlog.Println(bcR.curState.Version)
+				stdlog.Println(bcR.curState.LastBlockHeight)
+				for _, v := range first.Txs {
+					stdlog.Println(v.String())
+				}
 				bcR.curState, _, err = bcR.blockExec.ApplyBlockWithTrace(bcR.curState, firstID, first) // rpc
 				if err != nil {
 					// TODO This is bad, are we zombie?
