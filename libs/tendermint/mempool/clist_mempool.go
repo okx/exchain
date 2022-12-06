@@ -296,15 +296,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	// END CACHE
 
-	if err := mem.isFull(txSize); err != nil {
-		mem.updateMtx.Lock()
-		// use defer to unlock mutex because application (*local client*) might panic
-		defer mem.updateMtx.Unlock()
-	} else {
-		mem.updateMtx.RLock()
-		// use defer to unlock mutex because application (*local client*) might panic
-		defer mem.updateMtx.RUnlock()
-	}
+	mem.updateMtx.RLock()
+	// use defer to unlock mutex because application (*local client*) might panic
+	defer mem.updateMtx.RUnlock()
 
 	var err error
 	var gasUsed int64
@@ -657,14 +651,6 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			if err == nil {
-				if mem.GetEnableDeleteMinGPTx() {
-					// If mempool is full the we remove the last one tx
-					// when pendingPool enable, we need to check tx is inserted into mempool.txsqueue, the we delete old tx
-					if _, inserted := mem.txs.Load(txkey); inserted {
-						mem.deleteMinGPTxOnlyFull(mem.txs.Back())
-					}
-				}
-
 				mem.logAddTx(memTx, r)
 				mem.notifyTxsAvailable()
 			} else {
@@ -997,6 +983,11 @@ func (mem *CListMempool) Update(
 		atomic.StoreInt64(&mem.checkCnt, 0)
 	}
 
+	if cfg.DynamicConfig.GetEnableDeleteMinGPTx() {
+		for mem.isFull(0) != nil {
+			mem.deleteMinGPTxOnlyFull(mem.txs.Back())
+		}
+	}
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
