@@ -28,6 +28,7 @@ import (
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
@@ -267,6 +268,40 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	}
 
 	return api.gasPrice
+}
+
+func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
+	monitor := monitor.GetMonitor("eth_gasPriceIn3Gears", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd()
+	//var safeGp, avgGP, fastestGp *big.Int
+	avgGP := (*big.Int)(api.gasPrice)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+		price := new(big.Int).Set(app.GlobalGp)
+		if price.Cmp((*big.Int)(api.gasPrice)) == -1 {
+			price.Set((*big.Int)(api.gasPrice))
+		}
+
+		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
+			gpRes := new(big.Int).Mul(price, coefficient)
+			avgGP = gpRes
+		} else {
+			avgGP = price
+		}
+	}
+	// safe low GP = average GP * 0.5, but it will not be less than the minimal GP.
+	safeGp := new(big.Int).Quo(avgGP, big.NewInt(2))
+	if safeGp.Cmp(gasprice.MinPrice) == -1 {
+		safeGp.Set(gasprice.MinPrice)
+	}
+	// fastest GP = average GP * 1.5, but it will not be greater than the max GP.
+	fastestGp := new(big.Int).Add(avgGP, new(big.Int).Quo(avgGP, big.NewInt(2)))
+	if fastestGp.Cmp(gasprice.MaxPrice) == 1 {
+		fastestGp.Set(gasprice.MaxPrice)
+	}
+	
+	res := rpctypes.NewGPIn3Gears(safeGp, avgGP, fastestGp)
+	return &res
 }
 
 // Accounts returns the list of accounts available to this node.

@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	maxPrice     = big.NewInt(500 * params.GWei)
-	defaultPrice = getDefaultGasPrice()
+	MaxPrice = big.NewInt(500 * params.GWei)
+	MinPrice = getDefaultGasPrice()
 )
 
 type GPOConfig struct {
@@ -27,7 +27,7 @@ type GPOConfig struct {
 func NewGPOConfig(weight int, checkBlocks int) GPOConfig {
 	return GPOConfig{
 		Weight:  weight,
-		Default: defaultPrice,
+		Default: MinPrice,
 		Blocks:  checkBlocks,
 	}
 }
@@ -82,8 +82,8 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 		price.Set(txPrices[(len(txPrices)-1)*gpo.weight/100])
 	}
 
-	if price.Cmp(maxPrice) > 0 {
-		price.Set(maxPrice)
+	if price.Cmp(MaxPrice) > 0 {
+		price.Set(MaxPrice)
 	}
 	gpo.lastPrice.Set(price)
 	return price

@@ -2,11 +2,13 @@ package types
 
 import (
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	watcher "github.com/okex/exchain/x/evm/watcher"
 )
 
@@ -139,4 +141,18 @@ type FeeHistoryResult struct {
 type SignTransactionResult struct {
 	Raw hexutil.Bytes        `json:"raw"`
 	Tx  *watcher.Transaction `json:"tx"`
+}
+
+type GPIn3Gears struct {
+	SafeLow *hexutil.Big `json:"safe_low"`
+	Average *hexutil.Big `json:"average"`
+	Fastest *hexutil.Big `json:"fastest"`
+}
+
+func NewGPIn3Gears(safelow, avg, fastest *big.Int) GPIn3Gears {
+	return GPIn3Gears{
+		SafeLow: (*hexutil.Big)(safelow),
+		Average: (*hexutil.Big)(avg),
+		Fastest: (*hexutil.Big)(fastest),
+	}
 }
