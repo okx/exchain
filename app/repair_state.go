@@ -204,6 +204,10 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
+		log.Println("--------giskook--------")
+		log.Printf("lastBlockHeight %v state.LastResultHash %X  repair %X \n", state.LastBlockHeight, state.LastResultsHash, repairBlock.LastResultsHash)
+
+		log.Println("--------giskook--------")
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
 		// use stateCopy to correct the repaired state

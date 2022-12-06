@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
 	"time"
@@ -309,4 +310,9 @@ func sliceToMap(s []int64) map[int64]bool {
 		m[i] = true
 	}
 	return m
+}
+
+func TestABCIResponses_ResultsHash(t *testing.T) {
+	abciResp := &sm.ABCIResponses{}
+	log.Printf("%X\n", abciResp.ResultsHash())
 }
