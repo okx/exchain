@@ -268,6 +268,28 @@ func (ndb *nodeDB) SaveFastNode(node *FastNode, batch dbm.Batch) error {
 	return ndb.saveFastNodeUnlocked(node, true, batch)
 }
 
+func (ndb *nodeDB) saveFastNodeToDB(node *FastNode) error {
+	if node.key == nil {
+		return fmt.Errorf("cannot have FastNode with a nil value for key")
+	}
+
+	// Save node bytes to db.
+	var buf bytes.Buffer
+	buf.Grow(node.encodedSize())
+
+	if err := node.writeBytes(&buf); err != nil {
+		return fmt.Errorf("error while writing fastnode bytes. Err: %w", err)
+	}
+
+	err := ndb.db.Set(ndb.fastNodeKey(node.key), buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("error while saving fastnode bytes to db. Err: %w", err)
+	}
+	ndb.cacheFastNode(node)
+
+	return nil
+}
+
 // SaveNode saves a FastNode to disk without adding to cache.
 func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode, batch dbm.Batch) error {
 	ndb.mtx.Lock()
@@ -295,6 +317,31 @@ func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch, version int64) 
 
 	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(version))
 	batch.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion))
+	ndb.storageVersion = newVersion
+
+	return nil
+}
+
+func (ndb *nodeDB) setFastStorageVersion(version int64) error {
+	var newVersion string
+	if ndb.storageVersion >= fastStorageVersionValue {
+		// Storage version should be at index 0 and latest fast cache version at index 1
+		versions := strings.Split(ndb.storageVersion, fastStorageVersionDelimiter)
+
+		if len(versions) > 2 {
+			return errors.New(errInvalidFastStorageVersion)
+		}
+
+		newVersion = versions[0]
+	} else {
+		newVersion = fastStorageVersionValue
+	}
+
+	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(version))
+	err := ndb.db.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion))
+	if err != nil {
+		return err
+	}
 	ndb.storageVersion = newVersion
 
 	return nil
@@ -555,6 +602,15 @@ func (ndb *nodeDB) DeleteFastNode(key []byte, batch dbm.Batch) error {
 	return nil
 }
 
+func (ndb *nodeDB) deleteFastNodeFromDB(key []byte) error {
+	err := ndb.db.Delete(ndb.fastNodeKey(key))
+	if err != nil {
+		return err
+	}
+	ndb.uncacheFastNode(key)
+	return nil
+}
+
 // deleteNodesFrom deletes the given node and any descendants that have versions after the given
 // (inclusive). It is mainly used via LoadVersionForOverwriting, to delete the current version.
 func (ndb *nodeDB) deleteNodesFrom(batch dbm.Batch, version int64, hash []byte) error {
@@ -589,6 +645,14 @@ func (ndb *nodeDB) saveOrphan(batch dbm.Batch, hash []byte, fromVersion, toVersi
 	}
 	key := ndb.orphanKey(fromVersion, toVersion, hash)
 	batch.Set(key, hash)
+}
+
+func (ndb *nodeDB) saveOrphanToDB(hash []byte, fromVersion, toVersion int64) error {
+	if fromVersion > toVersion {
+		panic(fmt.Sprintf("Orphan expires before it comes alive.  %d > %d", fromVersion, toVersion))
+	}
+	key := ndb.orphanKey(fromVersion, toVersion, hash)
+	return ndb.db.Set(key, hash)
 }
 
 func (ndb *nodeDB) log(level int, msg string, kv ...interface{}) {
