@@ -205,7 +205,10 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		log.Println("--------giskook--------")
-		log.Printf("lastBlockHeight %v state.LastResultHash %X  repair %X \n", state.LastBlockHeight, state.LastResultsHash, repairBlock.LastResultsHash)
+		log.Printf("lastBlockHeight %v state.LastResultHash %X \n", state.LastBlockHeight, state.LastResultsHash)
+		if repairBlock != nil {
+			log.Printf("lastBlockHeight %v block.LastResultHash %X \n", state.LastBlockHeight, repairBlock.LastResultsHash)
+		}
 
 		log.Println("--------giskook--------")
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
