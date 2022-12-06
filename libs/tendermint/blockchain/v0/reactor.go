@@ -384,8 +384,8 @@ FOR_LOOP:
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
-				stdlog.Println(bcR.curState.Version)
 				stdlog.Println(bcR.curState.LastBlockHeight)
+				stdlog.Println(len(first.Txs))
 				for _, v := range first.Txs {
 					stdlog.Println(v.String())
 				}
