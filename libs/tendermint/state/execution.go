@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	stdlog "log"
 	"strconv"
 	"time"
 
@@ -239,6 +240,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
+	stdlog.Println("----giskook print abci response----")
+	stdlog.Println("height", state.LastBlockHeight+1)
+	for i, v := range abciResponses.DeliverTxs {
+		stdlog.Printf("index %v code %v data %X \n", i, v.Code, v.Data)
+	}
+
+	stdlog.Println("----giskook print abci response----")
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
 	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, duration)
 
