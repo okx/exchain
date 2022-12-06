@@ -762,6 +762,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	txFilter := make(map[[32]byte]struct{})
 	var simCount, simGas int64
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
@@ -771,6 +772,13 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
+		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+		if _, ok := txFilter[key]; ok {
+			// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
+			mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
+			continue
+		}
+		txFilter[key] = struct{}{}
 		// Check total size requirement
 		aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
 		if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
