@@ -458,6 +458,7 @@ func NewOKExChainApp(
 		supportedFeatures,
 		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
 	)
+	(&app.WasmKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.ParamsKeeper.RegisterSignal(wasm.SetNeedParamsUpdate)
 

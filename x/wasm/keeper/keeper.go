@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -78,6 +79,7 @@ type Keeper struct {
 	wasmVMQueryHandler    WasmVMQueryHandler
 	wasmVMResponseHandler WasmVMResponseHandler
 	messenger             Messenger
+	innertxKeeper         innertx.InnerTxKeeper
 
 	// queryGasLimit is the max wasmvm gas that can be spent on executing a query with a contract
 	queryGasLimit     uint64
@@ -291,6 +293,12 @@ func (k Keeper) OnAccountUpdated(acc exported.Account) {
 }
 
 func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ AuthorizationPolicy) (codeID uint64, err error) {
+	gas := ctx.GasMeter().GasConsumed()
+	defer func() {
+		if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+			k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, creator, sdk.AccAddress{}, innertx.CosmosCallType, types.StoreCodeInnertxName, sdk.Coins{}, err, (ctx.GasMeter().GasConsumed() - gas), "")
+		}
+	}()
 	if creator == nil {
 		return 0, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "cannot be nil")
 	}
@@ -420,6 +428,9 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStoreAdapter, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
+	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, creator, contractAddress, innertx.CosmosCallType, types.InstantiateInnertxName, sdk.Coins{}, err, gasUsed, string(initMsg))
+	}
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrInstantiateFailed, err.Error())
 	}
@@ -502,6 +513,9 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 
 	res, gasUsed, execErr := k.wasmVM.Execute(codeInfo.CodeHash, env, info, msg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
+	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.ExecuteInnertxName, coins, err, gasUsed, string(msg))
+	}
 	if execErr != nil {
 		return nil, sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	}
@@ -565,6 +579,9 @@ func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, err := k.wasmVM.Migrate(newCodeInfo.CodeHash, env, msg, &prefixAdapater, cosmwasmAPI, &querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
+	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.MigrateInnertxName, sdk.Coins{}, err, gasUsed, string(msg))
+	}
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrMigrationFailed, err.Error())
 	}
@@ -1183,6 +1200,10 @@ func (k Keeper) gasMeter(ctx sdk.Context) MultipliedGasMeter {
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return moduleLogger(ctx)
+}
+
+func (k *Keeper) SetInnerTxKeeper(innertxKeeper innertx.InnerTxKeeper) {
+	k.innertxKeeper = innertxKeeper
 }
 
 func moduleLogger(ctx sdk.Context) log.Logger {
