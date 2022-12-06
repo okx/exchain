@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/abci/example/counter"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"testing"
 	"time"
 
@@ -1864,24 +1863,4 @@ func TestStateOversizedBlock(t *testing.T) {
 	ensurePrecommit(voteCh, height, round)
 	validatePrecommit(t, cs1, round, -1, vss[0], nil, nil)
 	signAddVotes(cs1, types.PrecommitType, propBlock.Hash(), propBlock.MakePartSet(partSize).Header(), vs2)
-}
-
-func TestSignSameVoteTwice(t *testing.T) {
-	_, vss := randState(2)
-
-	randBytes := tmrand.Bytes(tmhash.Size)
-
-	vote := signVote(vss[1],
-		types.PrecommitType,
-		randBytes,
-		types.PartSetHeader{Total: 10, Hash: randBytes},
-	)
-
-	vote2 := signVote(vss[1],
-		types.PrecommitType,
-		randBytes,
-		types.PartSetHeader{Total: 10, Hash: randBytes},
-	)
-
-	require.Equal(t, vote, vote2)
 }
