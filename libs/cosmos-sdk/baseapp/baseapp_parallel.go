@@ -725,7 +725,7 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	pm.cms.DisableCacheReadList()
 	deliverStateMs.DisableCacheReadList()
 
-	pm.resultCh = make(chan int, txSize)
+	pm.resultCh = make(chan int, txSize*2)
 
 	pm.nextTxInGroup = make(map[int]int)
 
