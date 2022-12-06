@@ -99,6 +99,8 @@ type validatorStub struct {
 	Height int64
 	Round  int
 	types.PrivValidator
+	VotingPower int64
+	lastVote    *types.Vote
 }
 
 var testMinPower int64 = 10
@@ -107,6 +109,7 @@ func newValidatorStub(privValidator types.PrivValidator, valIndex int) *validato
 	return &validatorStub{
 		Index:         valIndex,
 		PrivValidator: privValidator,
+		VotingPower:   testMinPower,
 	}
 }
 
@@ -129,6 +132,13 @@ func (vs *validatorStub) signVote(
 		Type:             voteType,
 		BlockID:          types.BlockID{Hash: hash, PartsHeader: header},
 	}
+	if err := vs.PrivValidator.SignVote(config.ChainID(), vote); err != nil {
+		return nil, fmt.Errorf("sign vote failed: %w", err)
+	}
+	if signDataIsEqual(vs.lastVote, vote) {
+		vote.Signature = vs.lastVote.Signature
+		vote.Timestamp = vs.lastVote.Timestamp
+	}
 
 	err = vs.PrivValidator.SignVote(config.ChainID(), vote)
 	return vote, err
@@ -140,6 +150,7 @@ func signVote(vs *validatorStub, voteType types.SignedMsgType, hash []byte, head
 	if err != nil {
 		panic(fmt.Errorf("failed to sign vote: %v", err))
 	}
+	vs.lastVote = v
 	return v
 }
 
@@ -879,4 +890,17 @@ func newPersistentKVStore() abci.Application {
 
 func newPersistentKVStoreWithPath(dbDir string) abci.Application {
 	return kvstore.NewPersistentKVStoreApplication(dbDir)
+}
+
+func signDataIsEqual(v1 *types.Vote, v2 *types.Vote) bool {
+	if v1 == nil || v2 == nil {
+		return false
+	}
+
+	return v1.Type == v2.Type &&
+		bytes.Equal(v1.BlockID.Hash, v2.BlockID.Hash) &&
+		v1.Height == v2.Height &&
+		v1.Round == v2.Round &&
+		bytes.Equal(v1.ValidatorAddress.Bytes(), v2.ValidatorAddress.Bytes()) &&
+		v1.ValidatorIndex == v2.ValidatorIndex
 }
