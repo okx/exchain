@@ -100,12 +100,12 @@ func (cs *State) receiveRoutine(maxSteps int) {
 }
 
 func (cs *State) handleAVCProposal(proposal *types.Proposal) {
-	if !GetActiveVC() {
+	if !GetActiveVC() || len(cs.taskResultChan) == 0 {
 		return
 	}
 	res := cs.getPreBlockResult(proposal.Height)
 	if res == nil {
-		cs.Logger.Error("handleAVCProposal get block nil")
+		cs.Logger.Error("handleAVCProposal get block nil", "height", proposal.Height)
 		return
 	}
 	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
