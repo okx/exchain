@@ -529,9 +529,6 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 			return
 		}
 
-		if mem.GetEnableDeleteMinGPTx() {
-			mem.deleteMinGPTxOnlyFull(mem.txs.Back())
-		}
 		mem.logger.Info("Added good transaction",
 			"tx", txIDStringer{mempoolTx.tx, mempoolTx.height},
 			"height", mempoolTx.height,
