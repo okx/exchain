@@ -105,6 +105,7 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 	}
 	res := cs.getPreBlockResult(proposal.Height)
 	if res == nil {
+		cs.Logger.Error("handleAVCProposal get block nil")
 		return
 	}
 	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
@@ -162,6 +163,9 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
+		if cs.Proposal != nil {
+			return
+		}
 		if err = cs.setProposal(msg.Proposal); err == nil {
 			added = true
 			cs.handleAVCProposal(msg.Proposal)
