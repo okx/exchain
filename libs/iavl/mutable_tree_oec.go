@@ -192,6 +192,7 @@ func (tree *MutableTree) persist(version int64) {
 }
 
 func (tree *MutableTree) commitSchedule() {
+	tree.ndb.cleanPruningInDB()
 	tree.loadVersionToCommittedHeightMap()
 	for event := range tree.commitCh {
 		if event.version < 0 {
@@ -205,11 +206,12 @@ func (tree *MutableTree) commitSchedule() {
 			}
 			continue
 		}
+		noBatch := IavlCommitAsyncNoBatch
 		trc := trace.NewTracer("commitSchedule")
 
 		if len(event.orphans) != 0 {
 			trc.Pin("saveCommitOrphans")
-			err := tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans, IavlCommitAsyncNoBatch)
+			err := tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans, noBatch)
 			if err != nil {
 				panic(err)
 			}
@@ -224,9 +226,9 @@ func (tree *MutableTree) commitSchedule() {
 		}
 
 		trc.Pin("Pruning")
-		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
+		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions, noBatch)
 
-		tree.ndb.persistTpp(&event, IavlCommitAsyncNoBatch, trc)
+		tree.ndb.persistTpp(&event, noBatch, trc)
 		if event.wg != nil {
 			event.wg.Done()
 			break
@@ -300,7 +302,7 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool) {
+func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool, writeToDB bool) {
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
 	tree.committedHeightMap[version] = true
@@ -312,7 +314,7 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 
 		if EnablePruningHistoryState {
 
-			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
+			if err := tree.deleteVersion(batch, oldVersion, versions, writeToDB); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)

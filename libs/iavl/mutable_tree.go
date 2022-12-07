@@ -888,7 +888,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 	return tree.Hash(), version, nil
 }
 
-func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions map[int64]bool) error {
+func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions map[int64]bool, writeToDB bool) error {
 	if version == 0 {
 		return errors.New("version must be greater than 0")
 	}
@@ -904,7 +904,7 @@ func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions 
 		return errors.Wrap(ErrVersionDoesNotExist, fmt.Sprintf("%d", version))
 	}
 
-	if err := tree.ndb.DeleteVersion(batch, version, true); err != nil {
+	if err := tree.ndb.DeleteVersion(batch, version, true, writeToDB); err != nil {
 		return err
 	}
 
@@ -1070,7 +1070,7 @@ func (ndb *nodeDB) saveFastNodeRemovals(batch dbm.Batch, removals map[string]int
 func (tree *MutableTree) DeleteVersion(version int64) error {
 	tree.log(IavlDebug, "DELETE", "VERSION", version)
 	batch := tree.NewBatch()
-	if err := tree.deleteVersion(batch, version, tree.versions.Clone()); err != nil {
+	if err := tree.deleteVersion(batch, version, tree.versions.Clone(), false); err != nil {
 		return err
 	}
 

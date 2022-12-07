@@ -17,6 +17,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryParams(ctx, k)
 		case types.QueryTreasures:
 			return queryTreasures(ctx, k)
+		case types.QueryBlockRewards:
+			return queryBlockRewards(ctx, k)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown query path: %s", path[0])
 		}
@@ -36,6 +38,24 @@ func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
 	params := k.GetParams(ctx)
 
 	res, err := codec.MarshalJSONIndent(k.cdc, params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
+func queryBlockRewards(ctx sdk.Context, k Keeper) ([]byte, error) {
+	minter := k.GetMinterCustom(ctx)
+	params := k.GetParams(ctx)
+
+	farmingAmount := minter.MintedPerBlock.MulDecTruncate(params.FarmProportion)
+	blockAmount := minter.MintedPerBlock.Sub(farmingAmount)
+
+	res, err := codec.MarshalJSONIndent(k.cdc, types.MinterCustom{
+		MintedPerBlock:    blockAmount,
+		NextBlockToUpdate: minter.NextBlockToUpdate,
+	})
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
