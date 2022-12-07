@@ -592,8 +592,8 @@ github.com/okex/go-amino v0.15.1-okc4 h1:+fl5ecyI15QZ7RAqgvlAnFrafCMcY9tnEYwtJ2d
 github.com/okex/go-amino v0.15.1-okc4/go.mod h1:TQU0M1i/ImAo+tYpZi73AU3V/dKeCoMC9Sphe2ZwGME=
 github.com/okex/go-ethereum v1.10.8-okc1 h1:s/fG9BgtL6qf1TcXYJeBCcN9AS6jR1zW5UywDJstqLo=
 github.com/okex/go-ethereum v1.10.8-okc1/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
-github.com/okex/grocksdb v1.6.46-0.20221207085603-e1714a8cb513 h1:n6StoiSbTMOnYtWWFue+TCMq7EPaXvXhCv+84jDBYWo=
-github.com/okex/grocksdb v1.6.46-0.20221207085603-e1714a8cb513/go.mod h1:+/BHUY+mT0tbaVXwO2wTtD9eytazyw1W5n2O7AGyXZA=
+github.com/okex/grocksdb v1.6.45-okc2 h1:JuUg2NcAFHZn78+xANcEKn9bcuF0tX8Jx3iMFfPnAEQ=
+github.com/okex/grocksdb v1.6.45-okc2/go.mod h1:+/BHUY+mT0tbaVXwO2wTtD9eytazyw1W5n2O7AGyXZA=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
