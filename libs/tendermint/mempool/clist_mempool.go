@@ -981,9 +981,7 @@ func (mem *CListMempool) Update(
 	}
 
 	if cfg.DynamicConfig.GetEnableDeleteMinGPTx() {
-		for mem.isFull(0) != nil {
-			mem.deleteMinGPTxOnlyFull(mem.txs.Back())
-		}
+		mem.deleteMinGPTxOnlyFull()
 	}
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
@@ -1285,9 +1283,10 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	return &simuRes, err
 }
 
-func (mem *CListMempool) deleteMinGPTxOnlyFull(removeTx *clist.CElement) {
+func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 	//check weather exceed mempool size,then need to delet the minimum gas price
-	if mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+	for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+		removeTx := mem.txs.Back()
 		mem.removeTx(removeTx)
 
 		removeMemTx := removeTx.Value.(*mempoolTx)
