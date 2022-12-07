@@ -24,6 +24,7 @@ func (cs *State) initNewHeight() {
 		// init StartTime
 		cs.StartTime = tmtime.Now()
 		cs.dumpElapsed(cs.blockTimeTrc, trace.LastBlockTime)
+		cs.traceDump()
 	}
 }
 
@@ -363,7 +364,6 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	cs.traceDump()
 	cs.bt.reset(height)
 
 	cs.Validators = validators
