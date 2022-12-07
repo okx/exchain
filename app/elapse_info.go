@@ -46,7 +46,7 @@ var (
 		trace.Tx,
 		trace.SimTx,
 		trace.BlockSize,
-		trace.TimeoutInterval,
+		trace.BTInterval,
 		trace.LastBlockTime,
 		trace.GasUsed,
 		trace.SimGasUsed,
