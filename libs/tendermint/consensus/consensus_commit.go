@@ -233,7 +233,10 @@ func (cs *State) finalizeCommit(height int64) {
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
 	// publish event of the latest block time
-	blockTime := sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
+	blockTime := tmtime.Now()
+	if cs.Height > 1 {
+		blockTime = sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
+	}
 	if types.EnableEventBlockTime {
 		validators := cs.Validators.Copy()
 		validators.IncrementProposerPriority(1)
