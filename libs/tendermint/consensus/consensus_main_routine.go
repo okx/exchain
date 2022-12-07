@@ -108,6 +108,9 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 		return
 	}
 	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
+		cs.Logger.Error("handleAVCProposal",
+			"proposalID", proposal.BlockID.PartsHeader.Hash.String(), "blockID", res.blockParts.Header().Hash.String(),
+			"proposalHeight", proposal.Height, "blockHeight", res.block.Height)
 		return
 	}
 	cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
