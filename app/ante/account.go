@@ -176,7 +176,10 @@ func deductFees(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Su
 
 	// set coins and record innertx
 	err := acc.SetCoins(balance)
-	updateInnerTx(ik, sk, ctx, acc, fees, err)
+	if !ctx.IsCheckTx() {
+		toAcc := sk.GetModuleAddress(types.FeeCollectorName)
+		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, fees, err)
+	}
 	if err != nil {
 		return err
 	}
@@ -220,14 +223,6 @@ func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress 
 	ak.SetAccount(ctx, sacc)
 
 	return
-}
-
-func updateInnerTx(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx sdk.Context, fromAcc exported.Account, fees sdk.Coins, err error) {
-	if ctx.IsCheckTx() {
-		return
-	}
-	toAcc := sk.GetModuleAddress(types.FeeCollectorName)
-	ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAcc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, fees, err)
 }
 
 func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {

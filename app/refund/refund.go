@@ -85,7 +85,10 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 
 	// set coins and record innertx
 	err = feePayerAcc.SetCoins(newCoins)
-	updateInnerTx(ik, sk, ctx, feePayerAcc, gasFees, err)
+	if !ctx.IsCheckTx() {
+		fromAddr := sk.GetModuleAddress(types.FeeCollectorName)
+		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, feePayerAcc.GetAddress(), innertx.CosmosCallType, innertx.SendCallName, fees, err)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -125,12 +128,4 @@ func calculateRefundFees(gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coin
 func CalculateRefundFees(gasUsed uint64, fees sdk.DecCoins, gasPrice *big.Int) sdk.Coins {
 	gas := new(big.Int).Div(fees[0].Amount.BigInt(), gasPrice).Uint64()
 	return calculateRefundFees(gasUsed, gas, fees)
-}
-
-func updateInnerTx(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx sdk.Context, toAcc exported.Account, fees sdk.Coins, err error) {
-	if ctx.IsCheckTx() {
-		return
-	}
-	fromAddr := sk.GetModuleAddress(types.FeeCollectorName)
-	ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, toAcc.GetAddress(), innertx.CosmosCallType, innertx.SendCallName, fees, err)
 }
