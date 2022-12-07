@@ -223,6 +223,9 @@ func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress 
 }
 
 func updateInnerTx(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx sdk.Context, fromAcc exported.Account, fees sdk.Coins, err error) {
+	if ctx.IsCheckTx() {
+		return
+	}
 	toAcc := sk.GetModuleAddress(types.FeeCollectorName)
 	ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAcc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, fees, err)
 }

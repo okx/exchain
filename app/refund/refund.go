@@ -128,6 +128,9 @@ func CalculateRefundFees(gasUsed uint64, fees sdk.DecCoins, gasPrice *big.Int) s
 }
 
 func updateInnerTx(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx sdk.Context, toAcc exported.Account, fees sdk.Coins, err error) {
+	if ctx.IsCheckTx() {
+		return
+	}
 	fromAddr := sk.GetModuleAddress(types.FeeCollectorName)
 	ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, toAcc.GetAddress(), innertx.CosmosCallType, innertx.SendCallName, fees, err)
 }
