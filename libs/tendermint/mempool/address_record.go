@@ -207,3 +207,9 @@ type AddressNonce struct {
 	addr  string
 	nonce uint64
 }
+
+var addressNoncePool = sync.Pool{
+	New: func() interface{} {
+		return &AddressNonce{}
+	},
+}

@@ -78,7 +78,7 @@ type CListMempool struct {
 	pendingPool                *PendingPool
 	accountRetriever           AccountRetriever
 	pendingPoolNotify          chan map[string]uint64
-	consumePendingTxQueue      chan AddressNonce
+	consumePendingTxQueue      chan *AddressNonce
 	consumePendingTxQueueLimit int
 
 	txInfoparser TxInfoParser
@@ -141,7 +141,7 @@ func NewCListMempool(
 
 		// consumePendingTxQueueLimit use  PendingPoolSize, because consumePendingTx is consume pendingTx.
 		mempool.consumePendingTxQueueLimit = mempool.config.PendingPoolSize
-		mempool.consumePendingTxQueue = make(chan AddressNonce, mempool.consumePendingTxQueueLimit)
+		mempool.consumePendingTxQueue = make(chan *AddressNonce, mempool.consumePendingTxQueueLimit)
 		go mempool.consumePendingTxQueueJob()
 	}
 
@@ -483,7 +483,11 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 				//But we must be do thus,for protect chain's block can be product.
 				mem.logger.Error("mempool", "addPendingTx", "when consumePendingTxQueue and mempool is full, disable consume pending tx")
 			} else {
-				mem.consumePendingTxQueue <- AddressNonce{addr: memTx.from, nonce: txNonce + 1}
+
+				addrNonce := addressNoncePool.Get().(*AddressNonce)
+				addrNonce.addr = memTx.from
+				addrNonce.nonce = txNonce + 1
+				mem.consumePendingTxQueue <- addrNonce
 			}
 			//go mem.consumePendingTx(memTx.from, txNonce+1)
 		}
@@ -1267,6 +1271,7 @@ func (mem *CListMempool) pendingPoolJob() {
 func (mem *CListMempool) consumePendingTxQueueJob() {
 	for addrNonce := range mem.consumePendingTxQueue {
 		mem.consumePendingTx(addrNonce.addr, addrNonce.nonce)
+		addressNoncePool.Put(addrNonce)
 	}
 }
 
