@@ -232,12 +232,13 @@ func (cs *State) finalizeCommit(height int64) {
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
 	// publish event of the latest block time
+	blockTime := sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
 	if types.EnableEventBlockTime {
-		blockTime := sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
 		validators := cs.Validators.Copy()
 		validators.IncrementProposerPriority(1)
 		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
 	}
+	trace.GetElapsedInfo().AddInfo(trace.BTInterval, fmt.Sprintf("%dms", blockTime.Sub(block.Time).Milliseconds()))
 
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
