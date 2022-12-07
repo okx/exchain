@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+	"strconv"
 
 	cmap "github.com/orcaman/concurrent-map"
 
@@ -274,10 +275,57 @@ func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVers
 
 	if !writeToDB {
 		ndb.deleteOrphans(batch, version)
-		ndb.deleteRoot(batch, version, checkLatestVersion)
+		ndb.deleteRoot(batch, version, checkLatestVersion, writeToDB)
+	} else {
+		ndb.setPruningRoot(version, checkLatestVersion)
+		ndb.deleteRoot(batch, version, checkLatestVersion, writeToDB)
+		ndb.deleteOrphansFromDB(version)
+		ndb.deletePruningRoot()
 	}
 
 	return nil
+}
+
+func (ndb *nodeDB) cleanPruningInDB() {
+	version, exist := ndb.getPruningRoot()
+	if !exist {
+		return
+	}
+	ndb.deleteRoot(nil, version, false, true)
+	ndb.deleteOrphansFromDB(version)
+	ndb.deletePruningRoot()
+}
+
+func (ndb *nodeDB) setPruningRoot(version int64, checkLatestVersion bool) {
+	if checkLatestVersion && version == ndb.getLatestVersion() {
+		panic("Tried to delete latest version")
+	}
+	err := ndb.db.Set(metadataKeyFormat.Key([]byte(pruningVersionKey)), []byte(strconv.FormatInt(version, 10)))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (ndb *nodeDB) deletePruningRoot() {
+	err := ndb.db.Delete(metadataKeyFormat.Key([]byte(pruningVersionKey)))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (ndb *nodeDB) getPruningRoot() (int64, bool) {
+	bz, err := ndb.db.Get(metadataKeyFormat.Key([]byte(pruningVersionKey)))
+	if err != nil {
+		panic(err)
+	}
+	if len(bz) == 0 {
+		return 0, false
+	}
+	v, err := strconv.ParseInt(string(bz), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return v, true
 }
 
 func (ndb *nodeDB) checkoutVersionReaders(version int64) error {

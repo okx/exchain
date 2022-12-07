@@ -31,6 +31,8 @@ const (
 	// Using semantic versioning: https://semver.org/
 	defaultStorageVersionValue = "1.0.0"
 	fastStorageVersionValue    = "1.1.0"
+
+	pruningVersionKey = "pruning_version"
 )
 
 var (
@@ -708,7 +710,10 @@ func (ndb *nodeDB) deleteOrphansFromDB(version int64) {
 		orphanKeyFormat.Scan(key, &toVersion, &fromVersion)
 
 		// Delete orphan key and reverse-lookup key.
-		ndb.db.Delete(key)
+		err := ndb.db.Delete(key)
+		if err != nil {
+			panic(err)
+		}
 
 		// If there is no predecessor, or the predecessor is earlier than the
 		// beginning of the lifetime (ie: negative lifetime), or the lifetime
@@ -717,12 +722,18 @@ func (ndb *nodeDB) deleteOrphansFromDB(version int64) {
 		// moving its endpoint to the previous version.
 		if predecessor < fromVersion || fromVersion == toVersion {
 			ndb.log(IavlDebug, "DELETE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
-			ndb.db.Delete(ndb.nodeKey(hash))
+			err = ndb.db.Delete(ndb.nodeKey(hash))
+			if err != nil {
+				panic(err)
+			}
 			ndb.uncacheNode(hash)
 			ndb.state.increaseDeletedCount()
 		} else {
 			ndb.log(IavlDebug, "MOVE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
-			ndb.saveOrphanToDB(hash, fromVersion, predecessor)
+			err = ndb.saveOrphanToDB(hash, fromVersion, predecessor)
+			if err != nil {
+				panic(err)
+			}
 		}
 	})
 }
@@ -799,11 +810,18 @@ func (ndb *nodeDB) getPreviousVersion(version int64) int64 {
 }
 
 // deleteRoot deletes the root entry from disk, but not the node it points to.
-func (ndb *nodeDB) deleteRoot(batch dbm.Batch, version int64, checkLatestVersion bool) {
+func (ndb *nodeDB) deleteRoot(batch dbm.Batch, version int64, checkLatestVersion bool, writeToDB bool) {
 	if checkLatestVersion && version == ndb.getLatestVersion() {
 		panic("Tried to delete latest version")
 	}
-	batch.Delete(ndb.rootKey(version))
+	if !writeToDB {
+		batch.Delete(ndb.rootKey(version))
+	} else {
+		err := ndb.db.Delete(ndb.rootKey(version))
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (ndb *nodeDB) traverseOrphans(fn func(k, v []byte)) {

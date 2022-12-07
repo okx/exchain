@@ -192,6 +192,7 @@ func (tree *MutableTree) persist(version int64) {
 }
 
 func (tree *MutableTree) commitSchedule() {
+	tree.ndb.cleanPruningInDB()
 	tree.loadVersionToCommittedHeightMap()
 	for event := range tree.commitCh {
 		if event.version < 0 {
