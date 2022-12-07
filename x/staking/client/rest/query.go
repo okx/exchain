@@ -331,7 +331,7 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 // HTTP request handler to query list of validators
 func validatorsCM45HandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
+		pr, err := rest.ParseCM45PageRequest(r)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
 			return
@@ -347,7 +347,8 @@ func validatorsCM45HandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			status = sdk.BondStatusBonded
 		}
 
-		params := types.NewQueryValidatorsParams(page, limit, status)
+		page := (pr.Offset / pr.Limit) + 1
+		params := types.NewQueryValidatorsParams(int(page), int(pr.Limit), status)
 		bz, err := cliCtx.Codec.MarshalJSON(params)
 		if err != nil {
 			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
