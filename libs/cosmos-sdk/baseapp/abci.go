@@ -414,10 +414,19 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			}
 		}
 	}
-	tx, err := app.txDecoder(txBytes)
-	if err != nil {
-		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+
+	var tx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
 	}
+	if tx == nil {
+		tx, err = app.txDecoder(txBytes)
+		if err != nil {
+			return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+		}
+	}
+
 	msgs := tx.GetMsgs()
 
 	if enableFastQuery() {

@@ -204,6 +204,10 @@ type ResultUserUnconfirmedTxs struct {
 	Txs   []types.Tx `json:"txs"`
 }
 
+type ResponseTxSimulateGas struct {
+	GasCost int64 `json:"gas_cost"`
+}
+
 // List of mempool addresses
 type ResultUnconfirmedAddresses struct {
 	Addresses []string `json:"addresses"`

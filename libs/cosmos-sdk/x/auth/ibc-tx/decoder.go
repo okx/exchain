@@ -228,11 +228,20 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 }
 
 func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
-	signatures := []authtypes.StdSignature{}
+	ret := make([]authtypes.StdSignature, len(ibcTx.Signatures))
+
 	for i, s := range ibcTx.Signatures {
 		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
 			var ok bool
+			if ibcTx.AuthInfo.SignerInfos[i].PublicKey == nil {
+				// maybe it is a simulate request
+				ret[i] = authtypes.StdSignature{
+					Signature: s,
+					PubKey:    nil,
+				}
+				continue
+			}
 			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
 			if !ok {
 				return []authtypes.StdSignature{}
@@ -243,14 +252,13 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 			return []authtypes.StdSignature{}
 		}
 
-		signatures = append(signatures,
-			authtypes.StdSignature{
-				Signature: s,
-				PubKey:    pubKey,
-			},
-		)
+		ret[i] = authtypes.StdSignature{
+			Signature: s,
+			PubKey:    pubKey,
+		}
 	}
-	return signatures
+
+	return ret
 }
 
 func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, string, error) {

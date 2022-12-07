@@ -27,6 +27,10 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		"/minting/annual-provisions",
 		queryAnnualProvisionsHandlerFn(cliCtx),
 	).Methods("GET")
+
+	r.HandleFunc(
+		"/minting/block-rewards",
+		queryBlockRewardsHandlerFn(cliCtx))
 }
 
 func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -76,6 +80,26 @@ func queryInflationHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 func queryAnnualProvisionsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAnnualProvisions)
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		res, height, err := cliCtx.QueryWithData(route, nil)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func queryBlockRewardsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryBlockRewards)
 
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {

@@ -267,7 +267,7 @@ InstallExchain() {
   echo "InstallExchain...."
 
   download
-  cd "$HOME"/.exchain/src/exchain-1.6.2
+  cd "$HOME"/.exchain/src/exchain-${ver}
   checkjcmalloc
   #if alpine add LINK_STATICALLY=true
   echo "compile exchain...."

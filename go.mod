@@ -24,6 +24,7 @@ require (
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/fortytw2/leaktest v1.3.0
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-errors/errors v1.0.1
 	github.com/go-kit/kit v0.12.0
 	github.com/go-logfmt/logfmt v0.5.1

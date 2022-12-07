@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/x/wasm/proxy"
 
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
+	mintrest "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
 	erc20client "github.com/okex/exchain/x/erc20/client"
 	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
 	evmclient "github.com/okex/exchain/x/evm/client"
@@ -100,6 +101,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
+	mintrest.RegisterRoutes(rs.CliCtx, v1Router)
 
 }
 
