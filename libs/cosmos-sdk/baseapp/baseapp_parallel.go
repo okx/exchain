@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	maxTxResultInChan           = 20000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
 )
@@ -725,7 +726,7 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	pm.cms.DisableCacheReadList()
 	deliverStateMs.DisableCacheReadList()
 
-	pm.resultCh = make(chan int, txSize*2)
+	pm.resultCh = make(chan int, maxTxResultInChan)
 
 	pm.nextTxInGroup = make(map[int]int)
 
