@@ -142,7 +142,7 @@ type State struct {
 	// some functions can be overwritten for testing
 	decideProposal func(height int64, round int)
 	doPrevote      func(height int64, round int)
-	setProposal    func(proposal *types.Proposal) error
+	setProposal    func(proposal *types.Proposal) (bool, error)
 
 	// closed when we finish shutting down
 	done chan struct{}

@@ -100,7 +100,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 }
 
 func (cs *State) handleAVCProposal(proposal *types.Proposal) {
-	if !GetActiveVC() || cs.Height != proposal.Height || len(cs.taskResultChan) == 0 {
+	if !GetActiveVC() ||
+		cs.Height != proposal.Height || cs.Round != proposal.Round ||
+		len(cs.taskResultChan) == 0 {
 		return
 	}
 	res := cs.getPreBlockResult(proposal.Height)
@@ -160,11 +162,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
-		if cs.Proposal != nil {
-			return
-		}
-		if err = cs.setProposal(msg.Proposal); err == nil {
-			added = true
+		if added, err = cs.setProposal(msg.Proposal); added {
 			cs.handleAVCProposal(msg.Proposal)
 		}
 	case *BlockPartMessage:
