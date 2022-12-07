@@ -266,14 +266,17 @@ func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 }
 
 // DeleteVersion deletes a tree version from disk.
-func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
+func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool, writeToDB bool) error {
 	err := ndb.checkoutVersionReaders(version)
 	if err != nil {
 		return err
 	}
 
-	ndb.deleteOrphans(batch, version)
-	ndb.deleteRoot(batch, version, checkLatestVersion)
+	if !writeToDB {
+		ndb.deleteOrphans(batch, version)
+		ndb.deleteRoot(batch, version, checkLatestVersion)
+	}
+
 	return nil
 }
 

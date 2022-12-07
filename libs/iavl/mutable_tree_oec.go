@@ -313,7 +313,7 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 
 		if EnablePruningHistoryState {
 
-			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
+			if err := tree.deleteVersion(batch, oldVersion, versions, writeToDB); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
