@@ -113,7 +113,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 			panic(fmt.Sprintf("Invalid options parameter %s: %s", unorderedWrite, err))
 		}
 		if enable {
-			opts.EnableUnorderedWrite(enable)
+			opts.SetUnorderedWrite(enable)
 		}
 	}
 
