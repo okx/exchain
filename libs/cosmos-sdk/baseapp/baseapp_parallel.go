@@ -592,6 +592,7 @@ func newParallelTxManager() *parallelTxManager {
 		nextTxInGroup:    make(map[int]int),
 		preTxInGroup:     make(map[int]int),
 		txIndexWithGroup: make(map[int]int),
+		resultCh:         make(chan int, maxTxResultInChan),
 
 		blockMpCache:     newCacheRWSetList(),
 		chainMpCache:     newCacheRWSetList(),
@@ -726,7 +727,9 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	pm.cms.DisableCacheReadList()
 	deliverStateMs.DisableCacheReadList()
 
-	pm.resultCh = make(chan int, maxTxResultInChan)
+	if txSize > cap(pm.resultCh) {
+		pm.resultCh = make(chan int, txSize)
+	}
 
 	pm.nextTxInGroup = make(map[int]int)
 
