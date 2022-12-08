@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -29,7 +31,6 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -153,6 +154,7 @@ type BaseApp struct { // nolint: maligned
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
 
+	updateGPOHandler sdk.UpdateGPOHandler
 	// volatile states:
 	//
 	// checkState is set on InitChain and reset on Commit
