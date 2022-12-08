@@ -236,7 +236,7 @@ func delegatorRewardsHandlerFnCM45(cliCtx context.CLIContext, queryRoute string)
 			sdkErr := comm.ParseSDKError(err.Error())
 			if sdkErr.Code == types.CodeEmptyDelegationDistInfo {
 				total := sdk.DecCoins{}
-				var delRewards []types.DelegationDelegatorReward
+				delRewards := make([]types.DelegationDelegatorReward, 0)
 				totalRewards := types.NewQueryDelegatorTotalRewardsResponse(delRewards, total)
 				cliCtx = cliCtx.WithHeight(height)
 				rest.PostProcessResponse(w, cliCtx, totalRewards)
