@@ -97,7 +97,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tra
 	batch := event.batch
 	tpp := event.tpp
 
-	trc.Pin("batchSet")
+	trc.Pin("batchSet-node")
 	if !writeToDB {
 		for _, node := range tpp {
 			ndb.batchSet(node, batch)
@@ -114,6 +114,8 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tra
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
+	trc.Pin("batchSet-fss")
+
 	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version, writeToDB); err != nil {
 		panic(err)
 	}
@@ -124,7 +126,6 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tra
 	}
 
 	ndb.asyncPersistTppFinised(event, trc)
-	ndb.tpfv.remove(event.version)
 }
 
 func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChanges) {
@@ -162,6 +163,7 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 	nodeNum := ndb.tpp.getTppNodesNum()
 
 	ndb.tpp.removeFromTpp(version)
+	ndb.tpfv.remove(event.version)
 
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
