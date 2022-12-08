@@ -147,6 +147,5 @@ func (im IBCModule) OnTimeoutPacket(
 }
 
 func (im IBCModule) NegotiateAppVersion(ctx sdk.Context, order channeltypes.Order, connectionID string, portID string, counterparty channeltypes.Counterparty, proposedVersion string) (version string, err error) {
-	//TODO implement me
-	panic("implement me")
+	return version, nil
 }
