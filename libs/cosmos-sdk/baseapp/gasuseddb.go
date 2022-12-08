@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"encoding/binary"
+	"fmt"
 	"path/filepath"
 	"sync"
 
@@ -21,7 +22,6 @@ const (
 
 var (
 	once          sync.Once
-	guDB          db.DB
 	GasUsedFactor = 0.4
 	jobQueueLen   = 10
 	cacheSize     = 10000
@@ -63,44 +63,59 @@ func (h *HistoryGasUsedRecordDB) UpdateGasUsed(key []byte, gasUsed int64) {
 	h.latestGuMtx.Unlock()
 }
 
-func (h *HistoryGasUsedRecordDB) GetHgu(key []byte) int64 {
-	v, ok := h.cache.Get(string(key))
-	if ok {
-		return v.(int64)
-	}
+var totalCount, hitCount int64
 
-	data, err := h.guDB.Get(key)
-	if err != nil || len(data) == 0 {
-		return -1
+func (h *HistoryGasUsedRecordDB) GetHgu(key []byte) int64 {
+	hgu, cacheHit := h.getHgu(key)
+	if !cacheHit && hgu != -1 {
+		// add to cache before returning hgu
+		h.cache.Add(string(key), hgu)
 	}
-	gu := bytesToInt64(data)
-	// add to cache before returning gu
-	h.cache.Add(string(key), gu)
-	return gu
+	totalCount++
+	return hgu
 }
 
 func (h *HistoryGasUsedRecordDB) FlushHgu() {
+	fmt.Println("debug", totalCount, hitCount)
 	if len(h.latestGu) == 0 {
 		return
 	}
-	latestMeanGu := make([]gasKey, len(h.latestGu))
+	latestGasKeys := make([]gasKey, len(h.latestGu))
 	for key, gas := range h.latestGu {
-		latestMeanGu = append(latestMeanGu, gasKey{
+		latestGasKeys = append(latestGasKeys, gasKey{
 			gas: gas,
 			key: key,
 		})
 		delete(h.latestGu, key)
 	}
-	h.jobQueue <- func() { h.flushHgu(latestMeanGu...) } // closure function
+	h.jobQueue <- func() { h.flushHgu(latestGasKeys...) } // closure
+}
+
+func (h *HistoryGasUsedRecordDB) getHgu(key []byte) (hgu int64, fromCache bool) {
+	v, ok := h.cache.Get(string(key))
+	if ok {
+		hitCount++
+		return v.(int64), true
+	}
+
+	data, err := h.guDB.Get(key)
+	if err != nil || len(data) == 0 {
+		return -1, false
+	}
+
+	return bytesToInt64(data), false
 }
 
 func (h *HistoryGasUsedRecordDB) flushHgu(gks ...gasKey) {
 	for _, gk := range gks {
-		if _, ok := h.cache.Get(gk.key); ok {
-			// update cache if already exists
-			h.cache.Add(gk.key, gk.gas)
+		hgu, cacheHit := h.getHgu([]byte(gk.key))
+		// avgGas = 0.4 * newGas + 0.6 * oldGas
+		avgGas := int64(GasUsedFactor*float64(gk.gas) + (1.0-GasUsedFactor)*float64(hgu))
+		// add to cache if hit
+		if cacheHit {
+			h.cache.Add(gk.key, avgGas)
 		}
-		h.guDB.Set([]byte(gk.key), int64ToBytes(gk.gas))
+		h.guDB.Set([]byte(gk.key), int64ToBytes(avgGas))
 	}
 }
 
