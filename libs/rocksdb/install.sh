@@ -61,10 +61,10 @@ install_linux() {
 
 install_macos(){
   $sh_c "git clone https://github.com/facebook/rocksdb.git"
-  $sh_c "cd rocksdb && git checkout ${VERSION} && git apply --reject ../libs/rocksdb/arm64_crc.patch"
+  $sh_c "cd rocksdb && git checkout ${VERSION}"
   $sh_c "cd rocksdb && make clean"
-  $sh_c "cd rocksdb && make uninstall"
-  $sh_c "cd rocksdb && make -j${num_proc} shared_lib"
+  $sh_c "cd rocksdb && make uninstall DEBUG_LEVEL=0"
+  $sh_c "cd rocksdb && make -j${num_proc} shared_lib EXTRA_CXXFLAGS='-Wno-deprecated-copy -Wno-unused-but-set-variable'"
   $sh_c "cd rocksdb && make install-shared"
 }
 

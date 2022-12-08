@@ -171,10 +171,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.feeCollector = sdk.Coins{}
 	app.feeChanged = false
 	// clean FeeSplitCollector
-	app.FeeSplitCollector.Range(func(key, value interface{}) bool {
-		app.FeeSplitCollector.Delete(key)
-		return true
-	})
+	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 
 	return res
 }
@@ -416,10 +413,19 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			}
 		}
 	}
-	tx, err := app.txDecoder(txBytes)
-	if err != nil {
-		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+
+	var tx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
 	}
+	if tx == nil {
+		tx, err = app.txDecoder(txBytes)
+		if err != nil {
+			return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+		}
+	}
+
 	msgs := tx.GetMsgs()
 
 	if enableFastQuery() {

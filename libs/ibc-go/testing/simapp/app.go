@@ -1,18 +1,29 @@
 package simapp
 
 import (
+	"encoding/hex"
 	"fmt"
+
+	evm2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/evm"
+
 	"io"
 	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
+
+	"github.com/spf13/viper"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
+	ethermint "github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -83,9 +94,6 @@ import (
 	"github.com/okex/exchain/x/wasm"
 	wasmclient "github.com/okex/exchain/x/wasm/client"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/viper"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -201,8 +209,9 @@ type SimApp struct {
 	invCheckPeriod uint
 
 	// keys to access the substores
-	keys  map[string]*sdk.KVStoreKey
-	tkeys map[string]*sdk.TransientStoreKey
+	keys    map[string]*sdk.KVStoreKey
+	tkeys   map[string]*sdk.TransientStoreKey
+	memKeys map[string]*sdk.MemoryStoreKey
 
 	// subspaces
 	subspaces map[string]params.Subspace
@@ -250,6 +259,7 @@ type SimApp struct {
 
 	ibcScopeKeep capabilitykeeper.ScopedKeeper
 	WasmHandler  wasmkeeper.HandlerOption
+	gpo          *gasprice.Oracle
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -305,6 +315,7 @@ func NewSimApp(
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
+		memKeys:        memKeys,
 	}
 	bApp.SetInterceptors(makeInterceptors())
 
@@ -510,7 +521,7 @@ func NewSimApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		staking2.TNewStakingModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
-		evm.NewAppModule(app.EvmKeeper, &app.AccountKeeper),
+		evm2.TNewEvmModuleAdapter(app.EvmKeeper, &app.AccountKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
 		dex.NewAppModule(commonversion.ProtocolVersionV0, app.DexKeeper, app.SupplyKeeper),
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
@@ -619,8 +630,15 @@ func NewSimApp(
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
+	app.SetEvmWatcherCollector(func(...sdk.IWatcher) {})
+
+	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
+	app.gpo = gasprice.NewOracle(gpoConfig)
+	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
+
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -639,7 +657,7 @@ func NewSimApp(
 }
 
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit *sync.Map) error {
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
 		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 	}
 }
@@ -647,6 +665,43 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
 		return ek.FixLog(tx, logIndex, hasEnterEvmTx, anteErrs, resp)
+	}
+}
+func evmTxVerifySigHandler(chainID string, blockHeight int64, evmTx *evmtypes.MsgEthereumTx) error {
+	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	if err != nil {
+		return err
+	}
+	err = evmTx.VerifySig(chainIDEpoch, blockHeight)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string, err error) {
+		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+			isEvm = true
+			err = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
+			if err != nil {
+				return
+			}
+			fee = evmTx.GetFee()
+			from = evmTx.BaseTx.From
+			if len(from) > 2 {
+				from = strings.ToLower(from[2:])
+			}
+			if evmTx.To() != nil {
+				to = strings.ToLower(evmTx.To().String()[2:])
+			}
+		} else if feeTx, ok := tx.(authante.FeeTx); ok {
+			fee = feeTx.GetFee()
+			feePayer := feeTx.FeePayer(ctx)
+			feePayerAcc := ak.GetAccount(ctx, feePayer)
+			from = hex.EncodeToString(feePayerAcc.GetAddress())
+		}
+
+		return
 	}
 }
 
@@ -657,6 +712,16 @@ func getTxFeeHandler() sdk.GetTxFeeHandler {
 		}
 
 		return
+	}
+}
+
+func updateGPOHandler(gpo *gasprice.Oracle) sdk.UpdateGPOHandler {
+	return func(dynamicGpInfos []sdk.DynamicGasInfo) {
+		if appconfig.GetOecConfig().GetDynamicGpMode() != okexchain.MinimalGpMode {
+			for _, dgi := range dynamicGpInfos {
+				gpo.CurrentBlockGPs.Update(dgi.GetGP(), dgi.GetGU())
+			}
+		}
 	}
 }
 
@@ -731,6 +796,10 @@ func (app *SimApp) SimulationManager() *module.SimulationManager {
 // NOTE: This is solely to be used for testing purposes.
 func (app *SimApp) GetKey(storeKey string) *sdk.KVStoreKey {
 	return app.keys[storeKey]
+}
+
+func (app *SimApp) GetMemKey(storeKey string) *sdk.MemoryStoreKey {
+	return app.memKeys[storeKey]
 }
 
 func (app *SimApp) GetBaseApp() *bam.BaseApp {

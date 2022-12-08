@@ -10,12 +10,11 @@ import (
 	"strconv"
 	"testing"
 
+	cmn "github.com/okex/exchain/libs/iavl/common"
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
+	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	cmn "github.com/okex/exchain/libs/iavl/common"
-	db "github.com/okex/exchain/libs/tm-db"
 )
 
 var testLevelDB bool
@@ -1264,6 +1263,92 @@ func TestOverwrite(t *testing.T) {
 	tree.Set([]byte("key2"), []byte("value2"))
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(err, "SaveVersion should not fail, overwrite was idempotent")
+}
+
+func TestOverwriteEmpty(t *testing.T) {
+	// version 1 and version 2 are empty trees, version3 has value
+	buildTreeVersion3 := func() (*MutableTree, int64, error) {
+		mdb := db.NewMemDB()
+		tree, err := NewMutableTree(mdb, 0)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Save empty version 1
+		_, version, _, err := tree.SaveVersion(false)
+		if err != nil {
+			return tree, version, err
+		}
+
+		// Save empty version 2
+		_, version, _, err = tree.SaveVersion(false)
+		if err != nil {
+			return tree, version, err
+		}
+
+		// Save a key in version 3
+		tree.Set([]byte("key"), []byte("value"))
+		_, version, _, err = tree.SaveVersion(false)
+
+		return tree, version, err
+	}
+
+	testCases := []struct {
+		name        string
+		saveVersion func() (int64, error)
+		wantVersion int64
+		wantErr     assert.ErrorAssertionFunc
+	}{
+		{
+			"over write old empty tree with new key should fail",
+			func() (int64, error) {
+				tree, version, err := buildTreeVersion3()
+
+				// Load version 1 and attempt to save a different key
+				version, err = tree.LoadVersion(1)
+				if err != nil {
+					return version, err
+				}
+				tree.Set([]byte("foo"), []byte("bar"))
+				_, version, _, err = tree.SaveVersion(false)
+				return version, err
+			},
+			2,
+			assert.Error,
+		},
+		{
+			"over write old empty tree without new key should work",
+			func() (int64, error) {
+				tree, version, err := buildTreeVersion3()
+
+				// Load version 1 and attempt to save a different key
+				version, err = tree.LoadVersion(1)
+				if err != nil {
+					return version, err
+				}
+				tree.Set([]byte("foo"), []byte("bar"))
+
+				// However, deleting the key and saving an empty version should work,
+				// since it's the same as the existing version.
+				tree.Remove([]byte("foo"))
+				_, version, _, err = tree.SaveVersion(false)
+				return version, err
+			},
+			2,
+			assert.NoError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			version, err := tc.saveVersion()
+
+			if !tc.wantErr(t, err) {
+				return
+			}
+			assert.Equal(t, tc.wantVersion, version)
+		})
+	}
 }
 
 func TestLoadVersionForOverwriting(t *testing.T) {

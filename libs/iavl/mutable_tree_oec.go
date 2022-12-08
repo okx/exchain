@@ -6,19 +6,23 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/okex/exchain/libs/iavl/config"
+
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 const (
-	minHistoryStateNum             = 30
-	FlagIavlCommitIntervalHeight   = "iavl-commit-interval-height"
-	FlagIavlMinCommitItemCount     = "iavl-min-commit-item-count"
-	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
-	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
-	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
-	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
-	FlagIavlFastStorageCacheSize   = "iavl-fast-storage-cache-size"
+	minHistoryStateNum              = 30
+	FlagIavlCommitIntervalHeight    = "iavl-commit-interval-height"
+	FlagIavlMinCommitItemCount      = "iavl-min-commit-item-count"
+	FlagIavlHeightOrphansCacheSize  = "iavl-height-orphans-cache-size"
+	FlagIavlMaxCommittedHeightNum   = "iavl-max-committed-height-num"
+	FlagIavlEnableAsyncCommit       = "iavl-enable-async-commit"
+	FlagIavlFastStorageCacheSize    = "iavl-fast-storage-cache-size"
+	FlagIavlEnableFastStorage       = "iavl-enable-fast-storage"
+	FlagIavlDiscardFastStorage      = "discard-fast-storage"
+	DefaultIavlFastStorageCacheSize = 10000000
 )
 
 var (
@@ -32,9 +36,8 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
-	CommitGapHeight           int64 = 100
-	enableFastStorage               = false
-	fastNodeCacheSize               = 100000
+	CommitGapHeight           int64 = config.DefaultCommitGapHeight
+	enableFastStorage               = true
 )
 
 type commitEvent struct {
@@ -45,6 +48,7 @@ type commitEvent struct {
 	wg         *sync.WaitGroup
 	iavlHeight int
 	fnc        *fastNodeChanges
+	orphans    []commitOrphan
 }
 
 type commitOrphan struct {
@@ -62,14 +66,13 @@ func GetEnableFastStorage() bool {
 	return enableFastStorage
 }
 
-// SetFastNodeCacheSize set fast node cache size
-func SetFastNodeCacheSize(size int) {
-	fastNodeCacheSize = size
-}
-
 // GetFastNodeCacheSize get fast node cache size
 func GetFastNodeCacheSize() int {
-	return fastNodeCacheSize
+	return int(config.DynamicConfig.GetIavlFSCacheSize())
+}
+
+func UpdateCommitGapHeight(gap int64) {
+	CommitGapHeight = gap
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
@@ -157,11 +160,14 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil}
 	var tpp map[string]*Node = nil
 	fnc := newFastNodeChanges()
+
+	var orphans []commitOrphan
 	if EnablePruningHistoryState {
-		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
+		orphans = tree.commitOrphans
+		tree.commitOrphans = nil
 	}
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being removed.
@@ -181,7 +187,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height()), fnc}
+		tpp, nil, int(tree.Height()), fnc, orphans}
 	tree.lastPersistHeight = version
 }
 
@@ -199,8 +205,12 @@ func (tree *MutableTree) commitSchedule() {
 			}
 			continue
 		}
-
 		trc := trace.NewTracer("commitSchedule")
+
+		if len(event.orphans) != 0 {
+			trc.Pin("saveCommitOrphans")
+			tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans)
+		}
 
 		trc.Pin("cacheNode")
 		for k, node := range event.tpp {
@@ -276,7 +286,7 @@ func (tree *MutableTree) StopTreeWithVersion(version int64) {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil}
 	wg.Wait()
 }
 func (tree *MutableTree) StopTree() {

@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
@@ -242,10 +241,6 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	cs.Logger.Debug("Received tock", "timeout", ti.Duration, "height", ti.Height, "round", ti.Round, "step", ti.Step)
 
-	if ti.Step == cstypes.RoundStepNewHeight {
-		cs.dumpElapsed(cs.timeoutIntervalTrc, trace.TimeoutInterval)
-	}
-
 	// timeouts must be for current height, round, step
 	if ti.Height != rs.Height || ti.Round < rs.Round || (ti.Round == rs.Round && ti.Step < rs.Step) {
 		cs.Logger.Debug("Ignoring tock because we're ahead", "height", rs.Height, "round", rs.Round, "step", rs.Step)
@@ -295,7 +290,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	if GetActiveVC() && cs.privValidator != nil {
-		go cs.preMakeBlock(cs.Height, sleepDuration)
+		cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
 	}
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
@@ -351,5 +346,18 @@ func (cs *State) handleTxsAvailable() {
 		cs.scheduleTimeout(timeoutCommit, cs.Height, 0, cstypes.RoundStepNewRound)
 	case cstypes.RoundStepNewRound: // after timeoutCommit
 		cs.enterPropose(cs.Height, 0)
+	}
+}
+
+func (cs *State) preMakeBlockRoutine() {
+	for {
+		select {
+		case task := <-cs.preBlockTaskChan:
+			if task.height == cs.Height {
+				cs.preMakeBlock(task.height, task.duration)
+			}
+		case <-cs.Quit():
+			return
+		}
 	}
 }

@@ -6,6 +6,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/spf13/viper"
+
+	"github.com/okex/exchain/app/config"
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/types"
@@ -19,7 +22,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/spf13/viper"
 )
 
 func setNodeConfig(ctx *server.Context) error {
@@ -70,13 +72,22 @@ func setRpcConfig(ctx *server.Context) {
 
 func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
-	viper.SetDefault(appconfig.FlagEnableDynamicGp, false)
+	viper.SetDefault(appconfig.FlagDynamicGpMode, types.MinimalGpMode)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
-	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
-		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagEnableDynamicGp, false, iavl.FlagIavlEnableAsyncCommit, true,
-		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything"))
+	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
+	viper.SetDefault(watcher.FlagFastQuery, false)
+	viper.SetDefault(appconfig.FlagMaxGasUsedPerBlock, 120000000)
+	viper.SetDefault(mempool.FlagEnablePendingPool, false)
+	viper.SetDefault(config.FlagEnablePGU, true)
+
+
+	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
+		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, types.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, true,
+		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
+		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000,
+		mempool.FlagEnablePendingPool, false))
 }
 
 func setArchiveConfig(ctx *server.Context) {

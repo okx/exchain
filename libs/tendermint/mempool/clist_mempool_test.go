@@ -985,3 +985,29 @@ func TestTxOrTxHashToKey(t *testing.T) {
 
 	types.UnittestOnlySetMilestoneVenusHeight(old)
 }
+
+func TestConsumePendingtxConcurrency(t *testing.T) {
+
+	app := kvstore.NewApplication()
+	cc := proxy.NewLocalClientCreator(app)
+	mem, cleanup := newMempoolWithApp(cc)
+	defer cleanup()
+	mem.pendingPool = newPendingPool(500000, 3, 10, 500000)
+
+	for i := 0; i < 10000; i++ {
+		mem.pendingPool.addTx(&mempoolTx{height: 1, gasWanted: 1, tx: []byte(strconv.Itoa(i)), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(3780), Nonce: uint64(i)}})
+	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	startWg := &sync.WaitGroup{}
+	startWg.Add(1)
+	go func() {
+		startWg.Wait()
+		mem.consumePendingTx("1", 0)
+		wg.Done()
+	}()
+	startWg.Done()
+	mem.consumePendingTx("1", 5000)
+	wg.Wait()
+	require.Equal(t, 0, mem.pendingPool.Size())
+}

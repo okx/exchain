@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/okex/exchain/libs/tendermint/consensus"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 
@@ -321,8 +323,9 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
-	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
-	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
+	if viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) {
+		tmiavl.SetEnableFastStorage(false)
+	}
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
@@ -339,10 +342,11 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
 	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
 
-	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
+
+	consensus.SetActiveVC(viper.GetBool(FlagActiveViewChange))
 
 	tmtypes.EnableEventBlockTime = viper.GetBool(FlagEventBlockTime)
 }
