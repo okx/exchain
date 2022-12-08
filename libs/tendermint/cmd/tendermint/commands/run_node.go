@@ -172,6 +172,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		strings.Join(config.Mempool.NodeKeyWhitelist, ","),
 		"The whitelist of nodes whose wtx is confident",
 	)
+	cmd.Flags().String(
+		"mempool.tx_receiver_port",
+		config.Mempool.TxReceiverPort,
+		"grpc tx receiver port",
+	)
 
 	cmd.Flags().Bool(
 		"enable-wtx",
