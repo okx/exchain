@@ -79,7 +79,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 	// Compatible with cosmos v0.45.1
 	r.HandleFunc(
 		"/cosmos/distribution/v1beta1/delegators/{delegatorAddr}/rewards",
-		delegatorRewardsHandlerFn(cliCtx, queryRoute),
+		delegatorRewardsHandlerFnCM45(cliCtx, queryRoute),
 	).Methods("GET")
 }
 
@@ -203,6 +203,46 @@ func delegatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) htt
 		if err != nil {
 			sdkErr := comm.ParseSDKError(err.Error())
 			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			return
+		}
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func delegatorRewardsHandlerFnCM45(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		delegatorAddr, ok := checkDelegatorAddressVar(w, r)
+		if !ok {
+			return
+		}
+
+		params := types.NewQueryDelegatorParams(delegatorAddr)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
+		route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryDelegatorTotalRewards)
+		res, height, err := cliCtx.QueryWithData(route, bz)
+		if err != nil {
+			sdkErr := comm.ParseSDKError(err.Error())
+			if sdkErr.Code == types.CodeEmptyDelegationDistInfo {
+				total := sdk.DecCoins{}
+				var delRewards []types.DelegationDelegatorReward
+				totalRewards := types.NewQueryDelegatorTotalRewardsResponse(delRewards, total)
+				cliCtx = cliCtx.WithHeight(height)
+				rest.PostProcessResponse(w, cliCtx, totalRewards)
+			} else {
+				comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			}
 			return
 		}
 

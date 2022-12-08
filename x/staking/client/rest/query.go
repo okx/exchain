@@ -12,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/x/common"
+	comm "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/staking/types"
 )
 
@@ -198,12 +199,24 @@ func delegatorUnbondingDelegationsHandlerFnCM45(cliCtx context.CLIContext) http.
 
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, uint32(common.ErrorABCIQueryFails), err.Error())
+			sdkErr := comm.ParseSDKError(err.Error())
+			if sdkErr.Code == types.CodeNoUnbondingDelegation {
+				// If there is no unbonding delegation, return an empty response instead of en error.
+				var undelegationInfos []types.UndelegationInfo
+				unbondingResp := types.NewUnbondingResponses(undelegationInfos)
+				cliCtx = cliCtx.WithHeight(height)
+				rest.PostProcessResponse(w, cliCtx, unbondingResp)
+			} else {
+				common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			}
 			return
 		}
+		// If res is not nil, return a formatted response.
+		var undelegationInfos []types.UndelegationInfo
 		var undelegationInfo types.UndelegationInfo
 		cliCtx.Codec.MustUnmarshalJSON(res, &undelegationInfo)
-		unbondingResp := types.NewUnbondingResponse(undelegationInfo)
+		undelegationInfos = append(undelegationInfos, undelegationInfo)
+		unbondingResp := types.NewUnbondingResponses(undelegationInfos)
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, unbondingResp)
 	}
@@ -243,12 +256,23 @@ func delegatorHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
 
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator), bz)
 		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, uint32(common.ErrorABCIQueryFails), err.Error())
+			sdkErr := comm.ParseSDKError(err.Error())
+			if sdkErr.Code == types.CodeNoDelegatorExisted {
+				var delegators []types.Delegator
+				delegationResp := types.NewDelegationResponses(delegators)
+				cliCtx = cliCtx.WithHeight(height)
+				rest.PostProcessResponse(w, cliCtx, delegationResp)
+			} else {
+				common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
+			}
 			return
 		}
+		// If res is not nil, return a formatted response.
+		var delegators []types.Delegator
 		var delegator types.Delegator
 		cliCtx.Codec.MustUnmarshalJSON(res, &delegator)
-		delegationResp := types.NewDelegationResponse(delegator)
+		delegators = append(delegators, delegator)
+		delegationResp := types.NewDelegationResponses(delegators)
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, delegationResp)
 	}
