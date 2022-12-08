@@ -63,6 +63,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 				}
 				if tx != nil {
 					app.blockDataCache.SetTx(txBytes, tx)
+					para.dynamicGpInfos[index].SetGP(tx.GetGasPrice())
 				}
 
 				coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
@@ -323,12 +324,17 @@ func (app *BaseApp) endParallelTxs(txSize int) [][]byte {
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
+		// int64 -> uint64 may not be safe
+		app.parallelTxManage.dynamicGpInfos[index].SetGU(uint64(txRes.resp.GasUsed))
 		if txRes.FeeSpiltInfo.HasFee {
 			app.FeeSplitCollector = append(app.FeeSplitCollector, txRes.FeeSpiltInfo)
 		}
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler(app.parallelTxManage.dynamicGpInfos)
+	}
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
@@ -444,6 +450,8 @@ type parallelTxManager struct {
 	chainMpCache     *cacheRWSetList
 	blockMultiStores *cacheMultiStoreList
 	chainMultiStores *cacheMultiStoreList
+
+	dynamicGpInfos []sdk.DynamicGasInfo
 
 	extraTxsInfo []*extraDataForTx
 	txReps       []*executeResult
@@ -711,7 +719,7 @@ func (pm *parallelTxManager) clear() {
 func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateMs sdk.CacheMultiStore) {
 
 	txSize := len(txs)
-
+	pm.dynamicGpInfos = make([]sdk.DynamicGasInfo, txSize)
 	pm.blockHeight = blockHeight
 	pm.groupTasks = make([]*groupTask, 0)
 	pm.haveCosmosTxInBlock = false
