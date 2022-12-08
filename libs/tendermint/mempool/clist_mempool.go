@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+
 	"math/big"
 	"strconv"
 	"sync"
@@ -13,8 +14,7 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 
-	"github.com/tendermint/go-amino"
-
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -23,6 +23,7 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 type TxInfoParser interface {
@@ -90,6 +91,10 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
+
+	simQueue chan *mempoolTx
+
+	gasCache *lru.Cache
 }
 
 var _ Mempool = &CListMempool{}
@@ -110,6 +115,11 @@ func NewCListMempool(
 	} else {
 		txQueue = NewBaseTxQueue()
 	}
+
+	gasCache, err := lru.New(1000000)
+	if err != nil {
+		panic(err)
+	}
 	mempool := &CListMempool{
 		config:        config,
 		proxyAppConn:  proxyAppConn,
@@ -120,9 +130,13 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
+		simQueue:      make(chan *mempoolTx, 100000),
+		gasCache:      gasCache,
 	}
-	if config.CacheSize > 0 {
-		mempool.cache = newMapTxCache(config.CacheSize)
+	go mempool.simulationRoutine()
+
+	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
+		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
 	} else {
 		mempool.cache = nopTxCache{}
 	}
@@ -401,14 +415,20 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
 	}
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnablePGU() {
+		select {
+		case mem.simQueue <- memTx:
+		default:
+			mem.logger.Error("tx simulation queue is full")
+		}
+	}
+
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
 	mem.metrics.TxSizeBytes.Observe(float64(len(memTx.tx)))
 	mem.eventBus.PublishEventPendingTx(types.EventDataTx{TxResult: types.TxResult{
 		Height: memTx.height,
 		Tx:     memTx.tx,
 	}})
-
-	types.SignatureCache().Remove(memTx.realTx.TxHash())
 
 	return nil
 }
@@ -702,6 +722,15 @@ func (mem *CListMempool) notifyTxsAvailable() {
 	}
 }
 
+func (mem *CListMempool) GetTxSimulateGas(txHash string) int64 {
+	hash := hex.EncodeToString([]byte(txHash))
+	v, ok := mem.gasCache.Get(hash)
+	if !ok {
+		return -1
+	}
+	return v.(int64)
+}
+
 func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 	if ele, ok := mem.txs.Load(txKey(tx)); ok {
 		return ele.Value.(*mempoolTx).realTx
@@ -723,12 +752,23 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	txFilter := make(map[[32]byte]struct{})
+	var simCount, simGas int64
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
+		trace.GetElapsedInfo().AddInfo(trace.SimTx, fmt.Sprintf("%d:%d", mem.Height()+1, simCount))
+		trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, fmt.Sprintf("%d:%d", mem.Height()+1, simGas))
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
+		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+		if _, ok := txFilter[key]; ok {
+			// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
+			mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
+			continue
+		}
+		txFilter[key] = struct{}{}
 		// Check total size requirement
 		aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
 		if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
@@ -739,7 +779,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// If maxGas is negative, skip this check.
 		// Since newTotalGas < masGas, which
 		// must be non-negative, it follows that this won't overflow.
-		newTotalGas := totalGas + memTx.gasWanted
+		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
+		newTotalGas := totalGas + gasWanted
 		if maxGas > -1 && newTotalGas > maxGas {
 			return txs
 		}
@@ -750,6 +791,10 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		totalTxNum++
 		totalGas = newTotalGas
 		txs = append(txs, memTx.tx)
+		simGas += gasWanted
+		if atomic.LoadUint32(&memTx.isSim) > 0 {
+			simCount++
+		}
 	}
 
 	return txs
@@ -858,11 +903,13 @@ func (mem *CListMempool) Update(
 	if mem.pendingPool != nil {
 		addressNonce = make(map[string]uint64)
 	}
+
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
+			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
@@ -1061,6 +1108,9 @@ type mempoolTx struct {
 	from        string
 	senderNonce uint64
 
+	isOutdated uint32
+	isSim      uint32
+
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
 	senders   map[uint16]struct{}
@@ -1228,4 +1278,27 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	}
 	err = cdc.UnmarshalBinaryBare(res.Value, &simuRes)
 	return &simuRes, err
+}
+
+func (mem *CListMempool) simulationRoutine() {
+	for memTx := range mem.simQueue {
+		mem.simulationJob(memTx)
+	}
+}
+
+func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
+	defer types.SignatureCache().Remove(memTx.realTx.TxHash())
+	if atomic.LoadUint32(&memTx.isOutdated) != 0 {
+		// memTx is outdated
+		return
+	}
+	simuRes, err := mem.simulateTx(memTx.tx)
+	if err != nil {
+		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
+		return
+	}
+	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
+	atomic.StoreInt64(&memTx.gasWanted, gas)
+	atomic.AddUint32(&memTx.isSim, 1)
+	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), gas)
 }

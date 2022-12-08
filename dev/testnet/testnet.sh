@@ -147,7 +147,7 @@ run() {
     --home cache/node${index}/exchaind \
     --p2p.seed_mode=$seed_mode \
     --p2p.allow_duplicate_ip \
-    --enable-dynamic-gp=false \
+    --dynamic-gp-mode=2 \
     --enable-wtx=${WRAPPEDTX} \
     --mempool.node_key_whitelist ${WHITE_LIST} \
     --p2p.pex=false \
@@ -159,7 +159,7 @@ run() {
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --enable-gid \
-    --consensus.timeout_commit 6000ms \
+    --consensus.timeout_commit 3800ms \
     --enable-blockpart-ack=false \
     --append-pid=true \
     ${LOG_SERVER} \

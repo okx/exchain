@@ -696,15 +696,16 @@ func DefaultMempoolConfig() *MempoolConfig {
 		Broadcast: true,
 		// Each signature verification takes .5ms, Size reduced until we implement
 		// ABCI Recheck
-		Size:                       10000,              // exchain memory pool size(max tx num)
+		Size:                       200_000,            // exchain memory pool size(max tx num)
 		MaxTxsBytes:                1024 * 1024 * 1024, // 1GB
-		CacheSize:                  10000,
+		CacheSize:                  300_000,
 		MaxTxBytes:                 1024 * 1024, // 1MB
 		MaxTxNumPerBlock:           300,
 		MaxGasUsedPerBlock:         -1,
 		SortTxByGp:                 true,
 		ForceRecheckGap:            2000,
 		TxPriceBump:                10,
+		EnablePendingPool:          false,
 		PendingPoolSize:            50000,
 		PendingPoolPeriod:          3,
 		PendingPoolReserveBlocks:   100,
@@ -833,7 +834,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutPrevoteDelta:         500 * time.Millisecond,
 		TimeoutPrecommit:            1000 * time.Millisecond,
 		TimeoutPrecommitDelta:       500 * time.Millisecond,
-		TimeoutCommit:               3800 * time.Millisecond,
+		TimeoutCommit:               types.TimeoutCommit * time.Millisecond,
 		TimeoutConsensus:            1000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,

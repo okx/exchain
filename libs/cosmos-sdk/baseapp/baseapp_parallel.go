@@ -6,12 +6,13 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -57,6 +58,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 			}
 			if tx != nil {
 				app.blockDataCache.SetTx(txBytes, tx)
+				para.dynamicGpInfos[index].SetGP(tx.GetGasPrice())
 			}
 
 			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
@@ -279,6 +281,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.blockGasMeterMu.Unlock()
 			// merge tx
 			pm.SetCurrentIndex(txIndex, res)
+			pm.finalResult[txIndex] = res
 
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
@@ -333,17 +336,30 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	resp := make([]abci.ResponseDeliverTx, app.parallelTxManage.txSize)
 	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
 	txs := make([]sdk.Tx, app.parallelTxManage.txSize)
+	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
-		txRes := app.parallelTxManage.txResultCollector.getTxResult(index)
+		txRes := app.parallelTxManage.finalResult[index]
 		logIndex[index] = txRes.paraMsg.LogIndex
 		errs[index] = txRes.paraMsg.AnteErr
 		hasEnterEvmTx[index] = txRes.paraMsg.HasRunEvmTx
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
+
+		// int64 -> uint64 may not be safe
+		app.parallelTxManage.dynamicGpInfos[index].SetGU(uint64(txRes.resp.GasUsed))
+
+		if txRes.FeeSpiltInfo.HasFee {
+			app.FeeSplitCollector = append(app.FeeSplitCollector, txRes.FeeSpiltInfo)
+		}
+
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler(app.parallelTxManage.dynamicGpInfos)
+	}
+
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
@@ -355,7 +371,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 
 	if txStatus.stdTx == nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
-			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{}, nil)
+			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{}, nil, nil)
 		return asyncExe
 	}
 	var (
@@ -377,31 +393,37 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	}
 
 	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
-		0, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
+		0, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs(), info.ctx.GetFeeSplitInfo())
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }
 
 type executeResult struct {
-	resp        abci.ResponseDeliverTx
-	ms          sdk.CacheMultiStore
-	counter     uint32
-	paraMsg     *sdk.ParaMsg
-	blockHeight int64
-	watcher     sdk.IWatcher
-	msgs        []sdk.Msg
+	resp         abci.ResponseDeliverTx
+	ms           sdk.CacheMultiStore
+	counter      uint32
+	paraMsg      *sdk.ParaMsg
+	blockHeight  int64
+	watcher      sdk.IWatcher
+	msgs         []sdk.Msg
+	FeeSpiltInfo *sdk.FeeSplitInfo
 }
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32,
-	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg) *executeResult {
+	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg, feeSpiltInfo *sdk.FeeSplitInfo) *executeResult {
+
+	if feeSpiltInfo == nil {
+		feeSpiltInfo = &sdk.FeeSplitInfo{}
+	}
 	ans := &executeResult{
-		resp:        r,
-		ms:          ms,
-		counter:     counter,
-		paraMsg:     paraMsg,
-		blockHeight: height,
-		watcher:     watcher,
-		msgs:        msgs,
+		resp:         r,
+		ms:           ms,
+		counter:      counter,
+		paraMsg:      paraMsg,
+		blockHeight:  height,
+		watcher:      watcher,
+		msgs:         msgs,
+		FeeSpiltInfo: feeSpiltInfo,
 	}
 
 	if paraMsg == nil {
@@ -606,6 +628,7 @@ type parallelTxManager struct {
 
 	extraTxsInfo      []*extraDataForTx
 	txResultCollector *txResultCollector
+	finalResult       []*executeResult
 
 	groupList     map[int][]int
 	nextTxInGroup map[int]int
@@ -622,6 +645,8 @@ type parallelTxManager struct {
 
 	blockMultiStores *cacheMultiStoreList
 	chainMultiStores *cacheMultiStoreList
+
+	dynamicGpInfos []sdk.DynamicGasInfo
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -732,8 +757,10 @@ func (f *parallelTxManager) clear() {
 
 func (f *parallelTxManager) init() {
 	txSize := f.txSize
+	f.dynamicGpInfos = make([]sdk.DynamicGasInfo, txSize)
 
 	f.txResultCollector.init(txSize)
+	f.finalResult = make([]*executeResult, txSize)
 
 	txsInfoCap := cap(f.extraTxsInfo)
 	if f.extraTxsInfo == nil || txsInfoCap < txSize {

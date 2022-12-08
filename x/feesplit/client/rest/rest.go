@@ -41,7 +41,7 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		if !ok {
 			return
 		}
-
+		
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s",
 			types.RouterKey, types.QueryParameters), nil)
 		if err != nil {

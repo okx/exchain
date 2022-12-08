@@ -4,10 +4,9 @@ import (
 	"encoding/hex"
 	"sort"
 	"strings"
-	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-
+	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/gasprice"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -22,7 +21,7 @@ import (
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit *sync.Map) error {
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
 		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 		if err != nil {
 			return err
@@ -126,37 +125,14 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 	}
 }
 
-type feeSplitInfo struct {
-	addr string
-	fee  sdk.Coins
-}
-
-func updateFeeSplitHandler(txFeesplit *sync.Map) sdk.UpdateFeeSplitHandler {
-	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins, isDelete bool) {
-		if isDelete {
-			// For rerun tx of parallel, feeSplitInfo is deleted when EnableFeeSplit is false
-			txFeesplit.Delete(txHash.String())
-		} else {
-			// For rerun tx of parallel, feeSplitInfo is rewritten
-			txFeesplit.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
-		}
-	}
-}
-
 // groupByAddrAndSortFeeSplits
 // feesplits must be ordered, not map(random),
 // to ensure that the account number of the withdrawer(new account) is consistent
-func groupByAddrAndSortFeeSplits(txFeesplit *sync.Map) (feesplits map[string]sdk.Coins, sortAddrs []string) {
+func groupByAddrAndSortFeeSplits(txFeesplit []*sdk.FeeSplitInfo) (feesplits map[string]sdk.Coins, sortAddrs []string) {
 	feesplits = make(map[string]sdk.Coins)
-	txFeesplit.Range(func(key, value interface{}) bool {
-		feeInfo := value.(feeSplitInfo)
-
-		orgFee := feesplits[feeInfo.addr]
-		feesplits[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
-
-		txFeesplit.Delete(key)
-		return true
-	})
+	for _, f := range txFeesplit {
+		feesplits[f.Addr.String()] = feesplits[f.Addr.String()].Add(f.Fee...)
+	}
 	if len(feesplits) == 0 {
 		return
 	}
@@ -170,4 +146,14 @@ func groupByAddrAndSortFeeSplits(txFeesplit *sync.Map) (feesplits map[string]sdk
 	sort.Strings(sortAddrs)
 
 	return
+}
+
+func updateGPOHandler(gpo *gasprice.Oracle) sdk.UpdateGPOHandler {
+	return func(dynamicGpInfos []sdk.DynamicGasInfo) {
+		if appconfig.GetOecConfig().GetDynamicGpMode() != ethermint.MinimalGpMode {
+			for _, dgi := range dynamicGpInfos {
+				gpo.CurrentBlockGPs.Update(dgi.GetGP(), dgi.GetGU())
+			}
+		}
+	}
 }
