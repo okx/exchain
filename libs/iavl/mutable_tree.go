@@ -904,6 +904,10 @@ func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions 
 		return errors.Wrap(ErrVersionDoesNotExist, fmt.Sprintf("%d", version))
 	}
 
+	if writeToDB {
+		tree.removedVersions.Store(version, nil)
+	}
+
 	if err := tree.ndb.DeleteVersion(batch, version, true, writeToDB); err != nil {
 		return err
 	}
