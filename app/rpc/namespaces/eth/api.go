@@ -275,7 +275,7 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	defer monitor.OnEnd()
 	//var safeGp, avgGP, fastestGp *big.Int
 	avgGP := (*big.Int)(api.gasPrice)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
 		price := new(big.Int).Set(app.GlobalGp)
 		if price.Cmp((*big.Int)(api.gasPrice)) == -1 {
 			price.Set((*big.Int)(api.gasPrice))
@@ -299,7 +299,7 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	if fastestGp.Cmp(gasprice.MaxPrice) == 1 {
 		fastestGp.Set(gasprice.MaxPrice)
 	}
-	
+
 	res := rpctypes.NewGPIn3Gears(safeGp, avgGP, fastestGp)
 	return &res
 }
