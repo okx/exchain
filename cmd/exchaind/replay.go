@@ -53,6 +53,8 @@ const (
 
 	saveBlock = "save_block"
 
+	replayHeight = "replay_height"
+
 	defaulPprofFileFlags = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	defaultPprofFilePerm = 0644
 )
@@ -179,6 +181,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().Int64P(replayHeight, "", -1, "dst replay height")
 	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&sm.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
@@ -323,6 +326,10 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 	}
 	if haltheight <= lastBlockHeight+1 {
 		panic("haltheight <= startBlockHeight please check data or height")
+	}
+
+	if h := viper.GetInt64(replayHeight); h > lastBlockHeight {
+		haltheight = h
 	}
 
 	log.Println("replay stop block height", "height", haltheight)
