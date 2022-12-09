@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/gasprice"
+	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -34,6 +37,9 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 	// Set mounts for BaseApp's MultiStore.
 	baseApp.MountStores(capKeyMainStore)
 
+	gpoConfig := gasprice.NewGPOConfig(80, 5)
+	gpo := gasprice.NewOracle(gpoConfig)
+	baseApp.SetUpdateGPOHandler(updateGPOHandler(gpo))
 	baseApp.SetInitChainer(InitChainer(capKeyMainStore))
 
 	// Set a handler Route.
@@ -45,6 +51,16 @@ func NewApp(rootDir string, logger log.Logger) (abci.Application, error) {
 	}
 
 	return baseApp, nil
+}
+
+func updateGPOHandler(gpo *gasprice.Oracle) sdk.UpdateGPOHandler {
+	return func(dynamicGpInfos []sdk.DynamicGasInfo) {
+		if appconfig.GetOecConfig().GetDynamicGpMode() != apptypes.MinimalGpMode {
+			for _, dgi := range dynamicGpInfos {
+				gpo.CurrentBlockGPs.Update(dgi.GetGP(), dgi.GetGU())
+			}
+		}
+	}
 }
 
 // KVStoreHandler is a simple handler that takes kvstoreTx and writes
@@ -104,7 +120,7 @@ func InitChainer(key sdk.StoreKey) func(sdk.Context, abci.RequestInitChain) abci
 // AppGenState can be passed into InitCmd, returns a static string of a few
 // key-values that can be parsed by InitChainer
 func AppGenState(_ *codec.Codec, _ types.GenesisDoc, _ []json.RawMessage) (appState json.
-	RawMessage, err error) {
+RawMessage, err error) {
 	appState = json.RawMessage(`{
   "values": [
     {
