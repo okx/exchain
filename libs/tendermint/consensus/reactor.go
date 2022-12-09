@@ -414,6 +414,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			// tell newProposer
 			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
+			// broadcast the proposal
+			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(&ProposalMessage{Proposal: proposal}))
 
 			conR.hasViewChanged = msg.Height
 
