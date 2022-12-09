@@ -168,6 +168,9 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"Tree", ndb.name,
 		"IavlHeight", iavlHeight,
 		"NodeNum", nodeNum,
+		"tpp", len(event.tpp),
+		"fss-add", len(event.fnc.additions),
+		"fss-rm", len(event.fnc.removals),
 		"trc", trc.Format())
 }
 
