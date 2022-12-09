@@ -187,17 +187,13 @@ func exportAppStateAndTMValidators(
 
 // All long flag must be in k=v format
 func preCheckLongFlagSyntax() {
-	flags := os.Args[2:]
-	for _, f := range flags {
+	params := os.Args[1:]
+	for _, f := range params {
 		tf := strings.TrimSpace(f)
 
-		// not long flag
-		if !strings.HasPrefix(tf, "--") {
-			continue
-		}
-
-		if !strings.Contains(tf, "=") {
-			fmt.Fprintf(os.Stderr, "ERROR: Invalid parameter:%+v\n", tf)
+		if strings.ToUpper(tf) == "TRUE" ||
+			strings.ToUpper(tf) == "FALSE" {
+			fmt.Fprintf(os.Stderr, "ERROR: Invalid parameter\n")
 			os.Exit(1)
 		}
 	}
