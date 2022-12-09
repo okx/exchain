@@ -538,7 +538,9 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 			minGPTx := mem.txs.Back().Value.(*mempoolTx)
 			// If disable deleteMinGPTx, it'old logic, must be remove cache key
 			// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
-			if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && minGPTx.realTx.GetGasPrice().Cmp(pendingTx.realTx.GetGasPrice()) >= 0) {
+
+			thresholdGasPrice := MultiPriceBump(minGPTx.realTx.GetGasPrice(), int64(mem.config.TxPriceBump))
+			if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(pendingTx.realTx.GetGasPrice()) >= 0) {
 				time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 				continue
 			}
@@ -624,7 +626,8 @@ func (mem *CListMempool) resCbFirstTime(
 				minGPTx := mem.txs.Back().Value.(*mempoolTx)
 				// If disable deleteMinGPTx, it'old logic, must be remove cache key
 				// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
-				if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && minGPTx.realTx.GetGasPrice().Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0) {
+				thresholdGasPrice := MultiPriceBump(minGPTx.realTx.GetGasPrice(), int64(mem.config.TxPriceBump))
+				if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0) {
 					// remove from cache (mempool might have a space later)
 					mem.cache.RemoveKey(txkey)
 					errStr := err.Error()
