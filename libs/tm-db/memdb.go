@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/btree"
 	"github.com/okex/exchain/libs/tm-db/common"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -62,10 +61,6 @@ var _ DB = (*MemDB)(nil)
 func NewMemDB() *MemDB {
 	database := &MemDB{
 		btree: btree.New(bTreeDegree),
-	}
-	const backendKey = "db_backend"
-	if oldDBBackEnd := viper.GetString(backendKey); len(oldDBBackEnd) == 0 {
-		viper.Set(backendKey, string(MemDBBackend))
 	}
 	return database
 }
