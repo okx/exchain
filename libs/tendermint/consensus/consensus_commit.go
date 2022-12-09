@@ -443,6 +443,8 @@ func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
 					<-t.C
 				}
 				return res
+			} else {
+				return nil
 			}
 		case <-t.C:
 			return nil

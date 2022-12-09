@@ -98,6 +98,27 @@ func (cs *State) receiveRoutine(maxSteps int) {
 	}
 }
 
+func (cs *State) handleAVCProposal(proposal *types.Proposal) {
+	if !GetActiveVC() ||
+		cs.Height != proposal.Height || cs.Round != proposal.Round ||
+		len(cs.taskResultChan) == 0 {
+		return
+	}
+	res := cs.getPreBlockResult(proposal.Height)
+	if res == nil {
+		cs.Logger.Error("handleAVCProposal get block nil", "cs height", cs.Height, "proposal height", proposal.Height)
+		return
+	}
+	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
+		return
+	}
+	cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
+	for i := 0; i < res.blockParts.Total(); i++ {
+		part := res.blockParts.GetPart(i)
+		cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
+	}
+}
+
 // state transitions on complete-proposal, 2/3-any, 2/3-one
 func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	cs.mtx.Lock()
@@ -109,21 +130,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ProposeResponseMessage:
-		if !GetActiveVC() {
-			return
-		}
-		res := cs.getPreBlockResult(msg.Height)
-		if res == nil {
-			return
-		}
-		if !bytes.Equal(msg.Proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || msg.Height != res.block.Height {
-			return
-		}
-		cs.sendInternalMessage(msgInfo{&ProposalMessage{msg.Proposal}, ""})
-		for i := 0; i < res.blockParts.Total(); i++ {
-			part := res.blockParts.GetPart(i)
-			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
-		}
+		cs.handleAVCProposal(msg.Proposal)
 
 	case *ViewChangeMessage:
 		if !GetActiveVC() {
@@ -154,8 +161,8 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
-		if err = cs.setProposal(msg.Proposal); err == nil {
-			added = true
+		if added, err = cs.setProposal(msg.Proposal); added {
+			cs.handleAVCProposal(msg.Proposal)
 		}
 	case *BlockPartMessage:
 		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
