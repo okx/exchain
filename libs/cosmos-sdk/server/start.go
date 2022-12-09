@@ -3,9 +3,10 @@ package server
 // DONTCOVER
 
 import (
-	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
+
+	"github.com/okex/exchain/libs/tendermint/consensus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
