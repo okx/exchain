@@ -273,7 +273,7 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	monitor := monitor.GetMonitor("eth_gasPriceIn3Gears", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
-	//var safeGp, avgGP, fastestGp *big.Int
+
 	avgGP := (*big.Int)(api.gasPrice)
 	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
 		price := new(big.Int).Set(app.GlobalGp)
