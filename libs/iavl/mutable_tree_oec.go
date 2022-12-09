@@ -48,7 +48,6 @@ type commitEvent struct {
 	wg         *sync.WaitGroup
 	iavlHeight int
 	fnc        *fastNodeChanges
-	orphans    []commitOrphan
 }
 
 type commitOrphan struct {
@@ -160,14 +159,11 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
 	fnc := newFastNodeChanges()
-
-	var orphans []commitOrphan
 	if EnablePruningHistoryState {
-		orphans = tree.commitOrphans
-		tree.commitOrphans = nil
+		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being removed.
@@ -187,7 +183,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height()), fnc, orphans}
+		tpp, nil, int(tree.Height()), fnc}
 	tree.lastPersistHeight = version
 }
 
@@ -205,12 +201,8 @@ func (tree *MutableTree) commitSchedule() {
 			}
 			continue
 		}
-		trc := trace.NewTracer("commitSchedule")
 
-		if len(event.orphans) != 0 {
-			trc.Pin("saveCommitOrphans")
-			tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans)
-		}
+		trc := trace.NewTracer("commitSchedule")
 
 		trc.Pin("cacheNode")
 		for k, node := range event.tpp {
@@ -286,7 +278,7 @@ func (tree *MutableTree) StopTreeWithVersion(version int64) {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges}
 	wg.Wait()
 }
 func (tree *MutableTree) StopTree() {

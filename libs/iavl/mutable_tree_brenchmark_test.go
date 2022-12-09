@@ -37,7 +37,7 @@ func prepareTree(b *testing.B, openLogFlag bool, dbName string, size int) (*Muta
 	//recursivePrint(tree.root, 0)
 
 	tree.SaveVersion(false)
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	fmt.Println("init setting done")
 	return tree, keySet, dataSet
 }
