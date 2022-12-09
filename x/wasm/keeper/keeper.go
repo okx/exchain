@@ -706,7 +706,13 @@ func (k Keeper) IterateContractsByCode(ctx sdk.Context, codeID uint64, cb func(a
 	}
 }
 
-func (k Keeper) setContractAdmin(ctx sdk.Context, contractAddress, caller, newAdmin sdk.AccAddress, authZ AuthorizationPolicy) error {
+func (k Keeper) setContractAdmin(ctx sdk.Context, contractAddress, caller, newAdmin sdk.AccAddress, authZ AuthorizationPolicy) (err error) {
+	gas := ctx.GasMeter().GasConsumed()
+	defer func() {
+		if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+			k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.SetContractAdminInnertxName, sdk.Coins{}, err, (ctx.GasMeter().GasConsumed() - gas), "")
+		}
+	}()
 	contractInfo := k.GetContractInfo(ctx, contractAddress)
 	if contractInfo == nil {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "unknown contract")
