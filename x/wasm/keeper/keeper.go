@@ -6,25 +6,24 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
-	"math"
-	"path/filepath"
-	"strconv"
-	"strings"
-
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	paramtypes "github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/okex/exchain/x/wasm/watcher"
+	"math"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
@@ -293,12 +292,6 @@ func (k Keeper) OnAccountUpdated(acc exported.Account) {
 }
 
 func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ AuthorizationPolicy) (codeID uint64, err error) {
-	gas := ctx.GasMeter().GasConsumed()
-	defer func() {
-		if !ctx.IsCheckTx() && k.innertxKeeper != nil {
-			k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, creator, sdk.AccAddress{}, innertx.CosmosCallType, types.StoreCodeInnertxName, sdk.Coins{}, err, (ctx.GasMeter().GasConsumed() - gas), "")
-		}
-	}()
 	if creator == nil {
 		return 0, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "cannot be nil")
 	}
