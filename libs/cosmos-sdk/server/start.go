@@ -3,13 +3,9 @@ package server
 // DONTCOVER
 
 import (
-	"errors"
-	"fmt"
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
-	"strings"
-
-	"github.com/okex/exchain/libs/tendermint/consensus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
@@ -116,9 +112,6 @@ For profiling and benchmarking purposes, CPU profiling can be enabled via the '-
 which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if err := preCheckStartFlagSyntax(); err != nil {
-				return err
-			}
 			// app pre run
 			if err := appPreRun(ctx, cmd); err != nil {
 				return err
@@ -355,17 +348,4 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	consensus.SetActiveVC(viper.GetBool(FlagActiveViewChange))
 
 	tmtypes.EnableEventBlockTime = viper.GetBool(FlagEventBlockTime)
-}
-
-// All flag must be in k=v format
-func preCheckStartFlagSyntax() error {
-	flags := os.Args[2:]
-	for _, f := range flags {
-		tf := strings.TrimSpace(f)
-		if !(strings.HasPrefix(tf, "--") &&
-			strings.Contains(tf, "=")) {
-			return errors.New(fmt.Sprintf("Invalid parameter:%s", f))
-		}
-	}
-	return nil
 }
