@@ -497,17 +497,17 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	if txNonce == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
-			if len(mem.consumePendingTxQueue) >= mem.consumePendingTxQueueLimit {
+			addrNonce := addressNoncePool.Get().(*AddressNonce)
+			addrNonce.addr = memTx.from
+			addrNonce.nonce = txNonce + 1
+			select {
+			case mem.consumePendingTxQueue <- addrNonce:
+			default:
 				//This line maybe be lead to user pendingTx will not be packed into block
 				//when extreme condition (mem.consumePendingTxQueue is block which is maintain caused by mempool is full).
 				//But we must be do thus,for protect chain's block can be product.
+				addressNoncePool.Put(addrNonce)
 				mem.logger.Error("mempool", "addPendingTx", "when consumePendingTxQueue and mempool is full, disable consume pending tx")
-			} else {
-
-				addrNonce := addressNoncePool.Get().(*AddressNonce)
-				addrNonce.addr = memTx.from
-				addrNonce.nonce = txNonce + 1
-				mem.consumePendingTxQueue <- addrNonce
 			}
 			//go mem.consumePendingTx(memTx.from, txNonce+1)
 		}
@@ -1005,14 +1005,14 @@ func (mem *CListMempool) Update(
 	// Update metrics
 	mem.metrics.Size.Set(float64(mem.Size()))
 	if mem.pendingPool != nil {
-		if len(mem.pendingPoolNotify) >= 1 {
+		select {
+		case mem.pendingPoolNotify <- addressNonce:
+			mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
+		default:
 			//This line maybe be lead to user pendingTx will not be packed into block
 			//when extreme condition (mem.pendingPoolNotify is block which is maintain caused by mempool is full).
 			//But we must be do thus,for protect chain's block can be product.
 			mem.logger.Error("mempool", "Update", "when mempool  is  full and consume pendingPool, disable consume pending tx")
-		} else {
-			mem.pendingPoolNotify <- addressNonce
-			mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 		}
 	}
 

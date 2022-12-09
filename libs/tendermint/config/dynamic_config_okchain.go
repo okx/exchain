@@ -124,5 +124,5 @@ func (d MockDynamicConfig) GetEnableDeleteMinGPTx() bool {
 }
 
 func (d *MockDynamicConfig) SetEnableDeleteMinGPTx(enable bool) {
-	d.enableDeleteMinGPTx = true
+	d.enableDeleteMinGPTx = enable
 }

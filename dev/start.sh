@@ -29,7 +29,6 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --dynamic-gp-mode=2 \
-      --mempool.enable_delete_min_gp_tx=true \
       --consensus.timeout_commit 2000ms \
       --enable-preruntx=1 \
       --iavl-enable-async-commit \

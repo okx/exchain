@@ -322,9 +322,6 @@ max_tx_bytes = {{ .Mempool.MaxTxBytes }}
 # Limit the max number of txs in the a block.
 max_tx_num_per_block = {{ .Mempool.MaxTxNumPerBlock }}
 
-# Enable delete the minimum gas price tx from mempool.
-enable_delete_min_gp_tx = {{ .Mempool.EnableDeleteMinGPTx }}
-
 # Enable sort txs in mempool by gas price.
 sort_tx_by_gp = {{ .Mempool.SortTxByGp }}
 
