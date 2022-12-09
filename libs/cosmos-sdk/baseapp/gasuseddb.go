@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"encoding/binary"
-	"fmt"
 	"path/filepath"
 	"sync"
 
@@ -63,20 +62,16 @@ func (h *HistoryGasUsedRecordDB) UpdateGasUsed(key []byte, gasUsed int64) {
 	h.latestGuMtx.Unlock()
 }
 
-var totalCount, hitCount int64
-
 func (h *HistoryGasUsedRecordDB) GetHgu(key []byte) int64 {
 	hgu, cacheHit := h.getHgu(key)
 	if !cacheHit && hgu != -1 {
 		// add to cache before returning hgu
 		h.cache.Add(string(key), hgu)
 	}
-	totalCount++
 	return hgu
 }
 
 func (h *HistoryGasUsedRecordDB) FlushHgu() {
-	fmt.Println("debug", totalCount, hitCount)
 	if len(h.latestGu) == 0 {
 		return
 	}
@@ -94,7 +89,6 @@ func (h *HistoryGasUsedRecordDB) FlushHgu() {
 func (h *HistoryGasUsedRecordDB) getHgu(key []byte) (hgu int64, fromCache bool) {
 	v, ok := h.cache.Get(string(key))
 	if ok {
-		hitCount++
 		return v.(int64), true
 	}
 
