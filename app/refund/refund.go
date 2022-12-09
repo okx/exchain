@@ -87,7 +87,7 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	err = feePayerAcc.SetCoins(newCoins)
 	if !ctx.IsCheckTx() {
 		fromAddr := sk.GetModuleAddress(types.FeeCollectorName)
-		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, feePayerAcc.GetAddress(), innertx.CosmosCallType, innertx.SendCallName, fees, err)
+		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, feePayerAcc.GetAddress(), innertx.CosmosCallType, innertx.SendCallName, gasFees, err)
 	}
 	if err != nil {
 		return nil, err
