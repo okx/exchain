@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/spf13/viper"
 
 	appconfig "github.com/okex/exchain/app/config"
@@ -14,8 +13,8 @@ import (
 )
 
 var (
-	MaxPrice = big.NewInt(500 * params.GWei)
 	MinPrice = getDefaultGasPrice()
+	MaxPrice = new(big.Int).Mul(MinPrice, big.NewInt(5000))
 )
 
 type GPOConfig struct {
