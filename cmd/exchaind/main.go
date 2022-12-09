@@ -194,7 +194,7 @@ func preCheckLongFlagSyntax() {
 		if strings.ToUpper(tf) == "TRUE" ||
 			strings.ToUpper(tf) == "FALSE" {
 			fmt.Fprintf(os.Stderr, "ERROR: Invalid parameter,"+
-				" boolean flag should be --flag, or --flag=[true|false] \n")
+				" boolean flag should be --flag=true or --flag=false \n")
 			os.Exit(1)
 		}
 	}
