@@ -219,9 +219,13 @@ func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVers
 		return err
 	}
 
+	ndb.deleteVersion(batch, version, checkLatestVersion)
+	return nil
+}
+
+func (ndb *nodeDB) deleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) {
 	ndb.deleteOrphans(batch, version)
 	ndb.deleteRoot(batch, version, checkLatestVersion)
-	return nil
 }
 
 func (ndb *nodeDB) checkoutVersionReaders(version int64) error {
