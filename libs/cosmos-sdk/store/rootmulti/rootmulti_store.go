@@ -631,8 +631,10 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 		}
 
 		rs.versions = append(rs.versions, version)
+		flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	} else {
+		flushMetadataInAsyncCommit(rs.db, version, rs.lastCommitInfo)
 	}
-	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
 
 	return types.CommitID{
 		Version: version,
@@ -1275,9 +1277,20 @@ func setCommitInfo(batch dbm.Batch, version int64, cInfo commitInfo) {
 	batch.Set([]byte(cInfoKey), cInfoBytes)
 }
 
+func writeCommitInfo(db dbm.DB, version int64, cInfo commitInfo) error {
+	cInfoBytes := cdc.MustMarshalBinaryLengthPrefixed(cInfo)
+	cInfoKey := fmt.Sprintf(commitInfoKeyFmt, version)
+	return db.Set([]byte(cInfoKey), cInfoBytes)
+}
+
 func setLatestVersion(batch dbm.Batch, version int64) {
 	latestBytes := cdc.MustMarshalBinaryLengthPrefixed(version)
 	batch.Set([]byte(latestVersionKey), latestBytes)
+}
+
+func writeLatestVersion(db dbm.DB, version int64) error {
+	latestBytes := cdc.MustMarshalBinaryLengthPrefixed(version)
+	return db.Set([]byte(latestVersionKey), latestBytes)
 }
 
 func setPruningHeights(batch dbm.Batch, pruneHeights []int64) {
@@ -1328,6 +1341,15 @@ func flushMetadata(db dbm.DB, version int64, cInfo commitInfo, pruneHeights []in
 
 	if err := batch.Write(); err != nil {
 		panic(fmt.Errorf("error on batch write %w", err))
+	}
+}
+
+func flushMetadataInAsyncCommit(db dbm.DB, version int64, cInfo commitInfo) {
+	if err := writeCommitInfo(db, version, cInfo); err != nil {
+		panic(fmt.Errorf("error on write commit info %w", err))
+	}
+	if err := writeLatestVersion(db, version); err != nil {
+		panic(fmt.Errorf("error on write latest version %w", err))
 	}
 }
 
