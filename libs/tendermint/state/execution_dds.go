@@ -2,9 +2,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"sync/atomic"
 	"time"
+
+	"github.com/okex/exchain/libs/system/trace"
 
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system"
@@ -193,13 +194,13 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 	// delta producer
 	if dc.uploadDelta {
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
-		if !isFastSync {
-			wdFunc := evmWatchDataManager.CreateWatchDataGenerator()
-			wasmWdFunc := wasmWatchDataManager.CreateWatchDataGenerator()
-			go dc.uploadData(height, abciResponses, deltaMap, wdFunc, wasmWdFunc)
-		} else {
-			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
-		}
+		//if !isFastSync {
+		wdFunc := evmWatchDataManager.CreateWatchDataGenerator()
+		wasmWdFunc := wasmWatchDataManager.CreateWatchDataGenerator()
+		go dc.uploadData(height, abciResponses, deltaMap, wdFunc, wasmWdFunc)
+		//} else {
+		//	dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
+		//}
 	}
 }
 
