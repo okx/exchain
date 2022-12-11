@@ -313,3 +313,7 @@ func (t *ImmutableTree) DebugGetNode(nodeHash []byte) *Node {
 func (t *ImmutableTree) DebugFssVersion() ([]byte, error) {
 	return t.ndb.db.Get(metadataKeyFormat.Key([]byte(storageVersionKey)))
 }
+
+func (t *ImmutableTree) GetFssVersionKey() []byte {
+	return metadataKeyFormat.Key([]byte(storageVersionKey))
+}
