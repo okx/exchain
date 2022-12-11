@@ -110,6 +110,9 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 
 			unsavedFastNodes: newFastNodeChanges(),
 		}
+		if CommitTolerance != 0 {
+			tree.commitCh = make(chan commitEvent, CommitTolerance)
+		}
 	}
 
 	if tree.historyStateNum < minHistoryStateNum {

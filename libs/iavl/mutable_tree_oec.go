@@ -15,6 +15,7 @@ import (
 const (
 	minHistoryStateNum              = 30
 	FlagIavlCommitIntervalHeight    = "iavl-commit-interval-height"
+	FlagIavlCommitTolerance         = "iavl-commit-tolerance"
 	FlagIavlMinCommitItemCount      = "iavl-min-commit-item-count"
 	FlagIavlHeightOrphansCacheSize  = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum   = "iavl-max-committed-height-num"
@@ -35,6 +36,7 @@ var (
 	HeightOrphansCacheSize          = 8
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
+	CommitTolerance                 = uint(0)
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = config.DefaultCommitGapHeight
 	enableFastStorage               = true
