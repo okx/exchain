@@ -198,6 +198,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 		wdFunc := evmWatchDataManager.CreateWatchDataGenerator()
 		wasmWdFunc := wasmWatchDataManager.CreateWatchDataGenerator()
 		dc.uploadData(height, abciResponses, deltaMap, wdFunc, wasmWdFunc)
+		time.Sleep(400 * time.Millisecond)
 		//} else {
 		//	dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
 		//}
