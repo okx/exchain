@@ -42,15 +42,6 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (sdk.Coins, error) 
 	return gasRefund(handler.ik, handler.ak, handler.supplyKeeper, ctx, tx)
 }
 
-func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ik innertx.InnerTxKeeper) sdk.GasRefundHandler {
-	chandler := Handler{
-		ak:           ak,
-		supplyKeeper: sk,
-		ik:           ik,
-	}
-	return chandler.GasRefund
-}
-
 type accountKeeperInterface interface {
 	SetAccount(ctx sdk.Context, acc exported.Account)
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account
@@ -95,6 +86,15 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	ak.SetAccount(ctx, feePayerAcc)
 
 	return gasFees, nil
+}
+
+func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper, ik innertx.InnerTxKeeper) sdk.GasRefundHandler {
+	chandler := Handler{
+		ak:           ak,
+		supplyKeeper: sk,
+		ik:           ik,
+	}
+	return chandler.GasRefund
 }
 
 var bigIntsPool = &sync.Pool{
