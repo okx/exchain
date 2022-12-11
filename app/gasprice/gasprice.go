@@ -25,8 +25,9 @@ type GPOConfig struct {
 
 func NewGPOConfig(weight int, checkBlocks int) GPOConfig {
 	return GPOConfig{
-		Weight:  weight,
-		Default: MinPrice,
+		Weight: weight,
+		// Note: deep copy is necessary here
+		Default: new(big.Int).Set(MinPrice),
 		Blocks:  checkBlocks,
 	}
 }
@@ -55,8 +56,9 @@ func NewOracle(params GPOConfig) *Oracle {
 	return &Oracle{
 		CurrentBlockGPs: cbgp,
 		BlockGPQueue:    bgpq,
-		lastPrice:       params.Default,
-		weight:          weight,
+		// Note: deep copy is necessary here
+		lastPrice: new(big.Int).Set(params.Default),
+		weight:    weight,
 	}
 }
 
