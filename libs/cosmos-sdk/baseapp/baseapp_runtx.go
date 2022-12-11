@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
+
+	"github.com/okex/exchain/libs/system/trace"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -305,6 +306,10 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
+	}
+
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
@@ -357,6 +362,11 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
+
+	if app.updateGPOHandler != nil {
+		app.updateGPOHandler([]sdk.DynamicGasInfo{sdk.NewDynamicGasInfo(realTx.GetGasPrice(), info.gInfo.GasUsed)})
+	}
+
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
@@ -412,14 +422,14 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 
 	if txStatus.stdTx == nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
-			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil)
+			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil, nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvm {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil,
-			blockHeight, sdk.EmptyWatcher{}, nil)
+			blockHeight, sdk.EmptyWatcher{}, nil, nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
@@ -439,7 +449,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	}
 
 	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
-		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
+		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs(), info.ctx.GetFeeSplitInfo())
 	pmWorkGroup.Push(asyncExe)
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 }

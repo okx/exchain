@@ -32,10 +32,13 @@ const (
 
 const (
 	GasUsed     = "GasUsed"
+	SimGasUsed  = "SimGasUsed"
 	Produce     = "Produce"
 	RunTx       = "RunTx"
+	LastRun     = "lastRun"
 	Height      = "Height"
 	Tx          = "Tx"
+	SimTx       = "SimTx"
 	BlockSize   = "BlockSize"
 	Elapsed     = "Elapsed"
 	CommitRound = "CommitRound"
@@ -56,15 +59,15 @@ const (
 	Delta      = "Delta"
 	InvalidTxs = "InvalidTxs"
 
-	Abci            = "abci"
-	SaveResp        = "saveResp"
-	Persist         = "persist"
-	MempoolUpdate   = "mpUpdate"
-	SaveState       = "saveState"
-	ApplyBlock      = "ApplyBlock"
-	Consensus       = "Consensus"
-	LastBlockTime   = "LastBlockTime"
-	TimeoutInterval = "TimeoutInterval"
+	Abci = "abci"
+	//SaveResp        = "saveResp"
+	Persist = "persist"
+	//MempoolUpdate   = "mpUpdate"
+	//SaveState       = "saveState"
+	ApplyBlock    = "ApplyBlock"
+	Consensus     = "Consensus"
+	LastBlockTime = "LastBlockTime"
+	BTInterval    = "BTInterval"
 
 	MempoolCheckTxCnt  = "CheckTx"
 	MempoolTxsCnt      = "MempoolTxs"
@@ -76,6 +79,8 @@ const (
 	IavlRuntime     = "IavlRuntime"
 
 	BlockPartsP2P = "BlockPartsP2P"
+
+	Workload = "Workload"
 )
 
 const (

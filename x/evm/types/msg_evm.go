@@ -59,17 +59,20 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 // GetFrom returns sender address of MsgEthereumTx if signature is valid, or returns "".
 func (tx *MsgEthereumTx) GetFrom() string {
 	from := tx.BaseTx.GetFrom()
-	if from == "" {
-		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
-		if from == "" {
-			addr, err := tx.firstVerifySig(tx.ChainID())
-			if err != nil {
-				return ""
-			}
-			return EthAddressToString(&addr)
-		}
+	if from != "" {
+		return from
 	}
-
+	from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
+	if from != "" {
+		return from
+	}
+	// Verify the signature with chain-id in the tx, so it can be a tx from other chain with unexpected chain.
+	// Only use from addr for some safe usage and do not update the signature cache or the `From` field of the tx.
+	sender, err := tx.firstVerifySig(tx.ChainID())
+	if err != nil {
+		return ""
+	}
+	from = EthAddressToString(&sender)
 	return from
 }
 
@@ -371,14 +374,14 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 		msg.SetFrom(from)
 		return nil
 	}
-	addr, err := msg.firstVerifySig(chainID)
+	sender, err := msg.firstVerifySig(chainID)
 	if err != nil {
 		return err
 	}
-	from = EthAddressToString(&addr)
+	from = EthAddressToString(&sender)
 	tmtypes.SignatureCache().Add(msg.TxHash(), from)
 	msg.BaseTx.From = from
-	msg.addr = addr
+	msg.addr = sender
 	return nil
 }
 

@@ -26,4 +26,5 @@ const (
 	QueryInflation        = "inflation"
 	QueryAnnualProvisions = "annual_provisions"
 	QueryTreasures        = "treasures"
+	QueryBlockRewards     = "block_rewards"
 )

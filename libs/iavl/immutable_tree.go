@@ -308,3 +308,8 @@ func (t *ImmutableTree) DebugGetNode(nodeHash []byte) *Node {
 	}
 	return t.ndb.GetNode(nodeHash)
 }
+
+// Only used for debug!
+func (t *ImmutableTree) DebugFssVersion() ([]byte, error) {
+	return t.ndb.db.Get(metadataKeyFormat.Key([]byte(storageVersionKey)))
+}
