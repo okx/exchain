@@ -143,7 +143,9 @@ func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (*R
 	}
 
 	if name == "application" {
-		prometheus.MustRegister(NewRocksDBMetrics(opts))
+		rdbMetrics := NewRocksDBMetrics(opts)
+		prometheus.Unregister(rdbMetrics)
+		prometheus.MustRegister(rdbMetrics)
 	}
 	return database, nil
 }
