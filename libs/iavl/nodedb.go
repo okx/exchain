@@ -322,31 +322,6 @@ func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch, version int64) 
 	return nil
 }
 
-func (ndb *nodeDB) setFastStorageVersion(version int64) error {
-	var newVersion string
-	if ndb.storageVersion >= fastStorageVersionValue {
-		// Storage version should be at index 0 and latest fast cache version at index 1
-		versions := strings.Split(ndb.storageVersion, fastStorageVersionDelimiter)
-
-		if len(versions) > 2 {
-			return errors.New(errInvalidFastStorageVersion)
-		}
-
-		newVersion = versions[0]
-	} else {
-		newVersion = fastStorageVersionValue
-	}
-
-	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(version))
-	err := ndb.db.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion))
-	if err != nil {
-		return err
-	}
-	ndb.storageVersion = newVersion
-
-	return nil
-}
-
 func (ndb *nodeDB) getStorageVersion() string {
 	return ndb.storageVersion
 }
