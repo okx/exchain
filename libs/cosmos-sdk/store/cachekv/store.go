@@ -86,6 +86,10 @@ func (store *Store) Get(key []byte) (value []byte) {
 	return value
 }
 
+func (store *Store) GetRWSet(mp types.MsRWSet) {
+	panic("implement me")
+}
+
 func (store *Store) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, sKey types.StoreKey) bool, sKey types.StoreKey) bool {
 	if cb == nil {
 		return true
@@ -398,4 +402,20 @@ func (store *Store) DisableCacheReadList() {
 	store.mtx.Lock()
 	store.disableCacheReadList = true
 	store.mtx.Unlock()
+}
+
+func (store *Store) CopyRWSet(rw types.CacheKVRWSet) {
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	for k, v := range store.readList {
+		rw.Read[k] = v
+	}
+
+	for k, v := range store.dirty {
+		rw.Write[k] = types.DirtyValue{
+			Deleted: v.deleted,
+			Value:   v.value,
+		}
+	}
 }
