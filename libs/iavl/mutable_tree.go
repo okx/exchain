@@ -1260,3 +1260,7 @@ func (tree *MutableTree) GetUpgradeVersion() int64 {
 func (tree *MutableTree) hasNewNode() bool {
 	return len(tree.savedNodes) > 0
 }
+
+func (tree *MutableTree) SaveFastNodeNoCache(key, value []byte, version int64, batch dbm.Batch) error {
+	return tree.ndb.SaveFastNodeNoCache(NewFastNode(key, value, version), batch)
+}
