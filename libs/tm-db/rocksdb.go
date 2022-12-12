@@ -142,7 +142,7 @@ func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (*R
 		woSync: woSync,
 	}
 
-	if name == "blockstore" {
+	if name == "application" {
 		prometheus.MustRegister(NewRocksDBMetrics(opts))
 	}
 	return database, nil
