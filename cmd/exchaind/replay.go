@@ -189,7 +189,6 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 
 	viper.SetDefault(watcher.FlagFastQuery, false)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
-	viper.SetDefault(dbm.FlagRocksdbOpts, "unordered_write=true")
 
 	return cmd
 }
