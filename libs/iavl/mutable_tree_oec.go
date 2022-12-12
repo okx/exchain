@@ -229,7 +229,7 @@ func (tree *MutableTree) commitSchedule() {
 		}
 
 		trc.Pin("Pruning")
-		tree.updateCommittedStateHeightPool(event.version, event.versions)
+		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions, noBatch)
 
 		tree.ndb.persistTpp(&event, noBatch, trc)
 		if event.wg != nil {
@@ -305,7 +305,7 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-func (tree *MutableTree) updateCommittedStateHeightPool(version int64, versions map[int64]bool) {
+func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool, writeToDB bool) {
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
 	tree.committedHeightMap[version] = true
@@ -316,15 +316,19 @@ func (tree *MutableTree) updateCommittedStateHeightPool(version int64, versions 
 		delete(tree.committedHeightMap, oldVersion)
 
 		if EnablePruningHistoryState {
-			batch := tree.ndb.db.NewBatch()
+			if writeToDB {
+				batch = tree.ndb.db.NewBatch()
+			}
 			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
 			}
-			if err := tree.ndb.Commit(batch); err != nil {
-				panic(err)
+			if writeToDB {
+				if err := tree.ndb.Commit(batch); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
