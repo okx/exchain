@@ -1,9 +1,12 @@
 package consensus
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -243,6 +246,26 @@ func (cs *State) finalizeCommit(height int64) {
 		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
 	}
 	trace.GetElapsedInfo().AddInfo(trace.BTInterval, fmt.Sprintf("%dms", blockTime.Sub(block.Time).Milliseconds()))
+
+	// Set AC offset
+	if iavl.EnableAsyncCommit {
+		futureValidators := cs.state.Validators.Copy()
+		offset := cfg.DynamicConfig.GetProposalACGap()
+		if offset > 0 {
+			futureValidators.IncrementProposerPriority(offset)
+			futureBPAddress := futureValidators.GetProposer().Address
+
+			selfAddress := cs.privValidatorPubKey.Address()
+
+			// self is the validator at the offset height
+			if bytes.Equal(futureBPAddress, selfAddress) {
+				cs.Logger.Error("Set Produce Offset", "offset", offset, "curHeight", height)
+				iavl.SetProduceOffset(int64(offset))
+			}
+		} else {
+			iavl.SetProduceOffset(0)
+		}
+	}
 
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,

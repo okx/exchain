@@ -32,9 +32,14 @@ func SetProduceDelta(pd bool) {
 	produceDelta = pd
 }
 
+func SetProduceOffset(offset int64) {
+	produceOffset = offset
+}
+
 var (
-	ignoreVersionCheck = false
-	produceDelta       = false
+	ignoreVersionCheck       = false
+	produceDelta             = false
+	produceOffset      int64 = 0
 )
 
 // MutableTree is a persistent tree which keeps track of versions. It is not safe for concurrent

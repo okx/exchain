@@ -3,6 +3,7 @@ package iavl
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -103,13 +104,25 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%CommitGapHeight == 0
+	// persist height = commitGapHeight - produceOffset
+	commitGapPlusOffset := (CommitGapHeight - produceOffset) % CommitGapHeight
+	shouldPersist := version%CommitGapHeight == commitGapPlusOffset
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
 	if shouldPersist {
+		log.Println("shouldPersist", shouldPersist,
+			"height:", version,
+			"CommitGapHeight:", CommitGapHeight,
+			"commitGapPlusOffset:", commitGapPlusOffset,
+			"produceOffset:", produceOffset)
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
+
+		// reset produce offset after commit gap
+		if version%CommitGapHeight == 0 {
+			produceOffset = 0
+		}
 	}
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
