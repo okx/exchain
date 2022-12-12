@@ -9,6 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
 
@@ -37,6 +38,7 @@ type Store struct {
 
 	preChangesHandler    PreChangesHandler
 	disableCacheReadList bool // not cache readList for group-paralleled-tx
+	trace.StatisticsCell
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -163,8 +165,9 @@ func (store *Store) Write() {
 	}
 
 	sort.Strings(keys)
-
 	store.preWrite(keys)
+
+	store.StartTiming()
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
@@ -182,6 +185,7 @@ func (store *Store) Write() {
 
 	// Clear the cache
 	store.clearCache()
+	store.EndTiming(trace.FlushCache)
 }
 
 func (store *Store) preWrite(keys []string) {
@@ -386,6 +390,7 @@ func (store *Store) Reset(parent types.KVStore) {
 
 	store.preChangesHandler = nil
 	store.parent = parent
+	store.StatisticsCell = nil
 	store.clearCache()
 
 	store.mtx.Unlock()
@@ -402,6 +407,18 @@ func (store *Store) DisableCacheReadList() {
 	store.mtx.Lock()
 	store.disableCacheReadList = true
 	store.mtx.Unlock()
+}
+
+func (store *Store) StartTiming() {
+	if store.StatisticsCell != nil {
+		store.StatisticsCell.StartTiming()
+	}
+}
+
+func (store *Store) EndTiming(tag string) {
+	if store.StatisticsCell != nil {
+		store.StatisticsCell.EndTiming(tag)
+	}
 }
 
 func (store *Store) CopyRWSet(rw types.CacheKVRWSet) {
