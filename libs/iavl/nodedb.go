@@ -268,28 +268,6 @@ func (ndb *nodeDB) SaveFastNode(node *FastNode, batch dbm.Batch) error {
 	return ndb.saveFastNodeUnlocked(node, true, batch)
 }
 
-func (ndb *nodeDB) saveFastNodeToDB(node *FastNode) error {
-	if node.key == nil {
-		return fmt.Errorf("cannot have FastNode with a nil value for key")
-	}
-
-	// Save node bytes to db.
-	var buf bytes.Buffer
-	buf.Grow(node.encodedSize())
-
-	if err := node.writeBytes(&buf); err != nil {
-		return fmt.Errorf("error while writing fastnode bytes. Err: %w", err)
-	}
-
-	err := ndb.db.Set(ndb.fastNodeKey(node.key), buf.Bytes())
-	if err != nil {
-		return fmt.Errorf("error while saving fastnode bytes to db. Err: %w", err)
-	}
-	ndb.cacheFastNode(node)
-
-	return nil
-}
-
 // SaveNode saves a FastNode to disk without adding to cache.
 func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode, batch dbm.Batch) error {
 	ndb.mtx.Lock()
@@ -573,15 +551,6 @@ func (ndb *nodeDB) DeleteFastNode(key []byte, batch dbm.Batch) error {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 	batch.Delete(ndb.fastNodeKey(key))
-	ndb.uncacheFastNode(key)
-	return nil
-}
-
-func (ndb *nodeDB) deleteFastNodeFromDB(key []byte) error {
-	err := ndb.db.Delete(ndb.fastNodeKey(key))
-	if err != nil {
-		return err
-	}
 	ndb.uncacheFastNode(key)
 	return nil
 }
