@@ -14,7 +14,6 @@ type cacheRWSetList struct {
 
 func newCacheRWSetList() *cacheRWSetList {
 	return &cacheRWSetList{
-		mtx: sync.Mutex{},
 		mps: list.New(),
 	}
 }
