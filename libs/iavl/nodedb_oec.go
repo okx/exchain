@@ -174,8 +174,7 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"trc", trc.Format())
 }
 
-// SaveNode saves a node to disk.
-func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
+func nodeToDBValue(node *Node) []byte {
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
@@ -195,8 +194,14 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 		panic(err)
 	}
 
+	return buf.Bytes()
+}
+
+// SaveNode saves a node to disk.
+func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
-	nodeValue := buf.Bytes()
+	nodeValue := nodeToDBValue(node)
+
 	batch.Set(nodeKey, nodeValue)
 	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
@@ -205,27 +210,8 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) saveNodeToDB(node *Node) error {
-	if node.hash == nil {
-		panic("Expected to find node.hash, but none found.")
-	}
-	if !node.persisted {
-		panic("Should set node.persisted to true before batchSet.")
-	}
-
-	if !node.prePersisted {
-		panic("Should be calling save on an prePersisted node.")
-	}
-
-	// Save node bytes to db.
-	var buf bytes.Buffer
-	buf.Grow(node.aminoSize())
-
-	if err := node.writeBytesToBuffer(&buf); err != nil {
-		panic(err)
-	}
-
 	nodeKey := ndb.nodeKey(node.hash)
-	nodeValue := buf.Bytes()
+	nodeValue := nodeToDBValue(node)
 	err := ndb.db.Set(nodeKey, nodeValue)
 	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
 	ndb.log(IavlDebug, "SAVE NODE", "hash", node.hash)
