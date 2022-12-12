@@ -245,6 +245,7 @@ type CacheManager interface {
 	// Clear the cache without writing
 	Clear()
 	DisableCacheReadList()
+	GetRWSet(set MsRWSet)
 }
 
 // Alias iterator to db's Iterator for convenience.
@@ -417,4 +418,33 @@ type MultiStorePersistentCache interface {
 
 	// Reset the entire set of internal caches.
 	Reset()
+}
+
+type DirtyValue struct {
+	Deleted bool
+	Value   []byte
+}
+type CacheKVRWSet struct {
+	Read  map[string][]byte
+	Write map[string]DirtyValue
+}
+
+func NewCacheKvRWSet() CacheKVRWSet {
+	return CacheKVRWSet{
+		Read:  make(map[string][]byte),
+		Write: make(map[string]DirtyValue),
+	}
+}
+
+type MsRWSet = map[StoreKey]CacheKVRWSet
+
+func ClearMsRWSet(m MsRWSet) {
+	for _, v := range m {
+		for kk := range v.Read {
+			delete(v.Read, kk)
+		}
+		for kk := range v.Write {
+			delete(v.Write, kk)
+		}
+	}
 }

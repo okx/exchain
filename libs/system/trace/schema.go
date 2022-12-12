@@ -70,10 +70,10 @@ const (
 
 	//MempoolUpdate   = "mpUpdate"
 	//SaveState       = "saveState"
-	ApplyBlock      = "ApplyBlock"
-	Consensus       = "Consensus"
-	LastBlockTime   = "LastBlockTime"
-	TimeoutInterval = "TimeoutInterval"
+	ApplyBlock    = "ApplyBlock"
+	Consensus     = "Consensus"
+	LastBlockTime = "LastBlockTime"
+	BTInterval    = "BTInterval"
 
 	MempoolCheckTxCnt  = "CheckTx"
 	MempoolTxsCnt      = "MempoolTxs"

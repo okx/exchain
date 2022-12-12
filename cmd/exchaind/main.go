@@ -108,6 +108,9 @@ func main() {
 	server.AddCommands(ctx, codecProxy, registry, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
 		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
 
+	// precheck flag syntax
+	preCheckLongFlagSyntax()
+
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, OkcEnvPrefix, app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
@@ -180,4 +183,19 @@ func exportAppStateAndTMValidators(
 	}
 
 	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+}
+
+// All long flag must be in k=v format
+func preCheckLongFlagSyntax() {
+	params := os.Args[1:]
+	for _, f := range params {
+		tf := strings.TrimSpace(f)
+
+		if strings.ToUpper(tf) == "TRUE" ||
+			strings.ToUpper(tf) == "FALSE" {
+			fmt.Fprintf(os.Stderr, "ERROR: Invalid parameter,"+
+				" boolean flag should be --flag=true or --flag=false \n")
+			os.Exit(1)
+		}
+	}
 }
