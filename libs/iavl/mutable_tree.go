@@ -866,7 +866,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
-	if err := tree.ndb.saveFastNodeVersion(batch, tree.unsavedFastNodes, tree.ndb.getLatestVersion(), false); err != nil {
+	if err := tree.ndb.saveFastNodeVersion(batch, tree.unsavedFastNodes, tree.ndb.getLatestVersion()); err != nil {
 		return nil, version, err
 	}
 
@@ -969,23 +969,17 @@ func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64, enfor
 	return nil
 }
 
-func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, version int64, writeToDB bool) error {
+func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, version int64) error {
 	if !GetEnableFastStorage() || fnc == nil {
 		return nil
 	}
-	if !writeToDB {
-		if err := ndb.setFastStorageVersionToBatch(batch, version); err != nil {
-			return err
-		}
-	} else {
-		if err := ndb.setFastStorageVersion(version); err != nil {
-			return err
-		}
-	}
-	if err := ndb.saveFastNodeAdditions(batch, fnc.getAdditions(), writeToDB); err != nil {
+	if err := ndb.setFastStorageVersionToBatch(batch, version); err != nil {
 		return err
 	}
-	if err := ndb.saveFastNodeRemovals(batch, fnc.getRemovals(), writeToDB); err != nil {
+	if err := ndb.saveFastNodeAdditions(batch, fnc.getAdditions()); err != nil {
+		return err
+	}
+	if err := ndb.saveFastNodeRemovals(batch, fnc.getRemovals()); err != nil {
 		return err
 	}
 	return nil
@@ -1010,24 +1004,16 @@ func (tree *MutableTree) addUnsavedAddition(key, value []byte, version int64) {
 	tree.unsavedFastNodes.add(key, NewFastNode(key, value, version))
 }
 
-func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*FastNode, writeToDB bool) error {
+func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*FastNode) error {
 	keysToSort := make([]string, 0, len(additions))
 	for key := range additions {
 		keysToSort = append(keysToSort, key)
 	}
 	sort.Strings(keysToSort)
 
-	if !writeToDB {
-		for _, key := range keysToSort {
-			if err := ndb.SaveFastNode(additions[key], batch); err != nil {
-				return err
-			}
-		}
-	} else {
-		for _, key := range keysToSort {
-			if err := ndb.saveFastNodeToDB(additions[key]); err != nil {
-				return err
-			}
+	for _, key := range keysToSort {
+		if err := ndb.SaveFastNode(additions[key], batch); err != nil {
+			return err
 		}
 	}
 
@@ -1041,24 +1027,16 @@ func (tree *MutableTree) addUnsavedRemoval(key []byte) {
 	tree.unsavedFastNodes.remove(key, true)
 }
 
-func (ndb *nodeDB) saveFastNodeRemovals(batch dbm.Batch, removals map[string]interface{}, writeToDB bool) error {
+func (ndb *nodeDB) saveFastNodeRemovals(batch dbm.Batch, removals map[string]interface{}) error {
 	keysToSort := make([]string, 0, len(removals))
 	for key := range removals {
 		keysToSort = append(keysToSort, key)
 	}
 	sort.Strings(keysToSort)
 
-	if !writeToDB {
-		for _, key := range keysToSort {
-			if err := ndb.DeleteFastNode([]byte(key), batch); err != nil {
-				return err
-			}
-		}
-	} else {
-		for _, key := range keysToSort {
-			if err := ndb.deleteFastNodeFromDB([]byte(key)); err != nil {
-				return err
-			}
+	for _, key := range keysToSort {
+		if err := ndb.DeleteFastNode([]byte(key), batch); err != nil {
+			return err
 		}
 	}
 
