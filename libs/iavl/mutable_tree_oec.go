@@ -49,6 +49,7 @@ type commitEvent struct {
 	iavlHeight int
 	fnc        *fastNodeChanges
 	orphans    []commitOrphan
+	isStop     bool
 }
 
 type commitOrphan struct {
@@ -160,7 +161,7 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil, false}
 	var tpp map[string]*Node = nil
 	fnc := newFastNodeChanges()
 
@@ -187,7 +188,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height()), fnc, orphans}
+		tpp, nil, int(tree.Height()), fnc, orphans, false}
 	tree.lastPersistHeight = version
 }
 
@@ -205,7 +206,10 @@ func (tree *MutableTree) commitSchedule() {
 			}
 			continue
 		}
-		noBatch := IavlCommitAsyncNoBatch
+		noBatch := false
+		if IavlCommitAsyncNoBatch && !event.isStop {
+			noBatch = true
+		}
 		trc := trace.NewTracer("commitSchedule")
 
 		if len(event.orphans) != 0 {
@@ -290,7 +294,7 @@ func (tree *MutableTree) StopTreeWithVersion(version int64) {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil, true}
 	wg.Wait()
 }
 func (tree *MutableTree) StopTree() {
