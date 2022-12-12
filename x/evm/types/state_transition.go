@@ -247,7 +247,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		contractAddressStr := EthAddressToString(&contractAddress)
 		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
 
-		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
+		nonce := fmt.Sprintf("%d", evm.StateDB.GetNonce(st.Sender))
+		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas, nonce)
 	default:
 		if !params.EnableCall {
 			if !st.Simulate {
@@ -269,7 +270,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
 
-		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas)
+		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas, "")
 	}
 
 	gasConsumed := gasLimit - leftOverGas
