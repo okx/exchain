@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strconv"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/cosmos/gorocksdb"
 	"github.com/spf13/viper"
 )
@@ -119,6 +121,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 
 	// 1.5GB maximum memory use for writebuffer.
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
+
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
@@ -137,6 +140,10 @@ func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (*R
 		ro:     ro,
 		wo:     wo,
 		woSync: woSync,
+	}
+
+	if name == "blockstore" {
+		prometheus.MustRegister(NewRocksDBMetrics(opts))
 	}
 	return database, nil
 }
