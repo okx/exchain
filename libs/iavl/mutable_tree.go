@@ -1016,7 +1016,6 @@ func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -1039,7 +1038,6 @@ func (ndb *nodeDB) saveFastNodeRemovals(batch dbm.Batch, removals map[string]int
 			return err
 		}
 	}
-
 	return nil
 }
 
