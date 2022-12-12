@@ -115,7 +115,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tra
 
 	trc.Pin("batchSet-fss")
 
-	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version, false); err != nil {
+	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
 		panic(err)
 	}
 
