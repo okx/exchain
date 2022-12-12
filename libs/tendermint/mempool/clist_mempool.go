@@ -96,12 +96,12 @@ type CListMempool struct {
 
 	gasCache *lru.Cache
 
-	confirmedTxChan chan confirmedTxEvent
+	confirmedTxsChan chan confirmedTxsEvent
 }
 
-type confirmedTxEvent struct {
+type confirmedTxsEvent struct {
 	height int64
-	tx     types.Tx
+	txs    types.Txs
 }
 
 var _ Mempool = &CListMempool{}
@@ -140,10 +140,10 @@ func NewCListMempool(
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
 
-		confirmedTxChan: make(chan confirmedTxEvent, 1000),
+		confirmedTxsChan: make(chan confirmedTxsEvent, 1000),
 	}
 	go mempool.simulationRoutine()
-	go mempool.fireConfirmedTxEvents()
+	go mempool.fireConfirmedTxsEvents()
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
 		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
@@ -914,12 +914,14 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 
-	for i, tx := range txs {
-		mem.confirmedTxChan <- confirmedTxEvent{
+	if len(txs) > 0 {
+		mem.confirmedTxsChan <- confirmedTxsEvent{
 			height: height,
-			tx:     tx,
+			txs:    txs,
 		}
+	}
 
+	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
@@ -999,12 +1001,16 @@ func (mem *CListMempool) Update(
 	return nil
 }
 
-func (mem *CListMempool) fireConfirmedTxEvents() {
-	for ct := range mem.confirmedTxChan {
-		mem.eventBus.PublishEventConfirmedTx(types.EventDataTx{TxResult: types.TxResult{
-			Height: ct.height,
-			Tx:     ct.tx,
-		}})
+func (mem *CListMempool) fireConfirmedTxsEvents() {
+	for ctxs := range mem.confirmedTxsChan {
+		data := make([]types.EventDataTx, len(ctxs.txs))
+		for i, tx := range ctxs.txs {
+			data[i] = types.EventDataTx{TxResult: types.TxResult{
+				Height: ctxs.height,
+				Tx:     tx,
+			}}
+		}
+		mem.eventBus.PublishEventConfirmedTxs(data)
 	}
 }
 

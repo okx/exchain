@@ -32,7 +32,7 @@ var (
 	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
 	blockTimeEvents = tmtypes.QueryForEvent(tmtypes.EventBlockTime).String()
 
-	confirmedtxEvents = tmtypes.QueryForEvent(tmtypes.EventConfirmedTx).String()
+	confirmedtxsEvents = tmtypes.QueryForEvent(tmtypes.EventConfirmedTxs).String()
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -231,12 +231,12 @@ func (es EventSystem) SubscribeBlockTime() (*Subscription, context.CancelFunc, e
 	return es.subscribe(sub)
 }
 
-// SubscribeConfirmedTx subscribes to the confirmed tx events
-func (es EventSystem) SubscribeConfirmedTx() (*Subscription, context.CancelFunc, error) {
+// SubscribeConfirmedTxs subscribes to the confirmed txs events
+func (es EventSystem) SubscribeConfirmedTxs() (*Subscription, context.CancelFunc, error) {
 	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.LogsSubscription,
-		event:     confirmedtxEvents,
+		event:     confirmedtxsEvents,
 		created:   time.Now().UTC(),
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),

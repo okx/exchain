@@ -194,11 +194,11 @@ func (b *EventBus) PublishEventPendingTx(data EventDataTx) error {
 	return b.pubsub.PublishWithEvents(ctx, data, events)
 }
 
-func (b *EventBus) PublishEventConfirmedTx(data EventDataTx) error {
+func (b *EventBus) PublishEventConfirmedTxs(data []EventDataTx) error {
 	ctx := context.Background()
 
 	events := make(map[string][]string)
-	events[EventTypeKey] = append(events[EventTypeKey], EventConfirmedTx)
+	events[EventTypeKey] = append(events[EventTypeKey], EventConfirmedTxs)
 	return b.pubsub.PublishWithEvents(ctx, data, events)
 }
 
@@ -293,7 +293,7 @@ func (NopEventBus) PublishEventPendingTx(data EventDataTx) error {
 	return nil
 }
 
-func (NopEventBus) PublishEventConfirmedTx(data EventDataTx) error {
+func (NopEventBus) PublishEventConfirmedTxs(data []EventDataTx) error {
 	return nil
 }
 

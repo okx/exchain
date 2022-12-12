@@ -1,7 +1,6 @@
 package pendingtx
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -43,7 +42,7 @@ func (w *Watcher) Start() {
 		w.logger.Error("error creating block filter", "error", err.Error())
 	}
 
-	confirmedSub, _, err := w.events.SubscribeConfirmedTx()
+	confirmedSub, _, err := w.events.SubscribeConfirmedTxs()
 	if err != nil {
 		w.logger.Error("error creating block filter", "error", err.Error())
 	}
@@ -52,7 +51,13 @@ func (w *Watcher) Start() {
 		for {
 			select {
 			case re := <-pendingCh:
-				tx, err := w.newTransactionByEvent(re, "pending")
+				txType := "pending"
+				data, ok := re.Data.(tmtypes.EventDataTx)
+				if !ok {
+					w.logger.Error(fmt.Sprintf("invalid %s tx data type %T, expected EventDataTx", txType, re.Data))
+					continue
+				}
+				tx, err := w.newTransactionByEvent(data, txType)
 				if err != nil {
 					continue
 				}
@@ -65,35 +70,37 @@ func (w *Watcher) Start() {
 					}
 				}()
 			case re := <-confirmedCh:
-				tx, err := w.newTransactionByEvent(re, "confirmed")
-				if err != nil {
+				txType := "confirmed"
+				data, ok := re.Data.([]tmtypes.EventDataTx)
+				if !ok {
+					w.logger.Error(fmt.Sprintf("invalid %s tx data type %T, expected EventDataTx", txType, re.Data))
 					continue
 				}
-
-				go func() {
-					w.logger.Debug("push confirmed tx to MQ", "txHash=", tx.Hash.String())
-					err = w.sender.SendConfirmed(tx.Hash.Bytes(), &ConfirmedTx{
-						From:   tx.From.String(),
-						Hash:   tx.Hash.String(),
-						Nonce:  tx.Nonce.String(),
-						Delete: true,
-					})
+				for _, txEventData := range data {
+					tx, err := w.newTransactionByEvent(txEventData, txType)
 					if err != nil {
-						w.logger.Error("failed to send confirmed tx", "hash", tx.Hash.String(), "error", err)
+						continue
 					}
-				}()
+
+					go func() {
+						w.logger.Debug("push confirmed tx to MQ", "txHash=", tx.Hash.String())
+						err = w.sender.SendConfirmed(tx.Hash.Bytes(), &ConfirmedTx{
+							From:   tx.From.String(),
+							Hash:   tx.Hash.String(),
+							Nonce:  tx.Nonce.String(),
+							Delete: true,
+						})
+						if err != nil {
+							w.logger.Error("failed to send confirmed tx", "hash", tx.Hash.String(), "error", err)
+						}
+					}()
+				}
 			}
 		}
 	}(pendingSub.Event(), confirmedSub.Event())
 }
 
-func (w *Watcher) newTransactionByEvent(re coretypes.ResultEvent, txType string) (*watcher.Transaction, error) {
-	data, ok := re.Data.(tmtypes.EventDataTx)
-	if !ok {
-		w.logger.Error(fmt.Sprintf("invalid %s tx data type %T, expected EventDataTx", txType, re.Data))
-		return nil, errors.New("invalid tx data type")
-	}
-
+func (w *Watcher) newTransactionByEvent(data tmtypes.EventDataTx, txType string) (*watcher.Transaction, error) {
 	txHash := common.BytesToHash(data.Tx.Hash(data.Height))
 	w.logger.Debug(fmt.Sprintf("receive %s tx", txType), "txHash=", txHash.String())
 
