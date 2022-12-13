@@ -1236,7 +1236,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
 	}
-
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
