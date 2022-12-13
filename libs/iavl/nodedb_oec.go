@@ -17,11 +17,13 @@ import (
 )
 
 const (
-	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+	FlagIavlCacheInitRatio     = "iavl-cache-init-ratio"
+	FlagIavlCommitAsyncNoBatch = "iavl-commit-async-no-batch"
 )
 
 var (
-	IavlCacheInitRatio float64 = 0
+	IavlCacheInitRatio     float64 = 0
+	IavlCommitAsyncNoBatch bool    = false
 )
 
 type tppItem struct {
@@ -90,16 +92,28 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	ndb.mtx.Unlock()
 }
 
-func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
+func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tracer) {
 	batch := event.batch
 	tpp := event.tpp
 
-	trc.Pin("batchSet")
-	for _, node := range tpp {
-		ndb.batchSet(node, batch)
+	trc.Pin("batchSet-node")
+	if !writeToDB {
+		for _, node := range tpp {
+			ndb.batchSet(node, batch)
+		}
+	} else {
+		for _, node := range tpp {
+			err := ndb.saveNodeToDB(node)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
+
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
+
+	trc.Pin("batchSet-fss")
 
 	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
 		panic(err)
@@ -111,7 +125,6 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	}
 
 	ndb.asyncPersistTppFinised(event, trc)
-	ndb.tpfv.remove(event.version)
 }
 
 func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChanges) {
@@ -149,16 +162,19 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 	nodeNum := ndb.tpp.getTppNodesNum()
 
 	ndb.tpp.removeFromTpp(version)
+	ndb.tpfv.remove(event.version)
 
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
 		"IavlHeight", iavlHeight,
 		"NodeNum", nodeNum,
+		"tpp", len(event.tpp),
+		"fss-add", len(event.fnc.additions),
+		"fss-rm", len(event.fnc.removals),
 		"trc", trc.Format())
 }
 
-// SaveNode saves a node to disk.
-func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
+func nodeToDBValue(node *Node) []byte {
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
@@ -178,12 +194,29 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 		panic(err)
 	}
 
+	return buf.Bytes()
+}
+
+// SaveNode saves a node to disk.
+func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
-	nodeValue := buf.Bytes()
+	nodeValue := nodeToDBValue(node)
+
 	batch.Set(nodeKey, nodeValue)
 	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
+}
+
+// SaveNode saves a node to disk.
+func (ndb *nodeDB) saveNodeToDB(node *Node) error {
+	nodeKey := ndb.nodeKey(node.hash)
+	nodeValue := nodeToDBValue(node)
+	err := ndb.db.Set(nodeKey, nodeValue)
+	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
+	ndb.log(IavlDebug, "SAVE NODE", "hash", node.hash)
+	//node.persisted = true // move to function MovePrePersistCacheToTempCache
+	return err
 }
 
 func (ndb *nodeDB) NewBatch() dbm.Batch {
@@ -193,13 +226,24 @@ func (ndb *nodeDB) NewBatch() dbm.Batch {
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
 // orphans: the orphan nodes created since version-1
-func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []commitOrphan) {
+func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []commitOrphan, writeToDB bool) error {
 	ndb.log(IavlDebug, "saving committed orphan node log to disk")
 	toVersion := ndb.getPreviousVersion(version)
-	for _, orphan := range orphans {
-		// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
-		ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
+	if !writeToDB {
+		for _, orphan := range orphans {
+			// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
+			ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
+		}
+	} else {
+		for _, orphan := range orphans {
+			// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
+			err := ndb.saveOrphanToDB(orphan.NodeHash, orphan.Version, toVersion)
+			if err != nil {
+				return err
+			}
+		}
 	}
+	return nil
 }
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
