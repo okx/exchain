@@ -239,7 +239,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// test for smb
 	if block.Height == 8200000 {
 		for i, v := range abciResponses.DeliverTxs {
-			stdlog.Printf("---giskook index %v, code %d, data %v\n", i, v.Code, v.Data)
+			stdlog.Printf("---giskook index %v, code %d, data %x\n", i, v.Code, v.Data)
 		}
 	}
 	// test for smb
