@@ -1,13 +1,14 @@
 package watcher
 
 import (
+	"math/big"
+	"time"
+
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -51,7 +52,7 @@ func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
 
 	var err error
 	if tx == nil {
-		tx, err = evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
+		tx, err = evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, tr.Height)
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 		}

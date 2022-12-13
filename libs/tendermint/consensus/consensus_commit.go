@@ -24,6 +24,7 @@ func (cs *State) initNewHeight() {
 		// init StartTime
 		cs.StartTime = tmtime.Now()
 		cs.dumpElapsed(cs.blockTimeTrc, trace.LastBlockTime)
+		cs.traceDump()
 	}
 }
 
@@ -231,6 +232,18 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
+	// publish event of the latest block time
+	blockTime := tmtime.Now()
+	if cs.Height > 1 {
+		blockTime = sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
+	}
+	if types.EnableEventBlockTime {
+		validators := cs.Validators.Copy()
+		validators.IncrementProposerPriority(1)
+		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
+	}
+	trace.GetElapsedInfo().AddInfo(trace.BTInterval, fmt.Sprintf("%dms", blockTime.Sub(block.Time).Milliseconds()))
+
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -354,7 +367,6 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	cs.traceDump()
 	cs.bt.reset(height)
 
 	cs.Validators = validators
@@ -422,13 +434,19 @@ func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
 	if !GetActiveVC() {
 		return nil
 	}
+	t := time.NewTimer(time.Second)
 	for {
 		select {
 		case res := <-cs.taskResultChan:
 			if res.block.Height == height {
+				if !t.Stop() {
+					<-t.C
+				}
 				return res
+			} else {
+				return nil
 			}
-		case <-time.After(time.Second):
+		case <-t.C:
 			return nil
 		}
 

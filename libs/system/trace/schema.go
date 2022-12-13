@@ -30,14 +30,15 @@ const (
 	HandlerDefer = "handler_defer"
 )
 
-
 const (
 	GasUsed     = "GasUsed"
+	SimGasUsed  = "SimGasUsed"
 	Produce     = "Produce"
 	RunTx       = "RunTx"
 	LastRun     = "lastRun"
 	Height      = "Height"
 	Tx          = "Tx"
+	SimTx       = "SimTx"
 	BlockSize   = "BlockSize"
 	Elapsed     = "Elapsed"
 	CommitRound = "CommitRound"
@@ -58,15 +59,21 @@ const (
 	Delta      = "Delta"
 	InvalidTxs = "InvalidTxs"
 
-	Abci            = "abci"
+	Abci = "abci"
 	//SaveResp        = "saveResp"
-	Persist         = "persist"
+	Persist        = "persist"
+	PersistDetails = "persistDetails"
+	PreChange      = "preChange"
+	FlushCache     = "flushCache"
+	CommitStores   = "commitStores"
+	FlushMeta      = "flushMeta"
+
 	//MempoolUpdate   = "mpUpdate"
 	//SaveState       = "saveState"
-	ApplyBlock      = "ApplyBlock"
-	Consensus       = "Consensus"
-	LastBlockTime   = "LastBlockTime"
-	TimeoutInterval = "TimeoutInterval"
+	ApplyBlock    = "ApplyBlock"
+	Consensus     = "Consensus"
+	LastBlockTime = "LastBlockTime"
+	BTInterval    = "BTInterval"
 
 	MempoolCheckTxCnt  = "CheckTx"
 	MempoolTxsCnt      = "MempoolTxs"
@@ -78,6 +85,8 @@ const (
 	IavlRuntime     = "IavlRuntime"
 
 	BlockPartsP2P = "BlockPartsP2P"
+
+	Workload = "Workload"
 )
 
 const (

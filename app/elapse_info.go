@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"strings"
 	"sync"
+
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/spf13/viper"
 )
@@ -18,7 +19,6 @@ type SchemaConfig struct {
 var (
 	optionalSchemas = []SchemaConfig{
 		{trace.MempoolCheckTxCnt, 0},
-		{trace.MempoolTxsCnt, 0},
 		{trace.MempoolCheckTxTime, 0},
 		{trace.SigCacheRatio, 0},
 		{trace.Evm, 1},
@@ -29,14 +29,13 @@ var (
 
 		{trace.IavlRuntime, 0},
 		{trace.RunAnteDetail, 0},
-		{trace.RunAnteDetail, 0},
 		{trace.AnteChainDetail, 0},
 		{trace.Round, 0},
 		{trace.CommitRound, 0},
 		//{trace.RecvBlock, 1},
-		{trace.First2LastPart, 1},
-		{trace.BlockParts, 1},
-		{trace.BlockPartsP2P, 1},
+		{trace.First2LastPart, 0},
+		{trace.BlockParts, 0},
+		{trace.BlockPartsP2P, 0},
 		{trace.Produce, 0},
 		{trace.CompressBlock, 0},
 		{trace.UncompressBlock, 0},
@@ -45,15 +44,19 @@ var (
 	mandatorySchemas = []string{
 		trace.Height,
 		trace.Tx,
+		trace.SimTx,
 		trace.BlockSize,
-		trace.TimeoutInterval,
+		trace.BTInterval,
 		trace.LastBlockTime,
 		trace.GasUsed,
+		trace.SimGasUsed,
 		trace.InvalidTxs,
 		trace.LastRun,
 		trace.RunTx,
 		trace.Prerun,
 		trace.MempoolTxsCnt,
+		trace.Workload,
+		trace.PersistDetails,
 	}
 
 	DefaultElapsedSchemas string

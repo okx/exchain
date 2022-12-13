@@ -11,9 +11,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	"github.com/google/gops/agent"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
@@ -25,6 +22,9 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const FlagGops = "gops"
@@ -59,6 +59,11 @@ func PersistentPreRunEFn(context *Context) func(*cobra.Command, []string) error 
 		config, err := interceptLoadConfig()
 		if err != nil {
 			return err
+		}
+		if !viper.IsSet(state.FlagDeliverTxsExecMode) {
+			if viper.GetBool(state.FlagEnableConcurrency) {
+				viper.Set(state.FlagDeliverTxsExecMode, state.DeliverTxsExecModeParallel)
+			}
 		}
 		// okchain
 		output := os.Stdout

@@ -24,6 +24,7 @@ require (
 	github.com/enigmampc/btcutil v1.0.3-0.20200723161021-e2fb6adb2a25
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/fortytw2/leaktest v1.3.0
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-errors/errors v1.0.1
 	github.com/go-kit/kit v0.12.0
 	github.com/go-logfmt/logfmt v0.5.1
@@ -182,6 +183,7 @@ require (
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
+	github.com/cosmos/gorocksdb => github.com/okex/grocksdb v1.6.45-okc2
 	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-okc1
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4

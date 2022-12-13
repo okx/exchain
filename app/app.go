@@ -2,22 +2,26 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/vmbridge"
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/x/vmbridge"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
 
+	"github.com/okex/exchain/app/utils/appstatus"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
-	gasprice "github.com/okex/exchain/app/gasprice"
+	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
+	"github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -427,7 +431,7 @@ func NewOKExChainApp(
 
 	app.FeeSplitKeeper = feesplit.NewKeeper(
 		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
-		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
+		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper)
 	app.ParamsKeeper.RegisterSignal(feesplit.SetParamsNeedUpdate)
 
 	//wasm keeper
@@ -454,6 +458,7 @@ func NewOKExChainApp(
 		supportedFeatures,
 		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
 	)
+	(&app.WasmKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.ParamsKeeper.RegisterSignal(wasm.SetNeedParamsUpdate)
 
@@ -648,7 +653,7 @@ func NewOKExChainApp(
 	}
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
-	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
+	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
@@ -659,6 +664,10 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
+
+	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
+	app.gpo = gasprice.NewOracle(gpoConfig)
+	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -682,10 +691,6 @@ func NewOKExChainApp(
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
 
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
-		app.gpo = gasprice.NewOracle(gpoConfig)
-	}
 	return app
 }
 
@@ -718,8 +723,9 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		_ = app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
+		currentBlockGPsCopy := app.gpo.CurrentBlockGPs.Copy()
+		_ = app.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
 		GlobalGp = app.gpo.RecommendGP()
 		app.gpo.CurrentBlockGPs.Clear()
 	}
@@ -874,9 +880,11 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 
+	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 
+	ctx.Logger.Info("The database storage strategy", "fast-storage", iavl.GetEnableFastStorage())
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
