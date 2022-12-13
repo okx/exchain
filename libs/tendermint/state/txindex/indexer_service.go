@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/okex/exchain/libs/tendermint/libs/service"
+	"github.com/okex/exchain/libs/tendermint/state/indexer"
 
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -17,14 +18,16 @@ const (
 type IndexerService struct {
 	service.BaseService
 
-	idr      TxIndexer
-	eventBus *types.EventBus
-	quit     chan struct{}
+	idr       TxIndexer
+	blockIdxr indexer.BlockIndexer
+	eventBus  *types.EventBus
+	quit      chan struct{}
 }
 
 // NewIndexerService returns a new service instance.
-func NewIndexerService(idr TxIndexer, eventBus *types.EventBus) *IndexerService {
+func NewIndexerService(idr TxIndexer, bidr indexer.BlockIndexer, eventBus *types.EventBus) *IndexerService {
 	is := &IndexerService{idr: idr, eventBus: eventBus}
+	is.blockIdxr = bidr
 	is.BaseService = *service.NewBaseService(nil, "IndexerService", is)
 	is.quit = make(chan struct{})
 	return is
@@ -67,6 +70,13 @@ func (is *IndexerService) OnStart() error {
 							"err", err)
 					}
 				}
+
+				if err := is.blockIdxr.Index(eventDataHeader); err != nil {
+					is.Logger.Error("failed to index block", "height", height, "err", err)
+				} else {
+					is.Logger.Info("indexed block", "height", height)
+				}
+
 				if err = is.idr.AddBatch(batch); err != nil {
 					is.Logger.Error("Failed to index block", "height", height, "err", err)
 				} else {
@@ -91,4 +101,8 @@ func (is *IndexerService) OnStop() {
 
 func (is *IndexerService) Wait() {
 	<-is.quit
+}
+
+func (is *IndexerService) GetBlockIndexer() indexer.BlockIndexer {
+	return is.blockIdxr
 }
