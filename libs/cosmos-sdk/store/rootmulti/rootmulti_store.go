@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	cfg "github.com/okex/exchain/libs/tendermint/config"
+
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -596,6 +598,8 @@ func (rs *Store) CommitterCommit(*iavltree.TreeDelta) (_ types.CommitID, _ *iavl
 
 // Implements Committer/CommitStore.
 func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.CommitID, iavltree.TreeDeltaMap) {
+	iavltree.IavlCommitAsyncNoBatch = cfg.DynamicConfig.GetIavlAcNoBatch()
+
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
 
