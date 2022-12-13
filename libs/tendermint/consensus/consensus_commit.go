@@ -262,10 +262,11 @@ func (cs *State) finalizeCommit(height int64) {
 			futureValidators := cs.state.Validators.Copy()
 			futureValidators.IncrementProposerPriority(int(offset))
 
+			nextProposeHeight := height + offset
 			shouldOffsetAC := false
-			acOffset := offset
 
-			for ; acOffset > 0; acOffset-- {
+			var i int64
+			for ; i < offset; i++ {
 				futureBPAddress := futureValidators.GetProposer().Address
 
 				// self is the validator at the offset height
@@ -274,16 +275,38 @@ func (cs *State) finalizeCommit(height int64) {
 					// trigger ac ahead of the offset
 					shouldOffsetAC = true
 					trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
-						height+offset, height+offset-acOffset, height+offset-acOffset+offset, offset))
+						height+offset, nextProposeHeight-offset, nextProposeHeight, offset))
 					break
 				}
 
 				futureValidators.IncrementProposerPriority(1)
+				nextProposeHeight++
 			}
 
 			if shouldOffsetAC {
-				iavl.SetProduceOffset(acOffset)
+				iavl.SetProduceOffset(offset - i)
 			}
+			//acOffset := offset
+			//
+			//for ; acOffset > 0; acOffset-- {
+			//	futureBPAddress := futureValidators.GetProposer().Address
+			//
+			//	// self is the validator at the offset height
+			//	// && nextAC happens within the offset
+			//	if bytes.Equal(futureBPAddress, selfAddress) {
+			//		// trigger ac ahead of the offset
+			//		shouldOffsetAC = true
+			//		trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
+			//			height+offset, height+offset-acOffset, height+offset-acOffset+offset, offset))
+			//		break
+			//	}
+			//
+			//	futureValidators.IncrementProposerPriority(1)
+			//}
+			//
+			//if shouldOffsetAC {
+			//	iavl.SetProduceOffset(acOffset)
+			//}
 		}
 	}
 

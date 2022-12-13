@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	cmap "github.com/orcaman/concurrent-map"
+	"log"
 
 	"time"
 
@@ -148,6 +149,12 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 	nodeNum := ndb.tpp.getTppNodesNum()
 
 	ndb.tpp.removeFromTpp(version)
+	log.Println("CommitSchedule", "Height", version,
+		"Tree", ndb.name,
+		"IavlHeight", iavlHeight,
+		"NodeNum", nodeNum,
+		"CSOffset", produceOffset,
+		"trc", trc.Format())
 
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
