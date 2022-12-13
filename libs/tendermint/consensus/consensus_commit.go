@@ -286,27 +286,6 @@ func (cs *State) finalizeCommit(height int64) {
 			if shouldOffsetAC {
 				iavl.SetProduceOffset(offset - i)
 			}
-			//acOffset := offset
-			//
-			//for ; acOffset > 0; acOffset-- {
-			//	futureBPAddress := futureValidators.GetProposer().Address
-			//
-			//	// self is the validator at the offset height
-			//	// && nextAC happens within the offset
-			//	if bytes.Equal(futureBPAddress, selfAddress) {
-			//		// trigger ac ahead of the offset
-			//		shouldOffsetAC = true
-			//		trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
-			//			height+offset, height+offset-acOffset, height+offset-acOffset+offset, offset))
-			//		break
-			//	}
-			//
-			//	futureValidators.IncrementProposerPriority(1)
-			//}
-			//
-			//if shouldOffsetAC {
-			//	iavl.SetProduceOffset(acOffset)
-			//}
 		}
 	}
 
