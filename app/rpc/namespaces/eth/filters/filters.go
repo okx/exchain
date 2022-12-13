@@ -11,9 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
+	"github.com/spf13/viper"
+
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 )
 
 const FlagGetLogsHeightSpan = "logs-height-span"
@@ -91,6 +92,9 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		}
 		if header == nil {
 			return nil, fmt.Errorf("unknown block header %s", f.criteria.BlockHash.String())
+		}
+		if header.Number.Int64() <= tmtypes.GetStartBlockHeight() {
+			return nil, fmt.Errorf("singleton block height must greater than %d", tmtypes.GetStartBlockHeight())
 		}
 		return f.blockLogs(header)
 	}
