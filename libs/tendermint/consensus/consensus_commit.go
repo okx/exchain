@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/iavl"
+	iavlcfg "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
@@ -13,6 +14,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"log"
 	"time"
 )
 
@@ -247,23 +249,42 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 	trace.GetElapsedInfo().AddInfo(trace.BTInterval, fmt.Sprintf("%dms", blockTime.Sub(block.Time).Milliseconds()))
 
+	offset := cfg.DynamicConfig.GetProposalACGap()
+	commitGap := iavlcfg.DynamicConfig.GetCommitGapHeight()
+
 	// Set AC offset
 	if iavl.EnableAsyncCommit {
-		futureValidators := cs.state.Validators.Copy()
-		offset := cfg.DynamicConfig.GetProposalACGap()
-		if offset > 0 {
-			futureValidators.IncrementProposerPriority(offset)
-			futureBPAddress := futureValidators.GetProposer().Address
-
-			selfAddress := cs.privValidatorPubKey.Address()
-
-			// self is the validator at the offset height
-			if bytes.Equal(futureBPAddress, selfAddress) {
-				cs.Logger.Error("Set Produce Offset", "offset", offset, "curHeight", height)
-				iavl.SetProduceOffset(int64(offset))
-			}
-		} else {
+		nextACGap := commitGap - (height % commitGap)
+		// close offset
+		if offset <= 0 || (commitGap <= offset) {
 			iavl.SetProduceOffset(0)
+		} else if nextACGap == offset {
+			log.Println("Height", height, "nextACGap", nextACGap)
+			selfAddress := cs.privValidatorPubKey.Address()
+			futureValidators := cs.state.Validators.Copy()
+			futureValidators.IncrementProposerPriority(int(offset))
+
+			shouldOffsetAC := false
+			acOffset := offset
+
+			for ; acOffset > 0; acOffset-- {
+				futureValidators.IncrementProposerPriority(1)
+				futureBPAddress := futureValidators.GetProposer().Address
+
+				// self is the validator at the offset height
+				// && nextAC happens within the offset
+				if bytes.Equal(futureBPAddress, selfAddress) {
+					// trigger ac ahead of the offset
+					shouldOffsetAC = true
+					log.Println("shouldOffsetAC", shouldOffsetAC, "acOffset", acOffset)
+					break
+				}
+			}
+
+			if shouldOffsetAC {
+				log.Println("Set Produce Offset", "offset", acOffset, "curHeight", height)
+				iavl.SetProduceOffset(acOffset)
+			}
 		}
 	}
 
@@ -278,6 +299,11 @@ func (cs *State) finalizeCommit(height int64) {
 			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
 		}
 		return
+	}
+
+	//reset offset after commitGap
+	if iavl.EnableAsyncCommit && height%commitGap == 0 {
+		iavl.SetProduceOffset(0)
 	}
 
 	fail.Fail() // XXX
