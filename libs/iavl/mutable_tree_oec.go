@@ -75,6 +75,10 @@ func UpdateCommitGapHeight(gap int64) {
 	CommitGapHeight = gap
 }
 
+func GetCommitGapOffset() int64 {
+	return CommitGapOffset
+}
+
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
 	tree.ndb.sanityCheckHandleOrphansResult(version)
 
@@ -103,9 +107,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	// persist height = commitGapHeight - produceOffset
-	commitGapPlusOffset := (CommitGapHeight - produceOffset) % CommitGapHeight
-	shouldPersist := version%CommitGapHeight == commitGapPlusOffset
+	// persist height = commitGapHeight + produceOffset
+	shouldPersist := version%CommitGapHeight == CommitGapOffset
 
 	tree.ndb.updateLatestMemoryVersion(version)
 

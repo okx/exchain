@@ -14,6 +14,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"log"
 	"time"
 )
 
@@ -253,18 +254,15 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// Set AC offset
 	if iavl.EnableAsyncCommit {
-		nextACGap := commitGap - (height % commitGap)
 		// close offset
 		if offset <= 0 || (commitGap <= offset) {
-			iavl.SetProduceOffset(0)
-		} else if nextACGap == offset {
+			iavl.SetCommitGapOffset(0)
+			// only try to offset at commitGap height
+		} else if (height % commitGap) == 0 {
 			selfAddress := cs.privValidatorPubKey.Address()
 			futureValidators := cs.state.Validators.Copy()
-			futureValidators.IncrementProposerPriority(int(offset))
 
-			nextProposeHeight := height + offset
 			shouldOffsetAC := false
-
 			var i int64
 			for ; i < offset; i++ {
 				futureBPAddress := futureValidators.GetProposer().Address
@@ -274,17 +272,16 @@ func (cs *State) finalizeCommit(height int64) {
 				if bytes.Equal(futureBPAddress, selfAddress) {
 					// trigger ac ahead of the offset
 					shouldOffsetAC = true
+					//originACHeight|newACHeight|nextProposeHeight|Offset
 					trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
-						height+offset, nextProposeHeight-offset, nextProposeHeight, offset))
+						height, height+i+1, height+i, offset))
 					break
 				}
-
 				futureValidators.IncrementProposerPriority(1)
-				nextProposeHeight++
 			}
 
 			if shouldOffsetAC {
-				iavl.SetProduceOffset(offset - i)
+				iavl.SetCommitGapOffset(i + 1)
 			}
 		}
 	}
@@ -303,8 +300,9 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	//reset offset after commitGap
-	if iavl.EnableAsyncCommit && height%commitGap == 0 {
-		iavl.SetProduceOffset(0)
+	if iavl.EnableAsyncCommit && height%commitGap == iavl.GetCommitGapOffset() {
+		log.Println("Reset commit Offset", height)
+		iavl.SetCommitGapOffset(0)
 	}
 
 	fail.Fail() // XXX

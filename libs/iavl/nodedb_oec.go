@@ -153,14 +153,12 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"Tree", ndb.name,
 		"IavlHeight", iavlHeight,
 		"NodeNum", nodeNum,
-		"CSOffset", produceOffset,
 		"trc", trc.Format())
 
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
 		"IavlHeight", iavlHeight,
 		"NodeNum", nodeNum,
-		"CSOffset", produceOffset,
 		"trc", trc.Format())
 }
 
