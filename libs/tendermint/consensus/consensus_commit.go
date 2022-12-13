@@ -237,7 +237,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// publish event of the latest block time
 	if types.EnableEventBlockTime {
-		blockTime = sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
 		validators := cs.Validators.Copy()
 		validators.IncrementProposerPriority(1)
 		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
