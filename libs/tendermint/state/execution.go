@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	stdlog "log"
 	"strconv"
 	"time"
 
@@ -235,6 +236,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.tryWaitLastBlockSave(block.Height - 1)
 
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
+	// test for smb
+	if block.Height == 8200000 {
+		for i, v := range abciResponses.DeliverTxs {
+			stdlog.Printf("---giskook index %v, code %d, data %x\n", i, v.Code, v.Data)
+		}
+	}
+	// test for smb
 
 	if err != nil {
 		return state, 0, ErrProxyAppConn(err)
