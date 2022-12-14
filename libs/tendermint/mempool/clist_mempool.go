@@ -32,6 +32,21 @@ type TxInfoParser interface {
 	GetRealTxFromRawTx(rawTx types.Tx) abci.TxEssentials
 }
 
+type txsSize struct {
+	num   int64
+	bytes int64
+}
+
+func (mem *CListMempool) addCheckingSize(size int64) {
+	atomic.AddInt64(&mem.checkingSize.num, 1)
+	atomic.AddInt64(&mem.checkingSize.bytes, size)
+}
+
+func (mem *CListMempool) subCheckingSize(size int64) {
+	atomic.AddInt64(&mem.checkingSize.num, -1)
+	atomic.AddInt64(&mem.checkingSize.bytes, -size)
+}
+
 //--------------------------------------------------------------------------------
 
 // CListMempool is an ordered in-memory pool for transactions before they are
@@ -94,7 +109,8 @@ type CListMempool struct {
 
 	simQueue chan *mempoolTx
 
-	gasCache *lru.Cache
+	gasCache     *lru.Cache
+	checkingSize txsSize
 }
 
 var _ Mempool = &CListMempool{}
@@ -296,6 +312,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 	// END CACHE
 
+	mem.addCheckingSize(int64(txSize))
+	defer mem.subCheckingSize(int64(txSize))
 	mem.updateMtx.RLock()
 	// use defer to unlock mutex because application (*local client*) might panic
 	defer mem.updateMtx.RUnlock()
@@ -452,9 +470,15 @@ func (mem *CListMempool) removeTxByKey(key [32]byte) (elem *clist.CElement) {
 }
 
 func (mem *CListMempool) isFull(txSize int) error {
+	size, bytes := int(atomic.LoadInt64(&mem.checkingSize.num)), atomic.LoadInt64(&mem.checkingSize.bytes)
+
+	if size < 0 || bytes < 0 {
+		fmt.Printf("debug, size: %d, bytes: %d\n", size, bytes)
+	}
+
 	var (
-		memSize  = mem.Size()
-		txsBytes = mem.TxsBytes()
+		memSize  = mem.Size() + size
+		txsBytes = mem.TxsBytes() + bytes
 	)
 	if memSize >= cfg.DynamicConfig.GetMempoolSize() || int64(txSize)+txsBytes > mem.config.MaxTxsBytes {
 		return ErrMempoolIsFull{
@@ -584,15 +608,15 @@ func (mem *CListMempool) resCbFirstTime(
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
-			if err := mem.isFull(len(tx)); err != nil {
-				// remove from cache (mempool might have a space later)
-				mem.cache.RemoveKey(txkey)
-				errStr := err.Error()
-				mem.logger.Info(errStr)
-				r.CheckTx.Code = 1
-				r.CheckTx.Log = errStr
-				return
-			}
+			//if err := mem.isFull(len(tx)); err != nil {
+			//	// remove from cache (mempool might have a space later)
+			//	mem.cache.RemoveKey(txkey)
+			//	errStr := err.Error()
+			//	mem.logger.Info(errStr)
+			//	r.CheckTx.Code = 1
+			//	r.CheckTx.Log = errStr
+			//	return
+			//}
 
 			//var exTxInfo ExTxInfo
 			//if err := json.Unmarshal(r.CheckTx.Data, &exTxInfo); err != nil {
