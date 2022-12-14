@@ -208,6 +208,8 @@ func (hq *HeapQueue) removeBCElement(key [32]byte) {
 }
 
 func (hq *HeapQueue) Init() {
+	hq.mutex.Lock()
+	defer hq.mutex.Unlock()
 	heads := make(mempoolTxsByPrice, 0, len(hq.txs))
 	for _, accTxs := range hq.txs {
 		e := accTxs.Front()
@@ -230,6 +232,8 @@ func (hq *HeapQueue) Peek() *mempoolTx {
 
 // Shift replaces the current best head with the next one from the same account.
 func (hq *HeapQueue) Shift() {
+	hq.mutex.Lock()
+	defer hq.mutex.Unlock()
 	acc := hq.heads[0].from
 	if txs, ok := hq.txs[acc]; ok && len(hq.txs) > 0 {
 		e := txs.Front()
