@@ -5,8 +5,8 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+
 	cmap "github.com/orcaman/concurrent-map"
-	"log"
 
 	"time"
 
