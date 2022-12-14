@@ -239,14 +239,6 @@ func (cs *State) finalizeCommit(height int64) {
 	var retainHeight int64
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
-
-	// publish event of the latest block time
-	if types.EnableEventBlockTime {
-		validators := cs.Validators.Copy()
-		validators.IncrementProposerPriority(1)
-		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
-	}
-
 	offset := cfg.DynamicConfig.GetProposalACGap()
 	commitGap := iavlcfg.DynamicConfig.GetCommitGapHeight()
 
@@ -283,7 +275,6 @@ func (cs *State) finalizeCommit(height int64) {
 			}
 		}
 	}
-
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
