@@ -1,15 +1,20 @@
 package consensus
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/iavl"
+	iavlcfg "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system/trace"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"log"
 	"time"
 )
 
@@ -235,6 +240,50 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
+	// publish event of the latest block time
+	if types.EnableEventBlockTime {
+		validators := cs.Validators.Copy()
+		validators.IncrementProposerPriority(1)
+		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
+	}
+
+	offset := cfg.DynamicConfig.GetProposalACGap()
+	commitGap := iavlcfg.DynamicConfig.GetCommitGapHeight()
+
+	// Set AC offset
+	if iavl.EnableAsyncCommit {
+		// close offset
+		if offset <= 0 || (commitGap <= offset) {
+			iavl.SetCommitGapOffset(0)
+			// only try to offset at commitGap height
+		} else if (height % commitGap) == 0 {
+			selfAddress := cs.privValidatorPubKey.Address()
+			futureValidators := cs.state.Validators.Copy()
+
+			shouldOffsetAC := false
+			var i int64
+			for ; i < offset; i++ {
+				futureBPAddress := futureValidators.GetProposer().Address
+
+				// self is the validator at the offset height
+				// && nextAC happens within the offset
+				if bytes.Equal(futureBPAddress, selfAddress) {
+					// trigger ac ahead of the offset
+					shouldOffsetAC = true
+					//originACHeight|newACHeight|nextProposeHeight|Offset
+					trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
+						height, height+i+1, height+i, offset))
+					break
+				}
+				futureValidators.IncrementProposerPriority(1)
+			}
+
+			if shouldOffsetAC {
+				iavl.SetCommitGapOffset(i + 1)
+			}
+		}
+	}
+
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -246,6 +295,12 @@ func (cs *State) finalizeCommit(height int64) {
 			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
 		}
 		return
+	}
+
+	//reset offset after commitGap
+	if iavl.EnableAsyncCommit && height%commitGap == iavl.GetCommitGapOffset() {
+		log.Println("Reset commit Offset", height)
+		iavl.SetCommitGapOffset(0)
 	}
 
 	fail.Fail() // XXX

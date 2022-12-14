@@ -116,6 +116,9 @@ type OecConfig struct {
 	enableHasBlockPartMsg bool
 	gcInterval            int
 
+	//
+	proposalACGap int64
+
 	iavlAcNoBatch bool
 }
 
@@ -152,6 +155,7 @@ const (
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
 	FlagDebugGcInterval         = "debug.gc-interval"
+	FlagProposalACGap           = "proposal-ac-gap"
 )
 
 var (
@@ -295,6 +299,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetProposalACGap(viper.GetInt64(FlagProposalACGap))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
@@ -635,6 +640,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetIavlAcNoBatch(r)
+	case FlagProposalACGap:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetProposalACGap(r)
 	}
 }
 
@@ -1016,6 +1027,15 @@ func (c *OecConfig) SetGcInterval(value int) {
 	c.gcInterval = value
 
 }
+
+func (c *OecConfig) GetProposalACGap() int64 {
+	return c.proposalACGap
+}
+
+func (c *OecConfig) SetProposalACGap(value int64) {
+	c.proposalACGap = value
+}
+
 func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 	return c.enableHasBlockPartMsg
 }
