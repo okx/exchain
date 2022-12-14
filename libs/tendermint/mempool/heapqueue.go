@@ -139,7 +139,9 @@ func (hq *HeapQueue) GetAddressNonce(address string) (uint64, bool) {
 	defer hq.mutex.RUnlock()
 	gq, ok := hq.txs[address]
 	if ok {
-		return gq.Back().Nonce, true
+		if gq.Back() != nil {
+			return gq.Back().Nonce, true
+		}
 	}
 	return 0, false
 }
