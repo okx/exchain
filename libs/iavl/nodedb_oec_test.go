@@ -275,7 +275,7 @@ func Test_saveCommitOrphans(t *testing.T) {
 		require.NoError(t, ndb.Commit(batch1))
 
 		batch2 := ndb.NewBatch()
-		ndb.saveCommitOrphans(batch2, c.version+1, commitOrphans)
+		ndb.saveCommitOrphans(batch2, c.version+1, commitOrphans, false)
 		require.NoError(t, ndb.Commit(batch2))
 
 		for _, orphan := range commitOrphans {
