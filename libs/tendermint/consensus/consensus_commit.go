@@ -14,7 +14,6 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"log"
 	"time"
 )
 
@@ -290,7 +289,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	//reset offset after commitGap
 	if iavl.EnableAsyncCommit && height%commitGap == iavl.GetCommitGapOffset() {
-		log.Println("Reset commit Offset", height)
 		iavl.SetCommitGapOffset(0)
 	}
 
