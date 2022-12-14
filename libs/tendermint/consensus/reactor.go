@@ -69,6 +69,7 @@ type Reactor struct {
 	rs *cstypes.RoundState
 
 	hasViewChanged int64
+	prMsgHeight    int64
 }
 
 type ReactorOption func(*Reactor)
@@ -383,6 +384,10 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeRequestMessage:
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
+			if msg.Height > conR.prMsgHeight {
+				conR.broadcastProposeRequestMessage(msg)
+			}
+			conR.prMsgHeight = msg.Height
 			height := conR.conS.Height
 			// this peer has received a prMsg before
 			// or this peer is not proposer
@@ -411,9 +416,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			proposal.Signature = sig
-			// tell newProposer
-			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
-			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
+			//// tell newProposer
+			//prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
+			//ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
 			// broadcast the proposal
 			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(&ProposalMessage{Proposal: proposal}))
 
