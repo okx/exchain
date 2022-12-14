@@ -760,40 +760,85 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		trace.GetElapsedInfo().AddInfo(trace.SimTx, fmt.Sprintf("%d:%d", mem.Height()+1, simCount))
 		trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, fmt.Sprintf("%d:%d", mem.Height()+1, simGas))
 	}()
-	for e := mem.txs.Front(); e != nil; e = e.Next() {
-		memTx := e.Value.(*mempoolTx)
-		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
-		if _, ok := txFilter[key]; ok {
-			// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
-			mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
-			continue
-		}
-		txFilter[key] = struct{}{}
-		// Check total size requirement
-		aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
-		if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
-			return txs
-		}
-		totalBytes += int64(len(memTx.tx)) + aminoOverhead
-		// Check total gas requirement.
-		// If maxGas is negative, skip this check.
-		// Since newTotalGas < masGas, which
-		// must be non-negative, it follows that this won't overflow.
-		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
-		newTotalGas := totalGas + gasWanted
-		if maxGas > -1 && newTotalGas > maxGas {
-			return txs
-		}
-		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
-			return txs
-		}
+	if mem.txs.Type() != HeapQueueType {
+		for e := mem.txs.Front(); e != nil; e = e.Next() {
+			memTx := e.Value.(*mempoolTx)
+			key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+			if _, ok := txFilter[key]; ok {
+				// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
+				mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
+				continue
+			}
+			txFilter[key] = struct{}{}
+			// Check total size requirement
+			aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
+			if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
+				return txs
+			}
+			totalBytes += int64(len(memTx.tx)) + aminoOverhead
+			// Check total gas requirement.
+			// If maxGas is negative, skip this check.
+			// Since newTotalGas < masGas, which
+			// must be non-negative, it follows that this won't overflow.
+			gasWanted := atomic.LoadInt64(&memTx.gasWanted)
+			newTotalGas := totalGas + gasWanted
+			if maxGas > -1 && newTotalGas > maxGas {
+				return txs
+			}
+			if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
+				return txs
+			}
 
-		totalTxNum++
-		totalGas = newTotalGas
-		txs = append(txs, memTx.tx)
-		simGas += gasWanted
-		if atomic.LoadUint32(&memTx.isSim) > 0 {
-			simCount++
+			totalTxNum++
+			totalGas = newTotalGas
+			txs = append(txs, memTx.tx)
+			simGas += gasWanted
+			if atomic.LoadUint32(&memTx.isSim) > 0 {
+				simCount++
+			}
+		}
+	} else {
+		hq := mem.txs.(*HeapQueue)
+		hq.Init()
+		tx := hq.Peek()
+		for tx != nil {
+			memTx := tx
+			key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+			if _, ok := txFilter[key]; ok {
+				// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
+				mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
+				continue
+			}
+			txFilter[key] = struct{}{}
+			// Check total size requirement
+			aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
+			if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
+				return txs
+			}
+			totalBytes += int64(len(memTx.tx)) + aminoOverhead
+			// Check total gas requirement.
+			// If maxGas is negative, skip this check.
+			// Since newTotalGas < masGas, which
+			// must be non-negative, it follows that this won't overflow.
+			gasWanted := atomic.LoadInt64(&memTx.gasWanted)
+			newTotalGas := totalGas + gasWanted
+			if maxGas > -1 && newTotalGas > maxGas {
+				return txs
+			}
+			if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
+				return txs
+			}
+
+			totalTxNum++
+			totalGas = newTotalGas
+			txs = append(txs, memTx.tx)
+			simGas += gasWanted
+			if atomic.LoadUint32(&memTx.isSim) > 0 {
+				simCount++
+			}
+
+			hq.Shift()
+			tx = hq.Peek()
 		}
 	}
 
@@ -810,10 +855,22 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 	}
 
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max))
-	for e := mem.txs.Front(); e != nil && len(txs) <= max; e = e.Next() {
-		memTx := e.Value.(*mempoolTx)
-		txs = append(txs, memTx.tx)
+	if mem.txs.Type() != HeapQueueType {
+		for e := mem.txs.Front(); e != nil && len(txs) <= max; e = e.Next() {
+			memTx := e.Value.(*mempoolTx)
+			txs = append(txs, memTx.tx)
+		}
+	} else {
+		hq := mem.txs.(*HeapQueue)
+		hq.Init()
+		tx := hq.Peek()
+		for tx != nil {
+			txs = append(txs, tx.tx)
+			hq.Shift()
+			tx = hq.Peek()
+		}
 	}
+
 	return txs
 }
 

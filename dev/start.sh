@@ -38,6 +38,9 @@ run() {
       --commit-gap-height 3 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
+      --config.enable-dynamic=true \
+      --mempool.enable_pending_pool=true \
+      --config.apollo="http://35.74.21.211:8080|oec|localnet" \
       --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &
 
 # --iavl-commit-interval-height \
