@@ -3,12 +3,31 @@ package app
 import (
 	"sort"
 
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+
+	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 )
+
+func (app *OKExChainApp) RegisterTxService(clientCtx cliContext.CLIContext) {
+	utils.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.grpcSimulate, clientCtx.InterfaceRegistry)
+}
+func (app *OKExChainApp) grpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result, error) {
+	tx, err := app.GetTxDecoder()(txBytes)
+	if err != nil {
+		return sdk.GasInfo{}, nil, sdkerrors.Wrap(err, "failed to decode tx")
+	}
+	return app.Simulate(txBytes, tx, 0, nil)
+}
 
 func (app *OKExChainApp) setupUpgradeModules() {
 	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
