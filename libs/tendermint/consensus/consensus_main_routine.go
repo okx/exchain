@@ -300,6 +300,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	if GetActiveVC() && cs.privValidator != nil {
+		cs.Logger.Error("preBTC-avc", "height", cs.Height, "waiting", sleepDuration, "time", tmtime.Now())
 		cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
 	}
 

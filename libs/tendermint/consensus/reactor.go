@@ -608,6 +608,7 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		})
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
 		func(data tmevents.EventData) {
+			conR.Logger.Error("bc prMsg-avc", "height", data.(*ProposeRequestMessage).Height, "time", tmtime.Now())
 			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
 		})
 }

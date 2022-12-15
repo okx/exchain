@@ -423,7 +423,8 @@ func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 	if GetActiveVC() && isBlockProducer != "y" {
 		time.Sleep(waiting - tmtime.Now().Sub(tNow))
 		// request for proposer of new height
-		prMsg := ProposeRequestMessage{Height: proposal.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
+		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
+		cs.Logger.Error("fire prMsg-avc", "height", cs.Height, "waiting", waiting, "preMB time", tNow, "fire time", tmtime.Now())
 		cs.requestForProposer(prMsg)
 	}
 }
