@@ -864,7 +864,7 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 		hq := mem.txs.(*HeapQueue)
 		hq.Init()
 		tx := hq.Peek()
-		for tx != nil {
+		for tx != nil && len(txs) <= max {
 			txs = append(txs, tx.tx)
 			hq.Shift()
 			tx = hq.Peek()

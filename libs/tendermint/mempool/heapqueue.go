@@ -194,6 +194,8 @@ func (hq *HeapQueue) CleanItems(address string, nonce uint64) {
 					delete(hq.txs, address)
 				}
 				hq.removeBCElement(key)
+			} else {
+				break
 			}
 		}
 	}
@@ -214,8 +216,7 @@ func (hq *HeapQueue) Init() {
 	for _, accTxs := range hq.txs {
 		e := accTxs.Front()
 		if e != nil {
-			heads = append(heads, e.Value.(*mempoolTx))
-			accTxs.Remove(e)
+			heads = append(heads, e)
 		}
 	}
 	heap.Init(&heads)
@@ -227,24 +228,17 @@ func (hq *HeapQueue) Peek() *mempoolTx {
 	if len(hq.heads) == 0 {
 		return nil
 	}
-	return hq.heads[0]
+	return hq.heads[0].Value.(*mempoolTx)
 }
 
 // Shift replaces the current best head with the next one from the same account.
 func (hq *HeapQueue) Shift() {
 	hq.mutex.Lock()
 	defer hq.mutex.Unlock()
-	acc := hq.heads[0].from
-	if txs, ok := hq.txs[acc]; ok && len(hq.txs) > 0 {
-		e := txs.Front()
-		if e != nil {
-			hq.heads[0] = e.Value.(*mempoolTx)
-			heap.Fix(&hq.heads, 0)
-			txs.Remove(e)
-			return
-		} else {
-			delete(hq.txs, acc)
-		}
+	if e := hq.heads[0].Next(); e != nil {
+		hq.heads[0] = e
+		heap.Fix(&hq.heads, 0)
+		return
 	}
 	heap.Pop(&hq.heads)
 }
@@ -257,22 +251,22 @@ func NewHeapQueue() ITransactionQueue {
 	return &HeapQueue{txs: make(map[string]*clist.CList), bcTxs: clist.New(), waitCh: make(chan struct{})}
 }
 
-type mempoolTxsByPrice []*mempoolTx
+type mempoolTxsByPrice []*clist.CElement
 
 func (s mempoolTxsByPrice) Len() int { return len(s) }
 func (s mempoolTxsByPrice) Less(i, j int) bool {
 	// If the prices are equal, use the time the transaction was first seen for
 	// deterministic sorting
-	cmp := s[i].realTx.GetGasPrice().Cmp(s[j].realTx.GetGasPrice())
+	cmp := s[i].GasPrice.Cmp(s[j].GasPrice)
 	if cmp == 0 {
-		return strings.Compare(s[i].from, s[j].from) >= 0
+		return strings.Compare(s[i].Address, s[j].Address) >= 0
 	}
 	return cmp > 0
 }
 func (s mempoolTxsByPrice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 func (s *mempoolTxsByPrice) Push(x interface{}) {
-	*s = append(*s, x.(*mempoolTx))
+	*s = append(*s, x.(*clist.CElement))
 }
 
 func (s *mempoolTxsByPrice) Pop() interface{} {
