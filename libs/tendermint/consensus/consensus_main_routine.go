@@ -119,7 +119,7 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 		part := res.blockParts.GetPart(i)
 		cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
 	}
-	cs.Logger.Error("handleAVC", "judge", t1.Sub(t0), "sendInter", tmtime.Now().Sub(t1), "receive time", t0)
+	cs.Logger.Error("handleAVC-avc", "height", proposal.Height, "judge", t1.Sub(t0), "sendInter", tmtime.Now().Sub(t1), "receive time", t0)
 }
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
