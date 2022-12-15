@@ -242,12 +242,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		StartTxLog(trace.EVMCORE)
 		defer StopTxLog(trace.EVMCORE)
+		nonce := evm.StateDB.GetNonce(st.Sender)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 
 		contractAddressStr := EthAddressToString(&contractAddress)
 		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
 
-		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas, evm.StateDB.GetNonce(st.Sender))
+		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas, nonce)
 	default:
 		if !params.EnableCall {
 			if !st.Simulate {
