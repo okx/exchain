@@ -39,10 +39,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 		return
 	}
 
-	txHash := msg.TxHash()
-	if len(txHash) == 0 || isVenus(ctx.BlockHeight()) {
-		txHash = tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-	}
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
 
 	st.AccountNonce = msg.Data.AccountNonce
