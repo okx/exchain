@@ -42,7 +42,7 @@ func (w *Watcher) Start() {
 		w.logger.Error("error creating block filter", "error", err.Error())
 	}
 
-	rmPendingSub, _, err := w.events.SubscribeRmPendingTxs()
+	rmPendingSub, _, err := w.events.SubscribeRmPendingTx()
 	if err != nil {
 		w.logger.Error("error creating block filter", "error", err.Error())
 	}

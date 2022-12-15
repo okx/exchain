@@ -96,7 +96,7 @@ type CListMempool struct {
 
 	gasCache *lru.Cache
 
-	rmPendingTxsChan chan types.EventDataRmPendingTx
+	rmPendingTxChan chan types.EventDataRmPendingTx
 }
 
 var _ Mempool = &CListMempool{}
@@ -134,11 +134,13 @@ func NewCListMempool(
 		txs:           txQueue,
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
+	}
 
-		rmPendingTxsChan: make(chan types.EventDataRmPendingTx, 1000),
+	if config.PendingRemoveEvent {
+		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
+		go mempool.fireRmPendingTxEvents()
 	}
 	go mempool.simulationRoutine()
-	go mempool.fireRmPendingTxsEvents()
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
 		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
@@ -690,11 +692,13 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			mem.cache.Remove(tx)
 			mem.removeTx(mem.recheckCursor)
 
-			mem.rmPendingTxsChan <- types.EventDataRmPendingTx{
-				memTx.realTx.TxHash(),
-				memTx.realTx.GetFrom(),
-				memTx.realTx.GetNonce(),
-				types.Recheck,
+			if mem.config.PendingRemoveEvent {
+				mem.rmPendingTxChan <- types.EventDataRmPendingTx{
+					memTx.realTx.TxHash(),
+					memTx.realTx.GetFrom(),
+					memTx.realTx.GetNonce(),
+					types.Recheck,
+				}
 			}
 		}
 		if mem.recheckCursor == mem.recheckEnd {
@@ -948,7 +952,9 @@ func (mem *CListMempool) Update(
 		if mem.pendingPool != nil {
 			mem.pendingPool.removeTxByHash(amino.HexEncodeToStringUpper(txhash))
 		}
-		mem.rmPendingTxsChan <- types.EventDataRmPendingTx{txhash, addr, nonce, types.Confirmed}
+		if mem.config.PendingRemoveEvent {
+			mem.rmPendingTxChan <- types.EventDataRmPendingTx{txhash, addr, nonce, types.Confirmed}
+		}
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
@@ -998,9 +1004,9 @@ func (mem *CListMempool) Update(
 	return nil
 }
 
-func (mem *CListMempool) fireRmPendingTxsEvents() {
-	for rmTx := range mem.rmPendingTxsChan {
-		mem.eventBus.PublishEventRmPendingTxs(rmTx)
+func (mem *CListMempool) fireRmPendingTxEvents() {
+	for rmTx := range mem.rmPendingTxChan {
+		mem.eventBus.PublishEventRmPendingTx(rmTx)
 	}
 }
 

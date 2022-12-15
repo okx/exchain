@@ -32,7 +32,7 @@ var (
 	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
 	blockTimeEvents = tmtypes.QueryForEvent(tmtypes.EventBlockTime).String()
 
-	rmPendingTxsEvents = tmtypes.QueryForEvent(tmtypes.EventRmPendingTxs).String()
+	rmPendingTxEvents = tmtypes.QueryForEvent(tmtypes.EventRmPendingTx).String()
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -231,12 +231,12 @@ func (es EventSystem) SubscribeBlockTime() (*Subscription, context.CancelFunc, e
 	return es.subscribe(sub)
 }
 
-// SubscribeRmPendingTxs subscribes to the rm pending txs events
-func (es EventSystem) SubscribeRmPendingTxs() (*Subscription, context.CancelFunc, error) {
+// SubscribeRmPendingTx subscribes to the rm pending txs events
+func (es EventSystem) SubscribeRmPendingTx() (*Subscription, context.CancelFunc, error) {
 	sub := &Subscription{
 		id:        rpc.NewID(),
 		typ:       filters.LogsSubscription,
-		event:     rmPendingTxsEvents,
+		event:     rmPendingTxEvents,
 		created:   time.Now().UTC(),
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),

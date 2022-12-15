@@ -21,7 +21,7 @@ const (
 	EventNewBlockHeader      = "NewBlockHeader"
 	EventTx                  = "Tx"
 	EventPendingTx           = "PendingTx"
-	EventRmPendingTxs        = "RmPendingTxs"
+	EventRmPendingTx         = "RmPendingTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 	EventBlockTime           = "BlockTime"
 	EventTxs                 = "Txs"
@@ -217,11 +217,11 @@ type BlockEventPublisher interface {
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
 	PublishEventLatestBlockTime(time EventDataBlockTime) error
-	PublishEventRmPendingTxs(EventDataRmPendingTx) error
+	PublishEventRmPendingTx(EventDataRmPendingTx) error
 }
 
 type TxEventPublisher interface {
 	PublishEventTx(EventDataTx) error
 	PublishEventPendingTx(EventDataTx) error
-	PublishEventRmPendingTxs(EventDataRmPendingTx) error
+	PublishEventRmPendingTx(EventDataRmPendingTx) error
 }
