@@ -164,13 +164,19 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 	ndb.tpp.removeFromTpp(version)
 	ndb.tpfv.remove(event.version)
 
+	var fssAddNum, fssDelNum int
+	if event.fnc != nil {
+		fssAddNum = len(event.fnc.additions)
+		fssDelNum = len(event.fnc.removals)
+	}
+
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
 		"IavlHeight", iavlHeight,
 		"NodeNum", nodeNum,
 		"tpp", len(event.tpp),
-		"fss-add", len(event.fnc.additions),
-		"fss-rm", len(event.fnc.removals),
+		"fss-add", fssAddNum,
+		"fss-rm", fssDelNum,
 		"trc", trc.Format())
 }
 
