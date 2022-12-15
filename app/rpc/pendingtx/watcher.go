@@ -51,14 +51,24 @@ func (w *Watcher) Start() {
 		for {
 			select {
 			case re := <-pendingCh:
-				txType := "pending"
 				data, ok := re.Data.(tmtypes.EventDataTx)
 				if !ok {
-					w.logger.Error(fmt.Sprintf("invalid %s tx data type %T, expected EventDataTx", txType, re.Data))
+					w.logger.Error(fmt.Sprintf("invalid pending tx data type %T, expected EventDataTx", re.Data))
 					continue
 				}
-				tx, err := w.newTransactionByEvent(data, txType)
+				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
+				w.logger.Debug("receive pending tx", "txHash=", txHash.String())
+
+				// only watch evm tx
+				ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx, data.Height)
 				if err != nil {
+					w.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
+					continue
+				}
+
+				tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
+				if err != nil {
+					w.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
 					continue
 				}
 
@@ -85,30 +95,10 @@ func (w *Watcher) Start() {
 						Reason: data.Reason,
 					})
 					if err != nil {
-						w.logger.Error("failed to send confirmed tx", "hash", txHash, "error", err)
+						w.logger.Error("failed to send rm pending tx", "hash", txHash, "error", err)
 					}
 				}()
 			}
 		}
 	}(pendingSub.Event(), rmPendingSub.Event())
-}
-
-func (w *Watcher) newTransactionByEvent(data tmtypes.EventDataTx, txType string) (*watcher.Transaction, error) {
-	txHash := common.BytesToHash(data.Tx.Hash(data.Height))
-	w.logger.Debug(fmt.Sprintf("receive %s tx", txType), "txHash=", txHash.String())
-
-	// only watch evm tx
-	ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx, data.Height)
-	if err != nil {
-		w.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
-		return nil, err
-	}
-
-	tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
-	if err != nil {
-		w.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
-		return nil, err
-	}
-
-	return tx, nil
 }
