@@ -80,14 +80,3 @@ func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx
 
 	return
 }
-
-func isVenus(height int64) bool {
-	if height <= 0 {
-		return false
-	}
-	lastHeight := height - 1
-	if tmtypes.HigherThanVenus(height) && !tmtypes.HigherThanVenus(lastHeight) {
-		return true
-	}
-	return false
-}
