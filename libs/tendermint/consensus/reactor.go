@@ -384,6 +384,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeRequestMessage:
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
+			t0 := tmtime.Now()
 			if msg.Height > conR.prMsgHeight {
 				conR.broadcastProposeRequestMessage(msg)
 			}
@@ -398,6 +399,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 
+			t1 := tmtime.Now()
 			// verify the signature of prMsg
 			_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
 			if val == nil {
@@ -408,6 +410,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 
+			t2 := tmtime.Now()
 			// sign proposal
 			proposal := msg.Proposal
 			signBytes := proposal.SignBytes(conR.conS.state.ChainID)
@@ -416,11 +419,18 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			proposal.Signature = sig
+
+			t3 := tmtime.Now()
 			//// tell newProposer
 			//prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			//ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
 			// broadcast the proposal
-			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(&ProposalMessage{Proposal: proposal}))
+			proposalMsg := &ProposalMessage{Proposal: proposal}
+			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg))
+			t4 := tmtime.Now()
+			conR.Logger.Error("handle prMsg", "judge", t1.Sub(t0), "verify", t2.Sub(t1), "sign", t3.Sub(t2), "bc", t4.Sub(t3),
+				"receive time", t0, "send time", t4)
+			conR.conS.sendInternalMessage(msgInfo{proposalMsg, ""})
 
 			conR.hasViewChanged = msg.Height
 
