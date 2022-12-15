@@ -209,7 +209,7 @@ func (hq *HeapQueue) removeBCElement(key [32]byte) {
 	}
 }
 
-func (hq *HeapQueue) Init() {
+func (hq *HeapQueue) Init() mempoolTxsByPrice {
 	hq.mutex.Lock()
 	defer hq.mutex.Unlock()
 	heads := make(mempoolTxsByPrice, 0, len(hq.txs))
@@ -220,27 +220,25 @@ func (hq *HeapQueue) Init() {
 		}
 	}
 	heap.Init(&heads)
-	hq.heads = heads
+	return heads
 }
 
 // Peek returns the next transaction by price.
-func (hq *HeapQueue) Peek() *mempoolTx {
-	if len(hq.heads) == 0 {
+func (*HeapQueue) Peek(heads mempoolTxsByPrice) *mempoolTx {
+	if len(heads) == 0 {
 		return nil
 	}
-	return hq.heads[0].Value.(*mempoolTx)
+	return heads[0].Value.(*mempoolTx)
 }
 
 // Shift replaces the current best head with the next one from the same account.
-func (hq *HeapQueue) Shift() {
-	hq.mutex.Lock()
-	defer hq.mutex.Unlock()
-	if e := hq.heads[0].Next(); e != nil {
-		hq.heads[0] = e
-		heap.Fix(&hq.heads, 0)
+func (*HeapQueue) Shift(heads *mempoolTxsByPrice) {
+	if e := (*heads)[0].Next(); e != nil {
+		(*heads)[0] = e
+		heap.Fix(heads, 0)
 		return
 	}
-	heap.Pop(&hq.heads)
+	heap.Pop(heads)
 }
 
 func (q *HeapQueue) Type() int {

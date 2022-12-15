@@ -799,8 +799,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		}
 	} else {
 		hq := mem.txs.(*HeapQueue)
-		hq.Init()
-		tx := hq.Peek()
+		heads := hq.Init()
+		tx := hq.Peek(heads)
 		for tx != nil {
 			memTx := tx
 			key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
@@ -837,8 +837,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 				simCount++
 			}
 
-			hq.Shift()
-			tx = hq.Peek()
+			hq.Shift(&heads)
+			tx = hq.Peek(heads)
 		}
 	}
 
@@ -862,12 +862,12 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 		}
 	} else {
 		hq := mem.txs.(*HeapQueue)
-		hq.Init()
-		tx := hq.Peek()
+		heads := hq.Init()
+		tx := hq.Peek(heads)
 		for tx != nil && len(txs) <= max {
 			txs = append(txs, tx.tx)
-			hq.Shift()
-			tx = hq.Peek()
+			hq.Shift(&heads)
+			tx = hq.Peek(heads)
 		}
 	}
 

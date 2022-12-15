@@ -19,7 +19,7 @@ func generateMemepool(from string, nonce uint64, gasPrice *big.Int) *mempoolTx {
 	return &mempoolTx{height: 1, gasWanted: 1, tx: []byte(builder.String()), from: from, realTx: abci.MockTx{GasPrice: gasPrice, Nonce: nonce, From: from}}
 }
 
-func BenchmarkInsertGasTxQueue(b *testing.B) {
+func Benchmark_GasTxQueue_Insert(b *testing.B) {
 
 	b.Run("gas queue", func(b *testing.B) {
 		gq := NewGasTxQueue(10)
@@ -153,17 +153,17 @@ func TestQueue_Back(t *testing.T) {
 		t.Log("gq from:", e.Address, "nonce", e.Nonce, "gp", e.GasPrice.String())
 	}
 
-	hq.Init()
-	tx := hq.Peek()
+	heads := hq.Init()
+	tx := hq.Peek(heads)
 	for tx != nil {
 		t.Log("hq from:", tx.from, "nonce", tx.realTx.GetNonce(), "gp", tx.realTx.GetGasPrice().String())
-		hq.Shift()
-		tx = hq.Peek()
+		hq.Shift(&heads)
+		tx = hq.Peek(heads)
 	}
 
 }
 
-func BenchmarkInsertGasTxQueue_1(b *testing.B) {
+func Benchmark_GasTxQueue_Reap(b *testing.B) {
 
 	b.Run("gas queue reserve ", func(b *testing.B) {
 		gqs := make([]*GasTxQueue, 0)
@@ -212,16 +212,16 @@ func BenchmarkInsertGasTxQueue_1(b *testing.B) {
 		b.StartTimer()
 
 		for i := 0; i < b.N; i++ {
-			gqs[i].Init()
+			heads := gqs[i].Init()
 			j := 0
-			tx := gqs[i].Peek()
+			tx := gqs[i].Peek(heads)
 			for tx != nil {
-				gqs[i].Shift()
+				gqs[i].Shift(&heads)
 				if j > 20000 {
 					break
 				}
 				j++
-				tx = gqs[i].Peek()
+				tx = gqs[i].Peek(heads)
 			}
 		}
 	})
