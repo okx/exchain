@@ -23,7 +23,7 @@ type Watcher struct {
 
 type Sender interface {
 	SendPending(hash []byte, tx *watcher.Transaction) error
-	SendConfirmed(hash []byte, tx *ConfirmedTx) error
+	SendRmPending(hash []byte, tx *RmPendingTx) error
 }
 
 func NewWatcher(clientCtx context.CLIContext, log log.Logger, sender Sender) *Watcher {
@@ -42,12 +42,12 @@ func (w *Watcher) Start() {
 		w.logger.Error("error creating block filter", "error", err.Error())
 	}
 
-	confirmedSub, _, err := w.events.SubscribeConfirmedTxs()
+	rmPendingSub, _, err := w.events.SubscribeRmPendingTxs()
 	if err != nil {
 		w.logger.Error("error creating block filter", "error", err.Error())
 	}
 
-	go func(pendingCh <-chan coretypes.ResultEvent, confirmedCh <-chan coretypes.ResultEvent) {
+	go func(pendingCh <-chan coretypes.ResultEvent, rmPendingdCh <-chan coretypes.ResultEvent) {
 		for {
 			select {
 			case re := <-pendingCh:
@@ -69,35 +69,28 @@ func (w *Watcher) Start() {
 						w.logger.Error("failed to send pending tx", "hash", tx.Hash.String(), "error", err)
 					}
 				}()
-			case re := <-confirmedCh:
-				txType := "confirmed"
-				data, ok := re.Data.([]tmtypes.EventDataTx)
+			case re := <-rmPendingdCh:
+				data, ok := re.Data.(tmtypes.EventDataRmPendingTx)
 				if !ok {
-					w.logger.Error(fmt.Sprintf("invalid %s tx data type %T, expected EventDataTx", txType, re.Data))
+					w.logger.Error(fmt.Sprintf("invalid rm pending tx data type %T, expected EventDataTx", re.Data))
 					continue
 				}
-				for _, txEventData := range data {
-					tx, err := w.newTransactionByEvent(txEventData, txType)
+				txHash := common.BytesToHash(data.Hash).String()
+				go func() {
+					w.logger.Debug("push rm pending tx to MQ", "txHash=", txHash)
+					err = w.sender.SendRmPending(data.Hash, &RmPendingTx{
+						From:   data.From,
+						Hash:   txHash,
+						Nonce:  data.Nonce,
+						Reason: data.Reason,
+					})
 					if err != nil {
-						continue
+						w.logger.Error("failed to send confirmed tx", "hash", txHash, "error", err)
 					}
-
-					go func() {
-						w.logger.Debug("push confirmed tx to MQ", "txHash=", tx.Hash.String())
-						err = w.sender.SendConfirmed(tx.Hash.Bytes(), &ConfirmedTx{
-							From:   tx.From.String(),
-							Hash:   tx.Hash.String(),
-							Nonce:  tx.Nonce.String(),
-							Delete: true,
-						})
-						if err != nil {
-							w.logger.Error("failed to send confirmed tx", "hash", tx.Hash.String(), "error", err)
-						}
-					}()
-				}
+				}()
 			}
 		}
-	}(pendingSub.Event(), confirmedSub.Event())
+	}(pendingSub.Event(), rmPendingSub.Event())
 }
 
 func (w *Watcher) newTransactionByEvent(data tmtypes.EventDataTx, txType string) (*watcher.Transaction, error) {

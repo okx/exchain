@@ -96,12 +96,7 @@ type CListMempool struct {
 
 	gasCache *lru.Cache
 
-	confirmedTxsChan chan confirmedTxsEvent
-}
-
-type confirmedTxsEvent struct {
-	height int64
-	txs    types.Txs
+	rmPendingTxsChan chan types.EventDataRmPendingTx
 }
 
 var _ Mempool = &CListMempool{}
@@ -140,7 +135,7 @@ func NewCListMempool(
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
 
-		confirmedTxsChan: make(chan confirmedTxsEvent, 1000),
+		rmPendingTxsChan: make(chan types.EventDataRmPendingTx, 1000),
 	}
 	go mempool.simulationRoutine()
 	go mempool.fireConfirmedTxsEvents()
@@ -694,6 +689,13 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.cache.Remove(tx)
 			mem.removeTx(mem.recheckCursor)
+
+			mem.rmPendingTxsChan <- types.EventDataRmPendingTx{
+				memTx.realTx.TxHash(),
+				memTx.realTx.GetFrom(),
+				memTx.realTx.GetNonce(),
+				types.Recheck,
+			}
 		}
 		if mem.recheckCursor == mem.recheckEnd {
 			mem.recheckCursor = nil
@@ -914,17 +916,11 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 
-	if len(txs) > 0 {
-		mem.confirmedTxsChan <- confirmedTxsEvent{
-			height: height,
-			txs:    txs,
-		}
-	}
-
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
+		txhash := tx.Hash(height)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
 			addr = ele.Address
@@ -938,7 +934,7 @@ func (mem *CListMempool) Update(
 			}
 
 			// remove tx signature cache
-			types.SignatureCache().Remove(tx.Hash(height))
+			types.SignatureCache().Remove(txhash)
 		}
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
@@ -950,8 +946,9 @@ func (mem *CListMempool) Update(
 		}
 
 		if mem.pendingPool != nil {
-			mem.pendingPool.removeTxByHash(txID(tx, height))
+			mem.pendingPool.removeTxByHash(amino.HexEncodeToStringUpper(txhash))
 		}
+		mem.rmPendingTxsChan <- types.EventDataRmPendingTx{txhash, addr, nonce, types.Confirmed}
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
@@ -1002,15 +999,8 @@ func (mem *CListMempool) Update(
 }
 
 func (mem *CListMempool) fireConfirmedTxsEvents() {
-	for ctxs := range mem.confirmedTxsChan {
-		data := make([]types.EventDataTx, len(ctxs.txs))
-		for i, tx := range ctxs.txs {
-			data[i] = types.EventDataTx{TxResult: types.TxResult{
-				Height: ctxs.height,
-				Tx:     tx,
-			}}
-		}
-		mem.eventBus.PublishEventConfirmedTxs(data)
+	for rmTx := range mem.rmPendingTxsChan {
+		mem.eventBus.PublishEventRmPendingTxs(rmTx)
 	}
 }
 

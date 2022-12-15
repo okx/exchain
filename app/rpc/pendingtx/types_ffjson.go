@@ -6,8 +6,8 @@ package pendingtx
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/types"
 	fflib "github.com/pquerna/ffjson/fflib/v1"
 )
 
@@ -271,7 +271,7 @@ handle_Source:
 
 handle_Data:
 
-	/* handler: j.Data type=pendingtx.ConfirmedTx kind=struct quoted=false*/
+	/* handler: j.Data type=pendingtx.RmPendingTx kind=struct quoted=false*/
 
 	{
 		if tok == fflib.FFTok_null {
@@ -281,7 +281,7 @@ handle_Data:
 		} else {
 
 			if j.Data == nil {
-				j.Data = new(ConfirmedTx)
+				j.Data = new(RmPendingTx)
 			}
 
 			err = j.Data.UnmarshalJSONFFLexer(fs, fflib.FFParse_want_key)
@@ -290,359 +290,6 @@ handle_Data:
 			}
 		}
 		state = fflib.FFParse_after_value
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-wantedvalue:
-	return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
-wrongtokenerror:
-	return fs.WrapErr(fmt.Errorf("ffjson: wanted token: %v, but got token: %v output=%s", wantedTok, tok, fs.Output.String()))
-tokerror:
-	if fs.BigError != nil {
-		return fs.WrapErr(fs.BigError)
-	}
-	err = fs.Error.ToError()
-	if err != nil {
-		return fs.WrapErr(err)
-	}
-	panic("ffjson-generated: unreachable, please report bug.")
-done:
-
-	return nil
-}
-
-// MarshalJSON marshal bytes to json - template
-func (j *ConfirmedTx) MarshalJSON() ([]byte, error) {
-	var buf fflib.Buffer
-	if j == nil {
-		buf.WriteString("null")
-		return buf.Bytes(), nil
-	}
-	err := j.MarshalJSONBuf(&buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-// MarshalJSONBuf marshal buff to json - template
-func (j *ConfirmedTx) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
-	if j == nil {
-		buf.WriteString("null")
-		return nil
-	}
-	var err error
-	var obj []byte
-	_ = obj
-	_ = err
-	buf.WriteString(`{"from":`)
-	fflib.WriteJsonString(buf, string(j.From))
-	buf.WriteString(`,"hash":`)
-	fflib.WriteJsonString(buf, string(j.Hash))
-	buf.WriteString(`,"nonce":`)
-	fflib.WriteJsonString(buf, string(j.Nonce))
-	if j.Delete {
-		buf.WriteString(`,"delete":true`)
-	} else {
-		buf.WriteString(`,"delete":false`)
-	}
-	buf.WriteByte('}')
-	return nil
-}
-
-const (
-	ffjtConfirmedTxbase = iota
-	ffjtConfirmedTxnosuchkey
-
-	ffjtConfirmedTxFrom
-
-	ffjtConfirmedTxHash
-
-	ffjtConfirmedTxNonce
-
-	ffjtConfirmedTxDelete
-)
-
-var ffjKeyConfirmedTxFrom = []byte("from")
-
-var ffjKeyConfirmedTxHash = []byte("hash")
-
-var ffjKeyConfirmedTxNonce = []byte("nonce")
-
-var ffjKeyConfirmedTxDelete = []byte("delete")
-
-// UnmarshalJSON umarshall json - template of ffjson
-func (j *ConfirmedTx) UnmarshalJSON(input []byte) error {
-	fs := fflib.NewFFLexer(input)
-	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
-}
-
-// UnmarshalJSONFFLexer fast json unmarshall - template ffjson
-func (j *ConfirmedTx) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
-	var err error
-	currentKey := ffjtConfirmedTxbase
-	_ = currentKey
-	tok := fflib.FFTok_init
-	wantedTok := fflib.FFTok_init
-
-mainparse:
-	for {
-		tok = fs.Scan()
-		//	println(fmt.Sprintf("debug: tok: %v  state: %v", tok, state))
-		if tok == fflib.FFTok_error {
-			goto tokerror
-		}
-
-		switch state {
-
-		case fflib.FFParse_map_start:
-			if tok != fflib.FFTok_left_bracket {
-				wantedTok = fflib.FFTok_left_bracket
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_key
-			continue
-
-		case fflib.FFParse_after_value:
-			if tok == fflib.FFTok_comma {
-				state = fflib.FFParse_want_key
-			} else if tok == fflib.FFTok_right_bracket {
-				goto done
-			} else {
-				wantedTok = fflib.FFTok_comma
-				goto wrongtokenerror
-			}
-
-		case fflib.FFParse_want_key:
-			// json {} ended. goto exit. woo.
-			if tok == fflib.FFTok_right_bracket {
-				goto done
-			}
-			if tok != fflib.FFTok_string {
-				wantedTok = fflib.FFTok_string
-				goto wrongtokenerror
-			}
-
-			kn := fs.Output.Bytes()
-			if len(kn) <= 0 {
-				// "" case. hrm.
-				currentKey = ffjtConfirmedTxnosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			} else {
-				switch kn[0] {
-
-				case 'd':
-
-					if bytes.Equal(ffjKeyConfirmedTxDelete, kn) {
-						currentKey = ffjtConfirmedTxDelete
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'f':
-
-					if bytes.Equal(ffjKeyConfirmedTxFrom, kn) {
-						currentKey = ffjtConfirmedTxFrom
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'h':
-
-					if bytes.Equal(ffjKeyConfirmedTxHash, kn) {
-						currentKey = ffjtConfirmedTxHash
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'n':
-
-					if bytes.Equal(ffjKeyConfirmedTxNonce, kn) {
-						currentKey = ffjtConfirmedTxNonce
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyConfirmedTxDelete, kn) {
-					currentKey = ffjtConfirmedTxDelete
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyConfirmedTxNonce, kn) {
-					currentKey = ffjtConfirmedTxNonce
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyConfirmedTxHash, kn) {
-					currentKey = ffjtConfirmedTxHash
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyConfirmedTxFrom, kn) {
-					currentKey = ffjtConfirmedTxFrom
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				currentKey = ffjtConfirmedTxnosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			}
-
-		case fflib.FFParse_want_colon:
-			if tok != fflib.FFTok_colon {
-				wantedTok = fflib.FFTok_colon
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_value
-			continue
-		case fflib.FFParse_want_value:
-
-			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
-				switch currentKey {
-
-				case ffjtConfirmedTxFrom:
-					goto handle_From
-
-				case ffjtConfirmedTxHash:
-					goto handle_Hash
-
-				case ffjtConfirmedTxNonce:
-					goto handle_Nonce
-
-				case ffjtConfirmedTxDelete:
-					goto handle_Delete
-
-				case ffjtConfirmedTxnosuchkey:
-					err = fs.SkipField(tok)
-					if err != nil {
-						return fs.WrapErr(err)
-					}
-					state = fflib.FFParse_after_value
-					goto mainparse
-				}
-			} else {
-				goto wantedvalue
-			}
-		}
-	}
-
-handle_From:
-
-	/* handler: j.From type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.From = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Hash:
-
-	/* handler: j.Hash type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Hash = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Nonce:
-
-	/* handler: j.Nonce type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Nonce = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Delete:
-
-	/* handler: j.Delete type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.Delete = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.Delete = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
 	}
 
 	state = fflib.FFParse_after_value
@@ -934,6 +581,355 @@ handle_Data:
 		err = json.Unmarshal(tbuf, &j.Data)
 		if err != nil {
 			return fs.WrapErr(err)
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+wantedvalue:
+	return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+wrongtokenerror:
+	return fs.WrapErr(fmt.Errorf("ffjson: wanted token: %v, but got token: %v output=%s", wantedTok, tok, fs.Output.String()))
+tokerror:
+	if fs.BigError != nil {
+		return fs.WrapErr(fs.BigError)
+	}
+	err = fs.Error.ToError()
+	if err != nil {
+		return fs.WrapErr(err)
+	}
+	panic("ffjson-generated: unreachable, please report bug.")
+done:
+
+	return nil
+}
+
+// MarshalJSON marshal bytes to json - template
+func (j *RmPendingTx) MarshalJSON() ([]byte, error) {
+	var buf fflib.Buffer
+	if j == nil {
+		buf.WriteString("null")
+		return buf.Bytes(), nil
+	}
+	err := j.MarshalJSONBuf(&buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// MarshalJSONBuf marshal buff to json - template
+func (j *RmPendingTx) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
+	if j == nil {
+		buf.WriteString("null")
+		return nil
+	}
+	var err error
+	var obj []byte
+	_ = obj
+	_ = err
+	buf.WriteString(`{"from":`)
+	fflib.WriteJsonString(buf, string(j.From))
+	buf.WriteString(`,"hash":`)
+	fflib.WriteJsonString(buf, string(j.Hash))
+	buf.WriteString(`,"nonce":`)
+	fflib.FormatBits2(buf, uint64(j.Nonce), 10, false)
+	buf.WriteString(`,"reason":`)
+	fflib.FormatBits2(buf, uint64(j.Reason), 10, j.Reason < 0)
+	buf.WriteByte('}')
+	return nil
+}
+
+const (
+	ffjtRmPendingTxbase = iota
+	ffjtRmPendingTxnosuchkey
+
+	ffjtRmPendingTxFrom
+
+	ffjtRmPendingTxHash
+
+	ffjtRmPendingTxNonce
+
+	ffjtRmPendingTxReason
+)
+
+var ffjKeyRmPendingTxFrom = []byte("from")
+
+var ffjKeyRmPendingTxHash = []byte("hash")
+
+var ffjKeyRmPendingTxNonce = []byte("nonce")
+
+var ffjKeyRmPendingTxReason = []byte("reason")
+
+// UnmarshalJSON umarshall json - template of ffjson
+func (j *RmPendingTx) UnmarshalJSON(input []byte) error {
+	fs := fflib.NewFFLexer(input)
+	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
+}
+
+// UnmarshalJSONFFLexer fast json unmarshall - template ffjson
+func (j *RmPendingTx) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
+	var err error
+	currentKey := ffjtRmPendingTxbase
+	_ = currentKey
+	tok := fflib.FFTok_init
+	wantedTok := fflib.FFTok_init
+
+mainparse:
+	for {
+		tok = fs.Scan()
+		//	println(fmt.Sprintf("debug: tok: %v  state: %v", tok, state))
+		if tok == fflib.FFTok_error {
+			goto tokerror
+		}
+
+		switch state {
+
+		case fflib.FFParse_map_start:
+			if tok != fflib.FFTok_left_bracket {
+				wantedTok = fflib.FFTok_left_bracket
+				goto wrongtokenerror
+			}
+			state = fflib.FFParse_want_key
+			continue
+
+		case fflib.FFParse_after_value:
+			if tok == fflib.FFTok_comma {
+				state = fflib.FFParse_want_key
+			} else if tok == fflib.FFTok_right_bracket {
+				goto done
+			} else {
+				wantedTok = fflib.FFTok_comma
+				goto wrongtokenerror
+			}
+
+		case fflib.FFParse_want_key:
+			// json {} ended. goto exit. woo.
+			if tok == fflib.FFTok_right_bracket {
+				goto done
+			}
+			if tok != fflib.FFTok_string {
+				wantedTok = fflib.FFTok_string
+				goto wrongtokenerror
+			}
+
+			kn := fs.Output.Bytes()
+			if len(kn) <= 0 {
+				// "" case. hrm.
+				currentKey = ffjtRmPendingTxnosuchkey
+				state = fflib.FFParse_want_colon
+				goto mainparse
+			} else {
+				switch kn[0] {
+
+				case 'f':
+
+					if bytes.Equal(ffjKeyRmPendingTxFrom, kn) {
+						currentKey = ffjtRmPendingTxFrom
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				case 'h':
+
+					if bytes.Equal(ffjKeyRmPendingTxHash, kn) {
+						currentKey = ffjtRmPendingTxHash
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				case 'n':
+
+					if bytes.Equal(ffjKeyRmPendingTxNonce, kn) {
+						currentKey = ffjtRmPendingTxNonce
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				case 'r':
+
+					if bytes.Equal(ffjKeyRmPendingTxReason, kn) {
+						currentKey = ffjtRmPendingTxReason
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
+				}
+
+				if fflib.EqualFoldRight(ffjKeyRmPendingTxReason, kn) {
+					currentKey = ffjtRmPendingTxReason
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.SimpleLetterEqualFold(ffjKeyRmPendingTxNonce, kn) {
+					currentKey = ffjtRmPendingTxNonce
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyRmPendingTxHash, kn) {
+					currentKey = ffjtRmPendingTxHash
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.SimpleLetterEqualFold(ffjKeyRmPendingTxFrom, kn) {
+					currentKey = ffjtRmPendingTxFrom
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				currentKey = ffjtRmPendingTxnosuchkey
+				state = fflib.FFParse_want_colon
+				goto mainparse
+			}
+
+		case fflib.FFParse_want_colon:
+			if tok != fflib.FFTok_colon {
+				wantedTok = fflib.FFTok_colon
+				goto wrongtokenerror
+			}
+			state = fflib.FFParse_want_value
+			continue
+		case fflib.FFParse_want_value:
+
+			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
+				switch currentKey {
+
+				case ffjtRmPendingTxFrom:
+					goto handle_From
+
+				case ffjtRmPendingTxHash:
+					goto handle_Hash
+
+				case ffjtRmPendingTxNonce:
+					goto handle_Nonce
+
+				case ffjtRmPendingTxReason:
+					goto handle_Reason
+
+				case ffjtRmPendingTxnosuchkey:
+					err = fs.SkipField(tok)
+					if err != nil {
+						return fs.WrapErr(err)
+					}
+					state = fflib.FFParse_after_value
+					goto mainparse
+				}
+			} else {
+				goto wantedvalue
+			}
+		}
+	}
+
+handle_From:
+
+	/* handler: j.From type=string kind=string quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			outBuf := fs.Output.Bytes()
+
+			j.From = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_Hash:
+
+	/* handler: j.Hash type=string kind=string quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			outBuf := fs.Output.Bytes()
+
+			j.Hash = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_Nonce:
+
+	/* handler: j.Nonce type=uint64 kind=uint64 quoted=false*/
+
+	{
+		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for uint64", tok))
+		}
+	}
+
+	{
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			tval, err := fflib.ParseUint(fs.Output.Bytes(), 10, 64)
+
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+
+			j.Nonce = uint64(tval)
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_Reason:
+
+	/* handler: j.Reason type=types.RmPendingTxReason kind=int quoted=false*/
+
+	{
+		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for RmPendingTxReason", tok))
+		}
+	}
+
+	{
+
+		if tok == fflib.FFTok_null {
+
+		} else {
+
+			tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
+
+			if err != nil {
+				return fs.WrapErr(err)
+			}
+
+			j.Reason = types.RmPendingTxReason(tval)
+
 		}
 	}
 

@@ -21,7 +21,7 @@ const (
 	EventNewBlockHeader      = "NewBlockHeader"
 	EventTx                  = "Tx"
 	EventPendingTx           = "PendingTx"
-	EventConfirmedTxs        = "ConfirmedTxs"
+	EventRmPendingTxs        = "RmPendingTxs"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 	EventBlockTime           = "BlockTime"
 	EventTxs                 = "Txs"
@@ -43,6 +43,14 @@ const (
 	EventSignVote         = "SignVote"
 	EventBlockPart        = "BlockPart"
 	EventProposeRequest   = "ProposeRequest"
+)
+
+type RmPendingTxReason int
+
+const (
+	Recheck RmPendingTxReason = iota
+	MinGasPrice
+	Confirmed
 )
 
 var EnableEventBlockTime = false
@@ -101,6 +109,13 @@ type EventDataTxs struct {
 	Height int64
 	//Txs     Txs
 	Results []*abci.ResponseDeliverTx
+}
+
+type EventDataRmPendingTx struct {
+	Hash   []byte
+	From   string
+	Nonce  uint64
+	Reason RmPendingTxReason
 }
 
 // latest blockTime
@@ -202,11 +217,11 @@ type BlockEventPublisher interface {
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
 	PublishEventLatestBlockTime(time EventDataBlockTime) error
-	PublishEventConfirmedTxs([]EventDataTx) error
+	PublishEventRmPendingTxs(EventDataRmPendingTx) error
 }
 
 type TxEventPublisher interface {
 	PublishEventTx(EventDataTx) error
 	PublishEventPendingTx(EventDataTx) error
-	PublishEventConfirmedTxs([]EventDataTx) error
+	PublishEventRmPendingTxs(EventDataRmPendingTx) error
 }
