@@ -45,7 +45,7 @@ func (kc *KafkaClient) SendPending(hash []byte, tx *watcher.Transaction) error {
 }
 
 func (kc *KafkaClient) SendRmPending(hash []byte, tx *RmPendingTx) error {
-	kafkaMsg := ConfirmedMsg{
+	kafkaMsg := RmPendingMsg{
 		Topic: kc.Topic,
 		Data:  tx,
 	}

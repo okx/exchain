@@ -12,7 +12,7 @@ type PendingMsg struct {
 	Data *watcher.Transaction `json:"data"`
 }
 
-type ConfirmedMsg struct {
+type RmPendingMsg struct {
 	Topic  string      `json:"topic"`
 	Source interface{} `json:"source"`
 	// not use interface for fast json

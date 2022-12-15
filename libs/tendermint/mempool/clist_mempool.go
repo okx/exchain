@@ -138,7 +138,7 @@ func NewCListMempool(
 		rmPendingTxsChan: make(chan types.EventDataRmPendingTx, 1000),
 	}
 	go mempool.simulationRoutine()
-	go mempool.fireConfirmedTxsEvents()
+	go mempool.fireRmPendingTxsEvents()
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
 		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
@@ -998,7 +998,7 @@ func (mem *CListMempool) Update(
 	return nil
 }
 
-func (mem *CListMempool) fireConfirmedTxsEvents() {
+func (mem *CListMempool) fireRmPendingTxsEvents() {
 	for rmTx := range mem.rmPendingTxsChan {
 		mem.eventBus.PublishEventRmPendingTxs(rmTx)
 	}
