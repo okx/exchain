@@ -113,13 +113,12 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
 		return
 	}
-	t1 := tmtime.Now()
 	cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 	for i := 0; i < res.blockParts.Total(); i++ {
 		part := res.blockParts.GetPart(i)
 		cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
 	}
-	cs.Logger.Error("handleAVC-avc", "height", proposal.Height, "judge", t1.Sub(t0), "sendInter", tmtime.Now().Sub(t1), "receive time", t0)
+	cs.Logger.Error("handleAVC-avc", "height", proposal.Height, "receive time", t0)
 }
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
