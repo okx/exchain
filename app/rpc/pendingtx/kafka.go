@@ -15,12 +15,12 @@ type KafkaClient struct {
 func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 	return &KafkaClient{
 		Topic: topic,
-		//Writer: kafka.NewWriter(kafka.WriterConfig{
-		//	Brokers:  addrs,
-		//	Topic:    topic,
-		//	Balancer: &kafka.Hash{},
-		//	Async:    true,
-		//}),
+		Writer: kafka.NewWriter(kafka.WriterConfig{
+			Brokers:  addrs,
+			Topic:    topic,
+			Balancer: &kafka.Hash{},
+			Async:    true,
+		}),
 	}
 }
 
@@ -34,7 +34,7 @@ func (kc *KafkaClient) SendPending(hash []byte, tx *watcher.Transaction) error {
 	if err != nil {
 		return err
 	}
-	return nil
+
 	// Automatic retries and reconnections on errors.
 	return kc.WriteMessages(context.Background(),
 		kafka.Message{
@@ -54,7 +54,7 @@ func (kc *KafkaClient) SendConfirmed(hash []byte, tx *ConfirmedTx) error {
 	if err != nil {
 		return err
 	}
-	return nil
+
 	// Automatic retries and reconnections on errors.
 	return kc.WriteMessages(context.Background(),
 		kafka.Message{

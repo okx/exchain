@@ -107,11 +107,11 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	// pending tx watcher
 	kafkaAddrs := viper.GetString(FlagKafkaAddr)
 	kafkaTopic := viper.GetString(FlagKafkaTopic)
-	//if kafkaAddrs != "" && kafkaTopic != "" {
-	kafkaClient := pendingtx.NewKafkaClient(strings.Split(kafkaAddrs, ","), kafkaTopic)
-	ptw := pendingtx.NewWatcher(rs.CliCtx, rs.Logger(), kafkaClient)
-	ptw.Start()
-	//}
+	if kafkaAddrs != "" && kafkaTopic != "" {
+		kafkaClient := pendingtx.NewKafkaClient(strings.Split(kafkaAddrs, ","), kafkaTopic)
+		ptw := pendingtx.NewWatcher(rs.CliCtx, rs.Logger(), kafkaClient)
+		ptw.Start()
+	}
 }
 
 func unlockKeyFromNameAndPassphrase(accountNames []string, passphrase string) ([]ethsecp256k1.PrivKey, error) {
