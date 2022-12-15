@@ -1,5 +1,5 @@
 package mempool
 
 func NewOptimizedTxQueue(txPriceBump int64) ITransactionQueue {
-	return NewHeapQueue()
+	return NewHeapQueue(txPriceBump)
 }

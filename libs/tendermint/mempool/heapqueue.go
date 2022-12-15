@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"container/heap"
+	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"strings"
@@ -18,15 +19,16 @@ type HeapQueue struct {
 	txCount int32
 	waitCh  chan struct{}
 
-	bcTxs    *clist.CList
-	bcTxsMap sync.Map
+	bcTxs       *clist.CList
+	bcTxsMap    sync.Map
+	txPriceBump int64
 }
 
 func (hq *HeapQueue) Len() int {
 	return int(atomic.LoadInt32(&hq.txCount))
 }
 
-func (hq *HeapQueue) Insert(tx *mempoolTx) (err error) {
+func (hq *HeapQueue) tryInsert(tx *mempoolTx) (err error) {
 	hq.mutex.Lock()
 	defer hq.mutex.Unlock()
 
@@ -44,7 +46,7 @@ func (hq *HeapQueue) Insert(tx *mempoolTx) (err error) {
 	nonce := tx.realTx.GetNonce()
 	newElement := clist.NewCElement(tx, tx.from, gasPrice, nonce)
 
-	if ele := gq.InsertElement(newElement); err == nil {
+	if ele := gq.InsertElement(newElement); ele != nil {
 		hq.txsMap.Store(key, ele)
 		atomic.AddInt32(&hq.txCount, 1)
 
@@ -53,6 +55,27 @@ func (hq *HeapQueue) Insert(tx *mempoolTx) (err error) {
 		hq.bcTxsMap.Store(key, ele2)
 	}
 	return err
+}
+
+func (hq *HeapQueue) Insert(tx *mempoolTx) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(*clist.SameNonceError); ok {
+				expectedGasPrice := MultiPriceBump(e.SameNonceElement.GasPrice, 10)
+				if e.InsertElement.GasPrice.Cmp(expectedGasPrice) <= 0 {
+					err = fmt.Errorf("failed to replace tx for acccount %s with nonce %d, the provided gas price %d is not bigger enough", e.InsertElement.Address, e.InsertElement.Nonce, e.InsertElement.GasPrice)
+					return
+				}
+				hq.Remove(e.SameNonceElement)
+				err = hq.tryInsert(tx)
+				return
+			} else {
+				err = fmt.Errorf("got unknown err: %v", r)
+			}
+
+		}
+	}()
+	return hq.tryInsert(tx)
 }
 
 func (hq *HeapQueue) Remove(element *clist.CElement) {
@@ -245,8 +268,8 @@ func (q *HeapQueue) Type() int {
 	return HeapQueueType
 }
 
-func NewHeapQueue() ITransactionQueue {
-	return &HeapQueue{txs: make(map[string]*clist.CList), bcTxs: clist.New(), waitCh: make(chan struct{})}
+func NewHeapQueue(txPriceBump int64) ITransactionQueue {
+	return &HeapQueue{txs: make(map[string]*clist.CList), bcTxs: clist.New(), waitCh: make(chan struct{}), txPriceBump: txPriceBump}
 }
 
 type mempoolTxsByPrice []*clist.CElement

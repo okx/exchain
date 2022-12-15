@@ -22,6 +22,15 @@ import (
 // If more elements are pushed to the list it will panic.
 const MaxLength = int(^uint(0) >> 1)
 
+type SameNonceError struct {
+	InsertElement    *CElement
+	SameNonceElement *CElement
+}
+
+func (s SameNonceError) Error() string {
+	return fmt.Sprintf("should not happen: insert same nonce transactions, ele=%+v,cur=%+v", s.InsertElement, s.SameNonceElement)
+}
+
 /*
 
 CElement is an element of a linked-list
@@ -478,7 +487,7 @@ func (l *CList) InsertElement(ele *CElement) *CElement {
 				// small Nonce put ahead
 				cur = cur.prev
 			} else if ele.Nonce == cur.Nonce {
-				panic(fmt.Sprintf("should not happen: insert same nonce transactions, ele=%+v,cur=%+v", ele, cur))
+				panic(&SameNonceError{InsertElement: ele, SameNonceElement: cur})
 			} else {
 				// The tx of the same Nonce has been processed in checkElement, and there are only cases of big nonce
 				// Big Nonce’s transaction, regardless of gasPrice, has to be in the back

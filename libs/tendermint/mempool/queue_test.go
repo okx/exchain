@@ -77,7 +77,7 @@ func Benchmark_GasTxQueue_Insert(b *testing.B) {
 	})
 
 	b.Run("heap queue", func(b *testing.B) {
-		gq := NewHeapQueue()
+		gq := NewHeapQueue(10)
 		txs := make([]*mempoolTx, b.N)
 		b.ResetTimer()
 		b.StopTimer()
@@ -95,7 +95,7 @@ func Benchmark_GasTxQueue_Insert(b *testing.B) {
 	})
 
 	b.Run("heap queue reserve", func(b *testing.B) {
-		gq := NewHeapQueue()
+		gq := NewHeapQueue(10)
 		txs := make([]*mempoolTx, b.N)
 		b.ResetTimer()
 		b.StopTimer()
@@ -113,7 +113,7 @@ func Benchmark_GasTxQueue_Insert(b *testing.B) {
 	})
 
 	b.Run("heap queue rand", func(b *testing.B) {
-		gq := NewHeapQueue()
+		gq := NewHeapQueue(10)
 		txs := make([]*mempoolTx, b.N)
 		b.ResetTimer()
 		b.StopTimer()
@@ -141,7 +141,7 @@ func TestQueue_Back(t *testing.T) {
 		txs[i] = tx
 	}
 	gq := NewGasTxQueue(10)
-	hq := NewHeapQueue().(*HeapQueue)
+	hq := NewHeapQueue(10).(*HeapQueue)
 	for i := 0; i < lenght; i++ {
 		err := gq.Insert(txs[i])
 		require.NoError(t, err)
@@ -193,7 +193,7 @@ func Benchmark_GasTxQueue_Reap(b *testing.B) {
 	b.Run("heap queue reserve", func(b *testing.B) {
 		gqs := make([]*HeapQueue, 0)
 		for i := 0; i < b.N; i++ {
-			gqs = append(gqs, NewHeapQueue().(*HeapQueue))
+			gqs = append(gqs, NewHeapQueue(10).(*HeapQueue))
 		}
 
 		txs := make([]*mempoolTx, 200000)
@@ -236,7 +236,7 @@ func TestHeapQueue_CleanItems(t *testing.T) {
 		tx := generateMemepool(fmt.Sprintf("%d", 1), uint64(i), n)
 		txs[i] = tx
 	}
-	hq := NewHeapQueue().(*HeapQueue)
+	hq := NewHeapQueue(10).(*HeapQueue)
 	for i := 0; i < lenght; i++ {
 		err := hq.Insert(txs[i])
 		require.NoError(t, err)
@@ -255,4 +255,77 @@ func TestHeapQueue_CleanItems(t *testing.T) {
 	}
 	<-done
 
+}
+
+func TestHeapQueue_Insert(t *testing.T) {
+	length := 10
+	hq := NewHeapQueue(10).(*HeapQueue)
+	txs := make([]*mempoolTx, length)
+
+	for i := 0; i < length; i++ {
+		n := big.NewInt(int64(i))
+		tx := generateMemepool(fmt.Sprintf("%d", 1), 0, n)
+		txs[i] = tx
+	}
+
+	for i := 0; i < length; i++ {
+		hq.Insert(txs[i])
+		fmtHq(hq, t)
+		//require.NoError(t, err)
+	}
+
+	heads := hq.Init()
+	tx := hq.Peek(heads)
+	for tx != nil {
+		t.Log("hq from:", tx.from, "nonce", tx.realTx.GetNonce(), "gp", tx.realTx.GetGasPrice().String())
+		hq.Shift(&heads)
+		tx = hq.Peek(heads)
+	}
+}
+
+func TestHeapQueue_Insert2(t *testing.T) {
+	hq := NewHeapQueue(10).(*HeapQueue)
+	address1 := fmt.Sprintf("%d", 1)
+	//address2 := fmt.Sprintf("%d", 2)
+	tx1 := generateMemepool(address1, 0, big.NewInt(100))
+	tx2 := generateMemepool(address1, 1, big.NewInt(100))
+	tx3 := generateMemepool(address1, 0, big.NewInt(110))
+	tx4 := generateMemepool(address1, 0, big.NewInt(111))
+
+	hq.Insert(tx1)
+	hq.Insert(tx2)
+	hq.txs[address1].Back().Nonce = 0
+	fmtHq(hq, t)
+
+	err := hq.Insert(tx3)
+	t.Log(err)
+	require.Error(t, err)
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Log("unit test", r)
+		}
+	}()
+	err = hq.Insert(tx4)
+	require.NoError(t, err)
+	//heads := hq.Init()
+	//tx := hq.Peek(heads)
+	//for tx != nil {
+	//	t.Log("hq from:", tx.from, "nonce", tx.realTx.GetNonce(), "gp", tx.realTx.GetGasPrice().String())
+	//	hq.Shift(&heads)
+	//	tx = hq.Peek(heads)
+	//}
+}
+
+func fmtHq(hq *HeapQueue, t *testing.T) {
+	t.Log("HeapQueue -------------start-------------")
+	for k, v := range hq.txs {
+		strs := make([]string, 0)
+		for e := v.Front(); e != nil; e = e.Next() {
+			strs = append(strs, fmt.Sprintf("from: %s nonce:%d gp:%d", e.Address, e.Nonce, e.GasPrice.Int64()))
+		}
+		t.Log("Address: ", k, "list", strs)
+
+	}
+	t.Log("HeapQueue -------------end-------------")
 }
