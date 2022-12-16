@@ -6,6 +6,7 @@ package pendingtx
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/types"
 	fflib "github.com/pquerna/ffjson/fflib/v1"
@@ -634,7 +635,12 @@ func (j *RmPendingTx) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	buf.WriteString(`,"hash":`)
 	fflib.WriteJsonString(buf, string(j.Hash))
 	buf.WriteString(`,"nonce":`)
-	fflib.FormatBits2(buf, uint64(j.Nonce), 10, false)
+	fflib.WriteJsonString(buf, string(j.Nonce))
+	if j.Delete {
+		buf.WriteString(`,"delete":true`)
+	} else {
+		buf.WriteString(`,"delete":false`)
+	}
 	buf.WriteString(`,"reason":`)
 	fflib.FormatBits2(buf, uint64(j.Reason), 10, j.Reason < 0)
 	buf.WriteByte('}')
@@ -651,6 +657,8 @@ const (
 
 	ffjtRmPendingTxNonce
 
+	ffjtRmPendingTxDelete
+
 	ffjtRmPendingTxReason
 )
 
@@ -659,6 +667,8 @@ var ffjKeyRmPendingTxFrom = []byte("from")
 var ffjKeyRmPendingTxHash = []byte("hash")
 
 var ffjKeyRmPendingTxNonce = []byte("nonce")
+
+var ffjKeyRmPendingTxDelete = []byte("delete")
 
 var ffjKeyRmPendingTxReason = []byte("reason")
 
@@ -723,6 +733,14 @@ mainparse:
 			} else {
 				switch kn[0] {
 
+				case 'd':
+
+					if bytes.Equal(ffjKeyRmPendingTxDelete, kn) {
+						currentKey = ffjtRmPendingTxDelete
+						state = fflib.FFParse_want_colon
+						goto mainparse
+					}
+
 				case 'f':
 
 					if bytes.Equal(ffjKeyRmPendingTxFrom, kn) {
@@ -759,6 +777,12 @@ mainparse:
 
 				if fflib.EqualFoldRight(ffjKeyRmPendingTxReason, kn) {
 					currentKey = ffjtRmPendingTxReason
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.SimpleLetterEqualFold(ffjKeyRmPendingTxDelete, kn) {
+					currentKey = ffjtRmPendingTxDelete
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -806,6 +830,9 @@ mainparse:
 
 				case ffjtRmPendingTxNonce:
 					goto handle_Nonce
+
+				case ffjtRmPendingTxDelete:
+					goto handle_Delete
 
 				case ffjtRmPendingTxReason:
 					goto handle_Reason
@@ -878,27 +905,58 @@ handle_Hash:
 
 handle_Nonce:
 
-	/* handler: j.Nonce type=uint64 kind=uint64 quoted=false*/
+	/* handler: j.Nonce type=string kind=string quoted=false*/
 
 	{
-		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for uint64", tok))
+
+		{
+			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
+			}
 		}
-	}
-
-	{
 
 		if tok == fflib.FFTok_null {
 
 		} else {
 
-			tval, err := fflib.ParseUint(fs.Output.Bytes(), 10, 64)
+			outBuf := fs.Output.Bytes()
 
-			if err != nil {
+			j.Nonce = string(string(outBuf))
+
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_Delete:
+
+	/* handler: j.Delete type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.Delete = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.Delete = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
 				return fs.WrapErr(err)
 			}
-
-			j.Nonce = uint64(tval)
 
 		}
 	}
