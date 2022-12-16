@@ -95,6 +95,8 @@ type CListMempool struct {
 	simQueue chan *mempoolTx
 
 	gasCache *lru.Cache
+
+	rmPendingTxChan chan types.EventDataRmPendingTx
 }
 
 var _ Mempool = &CListMempool{}
@@ -132,6 +134,11 @@ func NewCListMempool(
 		txs:           txQueue,
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
+	}
+
+	if config.PendingRemoveEvent {
+		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
+		go mempool.fireRmPendingTxEvents()
 	}
 	go mempool.simulationRoutine()
 
@@ -684,6 +691,15 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.cache.Remove(tx)
 			mem.removeTx(mem.recheckCursor)
+
+			if mem.config.PendingRemoveEvent {
+				mem.rmPendingTxChan <- types.EventDataRmPendingTx{
+					memTx.realTx.TxHash(),
+					memTx.realTx.GetFrom(),
+					memTx.realTx.GetNonce(),
+					types.Recheck,
+				}
+			}
 		}
 		if mem.recheckCursor == mem.recheckEnd {
 			mem.recheckCursor = nil
@@ -908,6 +924,7 @@ func (mem *CListMempool) Update(
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
+		txhash := tx.Hash(height)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
 			addr = ele.Address
@@ -921,7 +938,7 @@ func (mem *CListMempool) Update(
 			}
 
 			// remove tx signature cache
-			types.SignatureCache().Remove(tx.Hash(height))
+			types.SignatureCache().Remove(txhash)
 		}
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
@@ -933,7 +950,10 @@ func (mem *CListMempool) Update(
 		}
 
 		if mem.pendingPool != nil {
-			mem.pendingPool.removeTxByHash(txID(tx, height))
+			mem.pendingPool.removeTxByHash(amino.HexEncodeToStringUpper(txhash))
+		}
+		if mem.config.PendingRemoveEvent {
+			mem.rmPendingTxChan <- types.EventDataRmPendingTx{txhash, addr, nonce, types.Confirmed}
 		}
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
@@ -982,6 +1002,12 @@ func (mem *CListMempool) Update(
 	// already sorted int the last round (will only affect the account that send these txs).
 
 	return nil
+}
+
+func (mem *CListMempool) fireRmPendingTxEvents() {
+	for rmTx := range mem.rmPendingTxChan {
+		mem.eventBus.PublishEventRmPendingTx(rmTx)
+	}
 }
 
 func (mem *CListMempool) checkTxCost() {
