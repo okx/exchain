@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -91,7 +93,8 @@ func (w *Watcher) Start() {
 					err = w.sender.SendRmPending(data.Hash, &RmPendingTx{
 						From:   data.From,
 						Hash:   txHash,
-						Nonce:  data.Nonce,
+						Nonce:  hexutil.Uint64(data.Nonce).String(),
+						Delete: true,
 						Reason: data.Reason,
 					})
 					if err != nil {

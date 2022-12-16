@@ -22,6 +22,7 @@ type RmPendingMsg struct {
 type RmPendingTx struct {
 	From   string                  `json:"from"`
 	Hash   string                  `json:"hash"`
-	Nonce  uint64                  `json:"nonce"`
+	Nonce  string                  `json:"nonce"`
+	Delete bool                    `json:"delete"`
 	Reason types.RmPendingTxReason `json:"reason"`
 }
