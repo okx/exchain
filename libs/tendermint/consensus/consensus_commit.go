@@ -319,6 +319,11 @@ func (cs *State) updateToState(state sm.State) {
 		}
 	}
 
+	select {
+	case <-cs.taskResultChan:
+	default:
+	}
+
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.
 	// We don't want to reset e.g. the Votes, but we still want to
@@ -411,9 +416,7 @@ func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 	tNow := tmtime.Now()
 	block, blockParts := cs.createProposalBlock()
-	if len(cs.taskResultChan) == 1 {
-		<-cs.taskResultChan
-	}
+
 	cs.taskResultChan <- &preBlockTaskRes{block: block, blockParts: blockParts}
 
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
