@@ -164,64 +164,46 @@ func TestQueue_Back(t *testing.T) {
 }
 
 func Benchmark_GasTxQueue_Reap(b *testing.B) {
+	mempoolTxSize := 200000
+	txsize := 20000
+	gq := NewGasTxQueue(10)
+	hq := NewHeapQueue(10).(*HeapQueue)
+	//mod := 2
+	for i := 0; i < mempoolTxSize; i++ {
+		n := big.NewInt(int64(mempoolTxSize - i))
+		tx := generateMemepool(fmt.Sprintf("%d", i), uint64(i), n)
+		err := gq.Insert(tx)
+		require.NoError(b, err)
+		err = hq.Insert(tx)
+		require.NoError(b, err)
+	}
 
 	b.Run("gas queue reserve ", func(b *testing.B) {
-		gqs := make([]*GasTxQueue, 0)
-		for i := 0; i < b.N; i++ {
-			gqs = append(gqs, NewGasTxQueue(10))
-		}
-		txs := make([]*mempoolTx, 200000)
 		b.ResetTimer()
-		b.StopTimer()
-		for i := 0; i < 200000; i++ {
-			n := big.NewInt(int64(200000 - i))
-			tx := generateMemepool(fmt.Sprintf("%d", i), 0, n)
-			txs[i] = tx
-			for j := 0; j < b.N; j++ {
-				err := gqs[j].Insert(txs[i])
-				require.NoError(b, err)
-			}
-		}
-		b.StartTimer()
 		for i := 0; i < b.N; i++ {
-			for e := gqs[i].Front(); e != nil; e = e.Next() {
-
+			j := 0
+			for e := gq.Front(); e != nil; e = e.Next() {
+				if j > txsize {
+					break
+				}
+				j++
 			}
 		}
 	})
 
 	b.Run("heap queue reserve", func(b *testing.B) {
-		gqs := make([]*HeapQueue, 0)
-		for i := 0; i < b.N; i++ {
-			gqs = append(gqs, NewHeapQueue(10).(*HeapQueue))
-		}
-
-		txs := make([]*mempoolTx, 200000)
 		b.ResetTimer()
-		b.StopTimer()
-		for i := 0; i < 200000; i++ {
-			n := big.NewInt(int64(i))
-			tx := generateMemepool(fmt.Sprintf("%d", i), 0, n)
-			txs[i] = tx
-			for j := 0; j < b.N; j++ {
-				err := gqs[j].Insert(txs[i])
-				require.NoError(b, err)
-			}
-		}
-
-		b.StartTimer()
-
 		for i := 0; i < b.N; i++ {
-			heads := gqs[i].Init()
+			heads := hq.Init()
 			j := 0
-			tx := gqs[i].Peek(heads)
+			tx := hq.Peek(heads)
 			for tx != nil {
-				gqs[i].Shift(&heads)
-				if j > 20000 {
+				hq.Shift(&heads)
+				if j > txsize {
 					break
 				}
 				j++
-				tx = gqs[i].Peek(heads)
+				tx = hq.Peek(heads)
 			}
 		}
 	})
