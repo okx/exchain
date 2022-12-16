@@ -420,6 +420,9 @@ func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, 0, cs.ValidRound, propBlockID)
 
+	if cs.Height != height {
+		return
+	}
 	isBlockProducer, _ := cs.isBlockProducer()
 	if GetActiveVC() && isBlockProducer != "y" {
 		// request for proposer of new height
