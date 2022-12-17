@@ -99,6 +99,7 @@ func (cs *State) receiveRoutine(maxSteps int) {
 }
 
 func (cs *State) handleAVCProposal(proposal *types.Proposal) {
+	t0 := tmtime.Now()
 	if !GetActiveVC() ||
 		cs.Height != proposal.Height || cs.Round != proposal.Round ||
 		len(cs.taskResultChan) == 0 {
@@ -117,6 +118,7 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 		part := res.blockParts.GetPart(i)
 		cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
 	}
+	cs.Logger.Error("handleAVC-avc", "height", proposal.Height, "receive time", t0)
 }
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
@@ -297,6 +299,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	if GetActiveVC() && cs.privValidator != nil {
+		cs.Logger.Error("preBTC-avc", "height", cs.Height, "waiting", sleepDuration, "time", tmtime.Now())
 		cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
 	}
 

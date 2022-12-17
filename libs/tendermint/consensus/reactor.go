@@ -383,6 +383,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeRequestMessage:
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
+			t0 := tmtime.Now()
 			height := conR.conS.Height
 			// this peer has received a prMsg before
 			// or this peer is not proposer
@@ -413,11 +414,16 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			proposal.Signature = sig
-			// tell newProposer
-			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
-			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
+
+			//// tell newProposer
+			//prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
+			//ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
 			// broadcast the proposal
-			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(&ProposalMessage{Proposal: proposal}))
+			proposalMsg := &ProposalMessage{Proposal: proposal}
+			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg))
+			t4 := tmtime.Now()
+			conR.Logger.Error("handle prMsg-avc", "height", proposal.Height, "receive time", t0, "send time", t4)
+			conR.conS.sendInternalMessage(msgInfo{proposalMsg, ""})
 
 			conR.hasViewChanged = msg.Height
 
@@ -595,6 +601,7 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		})
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
 		func(data tmevents.EventData) {
+			conR.Logger.Error("bc prMsg-avc", "height", data.(*ProposeRequestMessage).Height, "time", tmtime.Now())
 			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
 		})
 }
