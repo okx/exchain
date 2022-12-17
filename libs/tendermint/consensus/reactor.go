@@ -419,11 +419,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			//prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			//ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
 			// broadcast the proposal
-			proposalMsg := &ProposalMessage{Proposal: proposal}
-			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg))
+			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(&ProposalMessage{Proposal: proposal}))
 			t4 := tmtime.Now()
 			conR.Logger.Error("handle prMsg-avc", "height", proposal.Height, "receive time", t0, "send time", t4)
-			conR.conS.sendInternalMessage(msgInfo{proposalMsg, ""})
 
 			conR.hasViewChanged = msg.Height
 
