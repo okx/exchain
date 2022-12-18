@@ -2,6 +2,8 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/iavl"
+	iavlcfg "github.com/okex/exchain/libs/iavl/config"
 	"strconv"
 	"time"
 
@@ -311,6 +313,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
+
+	if iavl.EnableAsyncCommit &&
+		block.Height%iavlcfg.DynamicConfig.GetCommitGapHeight() == iavl.GetFinalCommitGapOffset() {
+		time.Sleep(15 * time.Second)
+	}
 
 	return state, retainHeight, nil
 }
