@@ -262,7 +262,12 @@ func (cs *State) finalizeCommit(height int64) {
 		nextProducer := cs.state.NextValidators.GetProposer().Address
 		selfAddress := cs.privValidatorPubKey.Address()
 
-		if bytes.Equal(nextProducer, selfAddress) {
+		if iavl.GetFinalCommitGapOffset() > 0 {
+			cs.Logger.Error("Sim Long ApplyBlock", "height", height,
+				"CommitGapHeight", iavlcfg.DynamicConfig.GetCommitGapHeight(),
+				"FinalCommitGapOffset", iavl.GetFinalCommitGapOffset())
+			time.Sleep(15 * time.Second)
+		} else if bytes.Equal(nextProducer, selfAddress) {
 			// self is the validator at the offset height
 			cs.Logger.Error("Sim Long ApplyBlock", "height", height,
 				"CommitGapHeight", iavlcfg.DynamicConfig.GetCommitGapHeight(),
