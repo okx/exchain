@@ -256,6 +256,21 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
+	if iavl.EnableAsyncCommit &&
+		block.Height%iavlcfg.DynamicConfig.GetCommitGapHeight() == iavl.GetFinalCommitGapOffset() {
+		//if next block is producer
+		nextProducer := cs.state.NextValidators.GetProposer().Address
+		selfAddress := cs.privValidatorPubKey.Address()
+
+		if bytes.Equal(nextProducer, selfAddress) {
+			// self is the validator at the offset height
+			cs.Logger.Error("Sim Long ApplyBlock", "height", height,
+				"CommitGapHeight", iavlcfg.DynamicConfig.GetCommitGapHeight(),
+				"FinalCommitGapOffset", iavl.GetFinalCommitGapOffset())
+			time.Sleep(15 * time.Second)
+		}
+	}
+
 	//reset offset after commitGap
 	if iavl.EnableAsyncCommit &&
 		height%iavlcfg.DynamicConfig.GetCommitGapHeight() == iavl.GetFinalCommitGapOffset() {
