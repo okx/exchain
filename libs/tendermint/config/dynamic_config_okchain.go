@@ -25,7 +25,7 @@ type IDynamicConfig interface {
 	GetEnableWtx() bool
 	GetDeliverTxsExecuteMode() int
 	GetEnableHasBlockPartMsg() bool
-	GetProposalACGap() int64
+	GetCommitGapOffset() int64
 	GetIavlAcNoBatch() bool
 }
 
@@ -119,7 +119,7 @@ func (d MockDynamicConfig) GetEnableHasBlockPartMsg() bool {
 	return false
 }
 
-func (d MockDynamicConfig) GetProposalACGap() int64 {
+func (d MockDynamicConfig) GetCommitGapOffset() int64 {
 	return 0
 }
 

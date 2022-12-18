@@ -117,8 +117,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 
-	cmd.Flags().Int64(config.FlagProposalACGap, 0, "Gap to stagger ac ahead of proposal")
-	cmd.Flags().MarkHidden(config.FlagProposalACGap)
+	cmd.Flags().Int64(config.FlagCommitGapOffset, 0, "Offset to stagger ac ahead of proposal")
+	cmd.Flags().MarkHidden(config.FlagCommitGapOffset)
 
 	// flags for infura rpc
 	cmd.Flags().Bool(infura.FlagEnable, false, "Enable infura rpc service")

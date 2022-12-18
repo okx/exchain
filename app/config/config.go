@@ -117,7 +117,7 @@ type OecConfig struct {
 	gcInterval            int
 
 	//
-	proposalACGap int64
+	commitGapOffset int64
 
 	iavlAcNoBatch bool
 }
@@ -155,7 +155,7 @@ const (
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
 	FlagDebugGcInterval         = "debug.gc-interval"
-	FlagProposalACGap           = "proposal-ac-gap"
+	FlagCommitGapOffset         = "commit-gap-offset"
 )
 
 var (
@@ -299,7 +299,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
-	c.SetProposalACGap(viper.GetInt64(FlagProposalACGap))
+	c.SetCommitGapOffset(viper.GetInt64(FlagCommitGapOffset))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
@@ -640,12 +640,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetIavlAcNoBatch(r)
-	case FlagProposalACGap:
+	case FlagCommitGapOffset:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return
 		}
-		c.SetProposalACGap(r)
+		c.SetCommitGapOffset(r)
 	}
 }
 
@@ -1028,12 +1028,15 @@ func (c *OecConfig) SetGcInterval(value int) {
 
 }
 
-func (c *OecConfig) GetProposalACGap() int64 {
-	return c.proposalACGap
+func (c *OecConfig) GetCommitGapOffset() int64 {
+	return c.commitGapOffset
 }
 
-func (c *OecConfig) SetProposalACGap(value int64) {
-	c.proposalACGap = value
+func (c *OecConfig) SetCommitGapOffset(value int64) {
+	if value < 0 {
+		value = 0
+	}
+	c.commitGapOffset = value
 }
 
 func (c *OecConfig) GetEnableHasBlockPartMsg() bool {

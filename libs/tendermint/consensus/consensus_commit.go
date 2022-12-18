@@ -14,7 +14,6 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"log"
 	"time"
 )
 
@@ -247,41 +246,8 @@ func (cs *State) finalizeCommit(height int64) {
 		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
 	}
 
-	offset := cfg.DynamicConfig.GetProposalACGap()
-	commitGap := iavlcfg.DynamicConfig.GetCommitGapHeight()
-
-	// Set AC offset
 	if iavl.EnableAsyncCommit {
-		// close offset
-		if offset <= 0 || (commitGap <= offset) {
-			iavl.SetCommitGapOffset(0)
-			// only try to offset at commitGap height
-		} else if (height % commitGap) == 0 {
-			selfAddress := cs.privValidatorPubKey.Address()
-			futureValidators := cs.state.Validators.Copy()
-
-			shouldOffsetAC := false
-			var i int64
-			for ; i < offset; i++ {
-				futureBPAddress := futureValidators.GetProposer().Address
-
-				// self is the validator at the offset height
-				// && nextAC happens within the offset
-				if bytes.Equal(futureBPAddress, selfAddress) {
-					// trigger ac ahead of the offset
-					shouldOffsetAC = true
-					//originACHeight|newACHeight|nextProposeHeight|Offset
-					trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
-						height, height+i+1, height+i, offset))
-					break
-				}
-				futureValidators.IncrementProposerPriority(1)
-			}
-
-			if shouldOffsetAC {
-				iavl.SetCommitGapOffset(i + 1)
-			}
-		}
+		cs.handleCommitGapOffset(height)
 	}
 
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
@@ -298,9 +264,9 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	//reset offset after commitGap
-	if iavl.EnableAsyncCommit && height%commitGap == iavl.GetCommitGapOffset() {
-		log.Println("Reset commit Offset", height)
-		iavl.SetCommitGapOffset(0)
+	if iavl.EnableAsyncCommit &&
+		height%iavlcfg.DynamicConfig.GetCommitGapHeight() == iavl.GetFinalCommitGapOffset() {
+		iavl.SetFinalCommitGapOffset(0)
 	}
 
 	fail.Fail() // XXX
@@ -496,5 +462,36 @@ func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
 			return nil
 		}
 
+	}
+}
+
+// handle AC offset to avoid block proposal
+func (cs *State) handleCommitGapOffset(height int64) {
+	commitGap := iavlcfg.DynamicConfig.GetCommitGapHeight()
+	offset := cfg.DynamicConfig.GetCommitGapOffset()
+
+	// close offset
+	if offset <= 0 || (commitGap <= offset) {
+		iavl.SetFinalCommitGapOffset(0)
+		// only try to offset at commitGap height
+	} else if (height % commitGap) == 0 {
+		selfAddress := cs.privValidatorPubKey.Address()
+		futureValidators := cs.state.Validators.Copy()
+
+		var i int64
+		for ; i < offset; i++ {
+			futureBPAddress := futureValidators.GetProposer().Address
+
+			// self is the validator at the offset height
+			if bytes.Equal(futureBPAddress, selfAddress) {
+				// trigger ac ahead of the offset
+				iavl.SetFinalCommitGapOffset(i + 1)
+				//originACHeight|newACHeight|nextProposeHeight|Offset
+				trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
+					height, height+i+1, height+i, offset))
+				break
+			}
+			futureValidators.IncrementProposerPriority(1)
+		}
 	}
 }
