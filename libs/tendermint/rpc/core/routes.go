@@ -51,6 +51,8 @@ var Routes = map[string]*rpc.RPCFunc{
 	"broadcast_evidence": rpc.NewRPCFunc(BroadcastEvidence, "evidence"),
 
 	"tx_simulate_gas": rpc.NewRPCFunc(TxSimulateGasCost, "hash"),
+
+	"get_enable_delete_min_gp_tx": rpc.NewRPCFunc(GetEnableDeleteMinGPTx, ""),
 }
 
 func AddUnsafeRoutes() {

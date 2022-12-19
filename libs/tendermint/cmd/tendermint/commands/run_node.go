@@ -116,6 +116,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.MaxTxNumPerBlock,
 		"Maximum number of transactions in a block",
 	)
+	cmd.Flags().Bool(
+		"mempool.enable_delete_min_gp_tx",
+		config.Mempool.EnableDeleteMinGPTx,
+		"Enable delete the minimum gas price tx from mempool when mempool is full",
+	)
 	cmd.Flags().Int64(
 		"mempool.max_gas_used_per_block",
 		config.Mempool.MaxGasUsedPerBlock,
