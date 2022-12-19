@@ -75,6 +75,7 @@ type Config struct {
 	Consensus       *ConsensusConfig       `mapstructure:"consensus"`
 	TxIndex         *TxIndexConfig         `mapstructure:"tx_index"`
 	Instrumentation *InstrumentationConfig `mapstructure:"instrumentation"`
+	GRPC            GRPCConfig             `mapstructure:"grpc"`
 }
 
 // DefaultConfig returns a default configuration for a Tendermint node
@@ -88,6 +89,7 @@ func DefaultConfig() *Config {
 		Consensus:       DefaultConsensusConfig(),
 		TxIndex:         DefaultTxIndexConfig(),
 		Instrumentation: DefaultInstrumentationConfig(),
+		GRPC:            DefaultGRPCConfig(),
 	}
 }
 
@@ -685,6 +687,7 @@ type MempoolConfig struct {
 	PendingPoolReserveBlocks   int      `mapstructure:"pending_pool_reserve_blocks"`
 	PendingPoolMaxTxPerAddress int      `mapstructure:"pending_pool_max_tx_per_address"`
 	NodeKeyWhitelist           []string `mapstructure:"node_key_whitelist"`
+	PendingRemoveEvent         bool     `mapstructure:"pending_remove_event"`
 }
 
 // DefaultMempoolConfig returns a default configuration for the Tendermint mempool
@@ -709,6 +712,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolReserveBlocks:   100,
 		PendingPoolMaxTxPerAddress: 100,
 		NodeKeyWhitelist:           []string{},
+		PendingRemoveEvent:         false,
 	}
 }
 
