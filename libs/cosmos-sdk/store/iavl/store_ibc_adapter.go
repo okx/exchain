@@ -27,7 +27,9 @@ func (st *Store) queryWithCM40(req abci.RequestQuery) (res abci.ResponseQuery) {
 	switch req.Path {
 	case "/key": // get by key
 		key := req.Data // data holds the key bytes
-
+		if string(key) == "ibc" {
+			fmt.Println(1)
+		}
 		res.Key = key
 		if !st.VersionExists(res.Height) {
 			res.Log = iavl.ErrVersionDoesNotExist.Error()
