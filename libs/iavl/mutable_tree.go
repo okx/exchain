@@ -981,13 +981,16 @@ func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, ve
 	if !GetEnableFastStorage() || fnc == nil {
 		return nil
 	}
+	if err := ndb.setFastStorageVersionToBatch(batch, version); err != nil {
+		return err
+	}
 	if err := ndb.saveFastNodeAdditions(batch, fnc.getAdditions()); err != nil {
 		return err
 	}
 	if err := ndb.saveFastNodeRemovals(batch, fnc.getRemovals()); err != nil {
 		return err
 	}
-	return ndb.setFastStorageVersionToBatch(batch, version)
+	return nil
 }
 
 // nolint: unused

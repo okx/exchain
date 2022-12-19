@@ -24,6 +24,9 @@ import (
 	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	blockindex "github.com/okex/exchain/libs/tendermint/state/indexer"
+	blockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/kv"
+	bloxkindexnull "github.com/okex/exchain/libs/tendermint/state/indexer/block/null"
 	"github.com/okex/exchain/libs/tendermint/state/txindex"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/kv"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
@@ -39,6 +42,7 @@ const (
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
 	txIndexDB     = "tx_index"
+	blockIndexDb  = "block_index"
 
 	FlagStartHeight       string = "start-height"
 	FlagEnableRepairState string = "enable-repair-state"
@@ -232,9 +236,14 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	}
 	// Transaction indexing
 	var txIndexer txindex.TxIndexer
+	var blockIndexer blockindex.BlockIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
 		txStore, err = sdk.NewDB(txIndexDB, filepath.Join(config.RootDir, "data"))
+		if err != nil {
+			return nil, nil, err
+		}
+		blockIndexStore, err := sdk.NewDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -246,11 +255,13 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 		default:
 			txIndexer = kv.NewTxIndex(txStore)
 		}
+		blockIndexer = blockindexer.New(dbm.NewPrefixDB(blockIndexStore, []byte("block_events")))
 	default:
 		txIndexer = &null.TxIndex{}
+		blockIndexer = &bloxkindexnull.BlockerIndexer{}
 	}
 
-	indexerService = txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService = txindex.NewIndexerService(txIndexer, blockIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
 		if eventBus != nil {
