@@ -252,3 +252,16 @@ type ResultEvent struct {
 	Data   types.TMEventData   `json:"data"`
 	Events map[string][]string `json:"events"`
 }
+
+func (r ResultEvent) Upgrade() interface{} {
+	if v, ok := r.Data.(types.UpgradeAble); ok {
+		r.Data = v.Upgrade()
+	}
+	return r
+}
+
+// ResultBlockSearch defines the RPC response type for a block search by events.
+type ResultBlockSearch struct {
+	Blocks     []*ResultBlock `json:"blocks"`
+	TotalCount int            `json:"total_count"`
+}

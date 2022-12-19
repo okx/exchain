@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	blockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/kv"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,8 +29,10 @@ func TestIndexerServiceIndexesBlocks(t *testing.T) {
 	// tx indexer
 	store := db.NewMemDB()
 	txIndexer := kv.NewTxIndex(store, kv.IndexAllEvents())
+	bStore := db.NewMemDB()
+	blockIndexer := blockindexer.New(bStore)
 
-	service := txindex.NewIndexerService(txIndexer, eventBus)
+	service := txindex.NewIndexerService(txIndexer, blockIndexer, eventBus)
 	service.SetLogger(log.TestingLogger())
 	err = service.Start()
 	require.NoError(t, err)

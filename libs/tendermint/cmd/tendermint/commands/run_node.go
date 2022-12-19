@@ -171,6 +171,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.PendingPoolMaxTxPerAddress,
 		"Maximum number of transactions per address in the pending pool",
 	)
+	cmd.Flags().Bool(
+		"mempool.pending_remove_event",
+		config.Mempool.PendingRemoveEvent,
+		"Push event when remove a pending tx",
+	)
 
 	cmd.Flags().String(
 		"mempool.node_key_whitelist",
@@ -209,6 +214,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"db_dir",
 		config.DBPath,
 		"Database directory")
+
+	cmd.Flags().String(
+		"grpc.address",
+		config.GRPC.Address,
+		"grpc server address")
 
 	addMoreFlags(cmd)
 }

@@ -1,6 +1,7 @@
 package wasmtesting
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
@@ -19,6 +20,10 @@ func (m *MockCommitMultiStore) CacheMultiStore() storetypes.CacheMultiStore {
 type mockCMS struct {
 	sdk.CommitMultiStore
 	committed *bool
+}
+
+func (m *mockCMS) GetRWSet(mp types.MsRWSet) {
+	panic("implement me")
 }
 
 func (m *mockCMS) DisableCacheReadList() {

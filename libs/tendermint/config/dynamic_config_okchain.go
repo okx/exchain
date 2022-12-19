@@ -26,6 +26,7 @@ type IDynamicConfig interface {
 	GetEnableWtx() bool
 	GetDeliverTxsExecuteMode() int
 	GetEnableHasBlockPartMsg() bool
+	GetIavlAcNoBatch() bool
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -125,4 +126,8 @@ func (d MockDynamicConfig) GetEnableDeleteMinGPTx() bool {
 
 func (d *MockDynamicConfig) SetEnableDeleteMinGPTx(enable bool) {
 	d.enableDeleteMinGPTx = enable
+}
+
+func (d MockDynamicConfig) GetIavlAcNoBatch() bool {
+	return false
 }

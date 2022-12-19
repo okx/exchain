@@ -117,6 +117,8 @@ type OecConfig struct {
 	// enable broadcast hasBlockPartMsg
 	enableHasBlockPartMsg bool
 	gcInterval            int
+
+	iavlAcNoBatch bool
 }
 
 const (
@@ -300,6 +302,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
+	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -371,6 +374,7 @@ func (c *OecConfig) format() string {
     iavl-fast-storage-cache-size: %d
     commit-gap-height: %d
 	enable-analyzer: %v
+    iavl-commit-async-no-batch: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
@@ -399,6 +403,7 @@ func (c *OecConfig) format() string {
 		c.GetIavlFSCacheSize(),
 		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
+		c.GetIavlAcNoBatch(),
 		c.GetActiveVC(),
 	)
 }
@@ -636,6 +641,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetGcInterval(r)
+	case tmiavl.FlagIavlCommitAsyncNoBatch:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetIavlAcNoBatch(r)
 	}
 }
 
@@ -1031,4 +1042,12 @@ func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 
 func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
 	c.enableHasBlockPartMsg = value
+}
+
+func (c *OecConfig) GetIavlAcNoBatch() bool {
+	return c.iavlAcNoBatch
+}
+
+func (c *OecConfig) SetIavlAcNoBatch(value bool) {
+	c.iavlAcNoBatch = value
 }

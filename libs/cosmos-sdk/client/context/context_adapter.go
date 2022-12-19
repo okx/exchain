@@ -2,11 +2,12 @@ package context
 
 import (
 	"encoding/json"
+	"os"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"gopkg.in/yaml.v2"
-	"os"
 )
 
 func (ctx CLIContext) WithProxy(cdc *codec.CodecProxy) CLIContext {
