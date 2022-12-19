@@ -1394,8 +1394,12 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 		if removeMemTx.realTx != nil {
 			removeMemTxHash = removeMemTx.realTx.TxHash()
 		}
-		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeTx.Value.(*mempoolTx).realTx.GetNonce(), "gp", removeTx.Value.(*mempoolTx).realTx.GetGasPrice())
+		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
 		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+
+		if mem.config.PendingRemoveEvent {
+			mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+		}
 	}
 }
 
