@@ -37,6 +37,7 @@ func SetDynamicConfig(c IDynamicConfig) {
 }
 
 type MockDynamicConfig struct {
+	enableDeleteMinGPTx bool
 }
 
 func (d MockDynamicConfig) GetMempoolRecheck() bool {
