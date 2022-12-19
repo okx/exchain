@@ -104,7 +104,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%CommitGapHeight == 0
+	// persist height = commitGapHeight + produceOffset
+	shouldPersist := version%CommitGapHeight == finalCommitGapOffset
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
