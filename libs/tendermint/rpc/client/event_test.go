@@ -62,21 +62,32 @@ func TestBlockEvents(t *testing.T) {
 			}
 
 			// listen for a new block; ensure height increases by 1
-			var firstBlockHeight int64
+			var (
+				firstBlockHeight int64
+				blockEvent       types.CM40EventDataNewBlock
+				ok               bool
+			)
+
 			for j := 0; j < 3; j++ {
 				evtTyp := types.EventNewBlock
 				evt, err := client.WaitForOneEvent(c, evtTyp, waitForEventTimeout)
 				require.Nil(t, err, "%d: %+v", j, err)
-				blockEvent, ok := evt.(types.EventDataNewBlock)
+
+				if ed, oke := evt.(types.EventDataNewBlock); oke {
+					blockEvent = blockEvent.From(ed)
+					ok = true
+				} else {
+					blockEvent, ok = evt.(types.CM40EventDataNewBlock)
+				}
 				require.True(t, ok, "%d: %#v", j, evt)
 
 				block := blockEvent.Block
 				if j == 0 {
-					firstBlockHeight = block.Header.Height
+					firstBlockHeight = block.IBCHeader.Height
 					continue
 				}
 
-				require.Equal(t, block.Header.Height, firstBlockHeight+int64(j))
+				require.Equal(t, block.IBCHeader.Height, firstBlockHeight+int64(j))
 			}
 		})
 	}

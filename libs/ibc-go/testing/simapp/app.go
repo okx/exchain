@@ -3,6 +3,7 @@ package simapp
 import (
 	"encoding/hex"
 	"fmt"
+
 	evm2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/evm"
 
 	"io"
@@ -13,9 +14,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/spf13/viper"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
@@ -88,9 +94,6 @@ import (
 	"github.com/okex/exchain/x/wasm"
 	wasmclient "github.com/okex/exchain/x/wasm/client"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/viper"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -256,6 +259,7 @@ type SimApp struct {
 
 	ibcScopeKeep capabilitykeeper.ScopedKeeper
 	WasmHandler  wasmkeeper.HandlerOption
+	gpo          *gasprice.Oracle
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -622,7 +626,7 @@ func NewSimApp(
 	}
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
-	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
+	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
@@ -630,6 +634,11 @@ func NewSimApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(func(...sdk.IWatcher) {})
+
+	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
+	app.gpo = gasprice.NewOracle(gpoConfig)
+	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
+
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -703,6 +712,16 @@ func getTxFeeHandler() sdk.GetTxFeeHandler {
 		}
 
 		return
+	}
+}
+
+func updateGPOHandler(gpo *gasprice.Oracle) sdk.UpdateGPOHandler {
+	return func(dynamicGpInfos []sdk.DynamicGasInfo) {
+		if appconfig.GetOecConfig().GetDynamicGpMode() != okexchain.MinimalGpMode {
+			for _, dgi := range dynamicGpInfos {
+				gpo.CurrentBlockGPs.Update(dgi.GetGP(), dgi.GetGU())
+			}
+		}
 	}
 }
 

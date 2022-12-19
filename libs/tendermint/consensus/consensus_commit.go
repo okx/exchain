@@ -24,6 +24,7 @@ func (cs *State) initNewHeight() {
 		// init StartTime
 		cs.StartTime = tmtime.Now()
 		cs.dumpElapsed(cs.blockTimeTrc, trace.LastBlockTime)
+		cs.traceDump()
 	}
 }
 
@@ -186,16 +187,19 @@ func (cs *State) finalizeCommit(height int64) {
 	fail.Fail() // XXX
 
 	// Save to blockStore.
+	blockTime := block.Time
 	if cs.blockStore.Height() < block.Height {
 		// NOTE: the seenCommit is local justification to commit this block,
 		// but may differ from the LastCommit included in the next block
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
+		blockTime = sm.MedianTime(seenCommit, cs.Validators)
 		cs.blockStore.SaveBlock(block, blockParts, seenCommit)
 	} else {
 		// Happens during replay if we already saved the block but didn't commit
 		cs.Logger.Info("Calling finalizeCommit on already stored block", "height", block.Height)
 	}
+	trace.GetElapsedInfo().AddInfo(trace.BTInterval, fmt.Sprintf("%dms", blockTime.Sub(block.Time).Milliseconds()))
 
 	fail.Fail() // XXX
 
@@ -230,6 +234,13 @@ func (cs *State) finalizeCommit(height int64) {
 	var retainHeight int64
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
+
+	// publish event of the latest block time
+	if types.EnableEventBlockTime {
+		validators := cs.Validators.Copy()
+		validators.IncrementProposerPriority(1)
+		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
+	}
 
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
@@ -354,7 +365,6 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	cs.traceDump()
 	cs.bt.reset(height)
 
 	cs.Validators = validators
@@ -431,6 +441,8 @@ func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
 					<-t.C
 				}
 				return res
+			} else {
+				return nil
 			}
 		case <-t.C:
 			return nil

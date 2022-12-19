@@ -133,6 +133,8 @@ func (ar *AddressRecord) DeleteItem(e *clist.CElement) {
 		am.Lock()
 		defer am.Unlock()
 		delete(am.items, e.Nonce)
+		//calculate max Nonce
+		am.maxNonce = calculateMaxNonce(am)
 		if len(am.items) == 0 {
 			ar.addrTxs.Delete(e.Address)
 		}
@@ -189,4 +191,25 @@ func (ar *AddressRecord) GetAddressTxs(address string, max int) types.Txs {
 		txs = append(txs, e.Value.(*mempoolTx).tx)
 	}
 	return txs
+}
+
+func calculateMaxNonce(data *addrMap) uint64 {
+	maxNonce := uint64(0)
+	for k, _ := range data.items {
+		if k > maxNonce {
+			maxNonce = k
+		}
+	}
+	return maxNonce
+}
+
+type AddressNonce struct {
+	addr  string
+	nonce uint64
+}
+
+var addressNoncePool = sync.Pool{
+	New: func() interface{} {
+		return &AddressNonce{}
+	},
 }
