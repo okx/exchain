@@ -2,9 +2,11 @@ package mempool
 
 import (
 	"bytes"
+	"container/heap"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 
 	"math/big"
 	"strconv"
@@ -65,6 +67,11 @@ type CListMempool struct {
 	recheckCursor *clist.CElement // next expected response
 	recheckEnd    *clist.CElement // re-checking stops here
 
+	recheckHeap     sync.Map // recheck map for heapqueue
+	recheckHeapSize int64    // recheck size for heapqueue
+
+	minimumGasPrice atomic.Value
+
 	// Keep a cache of already-seen txs.
 	// This reduces the pressure on the proxyApp.
 	// Save wtx as value if occurs or save nil as value
@@ -121,18 +128,20 @@ func NewCListMempool(
 		panic(err)
 	}
 	mempool := &CListMempool{
-		config:        config,
-		proxyAppConn:  proxyAppConn,
-		height:        height,
-		recheckCursor: nil,
-		recheckEnd:    nil,
-		eventBus:      types.NopEventBus{},
-		logger:        log.NewNopLogger(),
-		metrics:       NopMetrics(),
-		txs:           txQueue,
-		simQueue:      make(chan *mempoolTx, 100000),
-		gasCache:      gasCache,
+		config:          config,
+		proxyAppConn:    proxyAppConn,
+		height:          height,
+		recheckCursor:   nil,
+		recheckEnd:      nil,
+		eventBus:        types.NopEventBus{},
+		logger:          log.NewNopLogger(),
+		metrics:         NopMetrics(),
+		txs:             txQueue,
+		simQueue:        make(chan *mempoolTx, 100000),
+		gasCache:        gasCache,
+		recheckHeapSize: 0,
 	}
+	mempool.minimumGasPrice.Store(big.NewInt(0))
 	go mempool.simulationRoutine()
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
@@ -222,8 +231,17 @@ func (mem *CListMempool) Flush() {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
 
-	for e := mem.txs.Front(); e != nil; e = e.Next() {
-		mem.removeTx(e)
+	if mem.txs.Type() != HeapQueueType {
+		for e := mem.txs.Front(); e != nil; e = e.Next() {
+			mem.removeTx(e)
+		}
+	} else {
+		hq := mem.txs.(*HeapQueue)
+		for _, v := range hq.txs {
+			for e := v.Front(); e != nil; e = e.Next() {
+				mem.removeTx(e)
+			}
+		}
 	}
 
 	_ = atomic.SwapInt64(&mem.txsBytes, 0)
@@ -363,6 +381,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 // When rechecking, we don't need the peerID, so the recheck callback happens
 // here.
 func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
+	if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) == 0 {
+		return
+	}
 	if mem.recheckCursor == nil {
 		return
 	}
@@ -389,6 +410,10 @@ func (mem *CListMempool) reqResCb(
 	externalCb func(*abci.Response),
 ) func(res *abci.Response) {
 	return func(res *abci.Response) {
+		if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) != 0 {
+			panic("recheck cursor is not nil in reqResCb")
+		}
+
 		if mem.recheckCursor != nil {
 			// this should never happen
 			panic("recheck cursor is not nil in reqResCb")
@@ -665,12 +690,20 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 	switch r := res.Value.(type) {
 	case *abci.Response_CheckTx:
 		tx := req.GetCheckTx().Tx
-		memTx := mem.recheckCursor.Value.(*mempoolTx)
-		if !bytes.Equal(tx, memTx.tx) {
-			panic(fmt.Sprintf(
-				"Unexpected tx response from proxy during recheck\nExpected %X, got %X",
-				memTx.tx,
-				tx))
+
+		var memTx *mempoolTx
+		if mem.txs.Type() == HeapQueueType {
+			txkey := etherhash.Sum(tx)
+			value, ok := mem.recheckHeap.LoadAndDelete(txkey)
+			if !ok {
+				panic(fmt.Sprintf("The tx %X is not exist in recheckHeap. %X", txkey, tx))
+			}
+			memTx = value.(*mempoolTx)
+		} else {
+			memTx = mem.recheckCursor.Value.(*mempoolTx)
+			if !bytes.Equal(tx, memTx.tx) {
+				panic(fmt.Sprintf("Unexpected tx response from proxy during recheck\nExpected %X, got %X", memTx.tx, tx))
+			}
 		}
 		var postCheckErr error
 		if mem.postCheck != nil {
@@ -683,7 +716,17 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			mem.logger.Info("Tx is no longer valid", "tx", txIDStringer{tx, memTx.height}, "res", r, "err", postCheckErr)
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.cache.Remove(tx)
-			mem.removeTx(mem.recheckCursor)
+			mem.removeTxByKey(txKeyFromMempoolTx(memTx))
+		}
+		if mem.txs.Type() == HeapQueueType {
+			atomic.AddInt64(&mem.recheckHeapSize, -1)
+			if atomic.LoadInt64(&mem.recheckHeapSize) == 0 {
+				// Done!
+				mem.logger.Info("Done rechecking txs")
+				// incase the recheck removed all txs
+				mem.notifyTxsAvailable()
+			}
+			return
 		}
 		if mem.recheckCursor == mem.recheckEnd {
 			mem.recheckCursor = nil
@@ -1125,6 +1168,23 @@ func (mem *CListMempool) recheckTxs() {
 		panic("recheckTxs is called, but the mempool is empty")
 	}
 
+	if mem.txs.Type() == HeapQueueType {
+		hq := mem.txs.(*HeapQueue)
+		for _, v := range hq.txs {
+			for e := v.Front(); e != nil; e = e.Next() {
+				memTx := e.Value.(*mempoolTx)
+				mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{
+					Tx:   memTx.tx,
+					Type: abci.CheckTxType_Recheck,
+				})
+
+				mem.recheckHeap.Store(etherhash.Sum(memTx.tx), memTx)
+				atomic.AddInt64(&mem.recheckHeapSize, 1)
+			}
+		}
+		mem.proxyAppConn.FlushAsync()
+		return
+	}
 	mem.recheckCursor = mem.txs.Front()
 	mem.recheckEnd = mem.txs.Back()
 
@@ -1269,6 +1329,14 @@ func txOrTxHashToKey(tx types.Tx, txHash []byte, height int64) (retHash [sha256.
 	} else {
 		return txKey(tx)
 	}
+}
+
+func txKeyFromMempoolTx(tx *mempoolTx) [sha256.Size]byte {
+	var txHash []byte
+	if tx.realTx != nil {
+		txHash = tx.realTx.TxHash()
+	}
+	return txOrTxHashToKey(tx.tx, txHash, tx.height)
 }
 
 type txIDStringer struct {

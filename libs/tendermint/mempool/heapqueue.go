@@ -2,10 +2,10 @@ package mempool
 
 import (
 	"container/heap"
+	"errors"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -36,7 +36,7 @@ func (hq *HeapQueue) tryInsert(tx *mempoolTx) (err error) {
 		close(hq.waitCh)
 	}
 	var gq *clist.CList = nil
-	key := txKey(tx.tx)
+	key := txKeyFromMempoolTx(tx)
 	gq, ok := hq.txs[tx.from]
 	if !ok {
 		gq = clist.New()
@@ -83,7 +83,7 @@ func (hq *HeapQueue) Remove(element *clist.CElement) {
 	defer hq.mutex.Unlock()
 	if gq, ok := hq.txs[element.Address]; ok {
 		gq.Remove(element)
-		key := txKey(element.Value.(*mempoolTx).tx)
+		key := txKeyFromMempoolTx(element.Value.(*mempoolTx))
 		hq.txsMap.Delete(key)
 		atomic.AddInt32(&hq.txCount, -1)
 		if atomic.LoadInt32(&hq.txCount) == 0 {
@@ -119,11 +119,11 @@ func (hq *HeapQueue) RemoveByKey(key [32]byte) *clist.CElement {
 }
 
 func (hq *HeapQueue) Front() *clist.CElement {
-	return nil
+	panic(errors.New("HeapQueue not support Front()"))
 }
 
 func (hq *HeapQueue) Back() *clist.CElement {
-	return nil
+	panic(errors.New("HeapQueue not support Back()"))
 }
 
 func (hq *HeapQueue) BroadcastFront() *clist.CElement {
@@ -207,7 +207,7 @@ func (hq *HeapQueue) CleanItems(address string, nonce uint64) {
 				temp := e
 				e = e.Next()
 				gq.Remove(temp)
-				key := txKey(temp.Value.(*mempoolTx).tx)
+				key := txKeyFromMempoolTx(temp.Value.(*mempoolTx))
 				hq.txsMap.Delete(key)
 				atomic.AddInt32(&hq.txCount, -1)
 				if atomic.LoadInt32(&hq.txCount) == 0 {
@@ -238,6 +238,20 @@ func (hq *HeapQueue) Init() mempoolTxsByPrice {
 	heads := make(mempoolTxsByPrice, 0, len(hq.txs))
 	for _, accTxs := range hq.txs {
 		e := accTxs.Front()
+		if e != nil {
+			heads = append(heads, e)
+		}
+	}
+	heap.Init(&heads)
+	return heads
+}
+
+func (hq *HeapQueue) InitReverse() mempoolTxsByPriceReverse {
+	hq.mutex.Lock()
+	defer hq.mutex.Unlock()
+	heads := make(mempoolTxsByPriceReverse, 0, len(hq.txs))
+	for _, accTxs := range hq.txs {
+		e := accTxs.Back()
 		if e != nil {
 			heads = append(heads, e)
 		}
@@ -279,9 +293,6 @@ func (s mempoolTxsByPrice) Less(i, j int) bool {
 	// If the prices are equal, use the time the transaction was first seen for
 	// deterministic sorting
 	cmp := s[i].GasPrice.Cmp(s[j].GasPrice)
-	if cmp == 0 {
-		return strings.Compare(s[i].Address, s[j].Address) >= 0
-	}
 	return cmp > 0
 }
 func (s mempoolTxsByPrice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -291,6 +302,29 @@ func (s *mempoolTxsByPrice) Push(x interface{}) {
 }
 
 func (s *mempoolTxsByPrice) Pop() interface{} {
+	old := *s
+	n := len(old)
+	x := old[n-1]
+	*s = old[0 : n-1]
+	return x
+}
+
+type mempoolTxsByPriceReverse []*clist.CElement
+
+func (s mempoolTxsByPriceReverse) Len() int { return len(s) }
+func (s mempoolTxsByPriceReverse) Less(i, j int) bool {
+	// If the prices are equal, use the time the transaction was first seen for
+	// deterministic sorting
+	cmp := s[i].GasPrice.Cmp(s[j].GasPrice)
+	return cmp < 0
+}
+func (s mempoolTxsByPriceReverse) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s *mempoolTxsByPriceReverse) Push(x interface{}) {
+	*s = append(*s, x.(*clist.CElement))
+}
+
+func (s *mempoolTxsByPriceReverse) Pop() interface{} {
 	old := *s
 	n := len(old)
 	x := old[n-1]
