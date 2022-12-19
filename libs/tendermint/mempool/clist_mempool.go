@@ -2,9 +2,11 @@ package mempool
 
 import (
 	"bytes"
+	"container/heap"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 
 	"math/big"
 	"strconv"
@@ -64,6 +66,11 @@ type CListMempool struct {
 	// serial (ie. by abci responses which are called in serial).
 	recheckCursor *clist.CElement // next expected response
 	recheckEnd    *clist.CElement // re-checking stops here
+
+	recheckHeap     sync.Map // recheck map for heapqueue
+	recheckHeapSize int64    // recheck size for heapqueue
+
+	minimumGasPrice atomic.Value
 
 	// Keep a cache of already-seen txs.
 	// This reduces the pressure on the proxyApp.
@@ -125,18 +132,20 @@ func NewCListMempool(
 		panic(err)
 	}
 	mempool := &CListMempool{
-		config:        config,
-		proxyAppConn:  proxyAppConn,
-		height:        height,
-		recheckCursor: nil,
-		recheckEnd:    nil,
-		eventBus:      types.NopEventBus{},
-		logger:        log.NewNopLogger(),
-		metrics:       NopMetrics(),
-		txs:           txQueue,
-		simQueue:      make(chan *mempoolTx, 100000),
-		gasCache:      gasCache,
+		config:          config,
+		proxyAppConn:    proxyAppConn,
+		height:          height,
+		recheckCursor:   nil,
+		recheckEnd:      nil,
+		eventBus:        types.NopEventBus{},
+		logger:          log.NewNopLogger(),
+		metrics:         NopMetrics(),
+		txs:             txQueue,
+		simQueue:        make(chan *mempoolTx, 100000),
+		gasCache:        gasCache,
+		recheckHeapSize: 0,
 	}
+	mempool.minimumGasPrice.Store(big.NewInt(0))
 
 	if config.PendingRemoveEvent {
 		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
@@ -236,8 +245,17 @@ func (mem *CListMempool) Flush() {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
 
-	for e := mem.txs.Front(); e != nil; e = e.Next() {
-		mem.removeTx(e)
+	if mem.txs.Type() != HeapQueueType {
+		for e := mem.txs.Front(); e != nil; e = e.Next() {
+			mem.removeTx(e)
+		}
+	} else {
+		hq := mem.txs.(*HeapQueue)
+		for _, v := range hq.txs {
+			for e := v.Front(); e != nil; e = e.Next() {
+				mem.removeTx(e)
+			}
+		}
 	}
 
 	_ = atomic.SwapInt64(&mem.txsBytes, 0)
@@ -384,6 +402,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 // When rechecking, we don't need the peerID, so the recheck callback happens
 // here.
 func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
+	if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) == 0 {
+		return
+	}
 	if mem.recheckCursor == nil {
 		return
 	}
@@ -410,6 +431,10 @@ func (mem *CListMempool) reqResCb(
 	externalCb func(*abci.Response),
 ) func(res *abci.Response) {
 	return func(res *abci.Response) {
+		if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) != 0 {
+			panic("recheck cursor is not nil in reqResCb")
+		}
+
 		if mem.recheckCursor != nil {
 			// this should never happen
 			panic("recheck cursor is not nil in reqResCb")
@@ -542,11 +567,18 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		if err := mem.isFull(len(pendingTx.tx)); err != nil {
-			minGPTx := mem.txs.Back().Value.(*mempoolTx)
+			minGasPrice := big.NewInt(0)
+			if mem.txs.Type() == HeapQueueType {
+				minGasPrice = mem.minimumGasPrice.Load().(*big.Int)
+			} else {
+				minGPTx := mem.txs.Back().Value.(*mempoolTx)
+				minGasPrice = minGPTx.realTx.GetGasPrice()
+			}
+
 			// If disable deleteMinGPTx, it'old logic, must be remove cache key
 			// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
 
-			thresholdGasPrice := MultiPriceBump(minGPTx.realTx.GetGasPrice(), int64(mem.config.TxPriceBump))
+			thresholdGasPrice := MultiPriceBump(minGasPrice, int64(mem.config.TxPriceBump))
 			if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(pendingTx.realTx.GetGasPrice()) >= 0) {
 				time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 				continue
@@ -630,10 +662,16 @@ func (mem *CListMempool) resCbFirstTime(
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
-				minGPTx := mem.txs.Back().Value.(*mempoolTx)
+				minGasPrice := big.NewInt(0)
+				if mem.txs.Type() == HeapQueueType {
+					minGasPrice = mem.minimumGasPrice.Load().(*big.Int)
+				} else {
+					minGPTx := mem.txs.Back().Value.(*mempoolTx)
+					minGasPrice = minGPTx.realTx.GetGasPrice()
+				}
 				// If disable deleteMinGPTx, it'old logic, must be remove cache key
 				// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
-				thresholdGasPrice := MultiPriceBump(minGPTx.realTx.GetGasPrice(), int64(mem.config.TxPriceBump))
+				thresholdGasPrice := MultiPriceBump(minGasPrice, int64(mem.config.TxPriceBump))
 				if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0) {
 					// remove from cache (mempool might have a space later)
 					mem.cache.RemoveKey(txkey)
@@ -716,12 +754,20 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 	switch r := res.Value.(type) {
 	case *abci.Response_CheckTx:
 		tx := req.GetCheckTx().Tx
-		memTx := mem.recheckCursor.Value.(*mempoolTx)
-		if !bytes.Equal(tx, memTx.tx) {
-			panic(fmt.Sprintf(
-				"Unexpected tx response from proxy during recheck\nExpected %X, got %X",
-				memTx.tx,
-				tx))
+
+		var memTx *mempoolTx
+		if mem.txs.Type() == HeapQueueType {
+			txkey := etherhash.Sum(tx)
+			value, ok := mem.recheckHeap.LoadAndDelete(txkey)
+			if !ok {
+				panic(fmt.Sprintf("The tx %X is not exist in recheckHeap. %X", txkey, tx))
+			}
+			memTx = value.(*mempoolTx)
+		} else {
+			memTx = mem.recheckCursor.Value.(*mempoolTx)
+			if !bytes.Equal(tx, memTx.tx) {
+				panic(fmt.Sprintf("Unexpected tx response from proxy during recheck\nExpected %X, got %X", memTx.tx, tx))
+			}
 		}
 		var postCheckErr error
 		if mem.postCheck != nil {
@@ -734,7 +780,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			mem.logger.Info("Tx is no longer valid", "tx", txIDStringer{tx, memTx.height}, "res", r, "err", postCheckErr)
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.cache.Remove(tx)
-			mem.removeTx(mem.recheckCursor)
+			mem.removeTxByKey(txKeyFromMempoolTx(memTx))
 
 			if mem.config.PendingRemoveEvent {
 				mem.rmPendingTxChan <- types.EventDataRmPendingTx{
@@ -744,6 +790,16 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 					types.Recheck,
 				}
 			}
+		}
+		if mem.txs.Type() == HeapQueueType {
+			atomic.AddInt64(&mem.recheckHeapSize, -1)
+			if atomic.LoadInt64(&mem.recheckHeapSize) == 0 {
+				// Done!
+				mem.logger.Info("Done rechecking txs")
+				// incase the recheck removed all txs
+				mem.notifyTxsAvailable()
+			}
+			return
 		}
 		if mem.recheckCursor == mem.recheckEnd {
 			mem.recheckCursor = nil
@@ -1205,6 +1261,23 @@ func (mem *CListMempool) recheckTxs() {
 		panic("recheckTxs is called, but the mempool is empty")
 	}
 
+	if mem.txs.Type() == HeapQueueType {
+		hq := mem.txs.(*HeapQueue)
+		for _, v := range hq.txs {
+			for e := v.Front(); e != nil; e = e.Next() {
+				memTx := e.Value.(*mempoolTx)
+				mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{
+					Tx:   memTx.tx,
+					Type: abci.CheckTxType_Recheck,
+				})
+
+				mem.recheckHeap.Store(etherhash.Sum(memTx.tx), memTx)
+				atomic.AddInt64(&mem.recheckHeapSize, 1)
+			}
+		}
+		mem.proxyAppConn.FlushAsync()
+		return
+	}
 	mem.recheckCursor = mem.txs.Front()
 	mem.recheckEnd = mem.txs.Back()
 
@@ -1351,6 +1424,14 @@ func txOrTxHashToKey(tx types.Tx, txHash []byte, height int64) (retHash [sha256.
 	}
 }
 
+func txKeyFromMempoolTx(tx *mempoolTx) [sha256.Size]byte {
+	var txHash []byte
+	if tx.realTx != nil {
+		txHash = tx.realTx.TxHash()
+	}
+	return txOrTxHashToKey(tx.tx, txHash, tx.height)
+}
+
 type txIDStringer struct {
 	tx     []byte
 	height int64
@@ -1441,21 +1522,56 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 }
 
 func (mem *CListMempool) deleteMinGPTxOnlyFull() {
-	//check weather exceed mempool size,then need to delet the minimum gas price
-	for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
-		removeTx := mem.txs.Back()
-		mem.removeTx(removeTx)
+	if mem.txs.Type() == HeapQueueType {
+		hq := mem.txs.(*HeapQueue)
+		heads := hq.InitReverse()
 
-		removeMemTx := removeTx.Value.(*mempoolTx)
-		var removeMemTxHash []byte
-		if removeMemTx.realTx != nil {
-			removeMemTxHash = removeMemTx.realTx.TxHash()
+		//check weather exceed mempool size,then need to delet the minimum gas price
+		for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+			removeTx := heads[0].Value.(*clist.CElement)
+			if removeTx == nil {
+				break
+			}
+			if e := removeTx.Prev(); e != nil {
+				heads[0] = e
+				heap.Fix(&heads, 0)
+			} else {
+				heap.Pop(&heads)
+			}
+			mem.minimumGasPrice.Store(heads[0].GasPrice)
+
+			mem.removeTx(removeTx)
+
+			removeMemTx := removeTx.Value.(*mempoolTx)
+			var removeMemTxHash []byte
+			if removeMemTx.realTx != nil {
+				removeMemTxHash = removeMemTx.realTx.TxHash()
+			}
+			mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
+			mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+
+			if mem.config.PendingRemoveEvent {
+				mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+			}
+
 		}
-		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
-		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+	} else {
+		//check weather exceed mempool size,then need to delet the minimum gas price
+		for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+			removeTx := mem.txs.Back()
+			mem.removeTx(removeTx)
 
-		if mem.config.PendingRemoveEvent {
-			mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+			removeMemTx := removeTx.Value.(*mempoolTx)
+			var removeMemTxHash []byte
+			if removeMemTx.realTx != nil {
+				removeMemTxHash = removeMemTx.realTx.TxHash()
+			}
+			mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
+			mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+
+			if mem.config.PendingRemoveEvent {
+				mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+			}
 		}
 	}
 }
