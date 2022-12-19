@@ -6,24 +6,24 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
-	"math"
-	"path/filepath"
-	"strconv"
-	"strings"
-
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	paramtypes "github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/okex/exchain/x/wasm/watcher"
+	"math"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
@@ -78,6 +78,7 @@ type Keeper struct {
 	wasmVMQueryHandler    WasmVMQueryHandler
 	wasmVMResponseHandler WasmVMResponseHandler
 	messenger             Messenger
+	innertxKeeper         innertx.InnerTxKeeper
 
 	// queryGasLimit is the max wasmvm gas that can be spent on executing a query with a contract
 	queryGasLimit     uint64
@@ -203,17 +204,6 @@ func (k Keeper) IsContractMethodBlocked(ctx sdk.Context, contractAddr, method st
 }
 
 func (k Keeper) GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedBlockedUpdate() {
-			cms := k.getAllBlockedList(ctx)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateBlockedContractMethod(cms)
-			}
-			return types.FindContractMethods(cms, contractAddr)
-		}
-		return GetWasmParamsCache().GetBlockedContractMethod(contractAddr)
-	}
-
 	return k.getContractMethodBlockedList(ctx, contractAddr)
 }
 
@@ -287,16 +277,6 @@ func (k Keeper) getInstantiateAccessConfig(ctx sdk.Context) types.AccessType {
 // GetParams returns the total set of wasm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedParamsUpdate() {
-			k.paramSpace.GetParamSet(ctx, &params)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateParams(params)
-			}
-			return params
-		}
-		return GetWasmParamsCache().GetParams()
-	}
 	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
@@ -441,6 +421,9 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStoreAdapter, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
+	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, creator, contractAddress, innertx.CosmosCallType, types.InstantiateInnertxName, sdk.Coins{}, err, gasUsed, string(initMsg))
+	}
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrInstantiateFailed, err.Error())
 	}
@@ -523,6 +506,9 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 
 	res, gasUsed, execErr := k.wasmVM.Execute(codeInfo.CodeHash, env, info, msg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
+	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.ExecuteInnertxName, coins, err, gasUsed, string(msg))
+	}
 	if execErr != nil {
 		return nil, sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	}
@@ -586,6 +572,9 @@ func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, err := k.wasmVM.Migrate(newCodeInfo.CodeHash, env, msg, &prefixAdapater, cosmwasmAPI, &querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
+	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.MigrateInnertxName, sdk.Coins{}, err, gasUsed, string(msg))
+	}
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrMigrationFailed, err.Error())
 	}
@@ -710,7 +699,13 @@ func (k Keeper) IterateContractsByCode(ctx sdk.Context, codeID uint64, cb func(a
 	}
 }
 
-func (k Keeper) setContractAdmin(ctx sdk.Context, contractAddress, caller, newAdmin sdk.AccAddress, authZ AuthorizationPolicy) error {
+func (k Keeper) setContractAdmin(ctx sdk.Context, contractAddress, caller, newAdmin sdk.AccAddress, authZ AuthorizationPolicy) (err error) {
+	gas := ctx.GasMeter().GasConsumed()
+	defer func() {
+		if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+			k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.SetContractAdminInnertxName, sdk.Coins{}, err, (ctx.GasMeter().GasConsumed() - gas), "")
+		}
+	}()
 	contractInfo := k.GetContractInfo(ctx, contractAddress)
 	if contractInfo == nil {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "unknown contract")
@@ -1204,6 +1199,10 @@ func (k Keeper) gasMeter(ctx sdk.Context) MultipliedGasMeter {
 // Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return moduleLogger(ctx)
+}
+
+func (k *Keeper) SetInnerTxKeeper(innertxKeeper innertx.InnerTxKeeper) {
+	k.innertxKeeper = innertxKeeper
 }
 
 func moduleLogger(ctx sdk.Context) log.Logger {

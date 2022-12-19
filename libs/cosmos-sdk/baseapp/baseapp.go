@@ -9,10 +9,11 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -30,7 +31,6 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -154,6 +154,7 @@ type BaseApp struct { // nolint: maligned
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
 
+	updateGPOHandler sdk.UpdateGPOHandler
 	// volatile states:
 	//
 	// checkState is set on InitChain and reset on Commit
@@ -202,7 +203,7 @@ type BaseApp struct { // nolint: maligned
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	feeCollector          sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
-	FeeSplitCollector     *sync.Map
+	FeeSplitCollector     []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -261,7 +262,7 @@ func NewBaseApp(
 		interceptors:     make(map[string]Interceptor),
 
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
-		FeeSplitCollector:       &sync.Map{},
+		FeeSplitCollector:       make([]*sdk.FeeSplitInfo, 0),
 	}
 
 	for _, option := range options {
@@ -696,14 +697,13 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 		})
 		ctx.SetTxBytes(txBytes)
-		if watcher := ctx.GetWatcher(); watcher != nil && watcher.Enabled() {
-			ctx.ResetWatcher()
-		}
+		ctx.ResetWatcher()
 	}
 
 	if mode == runTxModeDeliver {
 		ctx.SetDeliver()
 	}
+	ctx.SetFeeSplitInfo(&sdk.FeeSplitInfo{})
 
 	return ctx
 }

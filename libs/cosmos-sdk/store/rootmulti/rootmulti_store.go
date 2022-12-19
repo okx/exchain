@@ -9,10 +9,15 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
+
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/system/trace/persist"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
@@ -26,6 +31,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	iavltree "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/iavl/config"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -592,9 +598,12 @@ func (rs *Store) CommitterCommit(*iavltree.TreeDelta) (_ types.CommitID, _ *iavl
 
 // Implements Committer/CommitStore.
 func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.CommitID, iavltree.TreeDeltaMap) {
+	iavltree.IavlCommitAsyncNoBatch = cfg.DynamicConfig.GetIavlAcNoBatch()
+
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
 
+	tsCommitStores := time.Now()
 	var outputDeltaMap iavltree.TreeDeltaMap
 	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitFilters)
 
@@ -631,7 +640,11 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 		rs.versions = append(rs.versions, version)
 	}
+	persist.GetStatistics().Accumulate(trace.CommitStores, tsCommitStores)
+
+	tsFlushMeta := time.Now()
 	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	persist.GetStatistics().Accumulate(trace.FlushMeta, tsFlushMeta)
 
 	return types.CommitID{
 		Version: version,
@@ -1180,6 +1193,11 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
+
+	// updata commit gap height
+	if iavltree.EnableAsyncCommit {
+		iavltree.UpdateCommitGapHeight(config.DynamicConfig.GetCommitGapHeight())
+	}
 	for key, store := range storeMap {
 		sName := key.Name()
 		if evmAccStoreFilter(sName, version) {
@@ -1218,7 +1236,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
 	}
-
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,

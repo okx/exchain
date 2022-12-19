@@ -5,6 +5,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 )
 
@@ -30,6 +31,10 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*HasHasAnimalI)(nil),
 		&HasHasAnimal{},
+	)
+	registry.RegisterImplementations(
+		(*txmsg.Msg)(nil),
+		&MsgCreateDog{},
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)

@@ -130,8 +130,8 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, errors.New("storage version is not fast")
 	}
 
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
+	ndb.mtx.RLock()
+	defer ndb.mtx.RUnlock()
 
 	if len(key) == 0 {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
@@ -589,6 +589,14 @@ func (ndb *nodeDB) saveOrphan(batch dbm.Batch, hash []byte, fromVersion, toVersi
 	}
 	key := ndb.orphanKey(fromVersion, toVersion, hash)
 	batch.Set(key, hash)
+}
+
+func (ndb *nodeDB) saveOrphanToDB(hash []byte, fromVersion, toVersion int64) error {
+	if fromVersion > toVersion {
+		panic(fmt.Sprintf("Orphan expires before it comes alive.  %d > %d", fromVersion, toVersion))
+	}
+	key := ndb.orphanKey(fromVersion, toVersion, hash)
+	return ndb.db.Set(key, hash)
 }
 
 func (ndb *nodeDB) log(level int, msg string, kv ...interface{}) {

@@ -11,15 +11,20 @@ import (
 	"runtime/pprof"
 	"time"
 
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
@@ -66,6 +71,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 				fmt.Println(err)
 				return err
 			}
+			iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 			server.SetExternalPackageValue(cmd)
 			types.InitSignatureCache()
 			return nil
@@ -180,6 +186,10 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
+
+	viper.SetDefault(watcher.FlagFastQuery, false)
+	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
+	viper.SetDefault(iavl.FlagIavlCommitAsyncNoBatch, true)
 
 	return cmd
 }

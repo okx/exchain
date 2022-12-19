@@ -1,14 +1,13 @@
 package client
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
+	"github.com/okex/exchain/app/rpc/websockets"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/system/trace"
@@ -21,10 +20,11 @@ import (
 	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
+	"github.com/spf13/cobra"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
-	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Bool(watcher.FlagFastQuery, true, "Enable the fast query mode for rpc queries")
 	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 10, "Set the threshold of fast query")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().Int(backend.FlagApiBackendBlockLruCache, 30000, "Set the size of block LRU cache for backend mem cache")
@@ -32,7 +32,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagCheckWd, false, "Enable check watchDB in log")
 	cmd.Flags().Bool(rpc.FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(rpc.FlagDebugAPI, false, "Enable the debug_ prefixed set of APIs in the Web3 JSON-RPC spec")
-	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, false, "Enable bloom filter for event logs")
+	cmd.Flags().Bool(evmtypes.FlagEnableBloomFilter, true, "Enable bloom filter for event logs")
 	cmd.Flags().Int64(filters.FlagGetLogsHeightSpan, 2000, "config the block height span for get logs")
 	// register application rpc to nacos
 	cmd.Flags().String(rpc.FlagRestApplicationName, "", "rest application name in  nacos")
@@ -56,9 +56,16 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(rpc.FlagRateLimitBurst, 1, "Set the concurrent count of requests allowed of rpc rate limiter")
 	cmd.Flags().Uint64(config.FlagGasLimitBuffer, 50, "Percentage to increase gas limit")
 	cmd.Flags().String(rpc.FlagDisableAPI, "", "Set the RPC API to be disabled, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
+
+	cmd.Flags().Bool(config.FlagEnableDynamicGp, false, "Enable node to dynamic support gas price suggest")
+	cmd.Flags().MarkHidden(config.FlagEnableDynamicGp)
+	cmd.Flags().Int64(config.FlagDynamicGpMaxTxNum, 300, "If tx number in the block is more than this, the network is congested.")
+	cmd.Flags().Int64(config.FlagDynamicGpMaxGasUsed, types.NoGasUsedCap, "If the block gas used is more than this, the network is congested.")
 	cmd.Flags().Int(config.FlagDynamicGpWeight, 80, "The recommended weight of dynamic gas price [1,100])")
 	cmd.Flags().Int(config.FlagDynamicGpCheckBlocks, 5, "The recommended number of blocks checked of dynamic gas price [1,100])")
-	cmd.Flags().Bool(config.FlagEnableDynamicGp, true, "Enable node to dynamic support gas price suggest")
+	cmd.Flags().Int(config.FlagDynamicGpCoefficient, 1, "Adjustment coefficient of dynamic gas price [1,100])")
+	cmd.Flags().Int(config.FlagDynamicGpMode, types.MinimalGpMode, "Dynamic gas price mode (0: higher price|1: normal price|2: minimal price) is used to manage flags")
+
 	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")
 
@@ -97,10 +104,10 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 
 	cmd.Flags().String(tmdb.FlagGoLeveldbOpts, "", "Options of goleveldb. (cache_size=128MB,handlers_num=1024)")
-	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1)")
-	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|validator|archive) is used to manage flags")
+	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1,unordered_write=true,pipelined_write=true)")
+	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|val|archive) is used to manage flags")
 
-	cmd.Flags().Bool(consensus.EnablePrerunTx, false, "enable proactively runtx mode, default close")
+	cmd.Flags().Bool(consensus.EnablePrerunTx, true, "enable proactively runtx mode, default close")
 	cmd.Flags().String(automation.ConsensusRole, "", "consensus role")
 	cmd.Flags().String(automation.ConsensusTestcase, "", "consensus test case file")
 
@@ -109,6 +116,9 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+
+	cmd.Flags().Int64(config.FlagCommitGapOffset, 0, "Offset to stagger ac ahead of proposal")
+	cmd.Flags().MarkHidden(config.FlagCommitGapOffset)
 
 	// flags for infura rpc
 	cmd.Flags().Bool(infura.FlagEnable, false, "Enable infura rpc service")
@@ -124,5 +134,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
 	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
+	cmd.Flags().Int(websockets.FlagSubscribeLimit, 15, "Maximum subscription on a websocket connection")
 	wasm.AddModuleInitFlags(cmd)
 }

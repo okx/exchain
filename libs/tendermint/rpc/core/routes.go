@@ -36,6 +36,7 @@ var Routes = map[string]*rpc.RPCFunc{
 	"user_unconfirmed_txs":     rpc.NewRPCFunc(UserUnconfirmedTxs, "address,limit"),
 	"user_num_unconfirmed_txs": rpc.NewRPCFunc(UserNumUnconfirmedTxs, "address"),
 	"get_address_list":         rpc.NewRPCFunc(GetAddressList, ""),
+	"block_search":             rpc.NewRPCFunc(BlockSearch, "query,page,per_page,order_by"),
 
 	// tx broadcast API
 	"broadcast_tx_commit": rpc.NewRPCFunc(BroadcastTxCommit, "tx"),
@@ -48,6 +49,10 @@ var Routes = map[string]*rpc.RPCFunc{
 
 	// evidence API
 	"broadcast_evidence": rpc.NewRPCFunc(BroadcastEvidence, "evidence"),
+
+	"tx_simulate_gas": rpc.NewRPCFunc(TxSimulateGasCost, "hash"),
+
+	"get_enable_delete_min_gp_tx": rpc.NewRPCFunc(GetEnableDeleteMinGPTx, ""),
 }
 
 func AddUnsafeRoutes() {
