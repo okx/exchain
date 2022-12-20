@@ -136,6 +136,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.SortTxByGp,
 		"Sort tx by gas price in mempool",
 	)
+	cmd.Flags().Bool(
+		"mempool.sort_tx_by_gp_with_heap",
+		config.Mempool.SortTxByGpWithHeap,
+		"Sort tx by gas price with heap in mempool",
+	)
 	cmd.Flags().Uint64(
 		"mempool.tx_price_bump",
 		config.Mempool.TxPriceBump,

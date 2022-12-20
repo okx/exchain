@@ -239,7 +239,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
 	}
 
-	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)
+	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp || ctx.Config.Mempool.SortTxByGpWithHeap, cfg.Mempool.EnablePendingPool)
 
 	if cfg.Mempool.EnablePendingPool {
 		cliCtx := context.NewCLIContext().WithProxy(cdc)

@@ -118,6 +118,8 @@ func NewCListMempool(
 	var txQueue ITransactionQueue
 	if config.SortTxByGp {
 		txQueue = NewOptimizedTxQueue(int64(config.TxPriceBump))
+	} else if config.SortTxByGpWithHeap {
+		txQueue = NewHeapQueue(int64(config.TxPriceBump))
 	} else {
 		txQueue = NewBaseTxQueue()
 	}
@@ -382,8 +384,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
 	if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) == 0 {
 		return
-	}
-	if mem.recheckCursor == nil {
+	} else if mem.txs.Type() != HeapQueueType && mem.recheckCursor == nil {
 		return
 	}
 
@@ -411,9 +412,7 @@ func (mem *CListMempool) reqResCb(
 	return func(res *abci.Response) {
 		if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) != 0 {
 			panic("recheck cursor is not nil in reqResCb")
-		}
-
-		if mem.recheckCursor != nil {
+		} else if mem.txs.Type() == HeapQueueType && mem.recheckCursor != nil {
 			// this should never happen
 			panic("recheck cursor is not nil in reqResCb")
 		}
@@ -692,7 +691,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 
 		var memTx *mempoolTx
 		if mem.txs.Type() == HeapQueueType {
-			txkey := etherhash.Sum(tx)
+			txkey := hex.EncodeToString(etherhash.Sum(tx))
 			value, ok := mem.recheckHeap.LoadAndDelete(txkey)
 			if !ok {
 				panic(fmt.Sprintf("The tx %X is not exist in recheckHeap. %X", txkey, tx))
@@ -1172,13 +1171,14 @@ func (mem *CListMempool) recheckTxs() {
 		for _, v := range hq.txs {
 			for e := v.Front(); e != nil; e = e.Next() {
 				memTx := e.Value.(*mempoolTx)
+				hash := hex.EncodeToString(etherhash.Sum(memTx.tx))
+				mem.recheckHeap.Store(hash, memTx)
+				atomic.AddInt64(&mem.recheckHeapSize, 1)
+
 				mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{
 					Tx:   memTx.tx,
 					Type: abci.CheckTxType_Recheck,
 				})
-
-				mem.recheckHeap.Store(etherhash.Sum(memTx.tx), memTx)
-				atomic.AddInt64(&mem.recheckHeapSize, 1)
 			}
 		}
 		mem.proxyAppConn.FlushAsync()

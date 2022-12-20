@@ -185,6 +185,10 @@ func (hq *HeapQueue) GetAddressTxs(address string, max int) types.Txs {
 
 	gq, ok := hq.txs[address]
 	if ok {
+		if max <= 0 || max > gq.Len() {
+			max = gq.Len()
+		}
+
 		i := 0
 		for e := gq.Front(); i < max && e != nil; e = e.Next() {
 			txs = append(txs, e.Value.(*mempoolTx).tx)
