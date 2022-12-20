@@ -487,6 +487,7 @@ func (l *CList) InsertElement(ele *CElement) *CElement {
 				// small Nonce put ahead
 				cur = cur.prev
 			} else if ele.Nonce == cur.Nonce {
+				l.len--
 				panic(&SameNonceError{InsertElement: ele, SameNonceElement: cur})
 			} else {
 				// The tx of the same Nonce has been processed in checkElement, and there are only cases of big nonce
