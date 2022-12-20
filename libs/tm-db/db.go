@@ -41,11 +41,15 @@ const (
 
 	FlagGoLeveldbOpts = "goleveldb.opts"
 	FlagRocksdbOpts   = "rocksdb.opts"
+
+	TiKVBackend BackendType = "tikv"
 )
 
 type dbCreator func(name string, dir string) (DB, error)
 
 var backends = map[BackendType]dbCreator{}
+
+var RegisterDBCreator = registerDBCreator
 
 func registerDBCreator(backend BackendType, creator dbCreator, force bool) {
 	_, ok := backends[backend]

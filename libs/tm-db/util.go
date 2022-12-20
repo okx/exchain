@@ -21,6 +21,8 @@ const (
 
 var invalidByteQuantityError = errors.New("byte quantity must be a positive integer with a unit of measurement like M, MB, MiB, G, GiB, or GB")
 
+var NonNilBytes = nonNilBytes
+
 // We defensively turn nil keys or values into []byte{} for
 // most operations.
 func nonNilBytes(bz []byte) []byte {
