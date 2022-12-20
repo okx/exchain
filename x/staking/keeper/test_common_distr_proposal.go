@@ -15,3 +15,6 @@ func (dk mockDistributionKeeper) AfterDelegationModified(ctx sdk.Context, delAdd
 func (dk mockDistributionKeeper) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
 }
 func (dk mockDistributionKeeper) CheckEnabled(ctx sdk.Context) bool { return true }
+func (dk mockDistributionKeeper) GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
+	return sdk.ZeroDec()
+}

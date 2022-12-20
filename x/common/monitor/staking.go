@@ -17,8 +17,10 @@ type StakingMetric struct {
 	ControlledValidatorsAndCandidateShareRatio metrics.Gauge
 	OfficialValidatorStakingOKT                metrics.Gauge
 	OfficialDelegatorStakingOKT                metrics.Gauge
+	OfficialValidatorOutstandingOKT            metrics.Gauge
 	CommunityValidatorStakingOKT               metrics.Gauge
 	CommunityDelegatorStakingOKT               metrics.Gauge
+	CommunityValidatorOutstandingOKT           metrics.Gauge
 	TotalStakingOKT                            metrics.Gauge
 }
 
@@ -86,6 +88,12 @@ func NewStakingMetric(labelsAndValues ...string) *StakingMetric {
 			Name:      "official_delegator_staking_okt",
 			Help:      "amount of staking okt for delegator official",
 		}, labels).With(labelsAndValues...),
+		OfficialValidatorOutstandingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "official_validator_outstanding_okt",
+			Help:      "Not taken out rewards for validator official",
+		}, labels).With(labelsAndValues...),
 		CommunityValidatorStakingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: xNameSpace,
 			Subsystem: stakingSubSystem,
@@ -104,6 +112,12 @@ func NewStakingMetric(labelsAndValues ...string) *StakingMetric {
 			Name:      "total_staking_okt",
 			Help:      "total amount of staking okt",
 		}, labels).With(labelsAndValues...),
+		CommunityValidatorOutstandingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "community_validator_outstanding_okt",
+			Help:      "Not taken out rewards for validator community",
+		}, labels).With(labelsAndValues...),
 	}
 }
 
@@ -118,8 +132,10 @@ func NopStakingMetric() *StakingMetric {
 		ControlledValidatorsAndCandidateShareRatio: discard.NewGauge(),
 		OfficialValidatorStakingOKT:                discard.NewGauge(),
 		OfficialDelegatorStakingOKT:                discard.NewGauge(),
+		OfficialValidatorOutstandingOKT:            discard.NewGauge(),
 		CommunityValidatorStakingOKT:               discard.NewGauge(),
 		CommunityDelegatorStakingOKT:               discard.NewGauge(),
+		CommunityValidatorOutstandingOKT:           discard.NewGauge(),
 		TotalStakingOKT:                            discard.NewGauge(),
 	}
 }
