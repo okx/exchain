@@ -239,13 +239,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
-	// publish event of the latest block time
-	if types.EnableEventBlockTime {
-		validators := cs.Validators.Copy()
-		validators.IncrementProposerPriority(1)
-		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
-	}
-
 	if iavl.EnableAsyncCommit {
 		cs.handleCommitGapOffset(height)
 	}

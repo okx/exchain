@@ -239,6 +239,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
+	// publish eventLog
+	if types.EnableEventBlockTime {
+		blockExec.preFireEventsTxs(block, abciResponses)
+	}
+
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
 	trace.GetApplyBlockWorkloadSttistic().Add(trace.LastRun, time.Now(), duration)
 
@@ -737,7 +742,7 @@ func fireEvents(
 	}
 
 	//publish batch txs event
-	if len(block.Data.Txs) > 0 {
+	if len(block.Data.Txs) > 0 && !types.EnableEventBlockTime {
 		eventBus.PublishEventTxs(types.EventDataTxs{
 			Height:  block.Height,
 			Results: abciResponses.DeliverTxs,
@@ -753,4 +758,14 @@ func fireEvents(
 func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, address types.Address) {
 	blockExec.eventBus.PublishEventLatestBlockTime(
 		types.EventDataBlockTime{Height: height, BlockTime: blockTime, NextProposer: address})
+}
+
+func (blockExec *BlockExecutor) preFireEventsTxs(block *types.Block, abciResponses *ABCIResponses) {
+	//publish batch txs event
+	if len(block.Data.Txs) > 0 {
+		blockExec.eventBus.PublishEventTxs(types.EventDataTxs{
+			Height:  block.Height,
+			Results: abciResponses.DeliverTxs,
+		})
+	}
 }
