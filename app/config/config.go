@@ -45,6 +45,10 @@ type OecConfig struct {
 	maxTxNumPerBlock int64
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
+	// mempool.enable-pgu
+	enablePGU bool
+	// mempool.pgu-adjustment
+	pguAdjustment float64
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
 	//mempool.check_tx_cost
@@ -111,6 +115,11 @@ type OecConfig struct {
 	// enable broadcast hasBlockPartMsg
 	enableHasBlockPartMsg bool
 	gcInterval            int
+
+	//
+	commitGapOffset int64
+
+	iavlAcNoBatch bool
 }
 
 const (
@@ -123,6 +132,8 @@ const (
 	FlagMempoolFlush            = "mempool.flush"
 	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
+	FlagEnablePGU               = "mempool.enable-pgu"
+	FlagPGUAdjustment           = "mempool.pgu-adjustment"
 	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
 	FlagGasLimitBuffer          = "gas-limit-buffer"
@@ -144,6 +155,7 @@ const (
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
 	FlagDebugGcInterval         = "debug.gc-interval"
+	FlagCommitGapOffset         = "commit-gap-offset"
 )
 
 var (
@@ -260,6 +272,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
+	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
+	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
@@ -285,9 +299,11 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetCommitGapOffset(viper.GetInt64(FlagCommitGapOffset))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
+	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -358,6 +374,7 @@ func (c *OecConfig) format() string {
     iavl-fast-storage-cache-size: %d
     commit-gap-height: %d
 	enable-analyzer: %v
+    iavl-commit-async-no-batch: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
@@ -385,6 +402,7 @@ func (c *OecConfig) format() string {
 		c.GetIavlFSCacheSize(),
 		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
+		c.GetIavlAcNoBatch(),
 		c.GetActiveVC(),
 	)
 }
@@ -448,6 +466,18 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetMaxGasUsedPerBlock(r)
+	case FlagEnablePGU:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnablePGU(r)
+	case FlagPGUAdjustment:
+		r, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return
+		}
+		c.SetPGUAdjustment(r)
 	case FlagGasLimitBuffer:
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -604,6 +634,18 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetGcInterval(r)
+	case tmiavl.FlagIavlCommitAsyncNoBatch:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetIavlAcNoBatch(r)
+	case FlagCommitGapOffset:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetCommitGapOffset(r)
 	}
 }
 
@@ -723,11 +765,28 @@ func (c *OecConfig) SetMaxTxNumPerBlock(value int64) {
 func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
 	return c.maxGasUsedPerBlock
 }
+
 func (c *OecConfig) SetMaxGasUsedPerBlock(value int64) {
 	if value < -1 {
 		return
 	}
 	c.maxGasUsedPerBlock = value
+}
+
+func (c *OecConfig) GetEnablePGU() bool {
+	return c.enablePGU
+}
+
+func (c *OecConfig) SetEnablePGU(value bool) {
+	c.enablePGU = value
+}
+
+func (c *OecConfig) GetPGUAdjustment() float64 {
+	return c.pguAdjustment
+}
+
+func (c *OecConfig) SetPGUAdjustment(value float64) {
+	c.pguAdjustment = value
 }
 
 func (c *OecConfig) GetGasLimitBuffer() uint64 {
@@ -968,10 +1027,30 @@ func (c *OecConfig) SetGcInterval(value int) {
 	c.gcInterval = value
 
 }
+
+func (c *OecConfig) GetCommitGapOffset() int64 {
+	return c.commitGapOffset
+}
+
+func (c *OecConfig) SetCommitGapOffset(value int64) {
+	if value < 0 {
+		value = 0
+	}
+	c.commitGapOffset = value
+}
+
 func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 	return c.enableHasBlockPartMsg
 }
 
 func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
 	c.enableHasBlockPartMsg = value
+}
+
+func (c *OecConfig) GetIavlAcNoBatch() bool {
+	return c.iavlAcNoBatch
+}
+
+func (c *OecConfig) SetIavlAcNoBatch(value bool) {
+	c.iavlAcNoBatch = value
 }

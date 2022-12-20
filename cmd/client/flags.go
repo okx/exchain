@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
+	"github.com/okex/exchain/app/rpc/websockets"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/system/trace"
@@ -116,6 +117,9 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 
+	cmd.Flags().Int64(config.FlagCommitGapOffset, 0, "Offset to stagger ac ahead of proposal")
+	cmd.Flags().MarkHidden(config.FlagCommitGapOffset)
+
 	// flags for infura rpc
 	cmd.Flags().Bool(infura.FlagEnable, false, "Enable infura rpc service")
 	cmd.Flags().String(infura.FlagRedisUrl, "", "Redis url(host:port) of infura rpc service")
@@ -130,5 +134,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
 	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
+	cmd.Flags().Int(websockets.FlagSubscribeLimit, 15, "Maximum subscription on a websocket connection")
 	wasm.AddModuleInitFlags(cmd)
 }

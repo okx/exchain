@@ -9,6 +9,8 @@ type IDynamicConfig interface {
 	GetMempoolCacheSize() int
 	GetMaxTxNumPerBlock() int64
 	GetMaxGasUsedPerBlock() int64
+	GetEnablePGU() bool
+	GetPGUAdjustment() float64
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
 	GetMempoolCheckTxCost() bool
@@ -23,6 +25,8 @@ type IDynamicConfig interface {
 	GetEnableWtx() bool
 	GetDeliverTxsExecuteMode() int
 	GetEnableHasBlockPartMsg() bool
+	GetCommitGapOffset() int64
+	GetIavlAcNoBatch() bool
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -56,6 +60,14 @@ func (d MockDynamicConfig) GetMaxTxNumPerBlock() int64 {
 
 func (d MockDynamicConfig) GetMaxGasUsedPerBlock() int64 {
 	return DefaultMempoolConfig().MaxGasUsedPerBlock
+}
+
+func (d MockDynamicConfig) GetEnablePGU() bool {
+	return false
+}
+
+func (d MockDynamicConfig) GetPGUAdjustment() float64 {
+	return 1
 }
 
 func (d MockDynamicConfig) GetMempoolFlush() bool {
@@ -104,5 +116,13 @@ func (d MockDynamicConfig) GetDeliverTxsExecuteMode() int {
 }
 
 func (d MockDynamicConfig) GetEnableHasBlockPartMsg() bool {
+	return false
+}
+
+func (d MockDynamicConfig) GetCommitGapOffset() int64 {
+	return 0
+}
+
+func (d MockDynamicConfig) GetIavlAcNoBatch() bool {
 	return false
 }

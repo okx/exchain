@@ -44,16 +44,19 @@ var (
 	mandatorySchemas = []string{
 		trace.Height,
 		trace.Tx,
+		trace.SimTx,
 		trace.BlockSize,
-		trace.TimeoutInterval,
+		trace.BTInterval,
 		trace.LastBlockTime,
 		trace.GasUsed,
+		trace.SimGasUsed,
 		trace.InvalidTxs,
 		trace.LastRun,
 		trace.RunTx,
 		trace.Prerun,
 		trace.MempoolTxsCnt,
 		trace.Workload,
+		trace.ACOffset,
 	}
 
 	DefaultElapsedSchemas string
