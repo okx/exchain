@@ -15,6 +15,11 @@ type StakingMetric struct {
 	AllValidatorsAndCandidateShare             metrics.Gauge
 	ControlledValidatorsAndCandidateShare      metrics.Gauge
 	ControlledValidatorsAndCandidateShareRatio metrics.Gauge
+	OfficialValidatorStakingOKT                metrics.Gauge
+	OfficialDelegatorStakingOKT                metrics.Gauge
+	CommunityValidatorStakingOKT               metrics.Gauge
+	CommunityDelegatorStakingOKT               metrics.Gauge
+	TotalStakingOKT                            metrics.Gauge
 }
 
 // DefaultOrderMetrics returns Metrics build using Prometheus client library if Prometheus is enabled
@@ -69,6 +74,36 @@ func NewStakingMetric(labelsAndValues ...string) *StakingMetric {
 			Name:      "controlled_validators_and_candidate_share_ratio",
 			Help:      "the ratio of all contraolled validators share to all validators share and candidate",
 		}, labels).With(labelsAndValues...),
+		OfficialValidatorStakingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "official_validator_staking_okt",
+			Help:      "amount of staking okt to create validators official",
+		}, labels).With(labelsAndValues...),
+		OfficialDelegatorStakingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "official_delegator_staking_okt",
+			Help:      "amount of staking okt for delegator official",
+		}, labels).With(labelsAndValues...),
+		CommunityValidatorStakingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "community_validator_staking_okt",
+			Help:      "amount of staking okt to create validators community",
+		}, labels).With(labelsAndValues...),
+		CommunityDelegatorStakingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "community_delegator_staking_okt",
+			Help:      "amount of staking okt for delegator community",
+		}, labels).With(labelsAndValues...),
+		TotalStakingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "total_staking_okt",
+			Help:      "total amount of staking okt",
+		}, labels).With(labelsAndValues...),
 	}
 }
 
@@ -81,5 +116,10 @@ func NopStakingMetric() *StakingMetric {
 		AllValidatorsAndCandidateShare:             discard.NewGauge(),
 		ControlledValidatorsAndCandidateShare:      discard.NewGauge(),
 		ControlledValidatorsAndCandidateShareRatio: discard.NewGauge(),
+		OfficialValidatorStakingOKT:                discard.NewGauge(),
+		OfficialDelegatorStakingOKT:                discard.NewGauge(),
+		CommunityValidatorStakingOKT:               discard.NewGauge(),
+		CommunityDelegatorStakingOKT:               discard.NewGauge(),
+		TotalStakingOKT:                            discard.NewGauge(),
 	}
 }

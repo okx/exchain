@@ -28,6 +28,7 @@ type Keeper struct {
 
 	metric              *monitor.StakingMetric
 	monitoredValidators []string
+	monitoredDelegators []string
 }
 
 // NewKeeper creates a new staking Keeper instance
@@ -55,6 +56,7 @@ func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types
 
 		metric:              metrics,
 		monitoredValidators: viper.GetStringSlice("test.monitored_validators"),
+		monitoredDelegators: viper.GetStringSlice("test.monitored_delegators"),
 	}
 }
 
