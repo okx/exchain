@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"bytes"
-	"container/heap"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -1524,20 +1523,20 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 	if mem.txs.Type() == HeapQueueType {
 		hq := mem.txs.(*HeapQueue)
-		heads := hq.InitReverse()
-
+		var heads mempoolTxsByPriceReverse
+		//pre check mempool size for reducing time of InitReverse
+		if mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+			heads = hq.InitReverse()
+		} else {
+			return
+		}
 		//check weather exceed mempool size,then need to delet the minimum gas price
 		for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
-			removeTx := heads[0].Value.(*clist.CElement)
+			removeTx := hq.PeekReverse(heads)
 			if removeTx == nil {
 				break
 			}
-			if e := removeTx.Prev(); e != nil {
-				heads[0] = e
-				heap.Fix(&heads, 0)
-			} else {
-				heap.Pop(&heads)
-			}
+			hq.ShiftReverse(&heads)
 			mem.minimumGasPrice.Store(heads[0].GasPrice)
 
 			mem.removeTx(removeTx)
