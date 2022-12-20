@@ -115,6 +115,7 @@ func main() {
 	rootCmd.PersistentFlags().Bool(server.FlagGops, false, "Enable gops metrics collection")
 
 	rootCmd.PersistentFlags().StringSlice("test.monitored_validators", []string{}, "the list of validators, used for monitoring to test")
+	rootCmd.PersistentFlags().StringSlice("test.monitored_delegators", []string{}, "the list of delegators, used for monitoring to test")
 	rootCmd.PersistentFlags().Float64("test.init_totoal_fee", 0, "")
 	rootCmd.PersistentFlags().Float64("test.init_control_fee", 0, "")
 	rootCmd.PersistentFlags().Float64("test.init_other_fee", 0, "")
