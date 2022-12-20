@@ -43,6 +43,8 @@ const (
 
 	// Maximum difference between current and new block's height.
 	maxDiffBetweenCurrentAndReceivedBlockHeight = 100
+
+	requestRetrySeconds = 30
 )
 
 var peerTimeout = 15 * time.Second // not const so we can override with tests
@@ -633,6 +635,7 @@ OUTER_LOOP:
 			peer = bpr.pool.pickIncrAvailablePeer(bpr.height)
 			if peer == nil {
 				//log.Info("No peers available", "height", height)
+				bpr.Logger.Error("No peers currently available; will retry shortly", "height", bpr.height)
 				time.Sleep(requestIntervalMS * time.Millisecond)
 				continue PICK_PEER_LOOP
 			}
@@ -642,6 +645,7 @@ OUTER_LOOP:
 		bpr.peerID = peer.id
 		bpr.mtx.Unlock()
 
+		to := time.NewTimer(requestRetrySeconds * time.Second)
 		// Send request and wait.
 		bpr.pool.sendRequest(bpr.height, peer.id)
 	WAIT_LOOP:
@@ -652,6 +656,11 @@ OUTER_LOOP:
 				return
 			case <-bpr.Quit():
 				return
+			case <-to.C:
+				bpr.Logger.Error("Retrying block request after timeout", "height", bpr.height, "peer", bpr.peerID)
+				// Simulate a redo
+				bpr.reset()
+				continue OUTER_LOOP
 			case peerID := <-bpr.redoCh:
 				if peerID == bpr.peerID {
 					bpr.reset()
