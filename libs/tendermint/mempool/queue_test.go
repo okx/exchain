@@ -3,6 +3,7 @@ package mempool
 import (
 	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/stretchr/testify/require"
 	"math/big"
 	"math/rand"
@@ -285,7 +286,12 @@ func TestHeapQueue_Insert2(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			t.Log("unit test", r)
+			expectSame := clist.NewCElement(tx1, tx1.from, tx1.realTx.GetGasPrice(), tx1.realTx.GetNonce())
+			expectInsert := clist.NewCElement(tx4, tx4.from, tx4.realTx.GetGasPrice(), tx4.realTx.GetNonce())
+			err, ok := r.(*clist.SameNonceError)
+			require.True(t, ok)
+			require.Equal(t, err.InsertElement.Value, expectInsert.Value)
+			require.Equal(t, err.SameNonceElement.Value, expectSame.Value)
 		}
 	}()
 	err = hq.Insert(tx4)
@@ -310,4 +316,40 @@ func fmtHq(hq *HeapQueue, t *testing.T) {
 
 	}
 	t.Log("HeapQueue -------------end-------------")
+}
+
+func TestHeapQueue_InitReverse(t *testing.T) {
+	length := 10
+	hq := NewHeapQueue(10).(*HeapQueue)
+	txs := make([]*mempoolTx, length)
+
+	for i := 0; i < length; i++ {
+
+		n := big.NewInt(int64(rand.Intn(1000)))
+		tx := generateMemepool(fmt.Sprintf("%d", i), 1, n)
+		txs[i] = tx
+	}
+
+	for i := 0; i < length; i++ {
+		hq.Insert(txs[i])
+		//
+		//require.NoError(t, err)
+	}
+	fmtHq(hq, t)
+
+	heads := hq.InitReverse()
+	require.True(t, len(heads) > 0)
+	reserseTx := hq.PeekReverse(heads)
+	tx := reserseTx.Value.(*mempoolTx)
+	for tx != nil {
+		t.Log("hq from:", tx.from, "nonce", tx.realTx.GetNonce(), "gp", tx.realTx.GetGasPrice().String())
+		hq.ShiftReverse(&heads)
+		if len(heads) > 0 {
+			reserseTx = hq.PeekReverse(heads)
+			tx = reserseTx.Value.(*mempoolTx)
+		} else {
+			tx = nil
+		}
+
+	}
 }

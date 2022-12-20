@@ -13,8 +13,7 @@ import (
 type HeapQueue struct {
 	txs map[string]*clist.CList // Per account nonce-sorted list of transactions
 
-	heads   mempoolTxsByPrice // Next transaction for each unique account (price heap)
-	txsMap  sync.Map          //txKey -> CElement
+	txsMap  sync.Map //txKey -> CElement
 	mutex   sync.RWMutex
 	txCount int32
 	waitCh  chan struct{}
@@ -268,9 +267,27 @@ func (*HeapQueue) Peek(heads mempoolTxsByPrice) *mempoolTx {
 	return heads[0].Value.(*mempoolTx)
 }
 
+// Peek returns the next transaction by price.
+func (*HeapQueue) PeekReverse(heads mempoolTxsByPriceReverse) *clist.CElement {
+	if len(heads) == 0 {
+		return nil
+	}
+	return heads[0]
+}
+
 // Shift replaces the current best head with the next one from the same account.
 func (*HeapQueue) Shift(heads *mempoolTxsByPrice) {
 	if e := (*heads)[0].Next(); e != nil {
+		(*heads)[0] = e
+		heap.Fix(heads, 0)
+		return
+	}
+	heap.Pop(heads)
+}
+
+// Shift replaces the current best head with the next one from the same account.
+func (*HeapQueue) ShiftReverse(heads *mempoolTxsByPriceReverse) {
+	if e := (*heads)[0].Prev(); e != nil {
 		(*heads)[0] = e
 		heap.Fix(heads, 0)
 		return

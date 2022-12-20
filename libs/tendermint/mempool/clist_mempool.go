@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"bytes"
-	"container/heap"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
