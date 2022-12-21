@@ -66,11 +66,13 @@ func repairStateOnStart(ctx *server.Context) {
 	iavl.EnableAsyncCommit = false
 	viper.Set(flatkv.FlagEnable, false)
 	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
+	iavl.SetForceReadIavl(true)
 
 	// repair state
 	RepairState(ctx, true)
 
 	//set original flag
+	iavl.SetForceReadIavl(false)
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
 	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
