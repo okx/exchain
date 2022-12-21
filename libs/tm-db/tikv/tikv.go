@@ -77,23 +77,21 @@ func (t *TiKV) DeleteSync(keys []byte) error {
 }
 
 func (t *TiKV) Iterator(start, end []byte) (dbm.Iterator, error) {
-	//TODO implement me
-	panic("implement me")
+	iterator := newIterator(start, end, false, t.client)
+	return iterator, nil
 }
 
 func (t *TiKV) ReverseIterator(start, end []byte) (dbm.Iterator, error) {
-	//TODO implement me
-	panic("implement me")
+	rIterator := newIterator(start, end, true, t.client)
+	return rIterator, nil
 }
 
 func (t *TiKV) Close() error {
-	//TODO implement me
-	panic("implement me")
+	return t.client.Close()
 }
 
 func (t *TiKV) NewBatch() dbm.Batch {
-	//TODO implement me
-	panic("implement me")
+	return newBatch(t.client)
 }
 
 func (t *TiKV) Print() error {
