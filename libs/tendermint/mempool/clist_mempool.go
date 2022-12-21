@@ -1523,6 +1523,8 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 }
 
 func (mem *CListMempool) deleteMinGPTxOnlyFull() {
+	begin := time.Now()
+	defer mem.logger.Error("deleteMinGPTxOnlyFull", "time", time.Since(begin).String())
 	if mem.txs.Type() == HeapQueueType {
 		hq := mem.txs.(*HeapQueue)
 		var heads mempoolTxsByPriceReverse
