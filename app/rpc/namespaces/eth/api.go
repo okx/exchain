@@ -63,6 +63,8 @@ const (
 
 	FlagFastQueryThreshold = "fast-query-threshold"
 
+	NameSpace = "eth"
+
 	EvmHookGasEstimate = uint64(60000)
 	EvmDefaultGasLimit = uint64(21000)
 )
@@ -82,7 +84,7 @@ type PublicEthereumAPI struct {
 	watcherBackend     *watcher.Watcher
 	evmFactory         simulation.EvmFactory
 	txPool             *TxPool
-	Metrics            map[string]*monitor.RpcMetrics
+	Metrics            *monitor.RpcMetrics
 	callCache          *lru.Cache
 	cdc                *codec.Codec
 	fastQueryThreshold uint64
@@ -103,7 +105,7 @@ func NewAPI(
 		ctx:                context.Background(),
 		clientCtx:          clientCtx,
 		chainIDEpoch:       epoch,
-		logger:             log.With("module", "json-rpc", "namespace", "eth"),
+		logger:             log.With("module", "json-rpc", "namespace", NameSpace),
 		backend:            backend,
 		keys:               keys,
 		nonceLock:          nonceLock,
@@ -133,6 +135,9 @@ func NewAPI(
 		go api.txPool.broadcastPeriod(api)
 	}
 
+	if viper.GetBool(monitor.FlagEnableMonitor) {
+		api.Metrics = monitor.MakeMonitorMetrics(NameSpace)
+	}
 	return api
 }
 
