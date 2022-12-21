@@ -96,7 +96,6 @@ func NewReactor(consensusState *State, fastSync bool, autoFastSync bool, options
 	for _, option := range options {
 		option(conR)
 	}
-
 	for _, nodeKey := range cfg.DynamicConfig.GetAVCWhiteList() {
 		conR.avcWhiteList[nodeKey] = true
 	}
