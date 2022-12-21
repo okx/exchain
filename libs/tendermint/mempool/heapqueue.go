@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -323,6 +324,9 @@ func (s mempoolTxsByPrice) Less(i, j int) bool {
 	// If the prices are equal, use the time the transaction was first seen for
 	// deterministic sorting
 	cmp := s[i].GasPrice.Cmp(s[j].GasPrice)
+	if cmp == 0 {
+		return strings.Compare(s[i].Address, s[j].Address) >= 0
+	}
 	return cmp > 0
 }
 func (s mempoolTxsByPrice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -346,6 +350,9 @@ func (s mempoolTxsByPriceReverse) Less(i, j int) bool {
 	// If the prices are equal, use the time the transaction was first seen for
 	// deterministic sorting
 	cmp := s[i].GasPrice.Cmp(s[j].GasPrice)
+	if cmp == 0 {
+		return strings.Compare(s[i].Address, s[j].Address) < 0
+	}
 	return cmp < 0
 }
 func (s mempoolTxsByPriceReverse) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
