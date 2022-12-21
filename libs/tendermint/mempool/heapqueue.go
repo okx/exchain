@@ -249,18 +249,27 @@ func (hq *HeapQueue) Init() mempoolTxsByPrice {
 	return heads
 }
 
+var headsPool = sync.Pool{
+	New: func() interface{} {
+		return make(mempoolTxsByPriceReverse, 0)
+	}}
+
 func (hq *HeapQueue) InitReverse() mempoolTxsByPriceReverse {
 	hq.mutex.Lock()
 	defer hq.mutex.Unlock()
-	heads := make(mempoolTxsByPriceReverse, 0, len(hq.txs))
+	heads := headsPool.Get().(*mempoolTxsByPriceReverse)
 	for _, accTxs := range hq.txs {
 		e := accTxs.Back()
 		if e != nil {
-			heads = append(heads, e)
+			*heads = append(*heads, e)
 		}
 	}
-	heap.Init(&heads)
-	return heads
+	heap.Init(heads)
+	return *heads
+}
+
+func (hq *HeapQueue) Puts(heads *mempoolTxsByPriceReverse) {
+	headsPool.Put(heads)
 }
 
 // Peek returns the next transaction by price.

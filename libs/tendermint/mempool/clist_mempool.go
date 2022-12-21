@@ -662,20 +662,7 @@ func (mem *CListMempool) resCbFirstTime(
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
-				minGasPrice := big.NewInt(0)
-				begin := time.Now()
-				if mem.txs.Type() == HeapQueueType {
-					minGasPrice = mem.minimumGasPrice.Load().(*big.Int)
-				} else {
-					minGPTx := mem.txs.Back().Value.(*mempoolTx)
-					minGasPrice = minGPTx.realTx.GetGasPrice()
-				}
-
-				// If disable deleteMinGPTx, it'old logic, must be remove cache key
-				// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
-				thresholdGasPrice := MultiPriceBump(minGasPrice, int64(mem.config.TxPriceBump))
-				mem.logger.Error("!!!!!isFull", "time", time.Since(begin), "is over threshold", thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0)
-				if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0) {
+				if !mem.GetEnableDeleteMinGPTx() {
 					// remove from cache (mempool might have a space later)
 					mem.cache.RemoveKey(txkey)
 					errStr := err.Error()
@@ -683,6 +670,33 @@ func (mem *CListMempool) resCbFirstTime(
 					r.CheckTx.Code = 1
 					r.CheckTx.Log = errStr
 					return
+				} else {
+					minGasPrice := disableMinimumGP
+					if mem.txs.Type() == HeapQueueType {
+						hq := mem.txs.(*HeapQueue)
+						heads := hq.InitReverse()
+						nextEle := hq.PeekReverse(heads)
+						if nextEle != nil {
+							minGasPrice = nextEle.GasPrice
+						}
+						hq.Puts(&heads)
+					} else {
+						minGPTx := mem.txs.Back().Value.(*mempoolTx)
+						minGasPrice = minGPTx.realTx.GetGasPrice()
+					}
+
+					// If disable deleteMinGPTx, it'old logic, must be remove cache key
+					// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
+					thresholdGasPrice := MultiPriceBump(minGasPrice, int64(mem.config.TxPriceBump))
+					if thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0 {
+						// remove from cache (mempool might have a space later)
+						mem.cache.RemoveKey(txkey)
+						errStr := err.Error()
+						mem.logger.Info(errStr)
+						r.CheckTx.Code = 1
+						r.CheckTx.Log = errStr
+						return
+					}
 				}
 			}
 
