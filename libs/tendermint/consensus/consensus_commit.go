@@ -332,6 +332,10 @@ func (cs *State) updateToState(state sm.State) {
 			delete(cs.vcHeight, k)
 		}
 	}
+	select {
+	case <-cs.taskResultChan:
+	default:
+	}
 
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.
@@ -425,20 +429,22 @@ func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 	tNow := tmtime.Now()
 	block, blockParts := cs.createProposalBlock()
-	if len(cs.taskResultChan) == 1 {
-		<-cs.taskResultChan
-	}
 	cs.taskResultChan <- &preBlockTaskRes{block: block, blockParts: blockParts}
 
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, 0, cs.ValidRound, propBlockID)
 
+	if cs.Height != height {
+		return
+	}
 	isBlockProducer, _ := cs.isBlockProducer()
 	if GetActiveVC() && isBlockProducer != "y" {
-		time.Sleep(waiting - tmtime.Now().Sub(tNow))
 		// request for proposer of new height
-		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
-		cs.requestForProposer(prMsg)
+		prMsg := ProposeRequestMessage{Height: height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
+		go func() {
+			time.Sleep(waiting - tmtime.Now().Sub(tNow))
+			cs.requestForProposer(prMsg)
+		}()
 	}
 }
 
