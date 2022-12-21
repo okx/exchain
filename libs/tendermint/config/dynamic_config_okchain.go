@@ -124,6 +124,7 @@ func (d MockDynamicConfig) GetEnableHasBlockPartMsg() bool {
 
 func (d MockDynamicConfig) GetAVCWhiteList() []string {
 	return []string{}
+}
 
 func (d MockDynamicConfig) GetEnableDeleteMinGPTx() bool {
 	return d.enableDeleteMinGPTx

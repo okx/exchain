@@ -1136,6 +1136,7 @@ func (c *OecConfig) SetAVCWhitelist(value string) {
 			c.avcWhitelist = append(c.avcWhitelist, id)
 		}
 	}
+}
 
 func (c *OecConfig) GetIavlAcNoBatch() bool {
 	return c.iavlAcNoBatch
