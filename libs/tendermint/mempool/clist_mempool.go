@@ -1544,7 +1544,7 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 				// this line means set gp of the latest tx
 				mem.minimumGasPrice.Store(nextEle.GasPrice)
 			}
-
+			hq.Puts(&heads)
 		}
 		mem.logger.Error("!!!!! deleteMinGPTxOnlyFull", "minGasPrice", mem.minimumGasPrice.Load().(*big.Int).Int64())
 		//check weather exceed mempool size,then need to delet the minimum gas price
