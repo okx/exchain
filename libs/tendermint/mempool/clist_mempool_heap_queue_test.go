@@ -3,6 +3,7 @@ package mempool
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math/big"
@@ -927,4 +928,295 @@ func TestConsumePendingtxConcurrency_HeapQueue(t *testing.T) {
 	mem.consumePendingTx("1", 5000)
 	wg.Wait()
 	require.Equal(t, 0, mem.pendingPool.Size())
+}
+
+func TestSerialRechecktTx_HeapQueue(t *testing.T) {
+	app := counter.NewApplication(true)
+	app.SetOption(abci.RequestSetOption{Key: "serial", Value: "on"})
+	cc := proxy.NewLocalClientCreator(app)
+
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
+	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
+	mempool.config.MaxTxNumPerBlock = 10000
+
+	appConnCon, _ := cc.NewABCIClient()
+	appConnCon.SetLogger(log.TestingLogger().With("module", "abci-client", "connection", "consensus"))
+	err := appConnCon.Start()
+	require.Nil(t, err)
+
+	cacheMap := make(map[string]struct{})
+	deliverTxsRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+
+			// This will succeed
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			err := mempool.CheckTx(txBytes, nil, TxInfo{})
+			_, cached := cacheMap[string(txBytes)]
+			if cached {
+				require.NotNil(t, err, "expected error for cached tx")
+			} else {
+				require.Nil(t, err, "expected no err for uncached tx")
+			}
+			cacheMap[string(txBytes)] = struct{}{}
+
+			// Duplicates are cached and should return error
+			err = mempool.CheckTx(txBytes, nil, TxInfo{})
+			require.NotNil(t, err, "Expected error after CheckTx on duplicated tx")
+		}
+	}
+
+	reapCheck := func(exp int) {
+		txs := mempool.ReapMaxTxs(exp)
+		require.Equal(t, len(txs), exp, fmt.Sprintf("Expected to reap %v txs but got %v", exp, len(txs)))
+	}
+
+	updateRange := func(start, end int) {
+		txs := make([]types.Tx, 0)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			txs = append(txs, txBytes)
+		}
+		if err := mempool.Update(0, txs, abciResponses(len(txs), abci.CodeTypeOK), nil, nil); err != nil {
+			t.Error(err)
+		}
+	}
+
+	commitRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			res, err := appConnCon.DeliverTxSync(abci.RequestDeliverTx{Tx: txBytes})
+			if err != nil {
+				t.Errorf("client error committing tx: %v", err)
+			}
+			if res.IsErr() {
+				t.Errorf("error committing tx. Code:%v result:%X log:%v",
+					res.Code, res.Data, res.Log)
+			}
+		}
+		res, err := appConnCon.CommitSync(abci.RequestCommit{})
+		if err != nil {
+			t.Errorf("client error committing: %v", err)
+		}
+		if len(res.Data) != 8 {
+			t.Errorf("error committing. Hash:%X", res.Data)
+		}
+	}
+
+	makeInvalidTx := func(start, end int) {
+		hq := mempool.txs.(*HeapQueue)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			vaule, ok := hq.txsMap.Load(txKey(txBytes))
+			require.True(t, ok)
+			vaule.(*clist.CElement).Value.(*mempoolTx).tx = make([]byte, 10)
+		}
+	}
+
+	//----------------------------------------
+
+	// Deliver 0 to 999, we should reap 900 new txs
+	// because 100 were already counted.
+	deliverTxsRange(0, BlockMaxTxNum+10)
+
+	// Commit from the conensus AppConn
+	commitRange(0, BlockMaxTxNum)
+	updateRange(0, BlockMaxTxNum)
+
+	reapCheck(10)
+	num := 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
+
+	makeInvalidTx(BlockMaxTxNum+2, BlockMaxTxNum+10)
+	updateRange(BlockMaxTxNum, BlockMaxTxNum+2)
+
+	num = 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
+}
+
+func TestSerialFlush_HeapQueue(t *testing.T) {
+	app := counter.NewApplication(true)
+	app.SetOption(abci.RequestSetOption{Key: "serial", Value: "on"})
+	cc := proxy.NewLocalClientCreator(app)
+
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
+	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
+	mempool.config.MaxTxNumPerBlock = 10000
+
+	appConnCon, _ := cc.NewABCIClient()
+	appConnCon.SetLogger(log.TestingLogger().With("module", "abci-client", "connection", "consensus"))
+	err := appConnCon.Start()
+	require.Nil(t, err)
+
+	cacheMap := make(map[string]struct{})
+	deliverTxsRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+
+			// This will succeed
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			err := mempool.CheckTx(txBytes, nil, TxInfo{})
+			_, cached := cacheMap[string(txBytes)]
+			if cached {
+				require.NotNil(t, err, "expected error for cached tx")
+			} else {
+				require.Nil(t, err, "expected no err for uncached tx")
+			}
+			cacheMap[string(txBytes)] = struct{}{}
+
+			// Duplicates are cached and should return error
+			err = mempool.CheckTx(txBytes, nil, TxInfo{})
+			require.NotNil(t, err, "Expected error after CheckTx on duplicated tx")
+		}
+	}
+
+	//----------------------------------------
+
+	// Deliver 0 to 999, we should reap 900 new txs
+	// because 100 were already counted.
+	deliverTxsRange(0, 1000)
+
+	mempool.Flush()
+	require.Equal(t, mempool.Size(), 0)
+}
+
+func TestDeleteMinGPTx_HeapQueue(t *testing.T) {
+	app := counter.NewApplication(true)
+	app.SetOption(abci.RequestSetOption{Key: "serial", Value: "on"})
+	cc := proxy.NewLocalClientCreator(app)
+
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
+	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
+	mempool.config.MaxTxNumPerBlock = 10000
+
+	appConnCon, _ := cc.NewABCIClient()
+	appConnCon.SetLogger(log.TestingLogger().With("module", "abci-client", "connection", "consensus"))
+	err := appConnCon.Start()
+	require.Nil(t, err)
+
+	cacheMap := make(map[string]struct{})
+	deliverTxsRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+
+			// This will succeed
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			err := mempool.CheckTx(txBytes, nil, TxInfo{})
+			_, cached := cacheMap[string(txBytes)]
+			if cached {
+				require.NotNil(t, err, "expected error for cached tx")
+			} else {
+				require.Nil(t, err, "expected no err for uncached tx")
+			}
+			cacheMap[string(txBytes)] = struct{}{}
+
+			// Duplicates are cached and should return error
+			err = mempool.CheckTx(txBytes, nil, TxInfo{})
+			require.NotNil(t, err, "Expected error after CheckTx on duplicated tx")
+		}
+	}
+
+	reapCheck := func(exp int) {
+		txs := mempool.ReapMaxTxs(exp)
+		require.Equal(t, len(txs), exp, fmt.Sprintf("Expected to reap %v txs but got %v", exp, len(txs)))
+	}
+
+	updateRange := func(start, end int) {
+		txs := make([]types.Tx, 0)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			txs = append(txs, txBytes)
+		}
+		if err := mempool.Update(0, txs, abciResponses(len(txs), abci.CodeTypeOK), nil, nil); err != nil {
+			t.Error(err)
+		}
+	}
+
+	commitRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			res, err := appConnCon.DeliverTxSync(abci.RequestDeliverTx{Tx: txBytes})
+			if err != nil {
+				t.Errorf("client error committing tx: %v", err)
+			}
+			if res.IsErr() {
+				t.Errorf("error committing tx. Code:%v result:%X log:%v",
+					res.Code, res.Data, res.Log)
+			}
+		}
+		res, err := appConnCon.CommitSync(abci.RequestCommit{})
+		if err != nil {
+			t.Errorf("client error committing: %v", err)
+		}
+		if len(res.Data) != 8 {
+			t.Errorf("error committing. Hash:%X", res.Data)
+		}
+	}
+
+	makeInvalidTx := func(start, end int) {
+		hq := mempool.txs.(*HeapQueue)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			vaule, ok := hq.txsMap.Load(txKey(txBytes))
+			require.True(t, ok)
+			vaule.(*clist.CElement).Value.(*mempoolTx).tx = make([]byte, 10)
+		}
+	}
+
+	//----------------------------------------
+
+	// Deliver 0 to 999, we should reap 900 new txs
+	// because 100 were already counted.
+	deliverTxsRange(0, BlockMaxTxNum+10)
+
+	// Commit from the conensus AppConn
+	commitRange(0, BlockMaxTxNum)
+	updateRange(0, BlockMaxTxNum)
+
+	reapCheck(10)
+	num := 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
+
+	makeInvalidTx(BlockMaxTxNum+2, BlockMaxTxNum+10)
+	updateRange(BlockMaxTxNum, BlockMaxTxNum+2)
+
+	num = 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
 }

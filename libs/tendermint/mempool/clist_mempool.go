@@ -27,6 +27,8 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+var disableMinimumGP = big.NewInt(0)
+
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
 	GetTxHistoryGasUsed(tx types.Tx) int64
@@ -146,7 +148,7 @@ func NewCListMempool(
 		gasCache:        gasCache,
 		recheckHeapSize: 0,
 	}
-	mempool.minimumGasPrice.Store(big.NewInt(0))
+	mempool.minimumGasPrice.Store(disableMinimumGP)
 
 	if config.PendingRemoveEvent {
 		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
@@ -1525,11 +1527,18 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 		hq := mem.txs.(*HeapQueue)
 		var heads mempoolTxsByPriceReverse
 		//pre check mempool size for reducing time of InitReverse
-		if mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+		if mem.Size() > (cfg.DynamicConfig.GetMempoolSize()*90/100) || mem.TxsBytes() > (mem.config.MaxTxsBytes*90/100) {
 			heads = hq.InitReverse()
-		} else {
-			return
+			nextEle := hq.PeekReverse(heads)
+			if nextEle == nil {
+				//  can not run  this line forever, but set minimumGasPrice to disable
+				mem.minimumGasPrice.Store(disableMinimumGP)
+			} else {
+				// this line means set gp of the latest tx
+				mem.minimumGasPrice.Store(nextEle.GasPrice)
+			}
 		}
+		mem.logger.Error("!!!!! deleteMinGPTxOnlyFull", "minGasPrice", mem.minimumGasPrice.Load().(*big.Int).Int64())
 		//check weather exceed mempool size,then need to delet the minimum gas price
 		for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
 			removeTx := hq.PeekReverse(heads)
@@ -1537,7 +1546,14 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 				break
 			}
 			hq.ShiftReverse(&heads)
-			mem.minimumGasPrice.Store(heads[0].GasPrice)
+			nextEle := hq.PeekReverse(heads)
+			if nextEle == nil {
+				//  can not run  this line forever, but set minimumGasPrice to disable
+				mem.minimumGasPrice.Store(disableMinimumGP)
+			} else {
+				// this line means set gp of the latest tx
+				mem.minimumGasPrice.Store(nextEle.GasPrice)
+			}
 
 			mem.removeTx(removeTx)
 
