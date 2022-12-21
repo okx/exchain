@@ -1,11 +1,38 @@
 package monitor
 
 import (
+	"sync"
 	"time"
 
 	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
 )
+
+var (
+	statistics       *RpcApisMetric
+	initOnce         sync.Once
+	MetricsNamespace = "x"
+	MetricsSubsystem = "rpc"
+)
+
+func InitRpcApisStatistics() {
+	initOnce.Do(func() {
+		statistics = new(RpcApisMetric)
+		//name := fmt.Sprintf("%s_%s", namespace, methodName)
+		statistics.TotalRequest = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: MetricsNamespace,
+			Subsystem: MetricsSubsystem,
+			Name:      "total_request_count",
+			Help:      "Total request number of all method.",
+		}, nil)
+	})
+}
+
+type RpcApisMetric struct {
+	TotalRequest metrics.Counter
+}
 
 // RpcMetrics ...
 type RpcMetrics struct {
@@ -38,7 +65,9 @@ func (m *Monitor) OnBegin() *Monitor {
 	if _, ok := m.metrics[m.method]; ok {
 		m.metrics[m.method].Counter.Add(1)
 	}
-
+	if statistics != nil {
+		statistics.TotalRequest.Add(1)
+	}
 	return m
 }
 

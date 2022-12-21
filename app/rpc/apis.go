@@ -113,6 +113,7 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 	}
 
 	if viper.GetBool(FlagEnableMonitor) {
+		monitor.InitRpcApisStatistics()
 		for _, api := range apis {
 			makeMonitorMetrics(api.Namespace, api.Service)
 		}
