@@ -672,6 +672,7 @@ func (mem *CListMempool) resCbFirstTime(
 					return
 				} else {
 					minGasPrice := disableMinimumGP
+					begin := time.Now()
 					if mem.txs.Type() == HeapQueueType {
 						hq := mem.txs.(*HeapQueue)
 						heads := hq.InitReverse()
@@ -680,6 +681,7 @@ func (mem *CListMempool) resCbFirstTime(
 							minGasPrice = nextEle.GasPrice
 						}
 						hq.Puts(&heads)
+						mem.logger.Error("!!!!isFull", "time", time.Since(begin))
 					} else {
 						minGPTx := mem.txs.Back().Value.(*mempoolTx)
 						minGasPrice = minGPTx.realTx.GetGasPrice()
