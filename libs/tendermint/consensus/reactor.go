@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
