@@ -133,6 +133,22 @@ func IsSupportedVersion(proposedVersion *Version) bool {
 	return true
 }
 
+// IsSupportedVersion returns true if the proposed version has a matching version
+// identifier and its entire feature set is supported or the version identifier
+// supports an empty feature set.
+func IsSupportedVersionV4(supportedVersions []exported.Version, proposedVersion *Version) bool {
+	supportedVersion, found := FindSupportedVersion(proposedVersion, supportedVersions)
+	if !found {
+		return false
+	}
+
+	if err := supportedVersion.VerifyProposedVersion(proposedVersion); err != nil {
+		return false
+	}
+
+	return true
+}
+
 // PickVersion iterates over the descending ordered set of compatible IBC
 // versions and selects the first version with a version identifier that is
 // supported by the counterparty. The returned version contains a feature

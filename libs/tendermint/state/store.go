@@ -3,6 +3,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/tendermint/go-amino"
 
@@ -401,6 +402,14 @@ func (arz *ABCIResponses) Bytes() []byte {
 func (arz *ABCIResponses) ResultsHash() []byte {
 	results := types.NewResults(arz.DeliverTxs)
 	return results.Hash()
+}
+func (arz *ABCIResponses) String() string {
+	str := strings.Builder{}
+	results := types.NewResults(arz.DeliverTxs)
+	for _, v := range results {
+		str.WriteString(fmt.Sprintf("code:%d,msg:=%s\n", v.Code, v.Data.String()))
+	}
+	return str.String()
 }
 
 // LoadABCIResponses loads the ABCIResponses for the given height from the database.

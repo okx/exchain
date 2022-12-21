@@ -2,6 +2,9 @@ package types
 
 import (
 	"reflect"
+	"time"
+
+	"github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -34,27 +37,40 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 		)
 	}
 
-	if !IsMatchingClientState(cs, *substituteClientState) {
-		return nil, sdkerrors.Wrap(clienttypes.ErrInvalidSubstitute, "subject client state does not match substitute client state")
+	if types.HigherThanVenus4(ctx.BlockHeight()) {
+		if !IsMatchingClientStateV4(cs, *substituteClientState) {
+			return nil, sdkerrors.Wrap(clienttypes.ErrInvalidSubstitute, "subject client state does not match substitute client state")
+		}
+	} else {
+		if !IsMatchingClientStateV2(cs, *substituteClientState) {
+			return nil, sdkerrors.Wrap(clienttypes.ErrInvalidSubstitute, "subject client state does not match substitute client state")
+		}
 	}
 
-	switch cs.Status(ctx, subjectClientStore, cdc) {
-
-	case exported.Frozen:
-		if !cs.AllowUpdateAfterMisbehaviour {
-			return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unfrozen")
+	if types.HigherThanVenus4(ctx.BlockHeight()) {
+		if cs.Status(ctx, subjectClientStore, cdc) == exported.Frozen {
+			// unfreeze the client
+			cs.FrozenHeight = clienttypes.ZeroHeight()
 		}
+	} else {
+		switch cs.Status(ctx, subjectClientStore, cdc) {
 
-		// unfreeze the client
-		cs.FrozenHeight = clienttypes.ZeroHeight()
+		case exported.Frozen:
+			if !cs.AllowUpdateAfterMisbehaviour {
+				return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unfrozen")
+			}
 
-	case exported.Expired:
-		if !cs.AllowUpdateAfterExpiry {
-			return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unexpired")
+			// unfreeze the client
+			cs.FrozenHeight = clienttypes.ZeroHeight()
+
+		case exported.Expired:
+			if !cs.AllowUpdateAfterExpiry {
+				return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unexpired")
+			}
+
+		default:
+			return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client cannot be updated with proposal")
 		}
-
-	default:
-		return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client cannot be updated with proposal")
 	}
 
 	// copy consensus states and processed time from substitute to subject
@@ -84,6 +100,10 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 	cs.LatestHeight = substituteClientState.LatestHeight
 	cs.ChainId = substituteClientState.ChainId
 
+	// set new trusting period based on the substitute client state
+	if types.HigherThanVenus4(ctx.BlockHeight()) {
+		cs.TrustingPeriod = substituteClientState.TrustingPeriod
+	}
 	// no validation is necessary since the substitute is verified to be Active
 	// in 02-client.
 
@@ -92,7 +112,7 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 
 // IsMatchingClientState returns true if all the client state parameters match
 // except for frozen height, latest height, and chain-id.
-func IsMatchingClientState(subject, substitute ClientState) bool {
+func IsMatchingClientStateV2(subject, substitute ClientState) bool {
 	// zero out parameters which do not need to match
 	subject.LatestHeight = clienttypes.ZeroHeight()
 	subject.FrozenHeight = clienttypes.ZeroHeight()
@@ -100,6 +120,27 @@ func IsMatchingClientState(subject, substitute ClientState) bool {
 	substitute.FrozenHeight = clienttypes.ZeroHeight()
 	subject.ChainId = ""
 	substitute.ChainId = ""
+
+	return reflect.DeepEqual(subject, substitute)
+}
+
+// IsMatchingClientState returns true if all the client state parameters match
+// except for frozen height, latest height, trusting period, chain-id.
+func IsMatchingClientStateV4(subject, substitute ClientState) bool {
+	// zero out parameters which do not need to match
+	subject.LatestHeight = clienttypes.ZeroHeight()
+	subject.FrozenHeight = clienttypes.ZeroHeight()
+	subject.TrustingPeriod = time.Duration(0)
+	substitute.LatestHeight = clienttypes.ZeroHeight()
+	substitute.FrozenHeight = clienttypes.ZeroHeight()
+	substitute.TrustingPeriod = time.Duration(0)
+	subject.ChainId = ""
+	substitute.ChainId = ""
+	// sets both sets of flags to true as these flags have been DEPRECATED, see ADR-026 for more information
+	subject.AllowUpdateAfterExpiry = true
+	substitute.AllowUpdateAfterExpiry = true
+	subject.AllowUpdateAfterMisbehaviour = true
+	substitute.AllowUpdateAfterMisbehaviour = true
 
 	return reflect.DeepEqual(subject, substitute)
 }
