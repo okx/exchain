@@ -462,9 +462,16 @@ func (valInfo *ValidatorsInfo) Bytes() []byte {
 // LoadValidators loads the ValidatorSet for a given height.
 // Returns ErrNoValSetForHeight if the validator set can't be found for this height.
 func LoadValidators(db dbm.DB, height int64) (*types.ValidatorSet, error) {
+	valSet, _, err := LoadValidatorsWithStoredHeight(db, height)
+	return valSet, err
+}
+
+// LoadValidators loads the ValidatorSet for a given height. plus the last LastHeightChanged
+// Returns ErrNoValSetForHeight if the validator set can't be found for this height.
+func LoadValidatorsWithStoredHeight(db dbm.DB, height int64) (*types.ValidatorSet, int64, error) {
 	valInfo := loadValidatorsInfo(db, height)
 	if valInfo == nil {
-		return nil, ErrNoValSetForHeight{height}
+		return nil, -1, ErrNoValSetForHeight{height}
 	}
 	if valInfo.ValidatorSet == nil {
 		lastStoredHeight := lastStoredHeightFor(height, valInfo.LastHeightChanged)
@@ -481,7 +488,7 @@ func LoadValidators(db dbm.DB, height int64) (*types.ValidatorSet, error) {
 		valInfo = valInfo2
 	}
 
-	return valInfo.ValidatorSet, nil
+	return valInfo.ValidatorSet, valInfo.LastHeightChanged, nil
 }
 
 func lastStoredHeightFor(height, lastHeightChanged int64) int64 {
