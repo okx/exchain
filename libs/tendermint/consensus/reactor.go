@@ -387,9 +387,11 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			// this peer has received a prMsg before
 			// or this peer is not proposer
 			// or only then proposer ApplyBlock(height) has finished, do not handle prMsg
+			// or prMsg.height != prMsg.proposal.Height
 			if msg.Height <= conR.hasViewChanged ||
 				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
-				msg.Height <= height {
+				msg.Height <= height ||
+				msg.Height != msg.Proposal.Height {
 				return
 			}
 
@@ -414,6 +416,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			// tell newProposer
 			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
+			// broadcast the proposal
+			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(&ProposalMessage{Proposal: proposal}))
 
 			conR.hasViewChanged = msg.Height
 

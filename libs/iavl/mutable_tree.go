@@ -32,9 +32,18 @@ func SetProduceDelta(pd bool) {
 	produceDelta = pd
 }
 
+func GetFinalCommitGapOffset() int64 {
+	return finalCommitGapOffset
+}
+
+func SetFinalCommitGapOffset(offset int64) {
+	finalCommitGapOffset = offset
+}
+
 var (
-	ignoreVersionCheck = false
-	produceDelta       = false
+	ignoreVersionCheck         = false
+	produceDelta               = false
+	finalCommitGapOffset int64 = 0
 )
 
 // MutableTree is a persistent tree which keeps track of versions. It is not safe for concurrent
@@ -973,13 +982,16 @@ func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, ve
 	if !GetEnableFastStorage() || fnc == nil {
 		return nil
 	}
+	if err := ndb.setFastStorageVersionToBatch(batch, version); err != nil {
+		return err
+	}
 	if err := ndb.saveFastNodeAdditions(batch, fnc.getAdditions()); err != nil {
 		return err
 	}
 	if err := ndb.saveFastNodeRemovals(batch, fnc.getRemovals()); err != nil {
 		return err
 	}
-	return ndb.setFastStorageVersionToBatch(batch, version)
+	return nil
 }
 
 // nolint: unused
