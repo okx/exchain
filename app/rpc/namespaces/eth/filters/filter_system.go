@@ -31,6 +31,8 @@ var (
 	evmEvents       = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
 	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
 	blockTimeEvents = tmtypes.QueryForEvent(tmtypes.EventBlockTime).String()
+
+	rmPendingTxEvents = tmtypes.QueryForEvent(tmtypes.EventRmPendingTx).String()
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -222,6 +224,19 @@ func (es EventSystem) SubscribeBlockTime() (*Subscription, context.CancelFunc, e
 		id:        rpc.NewID(),
 		typ:       filters.BlocksSubscription,
 		event:     blockTimeEvents,
+		created:   time.Now().UTC(),
+		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
+	}
+	return es.subscribe(sub)
+}
+
+// SubscribeRmPendingTx subscribes to the rm pending txs events
+func (es EventSystem) SubscribeRmPendingTx() (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
+		id:        rpc.NewID(),
+		typ:       filters.LogsSubscription,
+		event:     rmPendingTxEvents,
 		created:   time.Now().UTC(),
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),

@@ -91,6 +91,8 @@ type Mempool interface {
 	SetTxInfoParser(parser TxInfoParser)
 
 	GetTxSimulateGas(txHash string) int64
+
+	GetEnableDeleteMinGPTx() bool
 }
 
 //--------------------------------------------------------------------------------
