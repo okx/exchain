@@ -977,6 +977,7 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 			txs = append(txs, memTx.tx)
 		}
 	} else {
+		begin := time.Now()
 		hq := mem.txs.(*HeapQueue)
 		heads := hq.Init()
 		tx := hq.Peek(heads)
@@ -985,6 +986,7 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 			hq.Shift(&heads)
 			tx = hq.Peek(heads)
 		}
+		mem.logger.Error("ReapMaxTxs", "cost", time.Since(begin))
 	}
 
 	return txs
