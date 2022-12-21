@@ -27,6 +27,8 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+var disableMinimumGP = big.NewInt(0)
+
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
 	GetTxHistoryGasUsed(tx types.Tx) int64
