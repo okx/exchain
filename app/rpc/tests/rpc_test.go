@@ -54,6 +54,9 @@ const (
 	defaultProtocolVersion = 65
 	defaultChainID         = 65
 	defaultMinGasPrice     = "0.0000000001okt"
+	safeLowGP              = "0.0000000001okt"
+	avgGP                  = "0.0000000001okt"
+	fastestGP              = "0.00000000015okt"
 	latestBlockNumber      = "latest"
 	pendingBlockNumber     = "pending"
 )
@@ -387,6 +390,25 @@ func (suite *RPCTestSuite) TestEth_GasPrice() {
 	suite.Require().NoError(err)
 
 	suite.Require().Equal(mgp.Amount.BigInt(), gasPrice.ToInt())
+}
+
+func (suite *RPCTestSuite) TestEth_GasPriceIn3Gears() {
+	rpcRes, err := CallWithError(suite.addr, "eth_gasPriceIn3Gears", nil)
+	suite.Require().NoError(err)
+
+	var gpIn3Gears types.GPIn3Gears
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &gpIn3Gears))
+
+	mgp, err := sdk.ParseDecCoin(safeLowGP)
+	suite.Require().NoError(err)
+	agp, err := sdk.ParseDecCoin(avgGP)
+	suite.Require().NoError(err)
+	fgp, err := sdk.ParseDecCoin(fastestGP)
+	suite.Require().NoError(err)
+
+	suite.Require().Equal(mgp.Amount.BigInt(), gpIn3Gears.SafeLow.ToInt())
+	suite.Require().Equal(agp.Amount.BigInt(), gpIn3Gears.Average.ToInt())
+	suite.Require().Equal(fgp.Amount.BigInt(), gpIn3Gears.Fastest.ToInt())
 }
 
 func (suite *RPCTestSuite) TestEth_BlockNumber() {
