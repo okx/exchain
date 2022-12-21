@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/spf13/viper"
 
 	appconfig "github.com/okex/exchain/app/config"
@@ -14,8 +13,8 @@ import (
 )
 
 var (
-	maxPrice     = big.NewInt(500 * params.GWei)
-	defaultPrice = getDefaultGasPrice()
+	MinPrice = getDefaultGasPrice()
+	MaxPrice = new(big.Int).Mul(MinPrice, big.NewInt(5000))
 )
 
 type GPOConfig struct {
@@ -26,8 +25,9 @@ type GPOConfig struct {
 
 func NewGPOConfig(weight int, checkBlocks int) GPOConfig {
 	return GPOConfig{
-		Weight:  weight,
-		Default: defaultPrice,
+		Weight: weight,
+		// Note: deep copy is necessary here
+		Default: new(big.Int).Set(MinPrice),
 		Blocks:  checkBlocks,
 	}
 }
@@ -56,8 +56,9 @@ func NewOracle(params GPOConfig) *Oracle {
 	return &Oracle{
 		CurrentBlockGPs: cbgp,
 		BlockGPQueue:    bgpq,
-		lastPrice:       params.Default,
-		weight:          weight,
+		// Note: deep copy is necessary here
+		lastPrice: new(big.Int).Set(params.Default),
+		weight:    weight,
 	}
 }
 
@@ -82,8 +83,8 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 		price.Set(txPrices[(len(txPrices)-1)*gpo.weight/100])
 	}
 
-	if price.Cmp(maxPrice) > 0 {
-		price.Set(maxPrice)
+	if price.Cmp(MaxPrice) > 0 {
+		price.Set(MaxPrice)
 	}
 	gpo.lastPrice.Set(price)
 	return price

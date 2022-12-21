@@ -35,7 +35,7 @@ func (suite *LocalhostTestSuite) SetupTest() {
 
 	suite.cdc = app.AppCodec()
 	suite.ctx = app.BaseApp.NewContext(isCheckTx, tmproto.Header{Height: 1, ChainID: "ibc-chain"})
-	suite.store = app.IBCKeeper.ClientKeeper.ClientStore(suite.ctx, exported.Localhost)
+	suite.store = app.IBCKeeper.V2Keeper.ClientKeeper.ClientStore(suite.ctx, exported.Localhost)
 }
 
 func TestLocalhostTestSuite(t *testing.T) {

@@ -1,12 +1,13 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	// tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
@@ -87,7 +88,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	//todo codec
 	//suite.cdc = app.AppCodec()
 	suite.ctx = app.BaseApp.NewContext(isCheckTx, tmproto.Header{Height: height, ChainID: testClientID, Time: now2})
-	suite.keeper = &app.IBCKeeper.ClientKeeper
+	suite.keeper = &app.IBCKeeper.V2Keeper.ClientKeeper
 	suite.privVal = ibctestingmock.NewPV()
 
 	pubKey, err := suite.privVal.GetPubKey()

@@ -5,7 +5,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	common2 "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/txs"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
@@ -43,16 +42,10 @@ func updateHGU(ctx sdk.Context, msg sdk.Msg) {
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() <= 0 {
 		return
 	}
-
-	db := bam.InstanceOfHistoryGasUsedRecordDB()
+	
 	msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
 
 	if msgFnSignature == nil {
-		return
-	}
-
-	hisGu, err := db.Get(msgFnSignature)
-	if err != nil {
 		return
 	}
 
@@ -62,18 +55,7 @@ func updateHGU(ctx sdk.Context, msg sdk.Msg) {
 		gc = gc / int64(toDeployContractSize)
 	}
 
-	var avgGas int64
-	if hisGu != nil {
-		hgu := common2.BytesToInt64(hisGu)
-		avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
-	} else {
-		avgGas = gc
-	}
-
-	err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
-	if err != nil {
-		return
-	}
+	bam.InstanceOfHistoryGasUsedRecordDB().UpdateGasUsed(msgFnSignature, gc)
 }
 
 func getMsgCallFnSignature(msg sdk.Msg) ([]byte, int) {

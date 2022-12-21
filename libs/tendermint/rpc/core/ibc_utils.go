@@ -90,3 +90,11 @@ func ConvCommitToIBCCommit(hh *types.Header, h *types.Commit) *types.IBCCommit {
 
 	return ret
 }
+
+func ConvEventBlock2CM40Event(block types.EventDataNewBlock) types.CM40EventDataNewBlock {
+	ret := types.CM40EventDataNewBlock{}
+	ret.Block = ConvBlock2CM40Block(block.Block)
+	ret.ResultBeginBlock = block.ResultBeginBlock
+	ret.ResultEndBlock = block.ResultEndBlock
+	return ret
+}

@@ -1,9 +1,13 @@
 package consensus
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/iavl"
+	iavlcfg "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system/trace"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -187,16 +191,19 @@ func (cs *State) finalizeCommit(height int64) {
 	fail.Fail() // XXX
 
 	// Save to blockStore.
+	blockTime := block.Time
 	if cs.blockStore.Height() < block.Height {
 		// NOTE: the seenCommit is local justification to commit this block,
 		// but may differ from the LastCommit included in the next block
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
+		blockTime = sm.MedianTime(seenCommit, cs.Validators)
 		cs.blockStore.SaveBlock(block, blockParts, seenCommit)
 	} else {
 		// Happens during replay if we already saved the block but didn't commit
 		cs.Logger.Info("Calling finalizeCommit on already stored block", "height", block.Height)
 	}
+	trace.GetElapsedInfo().AddInfo(trace.BTInterval, fmt.Sprintf("%dms", blockTime.Sub(block.Time).Milliseconds()))
 
 	fail.Fail() // XXX
 
@@ -233,16 +240,15 @@ func (cs *State) finalizeCommit(height int64) {
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
 	// publish event of the latest block time
-	blockTime := tmtime.Now()
-	if cs.Height > 1 {
-		blockTime = sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
-	}
 	if types.EnableEventBlockTime {
 		validators := cs.Validators.Copy()
 		validators.IncrementProposerPriority(1)
 		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
 	}
-	trace.GetElapsedInfo().AddInfo(trace.BTInterval, fmt.Sprintf("%dms", blockTime.Sub(block.Time).Milliseconds()))
+
+	if iavl.EnableAsyncCommit {
+		cs.handleCommitGapOffset(height)
+	}
 
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
@@ -255,6 +261,12 @@ func (cs *State) finalizeCommit(height int64) {
 			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
 		}
 		return
+	}
+
+	//reset offset after commitGap
+	if iavl.EnableAsyncCommit &&
+		height%iavlcfg.DynamicConfig.GetCommitGapHeight() == iavl.GetFinalCommitGapOffset() {
+		iavl.SetFinalCommitGapOffset(0)
 	}
 
 	fail.Fail() // XXX
@@ -319,6 +331,10 @@ func (cs *State) updateToState(state sm.State) {
 		if k <= cs.Height {
 			delete(cs.vcHeight, k)
 		}
+	}
+	select {
+	case <-cs.taskResultChan:
+	default:
 	}
 
 	// If state isn't further out than cs.state, just ignore.
@@ -413,20 +429,22 @@ func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 	tNow := tmtime.Now()
 	block, blockParts := cs.createProposalBlock()
-	if len(cs.taskResultChan) == 1 {
-		<-cs.taskResultChan
-	}
 	cs.taskResultChan <- &preBlockTaskRes{block: block, blockParts: blockParts}
 
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, 0, cs.ValidRound, propBlockID)
 
+	if cs.Height != height {
+		return
+	}
 	isBlockProducer, _ := cs.isBlockProducer()
 	if GetActiveVC() && isBlockProducer != "y" {
-		time.Sleep(waiting - tmtime.Now().Sub(tNow))
 		// request for proposer of new height
-		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
-		cs.requestForProposer(prMsg)
+		prMsg := ProposeRequestMessage{Height: height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
+		go func() {
+			time.Sleep(waiting - tmtime.Now().Sub(tNow))
+			cs.requestForProposer(prMsg)
+		}()
 	}
 }
 
@@ -443,10 +461,43 @@ func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
 					<-t.C
 				}
 				return res
+			} else {
+				return nil
 			}
 		case <-t.C:
 			return nil
 		}
 
+	}
+}
+
+// handle AC offset to avoid block proposal
+func (cs *State) handleCommitGapOffset(height int64) {
+	commitGap := iavlcfg.DynamicConfig.GetCommitGapHeight()
+	offset := cfg.DynamicConfig.GetCommitGapOffset()
+
+	// close offset
+	if offset <= 0 || (commitGap <= offset) {
+		iavl.SetFinalCommitGapOffset(0)
+		// only try to offset at commitGap height
+	} else if (height % commitGap) == 0 {
+		selfAddress := cs.privValidatorPubKey.Address()
+		futureValidators := cs.state.Validators.Copy()
+
+		var i int64
+		for ; i < offset; i++ {
+			futureBPAddress := futureValidators.GetProposer().Address
+
+			// self is the validator at the offset height
+			if bytes.Equal(futureBPAddress, selfAddress) {
+				// trigger ac ahead of the offset
+				iavl.SetFinalCommitGapOffset(i + 1)
+				//originACHeight|newACHeight|nextProposeHeight|Offset
+				trace.GetElapsedInfo().AddInfo(trace.ACOffset, fmt.Sprintf("%d|%d|%d|%d|",
+					height, height+i+1, height+i, offset))
+				break
+			}
+			futureValidators.IncrementProposerPriority(1)
+		}
 	}
 }

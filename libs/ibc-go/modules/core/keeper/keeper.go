@@ -18,6 +18,7 @@ import (
 )
 
 var _ types.QueryServer = (*Keeper)(nil)
+var _ IBCServerKeeper = (*Keeper)(nil)
 
 // Keeper defines each ICS keeper for IBC
 type Keeper struct {
@@ -80,4 +81,13 @@ func (k *Keeper) SetRouter(rtr *porttypes.Router) {
 	k.PortKeeper.Router = rtr
 	k.Router = rtr
 	k.Router.Seal()
+}
+
+///
+func (k Keeper) GetPacketReceipt(ctx sdk.Context, portID, channelID string, sequence uint64) (string, bool) {
+	return k.ChannelKeeper.GetPacketReceipt(ctx, portID, channelID, sequence)
+}
+
+func (k Keeper) GetPacketCommitment(ctx sdk.Context, portID, channelID string, sequence uint64) []byte {
+	return k.ChannelKeeper.GetPacketCommitment(ctx, portID, channelID, sequence)
 }

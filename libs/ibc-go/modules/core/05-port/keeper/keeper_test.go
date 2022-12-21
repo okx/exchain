@@ -1,8 +1,9 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
 	"testing"
+
+	"github.com/okex/exchain/libs/tendermint/types"
 
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
@@ -31,7 +32,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	app := simapp.Setup(isCheckTx)
 
 	suite.ctx = app.BaseApp.NewContext(isCheckTx, tmproto.Header{})
-	suite.keeper = &app.IBCKeeper.PortKeeper
+	suite.keeper = &app.IBCKeeper.V2Keeper.PortKeeper
 }
 
 func TestKeeperTestSuite(t *testing.T) {

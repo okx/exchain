@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/rand"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-	"math"
-	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -118,9 +119,7 @@ func NewAppModule(k keeper.Keeper, m *codec.CodecProxy) AppModule {
 }
 
 // RegisterInvariants implements the AppModule interface
-func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	// TODO
-}
+func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 // Route implements the AppModule interface
 func (am AppModule) Route() string {
@@ -233,6 +232,26 @@ func ValidateTransferChannelParams(
 	channelID string,
 	version string,
 ) error {
+	if err := ValidateTransferChannelParamsV4(ctx, keeper, order, portID, channelID); nil != err {
+		return err
+	}
+
+	if version != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
+	}
+	return nil
+}
+
+// ValidateTransferChannelParams does validation of a newly created transfer channel. A transfer
+// channel must be UNORDERED, use the correct port (by default 'transfer'), and use the current
+// supported version. Only 2^32 channels are allowed to be created.
+func ValidateTransferChannelParamsV4(
+	ctx sdk.Context,
+	keeper keeper.Keeper,
+	order channeltypes.Order,
+	portID string,
+	channelID string,
+) error {
 	// NOTE: for escrow address security only 2^32 channels are allowed to be created
 	// Issue: https://github.com/cosmos/cosmos-sdk/issues/7737
 	channelSequence, err := channeltypes.ParseChannelSequence(channelID)
@@ -252,9 +271,6 @@ func ValidateTransferChannelParams(
 		return sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
 	}
 
-	if version != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
-	}
 	return nil
 }
 
@@ -268,17 +284,17 @@ func (am AppModule) OnChanOpenInit(
 	chanCap *capabilitytypes.Capability,
 	counterparty channeltypes.Counterparty,
 	version string,
-) error {
+) (string, error) {
 	if err := ValidateTransferChannelParams(ctx, am.keeper, order, portID, channelID, version); err != nil {
-		return err
+		return "", err
 	}
 
 	// Claim channel capability passed back by IBC module
 	if err := am.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return version, nil
 }
 
 // OnChanOpenTry implements the IBCModule interface
@@ -292,13 +308,13 @@ func (am AppModule) OnChanOpenTry(
 	counterparty channeltypes.Counterparty,
 	version,
 	counterpartyVersion string,
-) error {
+) (string, error) {
 	if err := ValidateTransferChannelParams(ctx, am.keeper, order, portID, channelID, version); err != nil {
-		return err
+		return "", err
 	}
 
 	if counterpartyVersion != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
+		return "", sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
 	}
 
 	// Module may have already claimed capability in OnChanOpenInit in the case of crossing hellos
@@ -308,18 +324,19 @@ func (am AppModule) OnChanOpenTry(
 	if !am.keeper.AuthenticateCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)) {
 		// Only claim channel capability passed back by IBC module if we do not already own it
 		if err := am.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	return nil
+	return types.Version, nil
 }
 
 // OnChanOpenAck implements the IBCModule interface
-func (am AppModule) OnChanOpenAck(
+func (im AppModule) OnChanOpenAck(
 	ctx sdk.Context,
 	portID,
 	channelID string,
+	_ string,
 	counterpartyVersion string,
 ) error {
 	if counterpartyVersion != types.Version {

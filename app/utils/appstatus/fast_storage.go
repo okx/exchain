@@ -2,11 +2,11 @@ package appstatus
 
 import (
 	"fmt"
+	"math"
 	"path/filepath"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
@@ -31,7 +31,6 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	staking "github.com/okex/exchain/x/staking/types"
 	token "github.com/okex/exchain/x/token/types"
-	"github.com/okex/exchain/x/wasm"
 	"github.com/spf13/viper"
 )
 
@@ -49,8 +48,8 @@ func GetAllStoreKeys() []string {
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
-		mpt.StoreKey,
-		wasm.StoreKey,
+		// mpt.StoreKey,
+		// wasm.StoreKey,
 		feesplit.StoreKey,
 	}
 }
@@ -82,4 +81,34 @@ func isFss(db dbm.DB, storeKey string) bool {
 	prefixDB := dbm.NewPrefixDB(db, []byte(prefix))
 
 	return iavl.IsFastStorageStrategy(prefixDB)
+}
+
+func GetFastStorageVersion() int64 {
+	home := viper.GetString(flags.FlagHome)
+	dataDir := filepath.Join(home, dbFolder)
+	db, err := sdk.NewDB(applicationDB, dataDir)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	storeKeys := GetAllStoreKeys()
+	var ret int64 = math.MaxInt64
+	for _, v := range storeKeys {
+		version := getVersion(db, v)
+		if version < ret {
+			ret = version
+		}
+	}
+
+	return ret
+}
+
+func getVersion(db dbm.DB, storeKey string) int64 {
+	prefix := fmt.Sprintf("s/k:%s/", storeKey)
+	prefixDB := dbm.NewPrefixDB(db, []byte(prefix))
+
+	version, _ := iavl.GetFastStorageVersion(prefixDB)
+
+	return version
 }

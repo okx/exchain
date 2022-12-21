@@ -142,7 +142,7 @@ type State struct {
 	// some functions can be overwritten for testing
 	decideProposal func(height int64, round int)
 	doPrevote      func(height int64, round int)
-	setProposal    func(proposal *types.Proposal) error
+	setProposal    func(proposal *types.Proposal) (bool, error)
 
 	// closed when we finish shutting down
 	done chan struct{}
@@ -207,7 +207,7 @@ func NewState(
 		blockTimeTrc:     trace.NewTracer(trace.LastBlockTime),
 		vcHeight:         make(map[int64]string),
 		taskResultChan:   make(chan *preBlockTaskRes, 1),
-		preBlockTaskChan: make(chan *preBlockTask, 100),
+		preBlockTaskChan: make(chan *preBlockTask, 1),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal

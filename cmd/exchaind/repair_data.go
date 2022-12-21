@@ -50,10 +50,20 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	cmd.Flags().Bool(sdk.FlagMultiCache, true, "Enable multi cache")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:6060", "Address and port of pprof HTTP server listening")
+	cmd.Flags().Bool(tmiavl.FlagIavlDiscardFastStorage, false, "Discard fast storage")
+	cmd.Flags().MarkHidden(tmiavl.FlagIavlDiscardFastStorage)
 
 	return cmd
 }
 
 func setExternalPackageValue() {
-	tmiavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
+	tmiavl.SetForceReadIavl(true)
+	isFastStorage := appstatus.IsFastStorageStrategy()
+	tmiavl.SetEnableFastStorage(isFastStorage)
+	if !isFastStorage &&
+		!viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) &&
+		appstatus.GetFastStorageVersion() >= viper.GetInt64(app.FlagStartHeight) {
+		tmiavl.SetEnableFastStorage(true)
+		tmiavl.SetIgnoreAutoUpgrade(true)
+	}
 }
