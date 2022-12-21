@@ -203,6 +203,15 @@ func (cms Store) IteratorCache(isdirty bool, cb func(key string, value []byte, i
 	return true
 }
 
+func (cms Store) GetRWSet(mp types.MsRWSet) {
+	for key, store := range cms.stores {
+		if _, ok := mp[key]; !ok {
+			mp[key] = types.NewCacheKvRWSet()
+		}
+		store.(*cachekv.Store).CopyRWSet(mp[key])
+	}
+}
+
 // Implements CacheWrapper.
 func (cms Store) CacheWrap() types.CacheWrap {
 	return cms.CacheMultiStore().(types.CacheWrap)

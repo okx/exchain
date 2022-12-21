@@ -31,12 +31,14 @@ type RocksDB struct {
 var _ DB = (*RocksDB)(nil)
 
 const (
-	blockSize    = "block_size"
-	blockCache   = "block_cache"
-	statistics   = "statistics"
-	maxOpenFiles = "max_open_files"
-	mmapRead     = "allow_mmap_reads"
-	mmapWrite    = "allow_mmap_writes"
+	blockSize      = "block_size"
+	blockCache     = "block_cache"
+	statistics     = "statistics"
+	maxOpenFiles   = "max_open_files"
+	mmapRead       = "allow_mmap_reads"
+	mmapWrite      = "allow_mmap_writes"
+	unorderedWrite = "unordered_write"
+	pipelinedWrite = "pipelined_write"
 )
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
@@ -103,6 +105,26 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 		if enable {
 			opts.SetAllowMmapWrites(enable)
+		}
+	}
+
+	if v, ok := params[unorderedWrite]; ok {
+		enable, err := strconv.ParseBool(v)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", unorderedWrite, err))
+		}
+		if enable {
+			opts.SetUnorderedWrite(enable)
+		}
+	}
+
+	if v, ok := params[pipelinedWrite]; ok {
+		enable, err := strconv.ParseBool(v)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid options parameter %s: %s", pipelinedWrite, err))
+		}
+		if enable {
+			opts.SetEnablePipelinedWrite(enable)
 		}
 	}
 

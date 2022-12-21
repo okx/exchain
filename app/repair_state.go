@@ -24,6 +24,9 @@ import (
 	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	blockindex "github.com/okex/exchain/libs/tendermint/state/indexer"
+	blockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/kv"
+	bloxkindexnull "github.com/okex/exchain/libs/tendermint/state/indexer/block/null"
 	"github.com/okex/exchain/libs/tendermint/state/txindex"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/kv"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
@@ -39,6 +42,7 @@ const (
 	blockStoreDB  = "blockstore"
 	stateDB       = "state"
 	txIndexDB     = "tx_index"
+	blockIndexDb  = "block_index"
 
 	FlagStartHeight       string = "start-height"
 	FlagEnableRepairState string = "enable-repair-state"
@@ -62,11 +66,13 @@ func repairStateOnStart(ctx *server.Context) {
 	iavl.EnableAsyncCommit = false
 	viper.Set(flatkv.FlagEnable, false)
 	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
+	iavl.SetForceReadIavl(true)
 
 	// repair state
 	RepairState(ctx, true)
 
 	//set original flag
+	iavl.SetForceReadIavl(false)
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
 	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
@@ -204,15 +210,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
-		// use stateCopy to correct the repaired state
-		if state.LastBlockHeight == stateCopy.LastBlockHeight {
-			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
-			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
-			state.LastValidators = stateCopy.LastValidators.Copy()
-			state.Validators = stateCopy.Validators.Copy()
-			state.NextValidators = stateCopy.NextValidators.Copy()
-			sm.SaveState(stateStoreDB, state)
-		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 		panicError(err)
@@ -230,9 +227,14 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	}
 	// Transaction indexing
 	var txIndexer txindex.TxIndexer
+	var blockIndexer blockindex.BlockIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
 		txStore, err = sdk.NewDB(txIndexDB, filepath.Join(config.RootDir, "data"))
+		if err != nil {
+			return nil, nil, err
+		}
+		blockIndexStore, err := sdk.NewDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -244,11 +246,13 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 		default:
 			txIndexer = kv.NewTxIndex(txStore)
 		}
+		blockIndexer = blockindexer.New(dbm.NewPrefixDB(blockIndexStore, []byte("block_events")))
 	default:
 		txIndexer = &null.TxIndex{}
+		blockIndexer = &bloxkindexnull.BlockerIndexer{}
 	}
 
-	indexerService = txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService = txindex.NewIndexerService(txIndexer, blockIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
 		if eventBus != nil {
@@ -286,12 +290,12 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 
 func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
 	stateCopy := state.Copy()
-	validators, err := sm.LoadValidators(stateStoreDB, startHeight)
-	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight-1)
+	validators, lastStoredHeight, err := sm.LoadValidatorsWithStoredHeight(stateStoreDB, startHeight+1)
+	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight)
 	if err != nil {
 		return stateCopy
 	}
-	nextValidators, err := sm.LoadValidators(stateStoreDB, startHeight+1)
+	nextValidators, err := sm.LoadValidators(stateStoreDB, startHeight+2)
 	if err != nil {
 		return stateCopy
 	}
@@ -304,6 +308,7 @@ func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64)
 	stateCopy.NextValidators = nextValidators
 	stateCopy.ConsensusParams = consensusParams
 	stateCopy.LastBlockHeight = startHeight
+	stateCopy.LastHeightValidatorsChanged = lastStoredHeight
 	return stateCopy
 }
 

@@ -3,9 +3,10 @@ package keeper
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"reflect"
 	"strings"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
@@ -259,6 +260,29 @@ func (k Keeper) GetSelfConsensusState(ctx sdk.Context, height exported.Height) (
 	return consensusState, true
 }
 
+func (k Keeper) GetSelfConsensusStateV4(ctx sdk.Context, height exported.Height) (exported.ConsensusState, error) {
+	selfHeight, ok := height.(types.Height)
+	if !ok {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "expected %T, got %T", types.Height{}, height)
+	}
+	// check that height revision matches chainID revision
+	revision := types.ParseChainID(ctx.ChainID())
+	if revision != height.GetRevisionNumber() {
+		return nil, sdkerrors.Wrapf(types.ErrInvalidHeight, "chainID revision number does not match height revision number: expected %d, got %d", revision, height.GetRevisionNumber())
+	}
+	histInfo, found := k.stakingKeeper.GetHistoricalInfo(ctx, int64(selfHeight.RevisionHeight))
+	if !found {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrNotFound, "no historical info found at height %d", selfHeight.RevisionHeight)
+	}
+
+	consensusState := &ibctmtypes.ConsensusState{
+		Timestamp:          histInfo.Header.Time,
+		Root:               commitmenttypes.NewMerkleRoot(histInfo.Header.GetAppHash()),
+		NextValidatorsHash: histInfo.Header.NextValidatorsHash,
+	}
+	return consensusState, nil
+}
+
 // ValidateSelfClient validates the client parameters for a client of the running chain
 // This function is only used to validate the client state the counterparty stores for this chain
 // Client must be in same revision as the executing chain
@@ -271,7 +295,6 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 	}
 
 	// old version
-	// if clientState.IsFrozen() {
 	if !tmClient.FrozenHeight.IsZero() {
 		return types.ErrClientFrozen
 	}

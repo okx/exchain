@@ -1,9 +1,10 @@
 package ibc_test
 
 import (
+	"testing"
+
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
-	"testing"
 
 	// tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
 	"github.com/stretchr/testify/suite"
@@ -340,7 +341,7 @@ func (suite *IBCTestSuite) TestInitGenesis() {
 		app := simapp.Setup(false)
 
 		suite.NotPanics(func() {
-			ibc.InitGenesis(app.BaseApp.NewContext(false, tmproto.Header{Height: 1}), *app.IBCKeeper, true, tc.genState)
+			ibc.InitGenesis(app.BaseApp.NewContext(false, tmproto.Header{Height: 1}), *app.IBCKeeper.V2Keeper, true, tc.genState)
 		})
 	}
 }

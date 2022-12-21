@@ -2,6 +2,10 @@ package ante_test
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -12,9 +16,6 @@ import (
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
 	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
-	"math/big"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -52,7 +53,7 @@ func (suite *AnteTestSuite) SetupTest() {
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chainId, Time: time.Now().UTC()})
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil, suite.app.WasmHandler, suite.app.IBCKeeper.ChannelKeeper)
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil, suite.app.WasmHandler, suite.app.IBCKeeper)
 
 	err := okexchain.SetChainId(chainId)
 	suite.Nil(err)

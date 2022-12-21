@@ -3,9 +3,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"regexp"
 	"strings"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 var (
@@ -73,6 +74,19 @@ func NewCoinAdapter(denom string, amount Int) CoinAdapter {
 
 	return coin
 }
+func (cs CoinAdapter) ToCoin() Coin {
+	if cs.Denom == DefaultIbcWei {
+		cs.Denom = DefaultBondDenom
+	}
+	return CoinAdapterToCoin(cs)
+}
+func (cs CoinAdapters) ToCoins() Coins {
+	ret := make([]Coin, 0)
+	for _, v := range cs {
+		ret = append(ret, v.ToCoin())
+	}
+	return ret
+}
 
 func (cas CoinAdapters) IsAnyNegative() bool {
 	for _, coin := range cas {
@@ -92,6 +106,66 @@ func (cas CoinAdapters) IsAnyNil() bool {
 	}
 
 	return false
+}
+
+func (coins CoinAdapters) Add(coinsB ...CoinAdapter) CoinAdapters {
+	return coins.safeAdd(coinsB)
+}
+func (coins CoinAdapters) safeAdd(coinsB CoinAdapters) CoinAdapters {
+	// probably the best way will be to make Coins and interface and hide the structure
+	// definition (type alias)
+	if !coins.isSorted() {
+		panic("Coins (self) must be sorted")
+	}
+	if !coinsB.isSorted() {
+		panic("Wrong argument: coins must be sorted")
+	}
+
+	sum := ([]CoinAdapter)(nil)
+	indexA, indexB := 0, 0
+	lenA, lenB := len(coins), len(coinsB)
+
+	for {
+		if indexA == lenA {
+			if indexB == lenB {
+				// return nil coins if both sets are empty
+				return sum
+			}
+
+			// return set B (excluding zero coins) if set A is empty
+			return append(sum, removeZeroCoinAdapters(coinsB[indexB:])...)
+		} else if indexB == lenB {
+			// return set A (excluding zero coins) if set B is empty
+			return append(sum, removeZeroCoinAdapters(coins[indexA:])...)
+		}
+
+		coinA, coinB := coins[indexA], coinsB[indexB]
+
+		switch strings.Compare(coinA.Denom, coinB.Denom) {
+		case -1: // coin A denom < coin B denom
+			if !coinA.IsZero() {
+				sum = append(sum, coinA)
+			}
+
+			indexA++
+
+		case 0: // coin A denom == coin B denom
+			res := coinA.Add(coinB)
+			if !res.IsZero() {
+				sum = append(sum, res)
+			}
+
+			indexA++
+			indexB++
+
+		case 1: // coin A denom > coin B denom
+			if !coinB.IsZero() {
+				sum = append(sum, coinB)
+			}
+
+			indexB++
+		}
+	}
 }
 
 // ParseCoinsNormalized will parse out a list of coins separated by commas, and normalize them by converting to smallest
@@ -236,4 +310,82 @@ func (coins CoinAdapters) Copy() CoinAdapters {
 	}
 
 	return copyCoins
+}
+
+func ConvWei2TOkt(adapters CoinAdapters) (CoinAdapters, error) {
+	copyAdapters := adapters.Copy()
+	for index, _ := range copyAdapters {
+		if copyAdapters[index].Denom == DefaultIbcWei {
+			copyAdapters[index].Denom = DefaultBondDenom
+		} else if strings.ToLower(copyAdapters[index].Denom) == DefaultBondDenom {
+			return nil, errors.Wrap(errors.ErrInvalidCoins, "not support okt denom")
+		}
+	}
+	return copyAdapters, nil
+}
+
+// AmountOf returns the amount of a denom from coins
+func (coins CoinAdapters) AmountOf(denom string) Int {
+	mustValidateDenom(denom)
+	return coins.AmountOfNoDenomValidation(denom)
+}
+
+// AmountOfNoDenomValidation returns the amount of a denom from coins
+// without validating the denomination.
+func (coins CoinAdapters) AmountOfNoDenomValidation(denom string) Int {
+	switch len(coins) {
+	case 0:
+		return ZeroInt()
+
+	case 1:
+		coin := coins[0]
+		if coin.Denom == denom {
+			return coin.Amount
+		}
+		return ZeroInt()
+
+	default:
+		// Binary search the amount of coins remaining
+		midIdx := len(coins) / 2 // 2:1, 3:1, 4:2
+		coin := coins[midIdx]
+		switch {
+		case denom < coin.Denom:
+			return coins[:midIdx].AmountOfNoDenomValidation(denom)
+		case denom == coin.Denom:
+			return coin.Amount
+		default:
+			return coins[midIdx+1:].AmountOfNoDenomValidation(denom)
+		}
+	}
+}
+
+func (coins CoinAdapters) Sub(coinsB CoinAdapters) CoinAdapters {
+	diff, hasNeg := coins.SafeSub(coinsB)
+	if hasNeg {
+		panic("negative coin amount")
+	}
+
+	return diff
+}
+
+func (coins CoinAdapters) SafeSub(coinsB CoinAdapters) (CoinAdapters, bool) {
+	diff := coins.safeAdd(coinsB.negative())
+	return diff, diff.IsAnyNegative()
+}
+func (coins CoinAdapters) negative() CoinAdapters {
+	res := make([]CoinAdapter, 0, len(coins))
+
+	for _, coin := range coins {
+		res = append(res, CoinAdapter{
+			Denom:  coin.Denom,
+			Amount: coin.Amount.Neg(),
+		})
+	}
+
+	return res
+}
+
+// AddAmount adds an amount to the Coin.
+func (coin CoinAdapter) AddAmount(amount Int) CoinAdapter {
+	return CoinAdapter{coin.Denom, coin.Amount.Add(amount)}
 }

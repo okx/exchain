@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -234,6 +235,73 @@ func GetCmdParams(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *co
 	}
 
 	flags.AddQueryFlagsToCmd(cmd)
+
+	return cmd
+}
+
+func GetCmdQueryClientStatus(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "status [client-id]",
+		Short:   "Query client status",
+		Long:    "Query client activity status. Any client without an 'Active' status is considered inactive",
+		Example: fmt.Sprintf("%s query %s %s status [client-id]", version.ServerName, host.ModuleName, types.SubModuleName),
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
+
+			clientID := args[0]
+			queryClient := types.NewQueryClient(clientCtx)
+
+			req := &types.QueryClientStatusRequest{
+				ClientId: clientID,
+			}
+
+			clientStatusRes, err := queryClient.ClientStatus(cmd.Context(), req)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(clientStatusRes)
+		},
+	}
+
+	return cmd
+}
+
+func GetCmdQueryConsensusStateHeights(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "consensus-state-heights [client-id]",
+		Short:   "Query the heights of all consensus states of a client.",
+		Long:    "Query the heights of all consensus states associated with the provided client ID.",
+		Example: fmt.Sprintf("%s query %s %s consensus-state-heights [client-id]", version.ServerName, host.ModuleName, types.SubModuleName),
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := context.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
+
+			clientID := args[0]
+
+			queryClient := types.NewQueryClient(clientCtx)
+
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			req := &types.QueryConsensusStateHeightsRequest{
+				ClientId:   clientID,
+				Pagination: pageReq,
+			}
+
+			res, err := queryClient.ConsensusStateHeights(cmd.Context(), req)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	flags.AddPaginationFlagsToCmd(cmd, "consensus state heights")
 
 	return cmd
 }

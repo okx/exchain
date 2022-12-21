@@ -65,7 +65,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(config.FlagDynamicGpWeight, 80, "The recommended weight of dynamic gas price [1,100])")
 	cmd.Flags().Int(config.FlagDynamicGpCheckBlocks, 5, "The recommended number of blocks checked of dynamic gas price [1,100])")
 	cmd.Flags().Int(config.FlagDynamicGpCoefficient, 1, "Adjustment coefficient of dynamic gas price [1,100])")
-	cmd.Flags().Int(config.FlagDynamicGpMode, types.CongestionHigherGpMode, "Dynamic gas price mode (0: higher price|1: normal|2: close) is used to manage flags")
+	cmd.Flags().Int(config.FlagDynamicGpMode, types.MinimalGpMode, "Dynamic gas price mode (0: higher price|1: normal price|2: minimal price) is used to manage flags")
 
 	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")
@@ -105,7 +105,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(config.FlagPprofUseCGroup, false, "Use cgroup when exchaind run in docker")
 
 	cmd.Flags().String(tmdb.FlagGoLeveldbOpts, "", "Options of goleveldb. (cache_size=128MB,handlers_num=1024)")
-	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1)")
+	cmd.Flags().String(tmdb.FlagRocksdbOpts, "", "Options of rocksdb. (block_size=4KB,block_cache=1GB,statistics=true,allow_mmap_reads=true,max_open_files=-1,unordered_write=true,pipelined_write=true)")
 	cmd.Flags().String(types.FlagNodeMode, "", "Node mode (rpc|val|archive) is used to manage flags")
 
 	cmd.Flags().Bool(consensus.EnablePrerunTx, true, "enable proactively runtx mode, default close")
@@ -117,6 +117,9 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+
+	cmd.Flags().Int64(config.FlagCommitGapOffset, 0, "Offset to stagger ac ahead of proposal")
+	cmd.Flags().MarkHidden(config.FlagCommitGapOffset)
 
 	// flags for infura rpc
 	cmd.Flags().Bool(infura.FlagEnable, false, "Enable infura rpc service")

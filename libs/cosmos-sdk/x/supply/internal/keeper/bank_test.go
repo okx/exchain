@@ -3,6 +3,8 @@ package keeper_test
 import (
 	"testing"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -172,6 +174,7 @@ func Test_SendCoinsAdapter(t *testing.T) {
 	require.Equal(t, ok, true)
 	transferAmountDec := sdk.NewDecFromIntWithPrec(transferAmount, sdk.Precision)
 	token := sdk.NewCoin(sdk.DefaultBondDenom, transferAmountDec)
-	err := keeper.SendCoins(ctx, from.GetAddress(), to.GetAddress(), token.ToCoins())
+	sk := supply.NewSupplyKeeperAdapter(keeper)
+	err := sk.SendCoins(ctx, from.GetAddress(), to.GetAddress(), token.ToCoins())
 	require.NoError(t, err)
 }

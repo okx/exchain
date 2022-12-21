@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"net"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -166,4 +167,39 @@ func TestNetAddressReachabilityTo(t *testing.T) {
 
 		assert.Equal(t, tc.reachability, addr.ReachabilityTo(other))
 	}
+}
+
+func TestNetAddress_String(t *testing.T) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8080")
+	require.Nil(t, err)
+
+	netAddr := NewNetAddress("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", tcpAddr)
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = netAddr.String()
+		}()
+	}
+
+	wg.Wait()
+
+	s := netAddr.String()
+	require.Equal(t, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef@127.0.0.1:8080", s)
+}
+
+func TestSafeStoreLoad(t *testing.T) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8080")
+	require.Nil(t, err)
+
+	netAddr := NewNetAddress("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", tcpAddr)
+	str := netAddr.safeLoadStr()
+	require.Nil(t, str)
+	netAddr.safeStoreStr("test01")
+	str = netAddr.safeLoadStr()
+	require.NotNil(t, str)
+	require.Equal(t, *str, "test01")
 }

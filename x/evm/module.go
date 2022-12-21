@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/gorilla/mux"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -116,6 +117,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 // EndBlock function for module at end of block
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
+	baseapp.InstanceOfHistoryGasUsedRecordDB().FlushHgu()
 	return am.keeper.EndBlock(ctx, req)
 }
 
