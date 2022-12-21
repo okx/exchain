@@ -23,6 +23,7 @@ var BIG0 = big.NewInt(0)
 type InnerTxKeeper interface {
 	InitInnerBlock(...interface{})
 	UpdateInnerTx(...interface{})
+	UpdateWasmInnerTx(...interface{})
 }
 
 func AddDefaultInnerTx(...interface{}) interface{} {

@@ -3,6 +3,7 @@ package typesadapter
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 )
@@ -20,6 +21,16 @@ func init() {
 func RegisterInterface(registry interfacetypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*txmsg.Msg)(nil),
+		&MsgSend{},
+		&MsgMultiSend{},
+	)
+	registry.RegisterImplementations(
+		(*types.MsgProtoAdapter)(nil),
+		&MsgSend{},
+		&MsgMultiSend{},
+	)
+	registry.RegisterImplementations(
+		(*types.Msg)(nil),
 		&MsgSend{},
 		&MsgMultiSend{},
 	)

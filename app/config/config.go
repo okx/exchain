@@ -43,6 +43,8 @@ type OecConfig struct {
 	mempoolFlush bool
 	// mempool.max_tx_num_per_block
 	maxTxNumPerBlock int64
+	// mempool.enable_delete_min_gp_tx
+	enableDeleteMinGPTx bool
 	// mempool.max_gas_used_per_block
 	maxGasUsedPerBlock int64
 	// mempool.enable-pgu
@@ -116,41 +118,48 @@ type OecConfig struct {
 	// enable broadcast hasBlockPartMsg
 	enableHasBlockPartMsg bool
 	gcInterval            int
+
+	iavlAcNoBatch bool
+
+	//
+	commitGapOffset int64
 }
 
 const (
 	FlagEnableDynamic = "config.enable-dynamic"
 
-	FlagMempoolRecheck          = "mempool.recheck"
-	FlagMempoolForceRecheckGap  = "mempool.force_recheck_gap"
-	FlagMempoolSize             = "mempool.size"
-	FlagMempoolCacheSize        = "mempool.cache_size"
-	FlagMempoolFlush            = "mempool.flush"
-	FlagMaxTxNumPerBlock        = "mempool.max_tx_num_per_block"
-	FlagMaxGasUsedPerBlock      = "mempool.max_gas_used_per_block"
-	FlagEnablePGU               = "mempool.enable-pgu"
-	FlagPGUAdjustment           = "mempool.pgu-adjustment"
-	FlagNodeKeyWhitelist        = "mempool.node_key_whitelist"
-	FlagMempoolCheckTxCost      = "mempool.check_tx_cost"
-	FlagGasLimitBuffer          = "gas-limit-buffer"
-	FlagEnableDynamicGp         = "enable-dynamic-gp"
-	FlagDynamicGpMode           = "dynamic-gp-mode"
-	FlagDynamicGpWeight         = "dynamic-gp-weight"
-	FlagDynamicGpCheckBlocks    = "dynamic-gp-check-blocks"
-	FlagDynamicGpCoefficient    = "dynamic-gp-coefficient"
-	FlagDynamicGpMaxGasUsed     = "dynamic-gp-max-gas-used"
-	FlagDynamicGpMaxTxNum       = "dynamic-gp-max-tx-num"
-	FlagEnableWrappedTx         = "enable-wtx"
-	FlagSentryAddrs             = "p2p.sentry_addrs"
-	FlagCsTimeoutPropose        = "consensus.timeout_propose"
-	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
-	FlagCsTimeoutPrevote        = "consensus.timeout_prevote"
-	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
-	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
-	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
-	FlagCsTimeoutCommit         = "consensus.timeout_commit"
-	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
-	FlagDebugGcInterval         = "debug.gc-interval"
+	FlagMempoolRecheck             = "mempool.recheck"
+	FlagMempoolForceRecheckGap     = "mempool.force_recheck_gap"
+	FlagMempoolSize                = "mempool.size"
+	FlagMempoolCacheSize           = "mempool.cache_size"
+	FlagMempoolFlush               = "mempool.flush"
+	FlagMaxTxNumPerBlock           = "mempool.max_tx_num_per_block"
+	FlagMaxGasUsedPerBlock         = "mempool.max_gas_used_per_block"
+	FlagEnablePGU                  = "mempool.enable-pgu"
+	FlagPGUAdjustment              = "mempool.pgu-adjustment"
+	FlagNodeKeyWhitelist           = "mempool.node_key_whitelist"
+	FlagMempoolCheckTxCost         = "mempool.check_tx_cost"
+	FlagMempoolEnableDeleteMinGPTx = "mempool.enable_delete_min_gp_tx"
+	FlagGasLimitBuffer             = "gas-limit-buffer"
+	FlagEnableDynamicGp            = "enable-dynamic-gp"
+	FlagDynamicGpMode              = "dynamic-gp-mode"
+	FlagDynamicGpWeight            = "dynamic-gp-weight"
+	FlagDynamicGpCheckBlocks       = "dynamic-gp-check-blocks"
+	FlagDynamicGpCoefficient       = "dynamic-gp-coefficient"
+	FlagDynamicGpMaxGasUsed        = "dynamic-gp-max-gas-used"
+	FlagDynamicGpMaxTxNum          = "dynamic-gp-max-tx-num"
+	FlagEnableWrappedTx            = "enable-wtx"
+	FlagSentryAddrs                = "p2p.sentry_addrs"
+	FlagCsTimeoutPropose           = "consensus.timeout_propose"
+	FlagCsTimeoutProposeDelta      = "consensus.timeout_propose_delta"
+	FlagCsTimeoutPrevote           = "consensus.timeout_prevote"
+	FlagCsTimeoutPrevoteDelta      = "consensus.timeout_prevote_delta"
+	FlagCsTimeoutPrecommit         = "consensus.timeout_precommit"
+	FlagCsTimeoutPrecommitDelta    = "consensus.timeout_precommit_delta"
+	FlagCsTimeoutCommit            = "consensus.timeout_commit"
+	FlagEnableHasBlockPartMsg      = "enable-blockpart-ack"
+	FlagDebugGcInterval            = "debug.gc-interval"
+	FlagCommitGapOffset            = "commit-gap-offset"
 )
 
 var (
@@ -314,6 +323,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
+	c.SetEnableDeleteMinGPTx(viper.GetBool(FlagMempoolEnableDeleteMinGPTx))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
 	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
@@ -342,10 +352,12 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetCommitGapOffset(viper.GetInt64(FlagCommitGapOffset))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 	c.SetAVCWhitelist(viper.GetString(server.FlagAVCWhiteList))
+	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -393,6 +405,7 @@ func (c *OecConfig) format() string {
 
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
+	mempool.enable_delete_min_gp_tx: %v
 	mempool.max_gas_used_per_block: %d
 	mempool.check_tx_cost: %v
 
@@ -416,6 +429,7 @@ func (c *OecConfig) format() string {
     iavl-fast-storage-cache-size: %d
     commit-gap-height: %d
 	enable-analyzer: %v
+    iavl-commit-async-no-batch: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
@@ -423,6 +437,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolCacheSize(),
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
+		c.GetEnableDeleteMinGPTx(),
 		c.GetMaxGasUsedPerBlock(),
 		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
@@ -443,6 +458,7 @@ func (c *OecConfig) format() string {
 		c.GetIavlFSCacheSize(),
 		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
+		c.GetIavlAcNoBatch(),
 		c.GetActiveVC(),
 	)
 }
@@ -490,6 +506,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetMaxTxNumPerBlock(r)
+	case FlagMempoolEnableDeleteMinGPTx:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableDeleteMinGPTx(r)
 	case FlagNodeKeyWhitelist:
 		c.SetNodeKeyWhitelist(v)
 	case FlagMempoolCheckTxCost:
@@ -676,7 +698,20 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 		c.SetGcInterval(r)
 	case server.FlagAVCWhiteList:
 		c.SetAVCWhitelist(v)
+	case tmiavl.FlagIavlCommitAsyncNoBatch:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetIavlAcNoBatch(r)
+	case FlagCommitGapOffset:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetCommitGapOffset(r)
 	}
+
 }
 
 func (c *OecConfig) GetEnableAnalyzer() bool {
@@ -790,6 +825,14 @@ func (c *OecConfig) SetMaxTxNumPerBlock(value int64) {
 		return
 	}
 	c.maxTxNumPerBlock = value
+}
+
+func (c *OecConfig) GetEnableDeleteMinGPTx() bool {
+	return c.enableDeleteMinGPTx
+}
+
+func (c *OecConfig) SetEnableDeleteMinGPTx(enable bool) {
+	c.enableDeleteMinGPTx = enable
 }
 
 func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
@@ -1057,6 +1100,18 @@ func (c *OecConfig) SetGcInterval(value int) {
 	c.gcInterval = value
 
 }
+
+func (c *OecConfig) GetCommitGapOffset() int64 {
+	return c.commitGapOffset
+}
+
+func (c *OecConfig) SetCommitGapOffset(value int64) {
+	if value < 0 {
+		value = 0
+	}
+	c.commitGapOffset = value
+}
+
 func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 	return c.enableHasBlockPartMsg
 }
@@ -1081,4 +1136,11 @@ func (c *OecConfig) SetAVCWhitelist(value string) {
 			c.avcWhitelist = append(c.avcWhitelist, id)
 		}
 	}
+
+func (c *OecConfig) GetIavlAcNoBatch() bool {
+	return c.iavlAcNoBatch
+}
+
+func (c *OecConfig) SetIavlAcNoBatch(value bool) {
+	c.iavlAcNoBatch = value
 }

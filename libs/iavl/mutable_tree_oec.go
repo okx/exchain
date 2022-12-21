@@ -38,6 +38,8 @@ var (
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = config.DefaultCommitGapHeight
 	enableFastStorage               = true
+	forceReadIavl                   = false
+	ignoreAutoUpgrade               = false
 )
 
 type commitEvent struct {
@@ -48,6 +50,8 @@ type commitEvent struct {
 	wg         *sync.WaitGroup
 	iavlHeight int
 	fnc        *fastNodeChanges
+	orphans    []commitOrphan
+	isStop     bool
 }
 
 type commitOrphan struct {
@@ -63,6 +67,24 @@ func SetEnableFastStorage(enable bool) {
 // GetEnableFastStorage get fast storage enable value
 func GetEnableFastStorage() bool {
 	return enableFastStorage
+}
+
+// SetForceReadIavl force read from iavl
+func SetForceReadIavl(enable bool) {
+	forceReadIavl = enable
+}
+
+// GetForceReadIavl get force read from iavl
+func getForceReadIavl() bool {
+	return forceReadIavl
+}
+
+func SetIgnoreAutoUpgrade(enable bool) {
+	ignoreAutoUpgrade = enable
+}
+
+func getIgnoreAutoUpgrade() bool {
+	return ignoreAutoUpgrade
 }
 
 // GetFastNodeCacheSize get fast node cache size
@@ -102,7 +124,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%CommitGapHeight == 0
+	// persist height = commitGapHeight + produceOffset
+	shouldPersist := version%CommitGapHeight == finalCommitGapOffset
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
@@ -159,11 +182,14 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil, false}
 	var tpp map[string]*Node = nil
 	fnc := newFastNodeChanges()
+
+	var orphans []commitOrphan
 	if EnablePruningHistoryState {
-		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
+		orphans = tree.commitOrphans
+		tree.commitOrphans = nil
 	}
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being removed.
@@ -183,7 +209,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height()), fnc}
+		tpp, nil, int(tree.Height()), fnc, orphans, false}
 	tree.lastPersistHeight = version
 }
 
@@ -201,8 +227,19 @@ func (tree *MutableTree) commitSchedule() {
 			}
 			continue
 		}
-
+		noBatch := false
+		if IavlCommitAsyncNoBatch && !event.isStop {
+			noBatch = true
+		}
 		trc := trace.NewTracer("commitSchedule")
+
+		if len(event.orphans) != 0 {
+			trc.Pin("saveCommitOrphans")
+			err := tree.ndb.saveCommitOrphans(event.batch, event.version, event.orphans, noBatch)
+			if err != nil {
+				panic(err)
+			}
+		}
 
 		trc.Pin("cacheNode")
 		for k, node := range event.tpp {
@@ -213,9 +250,9 @@ func (tree *MutableTree) commitSchedule() {
 		}
 
 		trc.Pin("Pruning")
-		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
+		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions, noBatch)
 
-		tree.ndb.persistTpp(&event, trc)
+		tree.ndb.persistTpp(&event, noBatch, trc)
 		if event.wg != nil {
 			event.wg.Done()
 			break
@@ -278,7 +315,7 @@ func (tree *MutableTree) StopTreeWithVersion(version int64) {
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil, true}
 	wg.Wait()
 }
 func (tree *MutableTree) StopTree() {
@@ -289,7 +326,7 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool) {
+func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool, writeToDB bool) {
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
 	tree.committedHeightMap[version] = true
@@ -300,12 +337,19 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 		delete(tree.committedHeightMap, oldVersion)
 
 		if EnablePruningHistoryState {
-
+			if writeToDB {
+				batch = tree.ndb.db.NewBatch()
+			}
 			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
+			}
+			if writeToDB {
+				if err := tree.ndb.Commit(batch); err != nil {
+					panic(err)
+				}
 			}
 		}
 	}

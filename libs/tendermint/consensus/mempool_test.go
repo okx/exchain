@@ -69,12 +69,12 @@ func TestMempoolProgressInHigherRound(t *testing.T) {
 	newBlockCh := subscribe(cs.eventBus, types.EventQueryNewBlock)
 	newRoundCh := subscribe(cs.eventBus, types.EventQueryNewRound)
 	timeoutCh := subscribe(cs.eventBus, types.EventQueryTimeoutPropose)
-	cs.setProposal = func(proposal *types.Proposal) error {
+	cs.setProposal = func(proposal *types.Proposal) (bool, error) {
 		if cs.Height == 2 && cs.Round == 0 {
 			// dont set the proposal in round 0 so we timeout and
 			// go to next round
 			cs.Logger.Info("Ignoring set proposal at height 2, round 0")
-			return nil
+			return false, nil
 		}
 		return cs.defaultSetProposal(proposal)
 	}
