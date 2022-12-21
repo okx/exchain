@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -100,6 +101,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			}
 
 			ts := time.Now()
+			ctx.Config.RootDir = "127.0.0.1:2379"
 			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
@@ -203,6 +205,14 @@ func panicError(err error) {
 
 func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	rootDir := ctx.Config.RootDir
+	if strings.Contains(rootDir, "127.0.0.1") {
+		db, err := sdk.NewTiKV(rootDir)
+		panicError(err)
+		app := newApp(ctx.Logger, db, nil)
+		clientCreator := proxy.NewLocalClientCreator(app)
+		return createAndStartProxyAppConns(clientCreator)
+	}
+
 	dataDir := filepath.Join(rootDir, "data")
 	db, err := sdk.NewDB(applicationDB, dataDir)
 	panicError(err)

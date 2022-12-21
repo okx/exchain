@@ -94,6 +94,16 @@ func NewDB(name, dir string) (db dbm.DB, err error) {
 	return
 }
 
+func NewTiKV(addr string) (db dbm.DB, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("couldn't create db: %v", r)
+		}
+	}()
+	db = dbm.NewTiKV(addr)
+	return
+}
+
 type ParaMsg struct {
 	UseCurrentState     bool
 	HaveCosmosTxInBlock bool

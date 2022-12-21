@@ -59,6 +59,15 @@ func registerDBCreator(backend BackendType, creator dbCreator, force bool) {
 	backends[backend] = creator
 }
 
+func NewTiKV(addr string) DB {
+	dbCreator, _ := backends["tikv"]
+	db, err := dbCreator("", addr)
+	if err != nil {
+		panic(fmt.Sprintf("Error initializing DB: %v", err))
+	}
+	return db
+}
+
 // NewDB creates a new database of type backend with the given name.
 // NOTE: function panics if:
 //   - backend is unknown (not registered)
