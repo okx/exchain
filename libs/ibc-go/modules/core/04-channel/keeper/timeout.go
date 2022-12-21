@@ -3,6 +3,8 @@ package keeper
 import (
 	"bytes"
 
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
@@ -168,6 +170,10 @@ func (k Keeper) TimeoutExecuted(
 	// emit an event marking that we have processed the timeout
 	EmitTimeoutPacketEvent(ctx, packet, channel)
 
+	if channel.Ordering == types.ORDERED && channel.State == types.CLOSED {
+		EmitChannelClosedEvent(ctx, packet, channel)
+	}
+
 	return nil
 }
 
@@ -233,10 +239,15 @@ func (k Keeper) TimeoutOnClose(
 		return sdkerrors.Wrapf(types.ErrInvalidPacket, "packet commitment bytes are not equal: got (%v), expected (%v)", commitment, packetCommitment)
 	}
 
-	counterpartyHops, found := k.CounterpartyHops(ctx, channel)
-	if !found {
-		// Should not reach here, connectionEnd was able to be retrieved above
-		panic("cannot find connection")
+	var counterpartyHops []string
+	if types2.HigherThanVenus4(ctx.BlockHeight()) {
+		counterpartyHops = []string{connectionEnd.GetCounterparty().GetConnectionID()}
+	} else {
+		counterpartyHops, found = k.CounterpartyHops(ctx, channel)
+		if !found {
+			// Should not reach here, connectionEnd was able to be retrieved above
+			panic("cannot find connection")
+		}
 	}
 
 	counterparty := types.NewCounterparty(packet.GetSourcePort(), packet.GetSourceChannel())

@@ -1,6 +1,14 @@
 package helpers
 
 import (
+	"math/rand"
+	"time"
+
+	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
+
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -11,12 +19,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signing2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	"github.com/okex/exchain/libs/tendermint/crypto"
-	"math/rand"
-	"time"
+	"github.com/okex/exchain/x/icamauth"
 )
 
 // SimAppChainID hardcoded chainID for simulation
@@ -27,6 +35,18 @@ const (
 
 // GenTx generates a signed mock transaction.
 func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, smode int, priv ...crypto.PrivKey) (sdk.Tx, error) {
+	txBytes, err := GenTxBytes(gen, msgs, feeAmt, gas, chainID, accNums, accSeqs, smode, priv...)
+	if nil != err {
+		panic(err)
+	}
+	cdcProxy := newProxyDecoder()
+
+	ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
+
+	return ibcTx, err
+}
+
+func GenTxBytes(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, smode int, priv ...crypto.PrivKey) ([]byte, error) {
 	sigs := make([]signing.SignatureV2, len(priv))
 
 	// create a random length memo
@@ -100,22 +120,18 @@ func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas 
 			panic(err)
 		}
 	}
-	txBytes, err := gen.TxEncoder()(tx.GetTx())
-	if err != nil {
-		panic("construct tx error")
-	}
-
-	cdcProxy := newProxyDecoder()
-
-	ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
-
-	return ibcTx, nil
+	return gen.TxEncoder()(tx.GetTx())
 }
 
 func newProxyDecoder() *codec.CodecProxy {
 	ModuleBasics := module.NewBasicManager(
+		bank.AppModuleBasic{},
+		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
 		ibctransfer.AppModuleBasic{},
+		ica.AppModuleBasic{},
+		ibcfee.AppModuleBasic{},
+		icamauth.AppModuleBasic{},
 	)
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)

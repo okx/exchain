@@ -3,6 +3,8 @@ package ibctesting
 import (
 	"fmt"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 	//	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
@@ -279,6 +281,8 @@ func (endpoint *Endpoint) ChanOpenInit() error {
 	endpoint.ChannelID, err = ParseChannelIDFromEvents(res.Events)
 	require.NoError(endpoint.Chain.T(), err)
 
+	endpoint.ChannelConfig.Version = endpoint.GetChannel().Version
+
 	return nil
 }
 
@@ -305,6 +309,7 @@ func (endpoint *Endpoint) ChanOpenTry() error {
 		endpoint.ChannelID, err = ParseChannelIDFromEvents(res.Events)
 		require.NoError(endpoint.Chain.T(), err)
 	}
+	endpoint.ChannelConfig.Version = endpoint.GetChannel().Version
 
 	return nil
 }
@@ -322,7 +327,14 @@ func (endpoint *Endpoint) ChanOpenAck() error {
 		proof, height,
 		endpoint.Chain.SenderAccount().GetAddress().String(),
 	)
-	return endpoint.Chain.sendMsgs(msg)
+
+	if err := endpoint.Chain.sendMsgs(msg); nil != err {
+		return err
+	}
+
+	endpoint.ChannelConfig.Version = endpoint.GetChannel().Version
+
+	return nil
 }
 
 // ChanOpenConfirm will construct and execute a MsgChannelOpenConfirm on the associated endpoint.
@@ -391,7 +403,7 @@ func (endpoint *Endpoint) WriteAcknowledgement(ack exported.Acknowledgement, pac
 	channelCap := endpoint.Chain.GetChannelCapability(packet.GetDestPort(), packet.GetDestChannel())
 
 	// no need to send message, acting as a handler
-	err := endpoint.Chain.App().GetIBCKeeper().ChannelKeeper.WriteAcknowledgement(endpoint.Chain.GetContext(), channelCap, packet, ack.Acknowledgement())
+	err := endpoint.Chain.App().GetIBCKeeper().ChannelKeeper.WriteAcknowledgement(endpoint.Chain.GetContext(), channelCap, packet, ack)
 	if err != nil {
 		return err
 	}
@@ -514,4 +526,26 @@ func (endpoint *Endpoint) QueryClientStateProof() (exported.ClientState, []byte)
 	proofClient, _ := endpoint.QueryProof(clientKey)
 
 	return clientState, proofClient
+}
+
+// RecvPacketWithResult receives a packet on the associated endpoint and the result
+// of the transaction is returned. The counterparty client is updated.
+func (endpoint *Endpoint) RecvPacketWithResult(packet channeltypes.Packet) (*sdk.Result, error) {
+	// get proof of packet commitment on source
+	packetKey := host.PacketCommitmentKey(packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
+	proof, proofHeight := endpoint.Counterparty.Chain.QueryProof(packetKey)
+
+	recvMsg := channeltypes.NewMsgRecvPacket(packet, proof, proofHeight, endpoint.Chain.SenderAccount().GetAddress().String())
+
+	// receive on counterparty and update source client
+	res, err := endpoint.Chain.SendMsgs(recvMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := endpoint.Counterparty.UpdateClient(); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }

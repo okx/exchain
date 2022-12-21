@@ -1,6 +1,9 @@
 package ante_test
 
 import (
+	"math/big"
+	"testing"
+
 	appante "github.com/okex/exchain/app/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -13,8 +16,6 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/order"
 	"github.com/stretchr/testify/suite"
-	"math/big"
-	"testing"
 )
 
 type AnteTestSuite struct {
@@ -471,7 +472,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			// reset suite
 			suite.SetupTest()
 
-			k := suite.chainB.App().GetIBCKeeper().ChannelKeeper
+			k := suite.chainB.App().GetFacadedKeeper()
 			//decorator := ante.NewAnteDecorator(k)
 			app := suite.chainB.GetSimApp()
 			msgs := tc.malleate(suite)
