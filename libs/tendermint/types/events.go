@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	amino "github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -20,6 +21,7 @@ const (
 	EventNewBlockHeader      = "NewBlockHeader"
 	EventTx                  = "Tx"
 	EventPendingTx           = "PendingTx"
+	EventRmPendingTx         = "RmPendingTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 	EventBlockTime           = "BlockTime"
 	EventTxs                 = "Txs"
@@ -41,6 +43,14 @@ const (
 	EventSignVote         = "SignVote"
 	EventBlockPart        = "BlockPart"
 	EventProposeRequest   = "ProposeRequest"
+)
+
+type RmPendingTxReason int
+
+const (
+	Recheck RmPendingTxReason = iota
+	MinGasPrice
+	Confirmed
 )
 
 var EnableEventBlockTime = false
@@ -99,6 +109,13 @@ type EventDataTxs struct {
 	Height int64
 	//Txs     Txs
 	Results []*abci.ResponseDeliverTx
+}
+
+type EventDataRmPendingTx struct {
+	Hash   []byte
+	From   string
+	Nonce  uint64
+	Reason RmPendingTxReason
 }
 
 // latest blockTime
@@ -200,9 +217,11 @@ type BlockEventPublisher interface {
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
 	PublishEventLatestBlockTime(time EventDataBlockTime) error
+	PublishEventRmPendingTx(EventDataRmPendingTx) error
 }
 
 type TxEventPublisher interface {
 	PublishEventTx(EventDataTx) error
 	PublishEventPendingTx(EventDataTx) error
+	PublishEventRmPendingTx(EventDataRmPendingTx) error
 }

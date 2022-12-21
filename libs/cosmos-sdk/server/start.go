@@ -243,7 +243,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	}
 
 	if cfg.GRPC.Enable {
-		go grpc.StartGRPCServer(cdc, registry, app.(app2.ApplicationAdapter), cfg.GRPC)
+		go grpc.StartGRPCServer(cdc, registry, app.(app2.ApplicationAdapter), cfg.GRPC, tmNode)
 	}
 
 	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)
