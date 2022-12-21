@@ -225,7 +225,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		}
 	}
 
-	TrapSignal(func() {
+	TrapSignal(func(code int) {
 		if tmNode.IsRunning() {
 			_ = tmNode.Stop()
 		}
@@ -235,7 +235,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 			cpuProfileCleanup()
 		}
 
-		ctx.Logger.Info("exiting...")
+		ctx.Logger.Info("exiting...", "code", code)
 	})
 
 	if registerRoutesFn != nil {
