@@ -2,10 +2,11 @@ package simulation_test
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
+	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 
 	"github.com/stretchr/testify/require"
 
@@ -35,11 +36,11 @@ func TestDecodeStore(t *testing.T) {
 		Pairs: []kv.Pair{
 			{
 				Key:   host.FullClientStateKey(clientID),
-				Value: app.IBCKeeper.ClientKeeper.MustMarshalClientState(clientState),
+				Value: app.IBCKeeper.V2Keeper.ClientKeeper.MustMarshalClientState(clientState),
 			},
 			{
 				Key:   host.FullConsensusStateKey(clientID, height),
-				Value: app.IBCKeeper.ClientKeeper.MustMarshalConsensusState(consState),
+				Value: app.IBCKeeper.V2Keeper.ClientKeeper.MustMarshalConsensusState(consState),
 			},
 			{
 				Key:   []byte{0x99},
@@ -64,7 +65,7 @@ func TestDecodeStore(t *testing.T) {
 				Key:   kvPairs.Pairs[i].GetKey(),
 				Value: kvPairs.Pairs[i].GetValue(),
 			}
-			res, found := simulation.NewDecodeStore(app.IBCKeeper.ClientKeeper, kvA, kvA)
+			res, found := simulation.NewDecodeStore(app.IBCKeeper.V2Keeper.ClientKeeper, kvA, kvA)
 			if i == len(tests)-1 {
 				require.False(t, found, string(kvPairs.Pairs[i].Key))
 				require.Empty(t, res, string(kvPairs.Pairs[i].Key))

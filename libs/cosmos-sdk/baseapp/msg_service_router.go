@@ -3,6 +3,7 @@ package baseapp
 import (
 	"context"
 	"fmt"
+
 	gogogrpc "github.com/gogo/protobuf/grpc"
 	"github.com/gogo/protobuf/proto"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -33,6 +34,11 @@ type MsgServiceHandler = func(ctx sdk.Context, req sdk.MsgRequest) (*sdk.Result,
 // if not found.
 func (msr *MsgServiceRouter) Handler(methodName string) MsgServiceHandler {
 	return msr.routes[methodName]
+}
+
+// Handler returns the MsgServiceHandler for a given msg or nil if not found.
+func (msr *MsgServiceRouter) HandlerWithMsg(msg sdk.MsgAdapter) MsgServiceHandler {
+	return msr.routes[sdk.MsgTypeURL(msg)]
 }
 
 // RegisterService implements the gRPC Server.RegisterService method. sd is a gRPC

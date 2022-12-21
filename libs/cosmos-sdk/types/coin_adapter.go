@@ -33,3 +33,33 @@ func CoinsToCoinAdapters(coins Coins) CoinAdapters {
 	}
 	return adapters
 }
+
+func removeZeroCoinAdapters(coins CoinAdapters) CoinAdapters {
+	for i := 0; i < len(coins); i++ {
+		if coins[i].IsZero() {
+			break
+		} else if i == len(coins)-1 {
+			return coins
+		}
+	}
+	var result []CoinAdapter
+	if len(coins) > 0 {
+		result = make([]CoinAdapter, 0, len(coins)-1)
+	}
+
+	for _, coin := range coins {
+		if !coin.IsZero() {
+			result = append(result, coin)
+		}
+	}
+	return result
+}
+
+func (coins CoinAdapters) IsZero() bool {
+	for _, coin := range coins {
+		if !coin.IsZero() {
+			return false
+		}
+	}
+	return true
+}

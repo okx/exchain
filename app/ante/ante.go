@@ -7,7 +7,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	channelkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/keeper"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	ibcante "github.com/okex/exchain/libs/ibc-go/modules/core/ante"
 	"github.com/okex/exchain/libs/system/trace"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
@@ -29,7 +29,7 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, option wasmkeeper.HandlerOption, ibcChannelKeepr channelkeeper.Keeper) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, option wasmkeeper.HandlerOption, ibcChannelKeepr *ibc.Keeper) sdk.AnteHandler {
 	var stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler
 
 	stdTxAnteHandler = sdk.ChainAnteDecorators(

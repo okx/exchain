@@ -3,9 +3,10 @@ package ibctesting
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/crypto"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/crypto"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -89,6 +90,8 @@ type TestChainI interface {
 	GetValsAtHeight(height int64) (*tmtypes.ValidatorSet, bool)
 	CreatePortCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID string)
 	GetPortCapability(portID string) *capabilitytypes.Capability
+
+	SenderAccounts() []SenderAccount
 }
 
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
@@ -116,6 +119,15 @@ type TestChain struct {
 
 	senderPrivKey crypto.PrivKey
 	senderAccount authtypes.Account
+
+	senderAccounts []SenderAccount
+}
+
+var MaxAccounts = 10
+
+type SenderAccount struct {
+	SenderPrivKey crypto.PrivKey
+	SenderAccount auth.Account
 }
 
 // NewTestChain initializes a new TestChain instance with a single validator set using a
@@ -131,6 +143,36 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
+
+	senderAccs := []SenderAccount{}
+
+	// generate genesis accounts
+	for i := 0; i < MaxAccounts; i++ {
+		senderPrivKey := secp256k1.GenPrivKey()
+		i, ok := sdk.NewIntFromString("92233720368547758080")
+		require.True(t, ok)
+		balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
+
+		acc := auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, senderPrivKey.PubKey(), 0, 0)
+		//amount, ok := sdk.NewIntFromString("10000000000000000000")
+		//require.True(t, ok)
+
+		// add sender account
+		//balance := banktypes.Balance{
+		//	Address: acc.GetAddress().String(),
+		//	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
+		//}
+
+		//genAccs = append(genAccs, acc)
+		//genBals = append(genBals, balance)
+
+		senderAcc := SenderAccount{
+			SenderAccount: acc,
+			SenderPrivKey: senderPrivKey,
+		}
+
+		senderAccs = append(senderAccs, senderAcc)
+	}
 
 	// create validator set with single validator
 	validator := tmtypes.NewValidator(pubKey, 1)
@@ -179,25 +221,28 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 
 	// create an account to send transactions from
 	tchain := &TestChain{
-		t:             t,
-		privKeyBz:     senderPrivKey[:],
-		coordinator:   coord,
-		chainID:       chainID,
-		TApp:          app,
-		currentHeader: header,
-		queryServer:   app.GetIBCKeeper(),
-		txConfig:      txConfig,
-		codec:         app.AppCodec(),
-		vals:          valSet,
-		signers:       signers,
-		senderPrivKey: &senderPrivKey,
-		senderAccount: genesisAcc,
+		t:              t,
+		privKeyBz:      senderPrivKey[:],
+		coordinator:    coord,
+		chainID:        chainID,
+		TApp:           app,
+		currentHeader:  header,
+		queryServer:    app.GetIBCKeeper(),
+		txConfig:       txConfig,
+		codec:          app.AppCodec(),
+		vals:           valSet,
+		signers:        signers,
+		senderPrivKey:  &senderPrivKey,
+		senderAccount:  genesisAcc,
+		senderAccounts: senderAccs,
 	}
 
 	//coord.UpdateNextBlock(tchain)
 	coord.CommitBlock(tchain)
 	//
 	//coord.UpdateNextBlock(tchain)
+	mockModuleAcc := tchain.GetSimApp().SupplyKeeper.GetModuleAccount(tchain.GetContext(), mock.ModuleName)
+	require.NotNil(t, mockModuleAcc)
 
 	return tchain
 }
@@ -264,6 +309,9 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 	//
 	//coord.UpdateNextBlock(tchain)
 
+}
+func (chain *TestChain) SenderAccounts() []SenderAccount {
+	return chain.senderAccounts
 }
 
 // GetContext returns the current context for the application.

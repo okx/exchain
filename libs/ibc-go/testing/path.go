@@ -48,7 +48,18 @@ func (path *Path) RelayPacket(packet channeltypes.Packet, ack []byte) error {
 		if err := path.EndpointB.RecvPacket(packet); err != nil {
 			return err
 		}
+		if ack == nil {
+			res, err := path.EndpointB.RecvPacketWithResult(packet)
+			if err != nil {
+				return err
+			}
 
+			ack2, err := ParseAckFromEvents(res.Events)
+			if err != nil {
+				return err
+			}
+			ack = ack2
+		}
 		if err := path.EndpointA.AcknowledgePacket(packet, ack); err != nil {
 			return err
 		}
@@ -65,6 +76,59 @@ func (path *Path) RelayPacket(packet channeltypes.Packet, ack []byte) error {
 		if err := path.EndpointA.RecvPacket(packet); err != nil {
 			return err
 		}
+		if err := path.EndpointB.AcknowledgePacket(packet, ack); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return fmt.Errorf("packet commitment does not exist on either endpoint for provided packet")
+}
+
+func (path *Path) RelayPacketV4(packet channeltypes.Packet) error {
+	pc := path.EndpointA.Chain.GetSimApp().GetIBCKeeper().ChannelKeeper.GetPacketCommitment(path.EndpointA.Chain.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
+	if bytes.Equal(pc, channeltypes.CommitPacket(path.EndpointA.Chain.GetSimApp().AppCodec(), packet)) {
+
+		// packet found, relay from A to B
+		if err := path.EndpointB.UpdateClient(); err != nil {
+			return err
+		}
+
+		res, err := path.EndpointB.RecvPacketWithResult(packet)
+		if err != nil {
+			return err
+		}
+
+		ack, err := ParseAckFromEvents(res.Events)
+		if err != nil {
+			return err
+		}
+
+		if err := path.EndpointA.AcknowledgePacket(packet, ack); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	pc = path.EndpointB.Chain.GetSimApp().GetIBCKeeper().ChannelKeeper.GetPacketCommitment(path.EndpointB.Chain.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
+	if bytes.Equal(pc, channeltypes.CommitPacket(path.EndpointB.Chain.GetSimApp().AppCodec(), packet)) {
+
+		// packet found, relay B to A
+		if err := path.EndpointA.UpdateClient(); err != nil {
+			return err
+		}
+
+		res, err := path.EndpointA.RecvPacketWithResult(packet)
+		if err != nil {
+			return err
+		}
+
+		ack, err := ParseAckFromEvents(res.Events)
+		if err != nil {
+			return err
+		}
+
 		if err := path.EndpointB.AcknowledgePacket(packet, ack); err != nil {
 			return err
 		}
