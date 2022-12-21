@@ -663,15 +663,18 @@ func (mem *CListMempool) resCbFirstTime(
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
 				minGasPrice := big.NewInt(0)
+				begin := time.Now()
 				if mem.txs.Type() == HeapQueueType {
 					minGasPrice = mem.minimumGasPrice.Load().(*big.Int)
 				} else {
 					minGPTx := mem.txs.Back().Value.(*mempoolTx)
 					minGasPrice = minGPTx.realTx.GetGasPrice()
 				}
+
 				// If disable deleteMinGPTx, it'old logic, must be remove cache key
 				// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
 				thresholdGasPrice := MultiPriceBump(minGasPrice, int64(mem.config.TxPriceBump))
+				mem.logger.Error("!!!!!isFull", "time", time.Since(begin), "is over threshold", thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0)
 				if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0) {
 					// remove from cache (mempool might have a space later)
 					mem.cache.RemoveKey(txkey)
@@ -1534,13 +1537,16 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 		if mem.Size() > (cfg.DynamicConfig.GetMempoolSize()*90/100) || mem.TxsBytes() > (mem.config.MaxTxsBytes*90/100) {
 			heads = hq.InitReverse()
 			nextEle := hq.PeekReverse(heads)
+			mem.logger.Error("!!!!! deleteMinGPTxOnlyFull update", "new", nextEle.GasPrice.Int64(), "old", mem.minimumGasPrice.Load().(*big.Int).Int64())
 			if nextEle == nil {
 				//  can not run  this line forever, but set minimumGasPrice to disable
 				mem.minimumGasPrice.Store(disableMinimumGP)
+
 			} else {
 				// this line means set gp of the latest tx
 				mem.minimumGasPrice.Store(nextEle.GasPrice)
 			}
+
 		}
 		mem.logger.Error("!!!!! deleteMinGPTxOnlyFull", "minGasPrice", mem.minimumGasPrice.Load().(*big.Int).Int64())
 		//check weather exceed mempool size,then need to delet the minimum gas price
