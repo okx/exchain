@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/okex/exchain/libs/tm-db/tikv"
 	"log"
 
 	"github.com/cosmos/gorocksdb"
@@ -47,4 +48,35 @@ func LtoR(name, fromDir, toDir string) {
 	log.Printf("compact %s start...\n", name)
 	rdb.DB().CompactRange(gorocksdb.Range{})
 	log.Printf("compact %s end.\n", name)
+}
+
+func R2TiKV(name, fromDir string) {
+	log.Printf("convert %s(rocksdb => tikv) start...\n", name)
+
+	rdb, err := dbm.NewRocksDB(name, fromDir)
+	if err != nil {
+		panic(err)
+	}
+	defer rdb.Close()
+
+	iter, err := rdb.Iterator(nil, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	tidb, err := tikv.NewTiKV("", "127.0.0.1:2379")
+	counter := 0
+	const commitGap = 50000
+
+	for ; iter.Valid(); iter.Next() {
+		if counter%commitGap == 0 {
+			log.Printf("convert %v ...\n", counter)
+		}
+		tidb.Set(iter.Key(), iter.Value())
+		counter++
+	}
+	log.Printf("convert %v done \n", counter)
+	iter.Close()
+
+	log.Printf("convert %s(rocksdb => tikv) end.\n", name)
 }

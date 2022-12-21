@@ -69,6 +69,7 @@ func dataCmd(ctx *server.Context) *cobra.Command {
 		pruningCmd(ctx),
 		queryCmd(ctx),
 		dbConvertCmd(ctx),
+		dbConvert2TiKVCmd(ctx),
 	)
 
 	return cmd
@@ -579,4 +580,23 @@ func init() {
 	}
 
 	registerDBCompactor(dbm.GoLevelDBBackend, dbCompactor)
+}
+
+func dbConvert2TiKVCmd(ctx *server.Context) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "convert2tikv",
+		Short: "Convert " + system.ChainName + " data from rocksdb to tikv",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			config := ctx.Config
+			config.SetRoot(viper.GetString(flags.FlagHome))
+
+			// {home}/data/*
+			fromDir := ctx.Config.DBDir()
+			R2TiKV("application", fromDir)
+
+			return nil
+		},
+	}
+
+	return cmd
 }
