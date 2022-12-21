@@ -3,7 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/config"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
@@ -97,7 +97,7 @@ func NewReactor(consensusState *State, fastSync bool, autoFastSync bool, options
 		option(conR)
 	}
 
-	for _, nodeKey := range config.DynamicConfig.GetAVCWhiteList() {
+	for _, nodeKey := range cfg.DynamicConfig.GetAVCWhiteList() {
 		conR.avcWhiteList[nodeKey] = true
 	}
 
