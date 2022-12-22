@@ -57,6 +57,8 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 		}
 	}
 
+	// Regardless of the type of misbehaviour, ensure that both headers are valid and would have been accepted by light-client
+
 	// Retrieve trusted consensus states for each Header in misbehaviour
 	// and unmarshal from clientStore
 

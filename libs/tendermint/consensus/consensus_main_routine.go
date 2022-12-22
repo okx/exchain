@@ -297,7 +297,11 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	if GetActiveVC() && cs.privValidator != nil {
-		cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}
+		select {
+		case cs.preBlockTaskChan <- &preBlockTask{cs.Height, sleepDuration}:
+		default:
+		}
+
 	}
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)

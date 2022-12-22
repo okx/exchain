@@ -74,7 +74,6 @@ func (h Header) ValidateBasic() error {
 	if err != nil {
 		return sdkerrors.Wrap(err, "validator set is not tendermint validator set")
 	}
-	//if !bytes.Equal(h.Header.ValidatorsHash, tmValset.Hash()) {
 	if !bytes.Equal(h.Header.ValidatorsHash, tmValset.IBCHash()) {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "validator set does not match hash")
 	}

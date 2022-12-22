@@ -13,3 +13,7 @@ type EncodingConfig struct {
 	//TxConfig          client.TxConfig
 	//Amino             *codec.LegacyAmino
 }
+
+func (e EncodingConfig) CodecProxy() *codec.CodecProxy {
+	return codec.NewCodecProxy(codec.NewProtoCodec(e.InterfaceRegistry), &e.Marshaler)
+}

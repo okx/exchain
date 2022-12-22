@@ -61,6 +61,15 @@ type Tx interface {
 	SetTxHash([]byte)
 }
 
+type HeightSensitive interface {
+	ValidWithHeight(h int64) error
+}
+
+type TxAdapter interface {
+	Tx
+	HeightSensitive
+}
+
 type BaseTx struct {
 	Raw   []byte
 	Hash  []byte

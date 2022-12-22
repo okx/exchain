@@ -11,6 +11,7 @@ import (
 //
 // Many complex conditions can be used in the concrete struct which implements Account.
 type Account = sdk.Account
+type ModuleAccount = sdk.ModuleAccount
 
 // GenesisAccounts defines a slice of GenesisAccount objects
 type GenesisAccounts []GenesisAccount
