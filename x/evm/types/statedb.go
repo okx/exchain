@@ -133,6 +133,8 @@ type CommitStateDB struct {
 	cdc *codec.Codec
 
 	updatedAccount map[ethcmn.Address]struct{} // will destroy every block
+
+	GuFactor sdk.Dec
 }
 
 type StoreProxy interface {
@@ -183,6 +185,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
+		GuFactor:            DefaultGuFactor,
 	}
 
 	return csdb

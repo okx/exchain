@@ -150,6 +150,12 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 			return ErrEmptyMethod
 		}
 		methodMap[cms[i].Sign] = cms[i]
+
+		// attempt to check Extra if gu factor, if err == nil, use factor validateBasic
+		if factor, err := UnmarshalGuFactor(cms[i].Extra); err == nil {
+			// if factor validateBasic is success then return false,use factor logic
+			return factor.ValidateBasic()
+		}
 	}
 	return nil
 }
@@ -158,10 +164,24 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 func (cms ContractMethods) IsContain(method string) bool {
 	for i, _ := range cms {
 		if strings.Compare(method, cms[i].Sign) == 0 {
+			// attempt to check extra has GuFactor, if got factor,then refalse
+			if cms[i].GetGuFactor() != nil {
+				return false
+			}
 			return true
 		}
 	}
 	return false
+}
+
+// IsContain return true if the method of contract contains ContractMethods.
+func (cms ContractMethods) GetMethod(method string) *ContractMethod {
+	for i, _ := range cms {
+		if strings.Compare(method, cms[i].Sign) == 0 {
+			return &cms[i]
+		}
+	}
+	return nil
 }
 
 // GetContractMethodsMap return map which key is method,value is ContractMethod.
@@ -223,6 +243,16 @@ func (cm ContractMethod) String() string {
 	b.WriteString(cm.Extra)
 	b.WriteString("\n")
 	return strings.TrimSpace(b.String())
+}
+
+func (cm ContractMethod) GetGuFactor() *GuFactor {
+	if factor, err := UnmarshalGuFactor(cm.Extra); err == nil {
+		// if factor validateBasic is success then return factor
+		if err := factor.ValidateBasic(); err == nil {
+			return &factor
+		}
+	}
+	return nil
 }
 
 type ContractMethodBlockedCache struct {

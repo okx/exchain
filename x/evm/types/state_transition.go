@@ -274,6 +274,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	gasConsumed := gasLimit - leftOverGas
+	gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 
 	innerTxs, erc20Contracts = innertx.ParseInnerTxAndContract(evm, err != nil)
 
