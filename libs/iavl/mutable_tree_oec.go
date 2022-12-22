@@ -222,7 +222,7 @@ func (tree *MutableTree) commitSchedule() {
 		_, ok := tree.committedHeightMap[event.version]
 		if ok {
 			if event.wg != nil {
-				fmt.Println("Quit commitSchedule in committedHeightMap",
+				tree.log(IavlInfo, "Quit commitSchedule in committedHeightMap",
 					"module", tree.GetModuleName(),
 					"version", event.version)
 				event.wg.Done()
@@ -257,7 +257,7 @@ func (tree *MutableTree) commitSchedule() {
 
 		tree.ndb.persistTpp(&event, noBatch, trc)
 		if event.wg != nil {
-			fmt.Println("Quit commitSchedule after persistTpp",
+			tree.log(IavlInfo, "Quit commitSchedule after persistTpp",
 				"module", tree.GetModuleName(),
 				"version", event.version)
 			event.wg.Done()
@@ -298,16 +298,12 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 	}
 }
 func (tree *MutableTree) StopTreeWithVersion(version int64) {
-	tree.log(IavlInfo, "stopping iavl", "commit height", tree.version)
-	defer tree.log(IavlInfo, "stopping iavl completed", "commit height", tree.version)
+	tree.log(IavlInfo, "stopping iavl", "module", tree.GetModuleName(), "version", tree.version)
+	defer tree.log(IavlInfo, "stopping iavl completed", "module", tree.GetModuleName(), "version", tree.version)
 
 	if !EnableAsyncCommit {
 		return
 	}
-
-	fmt.Println("StopTreeWithVersion...",
-		"module", tree.GetModuleName(),
-		"version", tree.version)
 
 	batch := tree.NewBatch()
 	if tree.root == nil {
@@ -327,9 +323,6 @@ func (tree *MutableTree) StopTreeWithVersion(version int64) {
 
 	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil, true}
 	wg.Wait()
-	fmt.Println("End StopTreeWithVersion",
-		"module", tree.GetModuleName(),
-		"version", tree.version)
 }
 func (tree *MutableTree) StopTree() {
 	tree.StopTreeWithVersion(tree.version)
