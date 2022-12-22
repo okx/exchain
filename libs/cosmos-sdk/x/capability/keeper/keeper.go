@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -528,26 +530,26 @@ func (k *Keeper) InitMemStore(ctx sdk.Context) {
 	noGasCtx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	// check if memory store has not been initialized yet by checking if initialized flag is nil.
-	//if !k.IsInitialized(noGasCtx) || tmtypes.DownloadDelta {
-	prefixStore := prefix.NewStore(noGasCtx.KVStore(k.storeKey), types.KeyPrefixIndexCapability)
-	iterator := sdk.KVStorePrefixIterator(prefixStore, nil)
+	if !k.IsInitialized(noGasCtx) || tmtypes.DownloadDelta {
+		prefixStore := prefix.NewStore(noGasCtx.KVStore(k.storeKey), types.KeyPrefixIndexCapability)
+		iterator := sdk.KVStorePrefixIterator(prefixStore, nil)
 
-	// initialize the in-memory store for all persisted capabilities
-	defer iterator.Close()
+		// initialize the in-memory store for all persisted capabilities
+		defer iterator.Close()
 
-	for ; iterator.Valid(); iterator.Next() {
-		kk := iterator.Key()
-		index := types.IndexFromKey(kk)
-		var capOwners types.CapabilityOwners
+		for ; iterator.Valid(); iterator.Next() {
+			kk := iterator.Key()
+			index := types.IndexFromKey(kk)
+			var capOwners types.CapabilityOwners
 
-		k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &capOwners)
-		k.InitializeCapability(noGasCtx, index, capOwners)
+			k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &capOwners)
+			k.InitializeCapability(noGasCtx, index, capOwners)
+		}
+
+		// set the initialized flag so we don't rerun initialization logic
+		memStore := noGasCtx.KVStore(k.memKey)
+		memStore.Set(types.KeyMemInitialized, []byte{1})
 	}
-
-	// set the initialized flag so we don't rerun initialization logic
-	memStore = noGasCtx.KVStore(k.memKey)
-	memStore.Set(types.KeyMemInitialized, []byte{1})
-	//}
 }
 
 func (k *Keeper) IsInitialized(ctx sdk.Context) bool {
