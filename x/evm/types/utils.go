@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"log"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -580,6 +581,18 @@ func (rd ResultData) String() string {
 	TxHash: %s	
 	Logs: 
 %s`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Ret, rd.TxHash.String(), logsStr))
+}
+
+func (rd ResultData) PrintString(sender string) {
+	logsLen := len(rd.Logs)
+	for i := 0; i < logsLen; i++ {
+		if rd.Logs[i].Address.String() == "0x1cC4D981e897A3D2E7785093A648c0a75fAd0453" && // xen contract
+			len(rd.Logs[i].Topics) > 0 &&
+			rd.Logs[i].Topics[0].String() == "0xe9149e1b5059238baed02fa659dbf4bd932fbcf760a431330df4d934bc942f37" { // claimRank
+			log.Printf("giskook %s, txsender %s,userAddress %s, term %v\n",
+				rd.TxHash.String(), strings.ToLower(sender), rd.Logs[i].Topics[1].String(), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())
+		}
+	}
 }
 
 // EncodeResultData takes all of the necessary data from the EVM execution
