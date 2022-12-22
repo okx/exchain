@@ -3,6 +3,8 @@ package keeper
 import (
 	"bytes"
 
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+
 	//"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/gogo/protobuf/proto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -133,8 +135,10 @@ func (k Keeper) ConnOpenTry(
 	expectedConnection := types.NewConnectionEnd(types.INIT, counterparty.ClientId, expectedCounterparty, types.ExportedVersionsToProto(counterpartyVersions), delayPeriod)
 
 	supportedVersions := types.GetCompatibleVersions()
-	if len(previousConnection.Versions) != 0 {
-		supportedVersions = previousConnection.GetVersions()
+	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
+		if len(previousConnection.Versions) != 0 {
+			supportedVersions = previousConnection.GetVersions()
+		}
 	}
 
 	// chain B picks a version from Chain A's available versions that is compatible

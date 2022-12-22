@@ -2,8 +2,9 @@ package simulation_test
 
 import (
 	"fmt"
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	"testing"
+
+	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 
 	"github.com/stretchr/testify/require"
 
@@ -20,7 +21,7 @@ import (
 
 func TestDecodeStore(t *testing.T) {
 	app := simapp.Setup(false)
-	dec := simulation.NewDecodeStore(*app.IBCKeeper)
+	dec := simulation.NewDecodeStore(*app.IBCKeeper.V2Keeper)
 
 	clientID := "clientidone"
 	connectionID := "connectionidone"
@@ -43,15 +44,15 @@ func TestDecodeStore(t *testing.T) {
 		Pairs: []kv.Pair{
 			{
 				Key:   host.FullClientStateKey(clientID),
-				Value: app.IBCKeeper.ClientKeeper.MustMarshalClientState(clientState),
+				Value: app.IBCKeeper.V2Keeper.ClientKeeper.MustMarshalClientState(clientState),
 			},
 			{
 				Key:   host.ConnectionKey(connectionID),
-				Value: app.IBCKeeper.Codec().GetProtocMarshal().MustMarshalBinaryBare(&connection),
+				Value: app.IBCKeeper.V2Keeper.Codec().GetProtocMarshal().MustMarshalBinaryBare(&connection),
 			},
 			{
 				Key:   host.ChannelKey(portID, channelID),
-				Value: app.IBCKeeper.Codec().GetProtocMarshal().MustMarshalBinaryBare(&channel),
+				Value: app.IBCKeeper.V2Keeper.Codec().GetProtocMarshal().MustMarshalBinaryBare(&channel),
 			},
 			{
 				Key:   []byte{0x99},

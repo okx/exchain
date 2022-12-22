@@ -87,6 +87,7 @@ const (
 	BlockPartsP2P = "BlockPartsP2P"
 
 	Workload = "Workload"
+	ACOffset = "ACOffset"
 )
 
 const (

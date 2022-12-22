@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/backend"
+	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/rpc/websockets"
@@ -80,7 +81,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Uint64(eth.TxPoolCap, 10000, "Set the txPool slice max length")
 	cmd.Flags().Int(eth.BroadcastPeriodSecond, 10, "every BroadcastPeriodSecond second check the txPool, and broadcast when it's eligible")
 
-	cmd.Flags().Bool(rpc.FlagEnableMonitor, false, "Enable the rpc monitor and register rpc metrics to prometheus")
+	cmd.Flags().Bool(monitor.FlagEnableMonitor, false, "Enable the rpc monitor and register rpc metrics to prometheus")
 
 	cmd.Flags().String(rpc.FlagKafkaAddr, "", "The address of kafka cluster to consume pending txs")
 	cmd.Flags().String(rpc.FlagKafkaTopic, "", "The topic that the kafka writer will produce messages to")
@@ -116,6 +117,9 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+
+	cmd.Flags().Int64(config.FlagCommitGapOffset, 0, "Offset to stagger ac ahead of proposal")
+	cmd.Flags().MarkHidden(config.FlagCommitGapOffset)
 
 	// flags for infura rpc
 	cmd.Flags().Bool(infura.FlagEnable, false, "Enable infura rpc service")

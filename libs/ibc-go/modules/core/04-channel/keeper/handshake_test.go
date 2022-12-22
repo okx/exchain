@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"fmt"
+
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -9,6 +10,7 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+
 	// capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 )
@@ -143,10 +145,9 @@ func (suite *KeeperTestSuite) TestChanOpenInit() {
 // ChanOpenTry can succeed.
 func (suite *KeeperTestSuite) TestChanOpenTry() {
 	var (
-		path              *ibctesting.Path
-		previousChannelID string
-		portCap           *capabilitytypes.Capability
-		heightDiff        uint64
+		path       *ibctesting.Path
+		portCap    *capabilitytypes.Capability
+		heightDiff uint64
 	)
 
 	testCases := []testCase{
@@ -158,21 +159,6 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			suite.chainB.CreatePortCapability(suite.chainB.GetSimApp().ScopedIBCMockKeeper, ibctesting.MockPort)
 			portCap = suite.chainB.GetPortCapability(ibctesting.MockPort)
 		}, true},
-		{"success with crossing hello", func() {
-			suite.coordinator.SetupConnections(path)
-			path.SetChannelOrdered()
-			err := suite.coordinator.ChanOpenInitOnBothChains(path)
-			suite.Require().NoError(err)
-
-			previousChannelID = path.EndpointB.ChannelID
-			portCap = suite.chainB.GetPortCapability(ibctesting.MockPort)
-		}, true},
-		{"previous channel with invalid state", func() {
-			suite.coordinator.SetupConnections(path)
-
-			// make previous channel have wrong ordering
-			path.EndpointA.ChanOpenInit()
-		}, false},
 		{"connection doesn't exist", func() {
 			path.EndpointA.ConnectionID = ibctesting.FirstConnectionID
 			path.EndpointB.ConnectionID = ibctesting.FirstConnectionID
@@ -223,7 +209,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			version := connectiontypes.NewVersion("2", []string{"ORDER_ORDERED", "ORDER_UNORDERED"})
 			conn.Versions = append(conn.Versions, version)
 
-			suite.chainB.App().GetIBCKeeper().ConnectionKeeper.SetConnection(
+			suite.chainB.GetSimApp().GetIBCKeeper().ConnectionKeeper.SetConnection(
 				suite.chainB.GetContext(),
 				path.EndpointB.ConnectionID, conn,
 			)
@@ -241,7 +227,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			version := connectiontypes.NewVersion("1", []string{"ORDER_UNORDERED"})
 			conn.Versions = []*connectiontypes.Version{version}
 
-			suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetConnection(
+			suite.chainA.GetSimApp().GetIBCKeeper().ConnectionKeeper.SetConnection(
 				suite.chainA.GetContext(),
 				path.EndpointA.ConnectionID, conn,
 			)
@@ -255,7 +241,6 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 		suite.Run(fmt.Sprintf("Case %s", tc.msg), func() {
 			suite.SetupTest() // reset
 			heightDiff = 0    // must be explicitly changed in malleate
-			previousChannelID = ""
 			path = ibctesting.NewPath(suite.chainA, suite.chainB)
 
 			tc.malleate()
@@ -271,9 +256,9 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			channelKey := host.ChannelKey(counterparty.PortId, counterparty.ChannelId)
 			proof, proofHeight := suite.chainA.QueryProof(channelKey)
 
-			channelID, cap, err := suite.chainB.App().GetIBCKeeper().ChannelKeeper.ChanOpenTry(
+			channelID, cap, err := suite.chainB.GetSimApp().GetIBCKeeper().ChannelKeeper.ChanOpenTryV4(
 				suite.chainB.GetContext(), types.ORDERED, []string{path.EndpointB.ConnectionID},
-				path.EndpointB.ChannelConfig.PortID, previousChannelID, portCap, counterparty, path.EndpointB.ChannelConfig.Version, path.EndpointA.ChannelConfig.Version,
+				path.EndpointB.ChannelConfig.PortID, portCap, counterparty, path.EndpointA.ChannelConfig.Version,
 				proof, malleateHeight(proofHeight, heightDiff),
 			)
 
@@ -281,7 +266,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 				suite.Require().NoError(err)
 				suite.Require().NotNil(cap)
 
-				chanCap, ok := suite.chainB.App().GetScopedIBCKeeper().GetCapability(
+				chanCap, ok := suite.chainB.GetSimApp().GetScopedIBCKeeper().GetCapability(
 					suite.chainB.GetContext(),
 					host.ChannelCapabilityPath(path.EndpointB.ChannelConfig.PortID, channelID),
 				)
