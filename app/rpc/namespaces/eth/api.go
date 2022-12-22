@@ -1065,6 +1065,11 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	}
 	maxGasLimitPerTx := params.MaxGasLimitPerTx
 
+	if args.GasPrice == nil || args.GasPrice.ToInt().Sign() <= 0 {
+		// set the default value for possible check of GasPrice
+		args.GasPrice = ParseGasPrice()
+	}
+
 	estimatedGas, err := api.simDoCall(args, maxGasLimitPerTx)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
