@@ -1,7 +1,10 @@
 package fss
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/x/evm"
 	"log"
 	"path/filepath"
 
@@ -25,8 +28,7 @@ var checkCmd = &cobra.Command{
 	Long: `Check fast index with IAVL original nodes:
 This command is a tool to check the IAVL fast index.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		storeKeys := appstatus.GetAllStoreKeys()
-		return check(storeKeys)
+		return check([]string{evm.StoreKey})
 	},
 }
 
@@ -70,15 +72,23 @@ func checkIndex(key string, mutableTree *iavl.MutableTree) error {
 	defer fastIterator.Close()
 
 	const verboseGap = 50000
-	var counter int
+	var total int
+	var xen int
 	for fastIterator.Valid() {
-		if counter%verboseGap == 0 {
-			log.Printf("Checked count: %v\n", counter)
+		if total%verboseGap == 0 {
+			log.Printf("Checked count: %v\n", total)
+			log.Printf("Checked xen count: %v\n", xen)
 		}
-		counter++
+		k := fastIterator.Key()
+		if len(key) == 53 && bytes.Equal(k[1:21], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
+			xen++
+		}
+
+		total++
 		fastIterator.Next()
 	}
-	log.Printf("Checked %v count done: %v\n", key, counter)
+	log.Printf("Checked %v count done: %v\n", key, total)
+	log.Printf("Checked xen %v count done: %v\n", key, xen)
 
 	if fastIterator.Valid() {
 		return fmt.Errorf("fast index key:%v value:%v", fastIterator.Key(), fastIterator.Value())
