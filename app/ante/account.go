@@ -24,6 +24,7 @@ type AccountAnteDecorator struct {
 	evmKeeper EVMKeeper
 }
 
+// test
 // NewAccountVerificationDecorator creates a new AccountVerificationDecorator
 func NewAccountAnteDecorator(ak auth.AccountKeeper, ek EVMKeeper, sk types.SupplyKeeper) AccountAnteDecorator {
 	return AccountAnteDecorator{
