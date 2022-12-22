@@ -173,7 +173,8 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 func (cms ContractMethods) IsContain(method string) bool {
 	for i, _ := range cms {
 		if strings.Compare(method, cms[i].Sign) == 0 {
-			// attempt to check extra has GuFactor, if got factor,then refalse
+			// attempt to check Extra has GuFactor, if got factor,then return false.
+			//because GuFactor is not blocked contract method.
 			if cms[i].GetGuFactor() != nil {
 				return false
 			}
@@ -183,7 +184,7 @@ func (cms ContractMethods) IsContain(method string) bool {
 	return false
 }
 
-// IsContain return true if the method of contract contains ContractMethods.
+// GetMethod return ContractMethod of method .
 func (cms ContractMethods) GetMethod(method string) *ContractMethod {
 	for i, _ := range cms {
 		if strings.Compare(method, cms[i].Sign) == 0 {

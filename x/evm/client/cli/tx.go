@@ -287,36 +287,35 @@ Where proposal.json contains:
 	}
 }
 
-// GetCmdManageContractMethodBlockedListProposal implements a command handler for submitting a manage contract blocked list
-// proposal transaction
+// GetCmdManageContractMethodGuFactorProposal implements a command handler for submitting a manage contract method gu-factor proposal transaction
 func GetCmdManageContractMethodGuFactorProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update-contract-method-gu-factor [proposal-file]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Submit an update contract method gu-factor proposal",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Submit an update method contract blocked list proposal along with an initial deposit.
+			fmt.Sprintf(`Submit an update method contract gu-factor proposal along with an initial deposit.
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ %s tx gov submit-proposal update-contract-blocked-list <path/to/proposal.json> --from=<key_or_address>
+$ %s tx gov submit-proposal update-contract-method-gu-factor <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
 {
-    "title":"update contract blocked list proposal with a contract address list",
-    "description":"add a contract address list into the blocked list",
+    "title":"update contract method gu-factor proposal with a contract address list",
+    "description":"add a contract method gu-factor list into chain",
     "contract_addresses":[
         {
             "address":"ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
             "block_methods": [
                 {
                     "sign": "0x371303c0",
-                    "extra": "inc()"
+                    "extra": "{\"gu_factor\":\"10.000000000000000000\"}"
                 },
                 {
                     "sign": "0x579be378",
-                    "extra": "onc()"
+                    "extra": "{\"gu_factor\":\"20.000000000000000000\"}"
                 }
             ]
         },
@@ -325,11 +324,11 @@ Where proposal.json contains:
             "block_methods": [
                 {
                     "sign": "0x371303c0",
-                    "extra": "inc()"
+                    "extra": "{\"gu_factor\":\"30.000000000000000000\"}"
                 },
                 {
                     "sign": "0x579be378",
-                    "extra": "onc()"
+                    "extra": "{\"gu_factor\":\"40.000000000000000000\"}"
                 }
             ]
         }
