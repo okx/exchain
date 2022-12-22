@@ -45,7 +45,6 @@ type StateTransition struct {
 type GasInfo struct {
 	GasLimit    uint64
 	GasConsumed uint64
-	GasRefunded uint64
 }
 
 // ExecutionResult represents what's returned from a transition
@@ -374,7 +373,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		GasInfo: GasInfo{
 			GasConsumed: gasConsumed,
 			GasLimit:    gasLimit,
-			GasRefunded: leftOverGas,
 		},
 	}
 	return
