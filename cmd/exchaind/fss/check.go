@@ -80,8 +80,11 @@ func checkIndex(key string, mutableTree *iavl.MutableTree) error {
 			log.Printf("Checked xen count: %v\n", xen)
 		}
 		k := fastIterator.Key()
-		if bytes.Equal(k[0:20], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
+		if len(k) == 53 && bytes.Equal(k[1:21], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
 			xen++
+		}
+		if len(k) > 2 && k[0] == 0x1c || k[1] == 0x1c || k[2] == 0x1c {
+			log.Printf("%x\n", k)
 		}
 
 		total++
