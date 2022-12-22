@@ -1573,6 +1573,10 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
+			// Note: when checktx GetEvmParamsCache().UpdateBlockedContractMethod will not be real update, so we must find GetBlockedContract from bcl.
+			if csdb.ctx.IsCheckTx() {
+				return bcl.GetBlockedContract(contractAddr)
+			}
 		}
 		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
 	}

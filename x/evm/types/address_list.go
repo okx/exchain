@@ -71,6 +71,15 @@ func (bl BlockedContractList) ValidateBasic() sdk.Error {
 	return nil
 }
 
+func (bl BlockedContractList) GetBlockedContract(addr sdk.AccAddress) *BlockedContract {
+	for i, _ := range bl {
+		if addr.Equals(bl[i].Address) {
+			return &bl[i]
+		}
+	}
+	return nil
+}
+
 //BlockedContract i the contract which method or all-method is blocked
 type BlockedContract struct {
 	//Contract Address
