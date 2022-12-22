@@ -83,9 +83,6 @@ func checkIndex(key string, mutableTree *iavl.MutableTree) error {
 		if len(k) == 53 && bytes.Equal(k[1:21], common.HexToAddress("1cc4d981e897a3d2e7785093a648c0a75fad0453").Bytes()) {
 			xen++
 		}
-		if len(k) > 4 && (k[1] == 0x1c && k[2] == 0xc4 && k[3] == 0xd9) {
-			log.Printf("%x\n", k)
-		}
 
 		total++
 		fastIterator.Next()
