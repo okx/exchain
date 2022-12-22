@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/evm/statistics"
 	"io"
 	"log"
 	"path/filepath"
@@ -147,6 +148,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
 
 	// repair data by apply the latest two blocks
+	statistics.GetInstance().DeleteFrom(startVersion)
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
 
 	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag

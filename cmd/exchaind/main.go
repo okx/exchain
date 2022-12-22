@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/x/evm/statistics"
 	"io"
 	"os"
 	"strings"
@@ -147,6 +148,7 @@ func closeApp(iApp abci.Application) {
 	evmtypes.CloseIndexer()
 	rpc.CloseEthBackend()
 	app.EvmKeeper.Watcher.Stop()
+	statistics.GetInstance().Close()
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {

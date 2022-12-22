@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+	"github.com/okex/exchain/x/evm/statistics"
 	"math/big"
 	"sync"
 
@@ -146,6 +147,11 @@ func NewKeeper(
 	}
 	k.Watcher.SetWatchDataManager()
 	ak.SetObserverKeeper(k)
+	statistics.GetInstance().Init(&statistics.Config{
+		XenMintChanSize:  1024,
+		XenClaimChanSize: 1024,
+	})
+	statistics.GetInstance().Do()
 
 	k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())

@@ -2,10 +2,7 @@ package deliver
 
 import (
 	"fmt"
-
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/x/evm/watcher"
-
 	"github.com/okex/exchain/app/refund"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -13,6 +10,7 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 type Tx struct {
@@ -84,6 +82,10 @@ func (tx *Tx) refundFeesWatcher(account authexported.Account, ethereumTx *types.
 func (tx *Tx) Transition(config types.ChainConfig) (result base.Result, err error) {
 	result, err = tx.Tx.Transition(config)
 
+	if result.ResultData != nil &&
+		len(result.ResultData.Logs) > 0 {
+		result.ResultData.PrintString(tx.StateTransition.Sender.String(), tx.Ctx.BlockHeight(), tx.Ctx.BlockTime())
+	}
 	if result.InnerTxs != nil {
 		tx.Keeper.AddInnerTx(tx.StateTransition.TxHash.Hex(), result.InnerTxs)
 	}

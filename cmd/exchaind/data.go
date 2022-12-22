@@ -69,6 +69,7 @@ func dataCmd(ctx *server.Context) *cobra.Command {
 		pruningCmd(ctx),
 		queryCmd(ctx),
 		dbConvertCmd(ctx),
+		dbStatsCmd(ctx),
 	)
 
 	return cmd
