@@ -507,7 +507,9 @@ func (tree *MutableTree) GetCommitVersion() int64 {
 
 // Returns the version number of the latest version found
 func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
+	tree.log(IavlInfo, "LoadVersion start", "Tree", tree.GetModuleName())
 	roots, err := tree.ndb.getRoots()
+	tree.log(IavlInfo, "LoadVersion getRoots finished", "Tree", tree.GetModuleName())
 	if err != nil {
 		return 0, err
 	}
@@ -576,6 +578,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	if _, err := tree.enableFastStorageAndCommitIfNotEnabled(); err != nil {
 		return 0, err
 	}
+	tree.log(IavlInfo, "LoadVersion end", "Tree", tree.GetModuleName())
 	return latestVersion, nil
 }
 

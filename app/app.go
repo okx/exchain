@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net/http"
 	"os"
 	"sync"
 
@@ -983,6 +984,11 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
+	if ctx.Config.ProfListenAddress != "" {
+		go func() {
+			ctx.Logger.Error("Profile server", "err", http.ListenAndServe(ctx.Config.ProfListenAddress, nil))
+		}()
+	}
 	return nil
 }
 

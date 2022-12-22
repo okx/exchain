@@ -762,11 +762,11 @@ func NewNode(config *cfg.Config,
 		pexReactor = createPEXReactorAndAddToSwitch(addrBook, config, sw, logger)
 	}
 
-	if config.ProfListenAddress != "" {
-		go func() {
-			logger.Error("Profile server", "err", http.ListenAndServe(config.ProfListenAddress, nil))
-		}()
-	}
+	//if config.ProfListenAddress != "" {
+	//	go func() {
+	//		logger.Error("Profile server", "err", http.ListenAndServe(config.ProfListenAddress, nil))
+	//	}()
+	//}
 
 	node := &Node{
 		config:        config,
