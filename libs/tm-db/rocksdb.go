@@ -137,7 +137,6 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 
 	// 1.5GB maximum memory use for writebuffer.
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
-
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
@@ -156,12 +155,6 @@ func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (*R
 		ro:     ro,
 		wo:     wo,
 		woSync: woSync,
-	}
-
-	if name == "application" {
-		rdbMetrics := NewRocksDBMetrics(opts)
-		prometheus.Unregister(rdbMetrics)
-		prometheus.MustRegister(rdbMetrics)
 	}
 	return database, nil
 }
