@@ -304,6 +304,7 @@ func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx
 	csdb.dbErr = nil
 	csdb.nextRevisionID = 0
 	csdb.params = nil
+	csdb.GuFactor = DefaultGuFactor
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
