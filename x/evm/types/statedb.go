@@ -1626,7 +1626,7 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 // InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store
 func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
 	defer GetEvmParamsCache().SetNeedBlockedUpdate()
-	if err := contractList.ValidateFactor(); err != nil {
+	if err := contractList.ValidateExtra(); err != nil {
 		return err
 	}
 	for i := 0; i < len(contractList); i++ {

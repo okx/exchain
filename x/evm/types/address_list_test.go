@@ -440,7 +440,7 @@ func TestContractMethods_ValidateBasic(t *testing.T) {
 	require.Equal(t, ErrDuplicatedMethod, cmm.ValidateBasic())
 }
 
-func TestBlockedContract_ValidateFactor(t *testing.T) {
+func TestBlockedContract_ValidateExtra(t *testing.T) {
 	accAddr, err := sdk.AccAddressFromBech32(addr)
 	require.NoError(t, err)
 	cmm := ContractMethods{}
@@ -452,23 +452,23 @@ func TestBlockedContract_ValidateFactor(t *testing.T) {
 	bc := NewBlockContract(accAddr, cmm)
 
 	//success
-	err = bc.ValidateFactor()
+	err = bc.ValidateExtra()
 	require.NoError(t, err)
 
 	//error duplicated method
 	bc = NewBlockContract(accAddr, ContractMethods{cm1, cm1})
-	err = bc.ValidateFactor()
+	err = bc.ValidateExtra()
 	require.Equal(t, err, ErrDuplicatedMethod)
 
 	//error empty address
 	bc = NewBlockContract(nil, ContractMethods{cm1, cm1})
-	err = bc.ValidateFactor()
+	err = bc.ValidateExtra()
 	require.Equal(t, err, ErrEmptyAddressBlockedContract)
 
 	//error empty method
 	emptyCM := ContractMethod{Sign: "", Extra: "test1"}
 	bc = NewBlockContract(accAddr, ContractMethods{cm1, emptyCM})
-	err = bc.ValidateFactor()
+	err = bc.ValidateExtra()
 	require.Equal(t, err, ErrEmptyMethod)
 
 	//success factor=0
@@ -477,7 +477,7 @@ func TestBlockedContract_ValidateFactor(t *testing.T) {
 	require.NoError(t, err)
 	factorCM := ContractMethod{Sign: hexutil.Encode(method2), Extra: string(bytes)}
 	bc = NewBlockContract(accAddr, ContractMethods{cm1, factorCM})
-	err = bc.ValidateFactor()
+	err = bc.ValidateExtra()
 	require.NoError(t, err)
 
 	//success factor>0
@@ -486,7 +486,7 @@ func TestBlockedContract_ValidateFactor(t *testing.T) {
 	require.NoError(t, err)
 	factorCM = ContractMethod{Sign: hexutil.Encode(method2), Extra: string(bytes)}
 	bc = NewBlockContract(accAddr, ContractMethods{cm1, factorCM})
-	err = bc.ValidateFactor()
+	err = bc.ValidateExtra()
 	require.NoError(t, err)
 
 	//err factor<0
@@ -495,11 +495,11 @@ func TestBlockedContract_ValidateFactor(t *testing.T) {
 	require.NoError(t, err)
 	factorCM = ContractMethod{Sign: hexutil.Encode(method2), Extra: string(bytes)}
 	bc = NewBlockContract(accAddr, ContractMethods{cm1, factorCM})
-	err = bc.ValidateFactor()
+	err = bc.ValidateExtra()
 	require.Equal(t, err, ErrGUFactor)
 }
 
-func TestBlockedContractList_ValidateFactor(t *testing.T) {
+func TestBlockedContractList_ValidateExtra(t *testing.T) {
 	accAddr1, err := sdk.AccAddressFromBech32(addr)
 	require.NoError(t, err)
 	cmm1 := ContractMethods{}
@@ -522,32 +522,32 @@ func TestBlockedContractList_ValidateFactor(t *testing.T) {
 
 	//success. blockedContractList is one item
 	bcl1 := BlockedContractList{*bc1}
-	require.NoError(t, bcl1.ValidateFactor())
+	require.NoError(t, bcl1.ValidateExtra())
 
 	//success. blockedContractList is multi item
 	bcl2 := BlockedContractList{*bc1, *bc2}
-	require.NoError(t, bcl2.ValidateFactor())
+	require.NoError(t, bcl2.ValidateExtra())
 
 	//error. blockedContractList is empty method
 	emptyCM := ContractMethod{Sign: "", Extra: "test1"}
 	bc := NewBlockContract(accAddr1, ContractMethods{cm1, emptyCM})
 	bcl3 := BlockedContractList{*bc}
-	require.Equal(t, ErrEmptyMethod, bcl3.ValidateFactor())
+	require.Equal(t, ErrEmptyMethod, bcl3.ValidateExtra())
 
 	//error. blockedContractList is empty address
 	emptyCM = ContractMethod{Sign: "empty", Extra: "test1"}
 	bc = NewBlockContract(nil, ContractMethods{cm1, emptyCM})
 	bcl3 = BlockedContractList{*bc}
-	require.Equal(t, ErrEmptyAddressBlockedContract, bcl3.ValidateFactor())
+	require.Equal(t, ErrEmptyAddressBlockedContract, bcl3.ValidateExtra())
 
 	//error. blockedContractList duplicated address
 	bcl3 = BlockedContractList{*bc1, *bc1}
-	require.Equal(t, ErrDuplicatedAddr, bcl3.ValidateFactor())
+	require.Equal(t, ErrDuplicatedAddr, bcl3.ValidateExtra())
 
 	//error. blockedContractList duplicated method
 	bc = NewBlockContract(accAddr1, ContractMethods{cm1, cm1})
 	bcl3 = BlockedContractList{*bc}
-	require.Equal(t, ErrDuplicatedMethod, bcl3.ValidateFactor())
+	require.Equal(t, ErrDuplicatedMethod, bcl3.ValidateExtra())
 
 	//success. factor = 0.
 	factor := GuFactor{Factor: sdk.NewDec(0)}
@@ -556,7 +556,7 @@ func TestBlockedContractList_ValidateFactor(t *testing.T) {
 	factorCM := ContractMethod{Sign: hexutil.Encode(method2), Extra: string(bytes)}
 	bc = NewBlockContract(accAddr1, ContractMethods{factorCM})
 	bcl2 = BlockedContractList{*bc, *bc2}
-	require.NoError(t, bcl2.ValidateFactor())
+	require.NoError(t, bcl2.ValidateExtra())
 
 	//success. factor > 0.
 	factor = GuFactor{Factor: sdk.NewDec(1)}
@@ -565,7 +565,7 @@ func TestBlockedContractList_ValidateFactor(t *testing.T) {
 	factorCM = ContractMethod{Sign: hexutil.Encode(method2), Extra: string(bytes)}
 	bc = NewBlockContract(accAddr1, ContractMethods{factorCM})
 	bcl2 = BlockedContractList{*bc, *bc2}
-	require.NoError(t, bcl2.ValidateFactor())
+	require.NoError(t, bcl2.ValidateExtra())
 
 	//success. factor < 0.
 	factor = GuFactor{Factor: sdk.NewDec(-1)}
@@ -574,10 +574,10 @@ func TestBlockedContractList_ValidateFactor(t *testing.T) {
 	factorCM = ContractMethod{Sign: hexutil.Encode(method2), Extra: string(bytes)}
 	bc = NewBlockContract(accAddr1, ContractMethods{factorCM})
 	bcl2 = BlockedContractList{*bc, *bc2}
-	require.Equal(t, ErrGUFactor, bcl2.ValidateFactor())
+	require.Equal(t, ErrGUFactor, bcl2.ValidateExtra())
 }
 
-func TestContractMethods_ValidateFactor(t *testing.T) {
+func TestContractMethods_ValidateExtra(t *testing.T) {
 	method1 := hexutil.Encode([]byte("transfer")[:4])
 	method2 := hexutil.Encode([]byte("allow")[:4])
 	cm1 := ContractMethod{Sign: method1, Extra: "test1"}
@@ -585,14 +585,14 @@ func TestContractMethods_ValidateFactor(t *testing.T) {
 
 	//success
 	cmm := ContractMethods{cm1, cm2}
-	require.NoError(t, cmm.ValidateFactor())
+	require.NoError(t, cmm.ValidateExtra())
 	//error empty methods
 	cm3 := ContractMethod{Sign: "", Extra: "test1"}
 	cmm = ContractMethods{cm1, cm2, cm3}
-	require.Equal(t, ErrEmptyMethod, cmm.ValidateFactor())
+	require.Equal(t, ErrEmptyMethod, cmm.ValidateExtra())
 	//error duplicated
 	cmm = ContractMethods{cm1, cm2, cm1}
-	require.Equal(t, ErrDuplicatedMethod, cmm.ValidateFactor())
+	require.Equal(t, ErrDuplicatedMethod, cmm.ValidateExtra())
 
 	//success. factor ==0
 	factor := GuFactor{Factor: sdk.NewDec(0)}
@@ -600,7 +600,7 @@ func TestContractMethods_ValidateFactor(t *testing.T) {
 	require.NoError(t, err)
 	factorCM := ContractMethod{Sign: method2, Extra: string(bytes)}
 	cmm = ContractMethods{cm1, factorCM}
-	require.NoError(t, cmm.ValidateFactor())
+	require.NoError(t, cmm.ValidateExtra())
 
 	//success. factor >0
 	factor = GuFactor{Factor: sdk.NewDec(1)}
@@ -608,7 +608,7 @@ func TestContractMethods_ValidateFactor(t *testing.T) {
 	require.NoError(t, err)
 	factorCM = ContractMethod{Sign: method2, Extra: string(bytes)}
 	cmm = ContractMethods{cm1, factorCM}
-	require.NoError(t, cmm.ValidateFactor())
+	require.NoError(t, cmm.ValidateExtra())
 
 	//error. factor <0
 	factor = GuFactor{Factor: sdk.NewDec(-1)}
@@ -616,6 +616,6 @@ func TestContractMethods_ValidateFactor(t *testing.T) {
 	require.NoError(t, err)
 	factorCM = ContractMethod{Sign: method2, Extra: string(bytes)}
 	cmm = ContractMethods{cm1, factorCM}
-	require.Equal(t, ErrGUFactor, cmm.ValidateFactor())
+	require.Equal(t, ErrGUFactor, cmm.ValidateExtra())
 
 }

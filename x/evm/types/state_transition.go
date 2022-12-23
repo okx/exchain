@@ -251,7 +251,15 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		if !csdb.GuFactor.IsNegative() {
 			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 		}
-		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas, nonce)
+		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
+		if err == nil {
+			if gasLimit < gasConsumed {
+				err = vm.ErrOutOfGas
+				//if out of gas,then err is ErrOutOfGas, gasConsumed change to gasLimit for can not make line.295 panic that will lead to 'RevertToSnapshot' panic
+				gasConsumed = gasLimit
+			}
+		}
+		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasConsumed, nonce)
 	default:
 		if !params.EnableCall {
 			if !st.Simulate {
@@ -276,17 +284,18 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		if !csdb.GuFactor.IsNegative() {
 			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 		}
-		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas, 0)
+		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
+		if err == nil {
+			if gasLimit < gasConsumed {
+				err = vm.ErrOutOfGas
+				//if out of gas,then err is ErrOutOfGas, gasConsumed change to gasLimit for can not make line.295 panic that will lead to 'RevertToSnapshot' panic
+				gasConsumed = gasLimit
+			}
+		}
+
+		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasConsumed, 0)
 	}
 
-	//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
-	if err == nil {
-		if gasLimit < gasConsumed {
-			err = vm.ErrOutOfGas
-			//if out of gas,then err is ErrOutOfGas, gasConsumed change to gasLimit for can not make line.295 panic that will lead to 'RevertToSnapshot' panic
-			gasConsumed = gasLimit
-		}
-	}
 	innerTxs, erc20Contracts = innertx.ParseInnerTxAndContract(evm, err != nil)
 
 	defer func() {

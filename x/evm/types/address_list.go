@@ -71,8 +71,8 @@ func (bl BlockedContractList) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// ValidateFactor validates the list of contract which method or all-method is blocked
-func (bl BlockedContractList) ValidateFactor() sdk.Error {
+// ValidateExtra validates the list of contract which method or all-method is blocked
+func (bl BlockedContractList) ValidateExtra() sdk.Error {
 	//check repeated contract address
 	lenAddrs := len(bl)
 	filter := make(map[string]struct{}, lenAddrs)
@@ -81,7 +81,7 @@ func (bl BlockedContractList) ValidateFactor() sdk.Error {
 		if _, ok := filter[key]; ok {
 			return ErrDuplicatedAddr
 		}
-		if err := bl[i].ValidateFactor(); err != nil {
+		if err := bl[i].ValidateExtra(); err != nil {
 			return err
 		}
 		filter[key] = struct{}{}
@@ -121,12 +121,12 @@ func (bc BlockedContract) ValidateBasic() sdk.Error {
 	return bc.BlockMethods.ValidateBasic()
 }
 
-// ValidateFactor validates BlockedContract
-func (bc BlockedContract) ValidateFactor() sdk.Error {
+// ValidateExtra validates BlockedContract
+func (bc BlockedContract) ValidateExtra() sdk.Error {
 	if len(bc.Address) == 0 {
 		return ErrEmptyAddressBlockedContract
 	}
-	return bc.BlockMethods.ValidateFactor()
+	return bc.BlockMethods.ValidateExtra()
 }
 
 // IsAllMethodBlocked return true if all method of contract is blocked.
@@ -189,8 +189,8 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// ValidateFactor validates the list of blocked contract method
-func (cms ContractMethods) ValidateFactor() sdk.Error {
+// ValidateExtra validates the list of blocked contract method
+func (cms ContractMethods) ValidateExtra() sdk.Error {
 	methodMap := make(map[string]ContractMethod)
 	for i, _ := range cms {
 		if _, ok := methodMap[cms[i].Sign]; ok {
