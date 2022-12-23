@@ -119,6 +119,8 @@ type TxInfo struct {
 	from      string
 	wtx       *WrappedTx
 	checkType abci.CheckTxType
+
+	isGasPrecise bool
 }
 
 //--------------------------------------------------------------------------------

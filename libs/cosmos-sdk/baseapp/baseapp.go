@@ -1007,25 +1007,32 @@ func (app *BaseApp) GetRealTxFromRawTx(rawTx tmtypes.Tx) abci.TxEssentials {
 	return nil
 }
 
-func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
+func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) (int64, bool) {
 	tx, err := app.txDecoder(rawTx)
 	if err != nil {
-		return -1
+		return -1, false
 	}
 
 	txFnSig, toDeployContractSize := tx.GetTxFnSignatureInfo()
 	if txFnSig == nil {
-		return -1
+		return -1, false
 	}
 
 	hgu := InstanceOfHistoryGasUsedRecordDB().GetHgu(txFnSig)
+	if hgu == nil {
+		return -1, false
+	}
+	precise := true
+	if (hgu.MaxGas-hgu.MovingAverageGas)*100/hgu.MovingAverageGas > cfg.DynamicConfig.GetPGUPercentageThreshold() {
+		precise = false
+	}
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return hgu*int64(toDeployContractSize) + int64(1000)
+		return hgu.MovingAverageGas*int64(toDeployContractSize) + int64(1000), precise
 	}
 
-	return hgu
+	return hgu.MovingAverageGas, precise
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }

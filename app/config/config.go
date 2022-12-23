@@ -49,6 +49,8 @@ type OecConfig struct {
 	maxGasUsedPerBlock int64
 	// mempool.enable-pgu
 	enablePGU bool
+	// mempool.pgu-percentage-threshold
+	pguPercentageThreshold int64
 	// mempool.pgu-concurrency
 	pguConcurrency int
 	// mempool.pgu-adjustment
@@ -137,6 +139,7 @@ const (
 	FlagMaxTxNumPerBlock           = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock         = "mempool.max_gas_used_per_block"
 	FlagEnablePGU                  = "mempool.enable-pgu"
+	FlagPGUPercentageThreshold     = "mempool.pgu-percentage-threshold"
 	FlagPGUConcurrency             = "mempool.pgu-concurrency"
 	FlagPGUAdjustment              = "mempool.pgu-adjustment"
 	FlagNodeKeyWhitelist           = "mempool.node_key_whitelist"
@@ -280,6 +283,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableDeleteMinGPTx(viper.GetBool(FlagMempoolEnableDeleteMinGPTx))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
+	c.SetPGUPercentageThreshold(viper.GetInt64(FlagPGUPercentageThreshold))
 	c.SetPGUConcurrency(viper.GetInt(FlagPGUConcurrency))
 	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
@@ -488,6 +492,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetEnablePGU(r)
+	case FlagPGUPercentageThreshold:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetPGUPercentageThreshold(r)
 	case FlagPGUConcurrency:
 		r, err := strconv.Atoi(v)
 		if err != nil {
@@ -810,6 +820,14 @@ func (c *OecConfig) GetEnablePGU() bool {
 
 func (c *OecConfig) SetEnablePGU(value bool) {
 	c.enablePGU = value
+}
+
+func (c *OecConfig) GetPGUPercentageThreshold() int64 {
+	return c.pguPercentageThreshold
+}
+
+func (c *OecConfig) SetPGUPercentageThreshold(value int64) {
+	c.pguPercentageThreshold = value
 }
 
 func (c *OecConfig) GetPGUConcurrency() int {

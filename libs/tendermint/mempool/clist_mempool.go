@@ -29,7 +29,7 @@ import (
 
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
-	GetTxHistoryGasUsed(tx types.Tx) int64
+	GetTxHistoryGasUsed(tx types.Tx) (int64, bool)
 	GetRealTxFromRawTx(rawTx types.Tx) abci.TxEssentials
 }
 
@@ -328,13 +328,14 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var err error
 	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
+		gasUsed, txInfo.isGasPrecise = mem.txInfoparser.GetTxHistoryGasUsed(tx)
 		if gasUsed < 0 {
 			simuRes, err := mem.simulateTx(tx)
 			if err != nil {
 				return err
 			}
 			gasUsed = int64(simuRes.GasUsed)
+			txInfo.isGasPrecise = true
 		}
 	}
 
@@ -440,7 +441,7 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
 	}
-	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnablePGU() {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnablePGU() && atomic.LoadUint32(&memTx.preciseOrOutdated) == 0 {
 		select {
 		case mem.simQueue <- memTx:
 		default:
@@ -674,6 +675,9 @@ func (mem *CListMempool) resCbFirstTime(
 				from:        r.CheckTx.Tx.GetFrom(),
 				senderNonce: r.CheckTx.SenderNonce,
 			}
+			if txInfo.isGasPrecise {
+				memTx.preciseOrOutdated = 1
+			}
 
 			memTx.senders = make(map[uint16]struct{})
 			memTx.senders[txInfo.SenderID] = struct{}{}
@@ -843,7 +847,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// If maxGas is negative, skip this check.
 		// Since newTotalGas < masGas, which
 		// must be non-negative, it follows that this won't overflow.
-		atomic.AddUint32(&memTx.isOutdated, 1)
+		atomic.AddUint32(&memTx.preciseOrOutdated, 1)
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
 		if maxGas > -1 && newTotalGas > maxGas {
@@ -975,7 +979,7 @@ func (mem *CListMempool) Update(
 		nonce := uint64(0)
 		txhash := tx.Hash(height)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
-			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
+			atomic.AddUint32(&(ele.Value.(*mempoolTx).preciseOrOutdated), 1)
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
@@ -1193,8 +1197,8 @@ type mempoolTx struct {
 	from        string
 	senderNonce uint64
 
-	isOutdated uint32
-	isSim      uint32
+	preciseOrOutdated uint32
+	isSim             uint32
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
@@ -1373,7 +1377,7 @@ func (mem *CListMempool) simulationRoutine() {
 
 func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	defer types.SignatureCache().Remove(memTx.realTx.TxHash())
-	if atomic.LoadUint32(&memTx.isOutdated) != 0 {
+	if atomic.LoadUint32(&memTx.preciseOrOutdated) != 0 {
 		// memTx is outdated
 		return
 	}
