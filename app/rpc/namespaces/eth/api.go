@@ -1067,7 +1067,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	if args.GasPrice == nil || args.GasPrice.ToInt().Sign() <= 0 {
 		// set the default value for possible check of GasPrice
-		args.GasPrice = ParseGasPrice()
+		args.GasPrice = api.gasPrice
 	}
 
 	estimatedGas, err := api.simDoCall(args, maxGasLimitPerTx)
@@ -1551,7 +1551,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	if args.GasPrice == nil {
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = ParseGasPrice().ToInt()
+		gasPrice = api.gasPrice.ToInt()
 	}
 
 	if args.Nonce != nil && (uint64)(*args.Nonce) > 0 {
