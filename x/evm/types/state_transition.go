@@ -413,9 +413,7 @@ func integratePreimage(csdb *CommitStateDB, traceLogs []byte) ([]byte, error) {
 	if err := json.Unmarshal(traceLogs, &traceLogsMap); err != nil {
 		return nil, err
 	}
-	if _, ok := traceLogsMap["preimage"]; ok {
-		return nil, errors.New("preimage already exists")
-	}
+
 	preimageMap := make(map[string]interface{})
 	for k, v := range csdb.preimages {
 		preimageMap[k.Hex()] = hexutil.Encode(v)
