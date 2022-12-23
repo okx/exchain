@@ -21,10 +21,11 @@ const (
 )
 
 var (
-	once          sync.Once
-	GasUsedFactor = 0.4
-	jobQueueLen   = 10
-	cacheSize     = 10000
+	once             sync.Once
+	GasUsedFactor    = 0.4
+	regressionFactor = 0.01
+	jobQueueLen      = 10
+	cacheSize        = 10000
 
 	historyGasUsedRecordDB HistoryGasUsedRecordDB
 )
@@ -118,6 +119,10 @@ func (h *HistoryGasUsedRecordDB) flushHgu(gks ...gasKey) {
 		} else {
 			// MovingAverageGas = 0.4 * newGas + 0.6 * oldMovingAverageGas
 			hgu.MovingAverageGas = int64(GasUsedFactor*float64(gk.gas) + (1.0-GasUsedFactor)*float64(hgu.MovingAverageGas))
+			// MaxGas = 0.01 * MovingAverageGas + 0.99 * oldMaxGas
+			hgu.MaxGas = int64(regressionFactor*float64(hgu.MovingAverageGas) + (1.0-regressionFactor)*float64(hgu.MaxGas))
+			// MinGas = 0.01 * MovingAverageGas + 0.99 * oldMinGas
+			hgu.MinGas = int64(regressionFactor*float64(hgu.MovingAverageGas) + (1.0-regressionFactor)*float64(hgu.MinGas))
 			if gk.gas > hgu.MaxGas {
 				hgu.MaxGas = gk.gas
 			} else if gk.gas < hgu.MinGas {

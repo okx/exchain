@@ -1023,7 +1023,8 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) (int64, bool) {
 		return -1, false
 	}
 	precise := true
-	if (hgu.MaxGas-hgu.MovingAverageGas)*100/hgu.MovingAverageGas > cfg.DynamicConfig.GetPGUPercentageThreshold() {
+	if (hgu.MaxGas-hgu.MovingAverageGas)*100/hgu.MovingAverageGas > cfg.DynamicConfig.GetPGUPercentageThreshold() ||
+		(hgu.MovingAverageGas-hgu.MinGas)*100/hgu.MinGas > cfg.DynamicConfig.GetPGUPercentageThreshold() {
 		precise = false
 	}
 
