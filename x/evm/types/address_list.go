@@ -159,12 +159,6 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 			return ErrEmptyMethod
 		}
 		methodMap[cms[i].Sign] = cms[i]
-
-		// attempt to check Extra if gu factor, if err == nil, use factor validateBasic
-		if factor, err := UnmarshalGuFactor(cms[i].Extra); err == nil {
-			// if factor validateBasic is success then return false,use factor logic
-			return factor.ValidateBasic()
-		}
 	}
 	return nil
 }
@@ -210,6 +204,11 @@ func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (Cont
 	for i, _ := range methods {
 		methodName := methods[i].Sign
 		methodMap[methodName] = methods[i]
+		// attempt to check Extra if gu factor, if err == nil, use factor validateBasic
+		if factor, err := UnmarshalGuFactor(methods[i].Extra); err == nil {
+			// if factor validateBasic is success then return false,use factor logic
+			return nil, factor.ValidateBasic()
+		}
 	}
 	result := ContractMethods{}
 	for k, _ := range methodMap {
