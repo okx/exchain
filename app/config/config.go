@@ -49,6 +49,8 @@ type OecConfig struct {
 	maxGasUsedPerBlock int64
 	// mempool.enable-pgu
 	enablePGU bool
+	// mempool.pgu-concurrency
+	pguConcurrency int
 	// mempool.pgu-adjustment
 	pguAdjustment float64
 	// mempool.node_key_whitelist
@@ -135,6 +137,7 @@ const (
 	FlagMaxTxNumPerBlock           = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock         = "mempool.max_gas_used_per_block"
 	FlagEnablePGU                  = "mempool.enable-pgu"
+	FlagPGUConcurrency             = "mempool.pgu-concurrency"
 	FlagPGUAdjustment              = "mempool.pgu-adjustment"
 	FlagNodeKeyWhitelist           = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost         = "mempool.check_tx_cost"
@@ -277,6 +280,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableDeleteMinGPTx(viper.GetBool(FlagMempoolEnableDeleteMinGPTx))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
+	c.SetPGUConcurrency(viper.GetInt(FlagPGUConcurrency))
 	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 
@@ -484,6 +488,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetEnablePGU(r)
+	case FlagPGUConcurrency:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetPGUConcurrency(r)
 	case FlagPGUAdjustment:
 		r, err := strconv.ParseFloat(v, 64)
 		if err != nil {
@@ -800,6 +810,14 @@ func (c *OecConfig) GetEnablePGU() bool {
 
 func (c *OecConfig) SetEnablePGU(value bool) {
 	c.enablePGU = value
+}
+
+func (c *OecConfig) GetPGUConcurrency() int {
+	return c.pguConcurrency
+}
+
+func (c *OecConfig) SetPGUConcurrency(value int) {
+	c.pguConcurrency = value
 }
 
 func (c *OecConfig) GetPGUAdjustment() float64 {

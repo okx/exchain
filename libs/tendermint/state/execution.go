@@ -231,6 +231,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	deltaInfo := dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
+	global.CommitLock()
+	defer global.CommitUnlock()
 
 	startTime := time.Now().UnixNano()
 

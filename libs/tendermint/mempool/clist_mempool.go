@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	"math/big"
 	"strconv"
@@ -134,7 +135,7 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
-		simQueue:      make(chan *mempoolTx, 100000),
+		simQueue:      make(chan *mempoolTx, 200000),
 		gasCache:      gasCache,
 	}
 
@@ -142,7 +143,10 @@ func NewCListMempool(
 		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
 		go mempool.fireRmPendingTxEvents()
 	}
-	go mempool.simulationRoutine()
+
+	for i := 0; i < cfg.DynamicConfig.GetPGUConcurrency(); i++ {
+		go mempool.simulationRoutine()
+	}
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
 		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
@@ -839,6 +843,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// If maxGas is negative, skip this check.
 		// Since newTotalGas < masGas, which
 		// must be non-negative, it follows that this won't overflow.
+		atomic.AddUint32(&memTx.isOutdated, 1)
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
 		if maxGas > -1 && newTotalGas > maxGas {
@@ -1372,6 +1377,7 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 		// memTx is outdated
 		return
 	}
+	global.WaitCommit()
 	simuRes, err := mem.simulateTx(memTx.tx)
 	if err != nil {
 		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
