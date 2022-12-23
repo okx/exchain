@@ -207,7 +207,9 @@ func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (Cont
 		// attempt to check Extra if gu factor, if err == nil, use factor validateBasic
 		if factor, err := UnmarshalGuFactor(methods[i].Extra); err == nil {
 			// if factor validateBasic is success then return false,use factor logic
-			return nil, factor.ValidateBasic()
+			if err := factor.ValidateBasic(); err != nil {
+				return ContractMethods{}, err
+			}
 		}
 	}
 	result := ContractMethods{}
