@@ -298,6 +298,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 				traceLogs = []byte(err.Error())
 			} else {
 				traceLogs, err = integratePreimage(csdb, traceLogs)
+				if err != nil {
+					traceLogs = []byte(err.Error())
+				}
 			}
 			if exeRes == nil {
 				exeRes = &ExecutionResult{
@@ -406,14 +409,17 @@ func newRevertError(data []byte, e error) error {
 }
 
 func integratePreimage(csdb *CommitStateDB, traceLogs []byte) ([]byte, error) {
-	var traceLogMap map[string]interface{}
-	if err := json.Unmarshal(traceLogs, &traceLogMap); err != nil {
+	var traceLogsMap map[string]interface{}
+	if err := json.Unmarshal(traceLogs, &traceLogsMap); err != nil {
 		return nil, err
+	}
+	if _, ok := traceLogsMap["preimage"]; ok {
+		return nil, errors.New("preimage already exists")
 	}
 	preimageMap := make(map[string]interface{})
 	for k, v := range csdb.preimages {
 		preimageMap[k.Hex()] = hexutil.Encode(v)
 	}
-	traceLogMap["preimage"] = preimageMap
-	return json.Marshal(traceLogMap)
+	traceLogsMap["preimage"] = preimageMap
+	return json.Marshal(traceLogsMap)
 }
