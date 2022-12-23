@@ -73,6 +73,7 @@ type CacheCode struct {
 //
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
+// Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 type CommitStateDB struct {
 	db           ethstate.Database
 	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
@@ -136,6 +137,8 @@ type CommitStateDB struct {
 
 	GuFactor sdk.Dec
 }
+
+// Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 
 type StoreProxy interface {
 	Set(key, value []byte)
@@ -1623,6 +1626,9 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 // InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store
 func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
 	defer GetEvmParamsCache().SetNeedBlockedUpdate()
+	if err := contractList.ValidateFactor(); err != nil {
+		return err
+	}
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {

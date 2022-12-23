@@ -71,6 +71,24 @@ func (bl BlockedContractList) ValidateBasic() sdk.Error {
 	return nil
 }
 
+// ValidateFactor validates the list of contract which method or all-method is blocked
+func (bl BlockedContractList) ValidateFactor() sdk.Error {
+	//check repeated contract address
+	lenAddrs := len(bl)
+	filter := make(map[string]struct{}, lenAddrs)
+	for i := 0; i < lenAddrs; i++ {
+		key := bl[i].Address.String()
+		if _, ok := filter[key]; ok {
+			return ErrDuplicatedAddr
+		}
+		if err := bl[i].ValidateFactor(); err != nil {
+			return err
+		}
+		filter[key] = struct{}{}
+	}
+	return nil
+}
+
 func (bl BlockedContractList) GetBlockedContract(addr sdk.AccAddress) *BlockedContract {
 	for i, _ := range bl {
 		if addr.Equals(bl[i].Address) {
@@ -101,6 +119,14 @@ func (bc BlockedContract) ValidateBasic() sdk.Error {
 		return ErrEmptyAddressBlockedContract
 	}
 	return bc.BlockMethods.ValidateBasic()
+}
+
+// ValidateFactor validates BlockedContract
+func (bc BlockedContract) ValidateFactor() sdk.Error {
+	if len(bc.Address) == 0 {
+		return ErrEmptyAddressBlockedContract
+	}
+	return bc.BlockMethods.ValidateFactor()
 }
 
 // IsAllMethodBlocked return true if all method of contract is blocked.
@@ -163,6 +189,25 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 	return nil
 }
 
+// ValidateFactor validates the list of blocked contract method
+func (cms ContractMethods) ValidateFactor() sdk.Error {
+	methodMap := make(map[string]ContractMethod)
+	for i, _ := range cms {
+		if _, ok := methodMap[cms[i].Sign]; ok {
+			return ErrDuplicatedMethod
+		}
+		if len(cms[i].Sign) == 0 {
+			return ErrEmptyMethod
+		}
+		methodMap[cms[i].Sign] = cms[i]
+		if factor, err := UnmarshalGuFactor(cms[i].Extra); err == nil {
+			// if factor validateBasic is success then return factor
+			return factor.ValidateBasic()
+		}
+	}
+	return nil
+}
+
 // IsContain return true if the method of contract contains ContractMethods.
 func (cms ContractMethods) IsContain(method string) bool {
 	for i, _ := range cms {
@@ -204,13 +249,6 @@ func (cms *ContractMethods) InsertContractMethods(methods ContractMethods) (Cont
 	for i, _ := range methods {
 		methodName := methods[i].Sign
 		methodMap[methodName] = methods[i]
-		// attempt to check Extra if gu factor, if err == nil, use factor validateBasic
-		if factor, err := UnmarshalGuFactor(methods[i].Extra); err == nil {
-			// if factor validateBasic is success then return false,use factor logic
-			if err := factor.ValidateBasic(); err != nil {
-				return ContractMethods{}, err
-			}
-		}
 	}
 	result := ContractMethods{}
 	for k, _ := range methodMap {
