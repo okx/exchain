@@ -32,9 +32,18 @@ func SetProduceDelta(pd bool) {
 	produceDelta = pd
 }
 
+func GetFinalCommitGapOffset() int64 {
+	return finalCommitGapOffset
+}
+
+func SetFinalCommitGapOffset(offset int64) {
+	finalCommitGapOffset = offset
+}
+
 var (
-	ignoreVersionCheck = false
-	produceDelta       = false
+	ignoreVersionCheck         = false
+	produceDelta               = false
+	finalCommitGapOffset int64 = 0
 )
 
 // MutableTree is a persistent tree which keeps track of versions. It is not safe for concurrent
@@ -212,6 +221,10 @@ func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 func (tree *MutableTree) Get(key []byte) []byte {
 	if tree.root == nil {
 		return nil
+	}
+	if getForceReadIavl() {
+		_, value := tree.ImmutableTree.GetWithIndex(key)
+		return value
 	}
 
 	if value, ok := tree.fastGetFromChanges(key); ok {
@@ -606,6 +619,10 @@ func (tree *MutableTree) IsUpgradeable() bool {
 // from latest tree.
 // nolint: unparam
 func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) {
+	if getIgnoreAutoUpgrade() {
+		return false, nil
+	}
+
 	if !GetEnableFastStorage() {
 		return false, nil
 	}
@@ -748,7 +765,7 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 ) {
 	if tree.VersionExists(version) {
 		isFastCacheEnabled := tree.IsFastCacheEnabled()
-		if isFastCacheEnabled {
+		if isFastCacheEnabled && !getForceReadIavl() {
 			fastNode, _ := tree.ndb.GetFastNode(key)
 			if fastNode == nil && version == tree.ndb.getLatestMemoryVersion() {
 				return -1, nil

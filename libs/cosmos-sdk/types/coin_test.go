@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-	"math/big"
 	"strings"
 	"testing"
 
@@ -765,15 +763,31 @@ func TestMarshalJSONCoins(t *testing.T) {
 	}
 }
 
-func TestParsea(t *testing.T) {
-	r := new(big.Int)
-	re, ok := r.SetString("100123000000000000000", 10)
-	fmt.Println(ok)
-	fmt.Println(re.String())
-}
-
-func TestParseCoint(t *testing.T) {
-	ret, err := ParseCoin("10000123000000000000000okt")
-	fmt.Println(err)
-	fmt.Println(ret.String())
+func TestConvertWei2OKT(t *testing.T) {
+	testCases := []struct {
+		name       string
+		input      CoinAdapter
+		pass       bool
+		cm39StrOut string
+		cm40StrOut string
+	}{
+		{"invalid coin", NewCoinAdapter(DefaultBondDenom, NewInt(1)), false, "", ""},
+		{"valid coin with specific output", NewCoinAdapter(DefaultIbcWei, NewInt(1)), true, "0.000000000000000001okt", "1okt"},
+	}
+	for _, ca := range testCases {
+		t.Run(ca.name, func(t *testing.T) {
+			coinAdapters := CoinAdapters{ca.input}
+			coins, err := ConvWei2TOkt(coinAdapters)
+			if !ca.pass {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				cm40Coin := coins[0]
+				require.Equal(t, cm40Coin.Denom, DefaultBondDenom)
+				require.Equal(t, ca.cm40StrOut, cm40Coin.String())
+				cm39Coin := cm40Coin.ToCoin()
+				require.Equal(t, ca.cm39StrOut, cm39Coin.String())
+			}
+		})
+	}
 }

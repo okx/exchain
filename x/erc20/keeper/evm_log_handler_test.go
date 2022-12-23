@@ -3,6 +3,9 @@ package keeper_test
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -10,8 +13,6 @@ import (
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -104,16 +105,16 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 					Version:        "version",
 				}
 
-				suite.app.IBCKeeper.ChannelKeeper.SetNextSequenceSend(suite.ctx, "transfer", channelA, 1)
-				suite.app.IBCKeeper.ChannelKeeper.SetChannel(suite.ctx, "transfer", channelA, c)
+				suite.app.IBCKeeper.V2Keeper.ChannelKeeper.SetNextSequenceSend(suite.ctx, "transfer", channelA, 1)
+				suite.app.IBCKeeper.V2Keeper.ChannelKeeper.SetChannel(suite.ctx, "transfer", channelA, c)
 				counterparty := connectiontypes.NewCounterparty("client-1", "one", commitmenttypes.NewMerklePrefix([]byte("ibc")))
 				conn1 := connectiontypes.NewConnectionEnd(connectiontypes.OPEN, "client-1", counterparty, connectiontypes.ExportedVersionsToProto(connectiontypes.GetCompatibleVersions()), 0)
 				period := time.Hour * 24 * 7 * 2
 				clientState := ibctmtypes.NewClientState("testChainID", ibctmtypes.DefaultTrustLevel, period, period, period, types.NewHeight(0, 5), commitmenttypes.GetSDKSpecs(), ibctesting.UpgradePath, false, false)
-				suite.app.IBCKeeper.ClientKeeper.SetClientState(suite.ctx, "client-1", clientState)
+				suite.app.IBCKeeper.V2Keeper.ClientKeeper.SetClientState(suite.ctx, "client-1", clientState)
 				consensusState := ibctmtypes.NewConsensusState(time.Now(), commitmenttypes.NewMerkleRoot([]byte("root")), []byte("nextValsHash"))
-				suite.app.IBCKeeper.ClientKeeper.SetClientConsensusState(suite.ctx, "client-1", types.NewHeight(0, 5), consensusState)
-				suite.app.IBCKeeper.ConnectionKeeper.SetConnection(suite.ctx, "one", conn1)
+				suite.app.IBCKeeper.V2Keeper.ClientKeeper.SetClientConsensusState(suite.ctx, "client-1", types.NewHeight(0, 5), consensusState)
+				suite.app.IBCKeeper.V2Keeper.ConnectionKeeper.SetConnection(suite.ctx, "one", conn1)
 				coin := sdk.NewCoin(CorrectIbcDenom2, amount)
 				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
 				suite.Require().NoError(err)

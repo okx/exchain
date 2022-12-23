@@ -56,6 +56,7 @@ var (
 		trace.Prerun,
 		trace.MempoolTxsCnt,
 		trace.Workload,
+		trace.ACOffset,
 		trace.PersistDetails,
 	}
 

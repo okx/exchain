@@ -19,7 +19,7 @@ type IBCModule interface {
 		channelCap *capabilitytypes.Capability,
 		counterparty channeltypes.Counterparty,
 		version string,
-	) error
+	) (string, error)
 
 	OnChanOpenTry(
 		ctx sdk.Context,
@@ -31,12 +31,13 @@ type IBCModule interface {
 		counterparty channeltypes.Counterparty,
 		version,
 		counterpartyVersion string,
-	) error
+	) (string, error)
 
 	OnChanOpenAck(
 		ctx sdk.Context,
 		portID,
 		channelID string,
+		counterpartyChannelID string,
 		counterpartyVersion string,
 	) error
 
@@ -93,4 +94,33 @@ type IBCModule interface {
 		counterparty channeltypes.Counterparty,
 		proposedVersion string,
 	) (version string, err error)
+}
+
+// ICS4Wrapper implements the ICS4 interfaces that IBC applications use to send packets and acknowledgements.
+type ICS4Wrapper interface {
+	SendPacket(
+		ctx sdk.Context,
+		chanCap *capabilitytypes.Capability,
+		packet exported.PacketI,
+	) error
+
+	WriteAcknowledgement(
+		ctx sdk.Context,
+		chanCap *capabilitytypes.Capability,
+		packet exported.PacketI,
+		ack exported.Acknowledgement,
+	) error
+
+	GetAppVersion(
+		ctx sdk.Context,
+		portID,
+		channelID string,
+	) (string, bool)
+}
+
+// Middleware must implement IBCModule to wrap communication from core IBC to underlying application
+// and ICS4Wrapper to wrap communication from underlying application to core IBC.
+type Middleware interface {
+	IBCModule
+	ICS4Wrapper
 }

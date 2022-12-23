@@ -149,6 +149,17 @@ func (tx *StdTx) ValidateBasic() error {
 	return nil
 }
 
+func (tx *StdTx) ValidWithHeight(h int64) error {
+	for _, msg := range tx.Msgs {
+		if v, ok := msg.(sdk.HeightSensitive); ok {
+			if err := v.ValidWithHeight(h); nil != err {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // CountSubKeys counts the total number of keys for a multi-sig public key.
 func CountSubKeys(pub crypto.PubKey) int {
 	v, ok := pub.(multisig.PubKeyMultisigThreshold)

@@ -38,6 +38,8 @@ var (
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = config.DefaultCommitGapHeight
 	enableFastStorage               = true
+	forceReadIavl                   = false
+	ignoreAutoUpgrade               = false
 )
 
 type commitEvent struct {
@@ -65,6 +67,24 @@ func SetEnableFastStorage(enable bool) {
 // GetEnableFastStorage get fast storage enable value
 func GetEnableFastStorage() bool {
 	return enableFastStorage
+}
+
+// SetForceReadIavl force read from iavl
+func SetForceReadIavl(enable bool) {
+	forceReadIavl = enable
+}
+
+// GetForceReadIavl get force read from iavl
+func getForceReadIavl() bool {
+	return forceReadIavl
+}
+
+func SetIgnoreAutoUpgrade(enable bool) {
+	ignoreAutoUpgrade = enable
+}
+
+func getIgnoreAutoUpgrade() bool {
+	return ignoreAutoUpgrade
 }
 
 // GetFastNodeCacheSize get fast node cache size
@@ -104,7 +124,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := version%CommitGapHeight == 0
+	// persist height = commitGapHeight + produceOffset
+	shouldPersist := version%CommitGapHeight == finalCommitGapOffset
 
 	tree.ndb.updateLatestMemoryVersion(version)
 

@@ -451,8 +451,11 @@ func (b *EthermintBackend) GetLogs(height int64) ([][]*ethtypes.Log, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// return empty directly when block was produced during stress testing.
 	var blockLogs = [][]*ethtypes.Log{}
+	if b.logsLimit > 0 && len(block.Block.Txs) > b.logsLimit {
+		return blockLogs, nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(b.logsTimeout)*time.Second)
 	defer cancel()
 	for _, tx := range block.Block.Txs {
