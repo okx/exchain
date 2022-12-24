@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/statistics"
-	"log"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -594,27 +593,27 @@ func (rd ResultData) PrintString(sender string, height int64, blockTime time.Tim
 			if rd.Logs[i].Topics[0].String() == "0xe9149e1b5059238baed02fa659dbf4bd932fbcf760a431330df4d934bc942f37" { // claimRank
 				term := big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64()
 				statistics.GetInstance().SaveMintAsync(&statistics.XenMint{
-					Height:     height,
-					BlockTime:  blockTime,
-					TxHash:     rd.TxHash.String(),
-					TxSender:   strings.ToLower(sender),
-					UserAddr:   hexutil.Encode(rd.Logs[i].Topics[1][12:]),
-					Term:       term,
-					Rank:       big.NewInt(0).SetBytes(rd.Logs[i].Data[32:]).Uint64(),
-					ExpireTime: blockTime.Add(time.Hour * 24 * time.Duration(term+1)), // 1 for buffer
+					Height:    height,
+					BlockTime: blockTime,
+					TxHash:    rd.TxHash.String(),
+					TxSender:  strings.ToLower(sender),
+					UserAddr:  hexutil.Encode(rd.Logs[i].Topics[1][12:]),
+					Term:      term,
+					Rank:      big.NewInt(0).SetBytes(rd.Logs[i].Data[32:]).Uint64(),
 				})
-				log.Printf("giskook %s, txsender %s,userAddress %s, term %v\n",
-					rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())
-				//	rd.TxHash.String(), strings.ToLower(sender), rd.Logs[i].Topics[1].String(), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())
+				//	log.Printf("giskook %s, txsender %s,userAddress %s, term %v\n",
+				//		rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())
 			} else if rd.Logs[i].Topics[0].String() == "0xd74752b13281df13701575f3a507e9b1242e0b5fb040143211c481c1fce573a6" { // claimMintRewardAndShare & claimMintReward
 				statistics.GetInstance().SaveClaimAsync(&statistics.XenClaimReward{
+					Height:       height,
+					BlockTime:    blockTime,
 					TxHash:       rd.TxHash.String(),
 					TxSender:     sender,
 					UserAddr:     hexutil.Encode(rd.Logs[i].Topics[1][12:]),
 					RewardAmount: big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).Uint64(),
 				})
-				log.Printf("giskook %s, txsender %s,userAddress %s, reword %v\n",
-					rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).Uint64())
+				//	log.Printf("giskook %s, txsender %s,userAddress %s, reword %v\n",
+				//		rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).Uint64())
 			}
 		}
 	}

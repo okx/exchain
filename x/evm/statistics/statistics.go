@@ -21,28 +21,28 @@ type Config struct {
 }
 
 type statistics struct {
-	config       *Config
-	chanXenMint  chan *XenMint
-	chanXenClaim chan *XenClaimReward
-	exit         chan struct{}
-	initOnce     sync.Once
+	config             *Config
+	chanXenMint        chan *XenMint
+	chanXenClaimReward chan *XenClaimReward
+	exit               chan struct{}
+	initOnce           sync.Once
 }
 
 func (s *statistics) Init(config *Config) {
 	s.initOnce.Do(func() {
 		s.config = config
 		s.chanXenMint = make(chan *XenMint, config.XenMintChanSize)
-		s.chanXenClaim = make(chan *XenClaimReward, config.XenClaimChanSize)
+		s.chanXenClaimReward = make(chan *XenClaimReward, config.XenClaimChanSize)
 		s.exit = make(chan struct{})
 	})
 }
 
 func (s *statistics) SaveMintAsync(mint *XenMint) {
-	//	s.chanXenMint <- mint
+	s.chanXenMint <- mint
 }
 
 func (s *statistics) SaveClaimAsync(claim *XenClaimReward) {
-	//	s.chanXenClaim <- claim
+	s.chanXenClaimReward <- claim
 }
 
 func (s *statistics) Do() {
@@ -65,7 +65,7 @@ func (s *statistics) doMint() {
 func (s *statistics) doClaim() {
 	for {
 		select {
-		case claim := <-s.chanXenClaim:
+		case claim := <-s.chanXenClaimReward:
 			log.Println(claim)
 			return
 		case <-s.exit:
