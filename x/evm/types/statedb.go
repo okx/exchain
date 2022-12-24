@@ -1574,15 +1574,18 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
 	if csdb.ctx.UseParamCache() {
+		tempEnableCache := true
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
-			// Note: when checktx GetEvmParamsCache().UpdateBlockedContractMethod will not be really update, so we must find GetBlockedContract from bcl.
+			// Note: when checktx GetEvmParamsCache().UpdateBlockedContractMethod will not be really update, so we must find GetBlockedContract from db.
 			if csdb.ctx.IsCheckTx() {
-				return bcl.GetBlockedContract(contractAddr)
+				tempEnableCache = false
 			}
 		}
-		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
+		if tempEnableCache {
+			return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
+		}
 	}
 
 	//use dbAdapter for watchdb or prefixdb
