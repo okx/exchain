@@ -41,6 +41,7 @@ func (hook GuFactorHook) UpdateGuFactor(csdb *CommitStateDB, op vm.OpCode, from,
 		}
 		method := hexutil.Encode(input)
 
+		csdb.Logger().Error("UpdateGuFactor", "csdb.GuFactor", csdb.GuFactor, "cache", GetEvmParamsCache().blockedContractMethodsCache)
 		if bc := csdb.GetContractMethodBlockedByAddress(to.Bytes()); bc != nil {
 			if contractMethod := bc.BlockMethods.GetMethod(method); contractMethod != nil {
 				if factor := contractMethod.GetGuFactor(); factor != nil {
