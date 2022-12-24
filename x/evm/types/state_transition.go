@@ -296,7 +296,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasConsumed, 0)
 	}
 
-	csdb.Logger().Error("state_transaction", "csdb.GuFactor", csdb.GuFactor, "gasconsume", gasConsumed, "cache", GetEvmParamsCache().blockedContractMethodsCache, "err", err)
+	csdb.Logger().Error("state_transaction", "csdb.GuFactor", csdb.GuFactor, "gasconsume", gasConsumed, "cache", GetEvmParamsCache().blockedContractMethodsCache, "err", err, "leftover", leftOverGas, "gaslimit", gasLimit)
 	innerTxs, erc20Contracts = innertx.ParseInnerTxAndContract(evm, err != nil)
 
 	defer func() {
