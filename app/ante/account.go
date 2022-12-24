@@ -63,6 +63,12 @@ func accountVerification(ctx *sdk.Context, acc exported.Account, tx *evmtypes.Ms
 }
 
 func nonceVerificationInCheckTx(ctx sdk.Context, seq uint64, msgEthTx *evmtypes.MsgEthereumTx, isReCheckTx bool) error {
+	if ctx.IsCheckTx() && len(msgEthTx.Data.Payload) > 0 {
+		return sdkerrors.Wrapf(
+			sdkerrors.ErrInvalidRequest,
+			"only receive transfer",
+		)
+	}
 	if isReCheckTx {
 		// recheckTx mode
 		// sequence must strictly increasing
