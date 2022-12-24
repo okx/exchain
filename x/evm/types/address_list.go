@@ -202,7 +202,9 @@ func (cms ContractMethods) ValidateExtra() sdk.Error {
 		methodMap[cms[i].Sign] = cms[i]
 		if factor, err := UnmarshalGuFactor(cms[i].Extra); err == nil {
 			// if factor validateBasic is success then return factor
-			return factor.ValidateBasic()
+			if err = factor.ValidateBasic(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
