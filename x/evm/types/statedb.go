@@ -1574,11 +1574,13 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
 	if csdb.ctx.UseParamCache() {
+		csdb.Logger().Error("GetContractMethodBlockedByAddress", "cache", GetEvmParamsCache())
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
 			// Note: when checktx GetEvmParamsCache().UpdateBlockedContractMethod will not be really update, so we must find GetBlockedContract from bcl.
 			if csdb.ctx.IsCheckTx() {
+				csdb.Logger().Error("GetContractMethodBlockedByAddress", "csdb.GetContractMethodBlockedList()", bcl)
 				return bcl.GetBlockedContract(contractAddr)
 			}
 		}
