@@ -152,6 +152,7 @@ var (
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
+			evmclient.ManageContractMethodGuFactorProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			evmclient.ManageSysContractAddressProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
