@@ -51,5 +51,7 @@ func (hook GuFactorHook) UpdateGuFactor(csdb *CommitStateDB, op vm.OpCode, from,
 				}
 			}
 		}
+		csdb.Logger().Error("UpdateGuFactor", "csdb.GuFactor", csdb.GuFactor, "to", to.String(), "input", method)
+
 	}
 }
