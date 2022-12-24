@@ -2,9 +2,11 @@ package keeper_test
 
 import (
 	"fmt"
+	"testing"
+
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"testing"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
@@ -285,6 +287,26 @@ func (suite KeeperTestSuite) TestRevertCapability() {
 	got, ok := sk.GetCapability(suite.ctx, capName)
 	suite.Require().True(ok, "could not retrieve capability from context")
 	suite.Require().Equal(cap, got, "did not get correct capability from context")
+}
+
+func (suite KeeperTestSuite) TestReloadFromStore() {
+	sk := suite.keeper.ScopeToModule("bank")
+	cap1 := types.NewCapability(1)
+	name1 := "name1"
+
+	got, ok := sk.GetCapability(suite.ctx, name1)
+	suite.Require().False(ok)
+	suite.Require().Nil(got)
+
+	err := sk.ClaimCapability(suite.ctx, cap1, name1)
+	suite.Require().NoError(err)
+	// refresh memstore
+	tmtypes.DownloadDelta = true
+	suite.keeper.InitMemStore(suite.ctx)
+
+	got, ok = sk.GetCapability(suite.ctx, name1)
+	suite.Require().True(ok)
+	suite.Require().NotNil(got)
 }
 
 func TestKeeperTestSuite(t *testing.T) {

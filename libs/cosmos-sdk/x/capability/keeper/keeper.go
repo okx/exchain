@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -528,7 +530,7 @@ func (k *Keeper) InitMemStore(ctx sdk.Context) {
 	noGasCtx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	// check if memory store has not been initialized yet by checking if initialized flag is nil.
-	if !k.IsInitialized(noGasCtx) {
+	if !k.IsInitialized(noGasCtx) || tmtypes.DownloadDelta {
 		prefixStore := prefix.NewStore(noGasCtx.KVStore(k.storeKey), types.KeyPrefixIndexCapability)
 		iterator := sdk.KVStorePrefixIterator(prefixStore, nil)
 
