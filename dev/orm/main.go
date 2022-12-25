@@ -56,7 +56,7 @@ func main() {
 	softDeleteField := gen.FieldType("delete_time", "soft_delete.DeletedAt")
 	fieldOpts := []gen.ModelOpt{jsonField, autoCreateTimeField, autoUpdateTimeField, softDeleteField}
 
-	User := g.GenerateModel("user")
+	User := g.GenerateModel("claim")
 	allModel := g.GenerateAllTable(fieldOpts...)
 
 	//Score := g.GenerateModel("score",
