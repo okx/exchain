@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/x/evm"
 	"log"
 	"path/filepath"
@@ -21,6 +22,12 @@ func init() {
 	fssCmd.AddCommand(checkCmd)
 }
 
+var (
+	evmCount    int
+	evmXenCount int
+	accCount    int
+)
+
 // checkCmd represents the create command
 var checkCmd = &cobra.Command{
 	Use:   "check",
@@ -28,7 +35,7 @@ var checkCmd = &cobra.Command{
 	Long: `Check fast index with IAVL original nodes:
 This command is a tool to check the IAVL fast index.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return check([]string{evm.StoreKey})
+		return check([]string{evm.StoreKey, auth.StoreKey})
 	},
 }
 
@@ -58,15 +65,47 @@ func check(storeKeys []string) error {
 			return err
 		}
 
-		if err := checkIndex(key, mutableTree); err != nil {
-			return fmt.Errorf("%v iavl fast index not match %v", key, err.Error())
+		if key == evm.StoreKey {
+			if err := checkEvm(key, mutableTree); err != nil {
+				return fmt.Errorf("%v iavl fast index not match %v", key, err.Error())
+			}
 		}
+		if key == auth.StoreKey {
+			if err := checkAcc(key, mutableTree); err != nil {
+				return fmt.Errorf("%v iavl fast index not match %v", key, err.Error())
+			}
+		}
+	}
+
+	fmt.Printf("%v,%v,%v\n", evmCount, evmXenCount, accCount)
+
+	return nil
+}
+
+func checkAcc(key string, mutableTree *iavl.MutableTree) error {
+	fastIterator := mutableTree.Iterator(nil, nil, true)
+	defer fastIterator.Close()
+
+	const verboseGap = 50000
+	var total int
+	for fastIterator.Valid() {
+		if total%verboseGap == 0 {
+			log.Printf("Checked count: %v\n", total)
+		}
+		total++
+		fastIterator.Next()
+	}
+	log.Printf("Checked %v count done: %v\n", key, total)
+
+	accCount = total
+	if fastIterator.Valid() {
+		return fmt.Errorf("fast index key:%v value:%v", fastIterator.Key(), fastIterator.Value())
 	}
 
 	return nil
 }
 
-func checkIndex(key string, mutableTree *iavl.MutableTree) error {
+func checkEvm(key string, mutableTree *iavl.MutableTree) error {
 	fastIterator := mutableTree.Iterator(nil, nil, true)
 	defer fastIterator.Close()
 
@@ -89,6 +128,8 @@ func checkIndex(key string, mutableTree *iavl.MutableTree) error {
 	log.Printf("Checked %v count done: %v\n", key, total)
 	log.Printf("Checked xen %v count done: %v\n", key, xen)
 	fmt.Printf("%v,%v\n", total, xen)
+	evmCount = total
+	evmXenCount = xen
 
 	if fastIterator.Valid() {
 		return fmt.Errorf("fast index key:%v value:%v", fastIterator.Key(), fastIterator.Value())
