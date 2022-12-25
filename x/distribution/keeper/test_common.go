@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/x/common/monitor"
 
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
@@ -241,11 +242,11 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms)
 
 	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace))
+		pk.Subspace(staking.DefaultParamspace), monitor.NopStakingMetric())
 	sk.SetParams(ctx, staking.DefaultParams())
 
 	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(types.DefaultParamspace), sk, supplyKeeper,
-		auth.FeeCollectorName, blacklistedAddrs)
+		auth.FeeCollectorName, blacklistedAddrs, monitor.NopDistrMetric())
 
 	keeper.SetWithdrawAddrEnabled(ctx, true)
 	initCoins := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), initTokens))

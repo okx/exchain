@@ -43,3 +43,14 @@ func (h MultiStakingHooks) CheckEnabled(ctx sdk.Context) bool {
 
 	return true
 }
+
+func (h MultiStakingHooks) GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
+	for i := range h {
+		reward := h[i].GetValidatorOutstandingRewards(ctx, valAddr)
+		if !reward.Equal(sdk.ZeroDec()) {
+			return reward
+		}
+	}
+
+	return sdk.ZeroDec()
+}

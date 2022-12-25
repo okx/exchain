@@ -47,3 +47,11 @@ func (k Keeper) CheckEnabled(ctx sdk.Context) bool {
 
 	return k.hooks.CheckEnabled(ctx)
 }
+
+func (k Keeper) GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
+	if k.hooks == nil {
+		return sdk.ZeroDec()
+	}
+
+	return k.hooks.GetValidatorOutstandingRewards(ctx, valAddr)
+}
