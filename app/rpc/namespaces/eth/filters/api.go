@@ -12,6 +12,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app/rpc/monitor"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -28,6 +29,7 @@ import (
 var (
 	ErrServerBusy       = errors.New("server is too busy")
 	ErrMethodNotAllowed = errors.New("the method is not allowed")
+	NameSpace           = "filters"
 )
 
 // Backend defines the methods requided by the PublicFilterAPI backend
@@ -71,7 +73,7 @@ type PublicFilterAPI struct {
 	filtersMu sync.Mutex
 	filters   map[rpc.ID]*filter
 	logger    log.Logger
-	Metrics   map[string]*monitor.RpcMetrics
+	Metrics   *monitor.RpcMetrics
 }
 
 // NewAPI returns a new PublicFilterAPI instance.
@@ -87,7 +89,11 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend Backend)
 		backend:   backend,
 		filters:   make(map[rpc.ID]*filter),
 		events:    NewEventSystem(clientCtx.Client),
-		logger:    log.With("module", "json-rpc", "namespace", "eth"),
+		logger:    log.With("module", "json-rpc", "namespace", NameSpace),
+	}
+
+	if viper.GetBool(monitor.FlagEnableMonitor) {
+		api.Metrics = monitor.MakeMonitorMetrics(NameSpace)
 	}
 
 	go api.timeoutLoop()

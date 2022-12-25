@@ -1,8 +1,9 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
 	"testing"
+
+	"github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/stretchr/testify/suite"
 
@@ -193,17 +194,17 @@ func (suite *KeeperTestSuite) TestHandleRecvPacket() {
 
 			msg := channeltypes.NewMsgRecvPacket(packet, proof, proofHeight, suite.chainB.SenderAccount().GetAddress().String())
 
-			_, err := keeper.Keeper.RecvPacket(*suite.chainB.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
+			_, err := keeper.Keeper.RecvPacket(*suite.chainB.GetSimApp().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
 
 				// replay should not fail since it will be treated as a no-op
-				_, err := keeper.Keeper.RecvPacket(*suite.chainB.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
+				_, err := keeper.Keeper.RecvPacket(*suite.chainB.GetSimApp().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
 				suite.Require().NoError(err)
 
 				// check that callback state was handled correctly
-				_, exists := suite.chainB.GetSimApp().ScopedIBCMockKeeper.GetCapability(suite.chainB.GetContext(), ibctesting.GetMockRecvCanaryCapabilityName(packet))
+				_, exists := suite.chainB.GetSimApp().ScopedIBCMockKeeper.GetCapability(suite.chainB.GetContext(), ibcmock.GetMockRecvCanaryCapabilityName(packet))
 				if tc.expRevert {
 					suite.Require().False(exists, "capability exists in store even after callback reverted")
 				} else {
@@ -211,7 +212,7 @@ func (suite *KeeperTestSuite) TestHandleRecvPacket() {
 				}
 
 				// verify if ack was written
-				ack, found := suite.chainB.App().GetIBCKeeper().ChannelKeeper.GetPacketAcknowledgement(suite.chainB.GetContext(), packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
+				ack, found := suite.chainB.GetSimApp().GetIBCKeeper().ChannelKeeper.GetPacketAcknowledgement(suite.chainB.GetContext(), packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
 
 				if async {
 					suite.Require().Nil(ack)

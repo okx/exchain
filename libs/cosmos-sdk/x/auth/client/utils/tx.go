@@ -588,3 +588,19 @@ func isTxSigner(user sdk.AccAddress, signers []sdk.AccAddress) bool {
 
 	return false
 }
+
+func CliConvertCoinToCoinAdapters(coins sdk.Coins) sdk.CoinAdapters {
+	ret := make(sdk.CoinAdapters, 0)
+	for _, v := range coins {
+		ret = append(ret, CliConvertCoinToCoinAdapter(v))
+	}
+	return ret
+}
+
+func CliConvertCoinToCoinAdapter(coin sdk.Coin) sdk.CoinAdapter {
+	prec := newCoinFromDec()
+
+	am := sdk.NewIntFromBigInt(coin.Amount.BigInt().Div(coin.Amount.BigInt(), prec))
+
+	return sdk.NewCoinAdapter(coin.Denom, am)
+}

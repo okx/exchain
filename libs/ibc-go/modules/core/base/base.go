@@ -9,9 +9,8 @@ import (
 )
 
 var (
-	_ upgrade.UpgradeModule = (*BaseIBCUpgradeModule)(nil)
-
-	ibcMap = map[string]struct{}{
+	_      upgrade.UpgradeModule = (*BaseIBCUpgradeModule)(nil)
+	ibcMap                       = map[string]struct{}{
 		"ibc":            struct{}{},
 		"mem_capability": struct{}{},
 		"capability":     struct{}{},

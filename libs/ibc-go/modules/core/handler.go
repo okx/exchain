@@ -14,7 +14,7 @@ import (
 )
 
 // NewHandler defines the IBC handler
-func NewHandler(k keeper.Keeper) sdk.Handler {
+func NewHandler(k keeper.FacadedKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
 			errMsg := fmt.Sprintf("ibc handler is not supported at height %d", ctx.BlockHeight())
