@@ -170,6 +170,7 @@ func (sw *Switch) AddReactor(name string, reactor Reactor) Reactor {
 		sw.reactorsByCh[chID] = reactor
 	}
 	sw.reactors[name] = reactor
+	sw.Logger.Error("AddReactor", "name", name)
 	reactor.SetSwitch(sw)
 	return reactor
 }
@@ -188,6 +189,7 @@ func (sw *Switch) RemoveReactor(name string, reactor Reactor) {
 		delete(sw.reactorsByCh, chDesc.ID)
 	}
 	delete(sw.reactors, name)
+	sw.Logger.Error("RemoveReactor", "name", name)
 	reactor.SetSwitch(nil)
 }
 
@@ -228,6 +230,7 @@ func (sw *Switch) SetNodeKey(nodeKey *NodeKey) {
 func (sw *Switch) OnStart() error {
 	// Start reactors
 	for _, reactor := range sw.reactors {
+		sw.Logger.Error("StartReactor", "name", reactor.String())
 		err := reactor.Start()
 		if err != nil {
 			return errors.Wrapf(err, "failed to start %v", reactor)
@@ -250,11 +253,12 @@ func (sw *Switch) OnStop() {
 	// Stop reactors
 	sw.Logger.Debug("Switch: Stopping reactors")
 	for _, reactor := range sw.reactors {
+		sw.Logger.Error("StopReactor", "name", reactor.String())
 		reactor.Stop()
 	}
 }
 
-//---------------------------------------------------------------------
+//-----------------------------------------------------------xx----------
 // Peers
 
 // Broadcast runs a go routine for each attempted send, which will block trying

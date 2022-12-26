@@ -226,9 +226,12 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	}
 
 	TrapSignal(func() {
+		ctx.Logger.Error("开始stop ..... TrapSignal")
 		if tmNode.IsRunning() {
 			_ = tmNode.Stop()
+			ctx.Logger.Error("tmNode stop ..... ")
 		}
+		ctx.Logger.Error("app stop ..... ")
 		appStop(app)
 
 		if cpuProfileCleanup != nil {

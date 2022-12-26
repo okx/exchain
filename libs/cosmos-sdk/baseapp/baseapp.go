@@ -956,6 +956,7 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 }
 
 func (app *BaseApp) StopBaseApp() {
+	app.logger.Error("这里StopBaseApp")
 	app.cms.StopStore()
 
 	ctx := sdk.NewContext(nil, abci.Header{Height: app.LastBlockHeight(), Time: time.Now()}, false, app.logger)
