@@ -600,7 +600,6 @@ func (rd ResultData) PrintString(sender string, height int64, blockTime time.Tim
 					UserAddr:  hexutil.Encode(rd.Logs[i].Topics[1][12:]),
 					Term:      term,
 					Rank:      big.NewInt(0).SetBytes(rd.Logs[i].Data[32:]).String(),
-					Reward:    0,
 				})
 				//log.Printf("giskook %s, txsender %s,userAddress %s, term %v\n",
 				//	rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())

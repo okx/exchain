@@ -10,7 +10,6 @@ type XenMint struct {
 	UserAddr  string
 	Term      int64
 	Rank      string
-	Reward    int64
 }
 
 type XenClaimReward struct {
