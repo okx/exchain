@@ -17,7 +17,7 @@ func init() {
 	fssCmd.AddCommand(versionCmd)
 }
 
-// checkCmd represents the create command
+// versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version  <module>",
 	Short: "Read the module's fast storage version",

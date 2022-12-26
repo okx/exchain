@@ -19,7 +19,7 @@ func init() {
 	fssCmd.AddCommand(checkCmd)
 }
 
-// checkCmd represents the create command
+// checkCmd represents the check command
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check with the fast index with IAVL original nodes",

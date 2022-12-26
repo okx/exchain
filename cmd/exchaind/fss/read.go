@@ -19,7 +19,7 @@ func init() {
 	fssCmd.AddCommand(readCmd)
 }
 
-// checkCmd represents the create command
+// readCmd represents the read command
 var readCmd = &cobra.Command{
 	Use:   "read <module> <key>",
 	Short: "Read the fast node",
