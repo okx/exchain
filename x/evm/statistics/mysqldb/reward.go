@@ -13,11 +13,11 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 	}
 	var dbReward model.Reward
 	tx.Last(&dbReward)
-	log.Printf("%v %v %v\n", dbReward.ID, dbReward.Txhash, dbReward.Useraddr)
+	log.Printf("%v %v %v\n", dbReward.ID, *dbReward.Txhash, *dbReward.Useraddr)
 
 	userAddr := "0xacf041fc5a59978016e3b6c339b61a65762d10e2"
 	//useraddr := *dbReward.Useraddr
-	var claims []model.Reward
+	var claims []model.Claim
 	tx = mdb.db.Table("claim").Where("useraddr=? and reward=0", userAddr).Find(&claims)
 	if tx.Error != nil {
 		panic(tx.Error)
