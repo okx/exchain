@@ -187,24 +187,27 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	eventBus := types.NewEventBus()
 	txStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+	blockExec.SetEventBus(eventBus)
+	// Save state synchronously during repair state
+	blockExec.SetIsAsyncSaveDB(false)
 	defer func() {
-		if txindexServer != nil && txindexServer.IsRunning() {
-			txindexServer.Stop()
-			txindexServer.Wait()
-		}
+		blockExec.Stop()
+
 		if eventBus != nil && eventBus.IsRunning() {
 			eventBus.Stop()
 			eventBus.Wait()
+		}
+		if txindexServer != nil && txindexServer.IsRunning() {
+			txindexServer.Stop()
+			txindexServer.Wait()
 		}
 		if txStore != nil {
 			err := txStore.Close()
 			panicError(err)
 		}
 	}()
-	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-	blockExec.SetEventBus(eventBus)
-	// Save state synchronously during repair state
-	blockExec.SetIsAsyncSaveDB(false)
+
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)

@@ -119,17 +119,22 @@ func NewBlockExecutor(
 	res.deltaContext.init()
 
 	res.initAsyncDBContext()
-	go res.fireEventsRountine()
+
 	return res
 }
 
 func (blockExec *BlockExecutor) fireEventsRountine() {
 	for et := range blockExec.eventsChan {
 		if et.block == nil {
+			blockExec.logger.Error("BlockExecutor quit fireEventsRountine")
 			break
 		}
+
+		blockExec.logger.Error("blockExec fire Events:", "height", et.block.Height)
+		time.Sleep(10 * time.Second)
 		fireEvents(blockExec.logger, blockExec.eventBus, et.block, et.abciRsp, et.vals)
 	}
+	blockExec.wg.Done()
 }
 
 func (blockExec *BlockExecutor) DB() dbm.DB {
@@ -145,6 +150,7 @@ func (blockExec *BlockExecutor) SetIsNullIndexer(isNullIndexer bool) {
 }
 
 func (blockExec *BlockExecutor) Stop() {
+	blockExec.logger.Error("BlockExecutor Stop")
 	blockExec.stopAsyncDBContext()
 }
 

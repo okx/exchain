@@ -12,26 +12,25 @@
 //
 // Example:
 //
-//     q, err := query.New("account.name='John'")
-//     if err != nil {
-//         return err
-//     }
-//     ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
-//     defer cancel()
-//     subscription, err := pubsub.Subscribe(ctx, "johns-transactions", q)
-//     if err != nil {
-//         return err
-//     }
+//	q, err := query.New("account.name='John'")
+//	if err != nil {
+//	    return err
+//	}
+//	ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
+//	defer cancel()
+//	subscription, err := pubsub.Subscribe(ctx, "johns-transactions", q)
+//	if err != nil {
+//	    return err
+//	}
 //
-//     for {
-//         select {
-//         case msg <- subscription.Out():
-//             // handle msg.Data() and msg.Events()
-//         case <-subscription.Cancelled():
-//             return subscription.Err()
-//         }
-//     }
-//
+//	for {
+//	    select {
+//	    case msg <- subscription.Out():
+//	        // handle msg.Data() and msg.Events()
+//	    case <-subscription.Cancelled():
+//	        return subscription.Err()
+//	    }
+//	}
 package pubsub
 
 import (
@@ -287,6 +286,7 @@ func (s *Server) PublishWithEvents(ctx context.Context, msg interface{}, events 
 
 // OnStop implements Service.OnStop by shutting down the server.
 func (s *Server) OnStop() {
+	s.Logger.Error("pubsub OnStop")
 	s.cmds <- cmd{op: shutdown}
 }
 
@@ -331,6 +331,7 @@ loop:
 			}
 		case shutdown:
 			state.removeAll(nil)
+			s.Logger.Error("pubsub quit event loop")
 			break loop
 		case sub:
 			state.add(cmd.clientID, cmd.query, cmd.subscription)
