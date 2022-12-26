@@ -13,7 +13,7 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 	}
 	var dbReward model.Reward
 	//tx.Last(&dbReward)
-	mdb.db.Table("reward").Last(&dbReward)
+	mdb.db.Table("reward").Where("useraddr=?", *reward.Useraddr).Last(&dbReward)
 	log.Printf("db %v db %v db %v %v %v \n", dbReward.ID, *dbReward.Txhash, *dbReward.Useraddr, *reward.Txhash, *reward.Useraddr)
 
 	userAddr := "0xacf041fc5a59978016e3b6c339b61a65762d10e2"
