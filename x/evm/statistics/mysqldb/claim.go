@@ -13,6 +13,9 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 	}
 	if *claim.Height >= mdb.claimSavedHeight+2 && len(mdb.claimBatch) > 0 {
 		for _, v := range mdb.claimBatch {
+			if *v.Useraddr == "0xacf041fc5a59978016e3b6c339b61a65762d10e2" {
+				log.Println(v)
+			}
 			tx := mdb.db.Table("claim").Create(&v)
 			if tx.Error != nil {
 				panic(tx.Error)
