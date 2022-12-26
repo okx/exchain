@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/statistics"
-	"log"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -602,8 +601,8 @@ func (rd ResultData) PrintString(sender string, height int64, blockTime time.Tim
 					Term:      term,
 					Rank:      big.NewInt(0).SetBytes(rd.Logs[i].Data[32:]).Int64(),
 				})
-				log.Printf("giskook %s, txsender %s,userAddress %s, term %v\n",
-					rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())
+				//log.Printf("giskook %s, txsender %s,userAddress %s, term %v\n",
+				//	rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())
 			} else if rd.Logs[i].Topics[0].String() == "0xd74752b13281df13701575f3a507e9b1242e0b5fb040143211c481c1fce573a6" { // claimMintRewardAndShare & claimMintReward
 				statistics.GetInstance().SaveClaimAsync(&statistics.XenClaimReward{
 					Height:       height,
@@ -613,8 +612,8 @@ func (rd ResultData) PrintString(sender string, height int64, blockTime time.Tim
 					UserAddr:     hexutil.Encode(rd.Logs[i].Topics[1][12:]),
 					RewardAmount: big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).Int64(),
 				})
-				log.Printf("giskook %s, txsender %s,userAddress %s, reword %v\n",
-					rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).Uint64())
+				//log.Printf("giskook %s, txsender %s,userAddress %s, reword %v\n",
+				//	rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).Uint64())
 			}
 		}
 	}
