@@ -53,7 +53,6 @@ func (s *statistics) Do() {
 }
 
 func (s *statistics) doMint() {
-	var reward int64 = 0
 	for {
 		select {
 		case mint := <-s.chanXenMint:
@@ -65,7 +64,7 @@ func (s *statistics) doMint() {
 				Useraddr:  &mint.UserAddr,
 				Term:      &mint.Term,
 				Rank:      &mint.Rank,
-				Reward:    &reward,
+				Reward:    &mint.Reward,
 			})
 		case <-s.exit:
 			return
