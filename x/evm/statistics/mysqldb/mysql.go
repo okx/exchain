@@ -40,6 +40,9 @@ func (mdb *mysqlDB) Init() {
 func (mdb *mysqlDB) GetMaxHeight(table string) int64 {
 	var claim model.Claim
 	tx := mdb.db.Table(table).Last(&claim)
+	if tx.Error != nil && tx.Error.Error() == "record not found" {
+		return 0
+	}
 	if tx.Error != nil {
 		panic(tx.Error)
 	}
