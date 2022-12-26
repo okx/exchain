@@ -12,7 +12,7 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 			panic(tx.Error)
 		}
 		var rewards model.Reward
-		if rows, err := tx.Rows(); err == nil {
+		if rows, err := tx.Statement.Rows(); err == nil {
 			if rows.Next() {
 				e := tx.ScanRows(rows, &rewards)
 				if e != nil {
