@@ -53,6 +53,10 @@ func (s *statistics) Do() {
 	go s.doClaim()
 }
 
+func (s *statistics) DeleteFrom(height int64) {
+	mysqldb.GetInstance().DeleteFromHeight(height)
+}
+
 func (s *statistics) doMint() {
 	var reward int64 = 0
 	var rewardID int64 = 0
