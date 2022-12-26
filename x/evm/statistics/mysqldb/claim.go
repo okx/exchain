@@ -26,7 +26,7 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 				panic(tx.Error)
 			}
 		}
-
+		mdb.claimBatch = make([]model.Claim, 0)
 	}
 	mdb.claimBatch = append(mdb.claimBatch, claim)
 }
