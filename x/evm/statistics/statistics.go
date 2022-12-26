@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"github.com/okex/exchain/x/evm/statistics/mysqldb"
 	"log"
 	"sync"
 )
@@ -30,6 +31,7 @@ type statistics struct {
 
 func (s *statistics) Init(config *Config) {
 	s.initOnce.Do(func() {
+		mysqldb.GetInstance().Init()
 		s.config = config
 		s.chanXenMint = make(chan *XenMint, config.XenMintChanSize)
 		s.chanXenClaimReward = make(chan *XenClaimReward, config.XenClaimChanSize)
