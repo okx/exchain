@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/evm/statistics"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -26,6 +27,11 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 		Short: "Repair the SMB(state machine broken) data of node",
 		PreRun: func(_ *cobra.Command, _ []string) {
 			setExternalPackageValue()
+			statistics.GetInstance().Init(&statistics.Config{
+				XenMintChanSize:  1024,
+				XenClaimChanSize: 1024,
+			})
+			statistics.GetInstance().Do()
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- repair data start ---------")

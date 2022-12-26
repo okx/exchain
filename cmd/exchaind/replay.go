@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/evm/statistics"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -74,6 +75,12 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 			server.SetExternalPackageValue(cmd)
 			types.InitSignatureCache()
+
+			statistics.GetInstance().Init(&statistics.Config{
+				XenMintChanSize:  1024,
+				XenClaimChanSize: 1024,
+			})
+			statistics.GetInstance().Do()
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
