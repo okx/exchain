@@ -72,3 +72,14 @@ func (mdb *mysqlDB) GetLatestHeightAndDeleteHeight() {
 func (mdb *mysqlDB) GetLatestSavedHeight() int64 {
 	return mdb.latestSavedHeight
 }
+
+func (mdb *mysqlDB) DeleteFromHeight(height int64) {
+	tx := mdb.db.Table("claim").Where("height>=?", height).Delete(&model.Claim{})
+	if tx.Error != nil {
+		panic(tx.Error)
+	}
+	tx = mdb.db.Table("reward").Where("height>=?", height).Delete(&model.Reward{})
+	if tx.Error != nil {
+		panic(tx.Error)
+	}
+}
