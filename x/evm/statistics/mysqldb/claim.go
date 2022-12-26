@@ -17,11 +17,11 @@ func (mdb *mysqlDB) InsertClaim(claim *model.Claim) {
 		mdb.claimSavedHeight = global.GetGlobalHeight()
 	}
 	if *claim.Height >= mdb.claimSavedHeight+2 && len(mdb.claimBatch) > 0 {
-		for _, v := range mdb.claimBatch {
+		for i, v := range mdb.claimBatch {
 			if *v.Useraddr == "0xacf041fc5a59978016e3b6c339b61a65762d10e2" {
-				log.Println(v)
+				log.Printf("----giskook %v %v\n", i, v)
 			}
-			tx := mdb.db.Table("claim").Create(&v)
+			tx := mdb.db.Table("claim").Create(v)
 			if tx.Error != nil {
 				panic(tx.Error)
 			}
