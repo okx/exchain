@@ -165,13 +165,13 @@ func (bs *BaseService) Stop() error {
 			atomic.StoreUint32(&bs.stopped, 0)
 			return ErrNotStarted
 		}
-		bs.Logger.Info(fmt.Sprintf("Stopping %v service", bs.name), "impl", bs.impl)
+		bs.Logger.Error(fmt.Sprintf("Stopping %v service", bs.name), "impl", bs.impl)
 		//bs.Logger.Info(string(debug.Stack()))
 		bs.impl.OnStop()
 		close(bs.quit)
 		return nil
 	}
-	bs.Logger.Debug(fmt.Sprintf("Stopping %v service (already stopped)", bs.name), "impl", bs.impl)
+	bs.Logger.Error(fmt.Sprintf("Stopping %v service (already stopped)", bs.name), "impl", bs.impl)
 	return ErrAlreadyStopped
 }
 
