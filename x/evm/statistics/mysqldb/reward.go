@@ -1,7 +1,6 @@
 package mysqldb
 
 import (
-	"fmt"
 	"github.com/okex/exchain/x/evm/statistics/orm/model"
 )
 
@@ -16,9 +15,9 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 		//for _, _ = range mdb.rewardBatch {
 		useraddr = "0xacf041fc5a59978016e3b6c339b61a65762d10e2"
 		mdb.db.Table("claim").Where("useraddr=? and reward=0", useraddr).Find(&claims)
-		if len(claims) > 1 || len(claims) == 0 {
-			panic(fmt.Sprintf("error claims %v %v", len(claims), claims))
-		}
+		//		if len(claims) > 1 || len(claims) == 0 {
+		//			panic(fmt.Sprintf("error claims %v %v", len(claims), claims))
+		//		}
 		mdb.db.Table("claim").Where("useraddr=? and reward=0", useraddr).Update("reward", 1)
 		//}
 
