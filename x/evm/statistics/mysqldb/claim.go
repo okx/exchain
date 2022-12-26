@@ -13,7 +13,7 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 	}
 	if *claim.Height >= mdb.claimSavedHeight+2 && len(mdb.claimBatch) > 0 {
 		for _, v := range mdb.claimBatch {
-			tx := mdb.db.Table("claim").Create(v)
+			tx := mdb.db.Table("claim").Create(&v)
 			if tx.Error != nil {
 				panic(tx.Error)
 			}
