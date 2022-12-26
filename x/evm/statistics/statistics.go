@@ -3,7 +3,9 @@ package statistics
 import (
 	"github.com/okex/exchain/x/evm/statistics/mysqldb"
 	"github.com/okex/exchain/x/evm/statistics/orm/model"
+	"log"
 	"sync"
+	"time"
 )
 
 var stats *statistics
@@ -101,5 +103,8 @@ func (s *statistics) doClaim() {
 func (s *statistics) Close() {
 	close(s.chanXenMint)
 	close(s.chanXenClaimReward)
+	time.Sleep(10 * time.Second)
+	log.Printf("chan xen min %v chan xen reward %v\n", len(s.chanXenMint), len(s.chanXenClaimReward))
+
 	close(s.exit)
 }
