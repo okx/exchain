@@ -10,10 +10,7 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 	if *claim.Useraddr == "0xacf041fc5a59978016e3b6c339b61a65762d10e2" {
 		debug.PrintStack()
 	}
-	if *claim.Useraddr == "0xacf041fc5a59978016e3b6c339b61a65762d10e2" {
-		log.Printf("-----giskook append %v\n", claim)
-		mdb.claimBatch = append(mdb.claimBatch, claim)
-	}
+	mdb.claimBatch = append(mdb.claimBatch, claim)
 	if len(mdb.claimBatch) >= batchSize {
 		//		tx := mdb.db.Table("claim").CreateInBatches(mdb.claimBatch, len(mdb.claimBatch))
 		//		if tx.Error != nil {
@@ -22,6 +19,7 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 		//
 		//		mdb.claimBatch = nil
 		for i, v := range mdb.claimBatch {
+			log.Printf("%v %v\n", i, v.Useraddr)
 			if *v.Useraddr == "0xacf041fc5a59978016e3b6c339b61a65762d10e2" {
 				log.Printf("---giskook %v %v \n", i, v)
 			}
