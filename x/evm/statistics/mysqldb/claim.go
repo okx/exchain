@@ -12,7 +12,7 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 		mdb.claimSavedHeight = global.GetGlobalHeight()
 		log.Printf("giskook height %v %v\n", *claim.Height, mdb.claimSavedHeight)
 	}
-	if *claim.Height == mdb.claimSavedHeight+2 {
+	if *claim.Height >= mdb.claimSavedHeight+2 {
 		tx := mdb.db.CreateInBatches(mdb.claimBatch, len(mdb.claimBatch))
 		if tx.Error != nil {
 			panic(tx.Error)
