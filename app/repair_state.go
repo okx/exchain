@@ -192,6 +192,8 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	// Save state synchronously during repair state
 	blockExec.SetIsAsyncSaveDB(false)
 	defer func() {
+		// stop sequence is important to avoid data missing: blockExecutor->eventBus->txIndexer
+		// keep the same sequence as node.go:OnStop
 		blockExec.Stop()
 
 		if eventBus != nil && eventBus.IsRunning() {
