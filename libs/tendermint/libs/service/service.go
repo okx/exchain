@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync/atomic"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -166,6 +167,7 @@ func (bs *BaseService) Stop() error {
 			return ErrNotStarted
 		}
 		bs.Logger.Info(fmt.Sprintf("Stopping %v service", bs.name), "impl", bs.impl)
+		bs.Logger.Info(string(debug.Stack()))
 		bs.impl.OnStop()
 		close(bs.quit)
 		return nil
