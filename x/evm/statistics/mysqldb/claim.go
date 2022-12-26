@@ -19,7 +19,7 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 		}
 		height := *mdb.claimBatch[0].Height
 		for _, v := range mdb.claimBatch {
-			if *v.Height != height-1 {
+			if *v.Height != height {
 				panic(fmt.Sprintf("%v", height))
 			}
 		}
