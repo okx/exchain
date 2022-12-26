@@ -59,8 +59,8 @@ func (mdb *mysqlDB) DeleteHeight(table string, height int64) {
 func (mdb *mysqlDB) GetLatestHeightAndDeleteHeight() {
 	claimHeight := mdb.GetMaxHeight("claim")
 	rewardHeight := mdb.GetMaxHeight("reward")
-	mdb.DeleteHeight("claim", claimHeight)
-	mdb.DeleteHeight("reward", rewardHeight)
+	//	mdb.DeleteHeight("claim", claimHeight)
+	//	mdb.DeleteHeight("reward", rewardHeight)
 	if rewardHeight > claimHeight {
 		panic("reward should not greater than claim")
 	}
