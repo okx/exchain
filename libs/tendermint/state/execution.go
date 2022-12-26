@@ -146,7 +146,6 @@ func (blockExec *BlockExecutor) SetIsNullIndexer(isNullIndexer bool) {
 }
 
 func (blockExec *BlockExecutor) Stop() {
-	blockExec.logger.Error("BlockExecutor Stop")
 	blockExec.stopAsyncDBContext()
 }
 
