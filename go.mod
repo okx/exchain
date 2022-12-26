@@ -90,7 +90,9 @@ require (
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.4.4
+	gorm.io/gen v0.3.18
 	gorm.io/gorm v1.24.2
+	gorm.io/plugin/dbresolver v1.4.0
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -180,9 +182,7 @@ require (
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/datatypes v1.1.0 // indirect
-	gorm.io/gen v0.3.18 // indirect
 	gorm.io/hints v1.1.1 // indirect
-	gorm.io/plugin/dbresolver v1.4.0 // indirect
 )
 
 replace (

@@ -7,7 +7,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const MysqlConfig = "okc:okcpassword@(localhost:3306)/xen_stats?charset=utf8mb4&parseTime=True&loc=Local"
+const (
+	MysqlConfig = "okc:okcpassword@(localhost:3306)/xen_stats?charset=utf8mb4&parseTime=True&loc=Local"
+	batchSize   = 100
+)
 
 var db *mysqlDB
 
@@ -20,8 +23,9 @@ func GetInstance() *mysqlDB {
 }
 
 type mysqlDB struct {
-	db         *gorm.DB
-	claimBatch []model.Claim
+	db          *gorm.DB
+	claimBatch  []model.Claim
+	rewardBatch []model.Reward
 }
 
 func (mdb *mysqlDB) Init() {
