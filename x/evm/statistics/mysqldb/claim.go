@@ -8,7 +8,7 @@ import (
 	"runtime/debug"
 )
 
-func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
+func (mdb *mysqlDB) InsertClaim(claim *model.Claim) {
 	if *claim.Useraddr == "0xacf041fc5a59978016e3b6c339b61a65762d10e2" {
 		log.Printf("--giskook %v\n", claim)
 		debug.PrintStack()

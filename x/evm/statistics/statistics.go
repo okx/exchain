@@ -56,7 +56,7 @@ func (s *statistics) doMint() {
 	for {
 		select {
 		case mint := <-s.chanXenMint:
-			mysqldb.GetInstance().InsertClaim(model.Claim{
+			mysqldb.GetInstance().InsertClaim(&model.Claim{
 				Height:    &mint.Height,
 				BlockTime: &mint.BlockTime,
 				Txhash:    &mint.TxHash,

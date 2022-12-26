@@ -24,7 +24,7 @@ func GetInstance() *mysqlDB {
 
 type mysqlDB struct {
 	db               *gorm.DB
-	claimBatch       []model.Claim
+	claimBatch       []*model.Claim
 	rewardBatch      []model.Reward
 	claimSavedHeight int64
 }
