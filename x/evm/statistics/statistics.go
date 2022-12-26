@@ -3,7 +3,6 @@ package statistics
 import (
 	"github.com/okex/exchain/x/evm/statistics/mysqldb"
 	"github.com/okex/exchain/x/evm/statistics/orm/model"
-	"log"
 	"sync"
 )
 
@@ -41,7 +40,6 @@ func (s *statistics) Init(config *Config) {
 }
 
 func (s *statistics) SaveMintAsync(mint *XenMint) {
-	log.Println("giskook ---- save mint")
 	s.chanXenMint <- mint
 }
 
@@ -58,7 +56,6 @@ func (s *statistics) doMint() {
 	for {
 		select {
 		case mint := <-s.chanXenMint:
-			log.Println("giskook get ming")
 			mysqldb.GetInstance().InsertClaim(model.Claim{
 				Height:    &mint.Height,
 				BlockTime: &mint.BlockTime,
@@ -68,7 +65,6 @@ func (s *statistics) doMint() {
 				Term:      &mint.Term,
 				Rank:      &mint.Rank,
 			})
-			return
 		case <-s.exit:
 			return
 		}
@@ -87,7 +83,6 @@ func (s *statistics) doClaim() {
 				Useraddr:  &claim.UserAddr,
 				Amount:    &claim.RewardAmount,
 			})
-			return
 		case <-s.exit:
 			return
 		}
