@@ -23,9 +23,10 @@ func GetInstance() *mysqlDB {
 }
 
 type mysqlDB struct {
-	db          *gorm.DB
-	claimBatch  []model.Claim
-	rewardBatch []model.Reward
+	db                *gorm.DB
+	claimBatch        []model.Claim
+	rewardBatch       []model.Reward
+	latestSavedHeight int64
 }
 
 func (mdb *mysqlDB) Init() {
@@ -34,4 +35,37 @@ func (mdb *mysqlDB) Init() {
 	if err != nil {
 		panic(fmt.Errorf("cannot establish db connection: %w", err))
 	}
+}
+
+func (mdb *mysqlDB) GetMaxHeight(table string) int64 {
+	var claim model.Claim
+	tx := mdb.db.Table(table).Last(&claim)
+	if tx.Error != nil {
+		panic(tx.Error)
+	}
+	return *claim.Height
+}
+
+func (mdb *mysqlDB) DeleteHeight(table string, height int64) {
+	tx := mdb.db.Table(table).Where("height=?", height).Delete(&model.Claim{})
+	if tx.Error != nil {
+		panic(tx.Error)
+	}
+}
+
+func (mdb *mysqlDB) GetLatestHeightAndDeleteHeight() {
+	claimHeight := mdb.GetMaxHeight("claim")
+	rewardHeight := mdb.GetMaxHeight("reward")
+	mdb.DeleteHeight("claim", claimHeight)
+	mdb.DeleteHeight("reward", rewardHeight)
+	if rewardHeight > claimHeight {
+		panic("reward should not greater than claim")
+	}
+	if claimHeight > 0 {
+		mdb.latestSavedHeight = claimHeight - 1
+	}
+}
+
+func (mdb *mysqlDB) GetLatestSavedHeight() int64 {
+	return mdb.latestSavedHeight
 }

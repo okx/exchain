@@ -32,6 +32,7 @@ type statistics struct {
 func (s *statistics) Init(config *Config) {
 	s.initOnce.Do(func() {
 		mysqldb.GetInstance().Init()
+		mysqldb.GetInstance().GetLatestHeightAndDeleteHeight()
 		s.config = config
 		s.chanXenMint = make(chan *XenMint, config.XenMintChanSize)
 		s.chanXenClaimReward = make(chan *XenClaimReward, config.XenClaimChanSize)
@@ -88,4 +89,10 @@ func (s *statistics) doClaim() {
 			return
 		}
 	}
+}
+
+func (s *statistics) Close() {
+	close(s.chanXenMint)
+	close(s.chanXenClaimReward)
+	close(s.exit)
 }
