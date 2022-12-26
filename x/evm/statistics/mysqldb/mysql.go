@@ -2,7 +2,6 @@ package mysqldb
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/x/evm/statistics/orm/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -36,5 +35,4 @@ func (mdb *mysqlDB) Init() {
 	if err != nil {
 		panic(fmt.Errorf("cannot establish db connection: %w", err))
 	}
-	mdb.claimSavedHeight = global.GetGlobalHeight()
 }
