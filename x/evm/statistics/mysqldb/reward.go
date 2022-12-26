@@ -13,7 +13,8 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 		panic(tx.Error)
 	}
 	var dbReward model.Reward
-	tx.Last(&dbReward)
+	//tx.Last(&dbReward)
+	mdb.db.Table("reward").Last(&dbReward)
 	log.Printf("%v %v %v\n", dbReward.ID, *dbReward.Txhash, *dbReward.Useraddr)
 	debug.PrintStack()
 
