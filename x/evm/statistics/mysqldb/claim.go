@@ -11,16 +11,16 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 		mdb.claimSavedHeight = global.GetGlobalHeight()
 	}
 	if *claim.Height >= mdb.claimSavedHeight+2 && len(mdb.claimBatch) > 0 {
-		//		for _, v := range mdb.rewardBatch {
-		//			tx := mdb.db.Table("claim").Create(v)
-		//			if tx.Error != nil {
-		//				panic(tx.Error)
-		//			}
-		//		}
-		tx := mdb.db.Table("claim").CreateInBatches(mdb.claimBatch, len(mdb.claimBatch))
-		if tx.Error != nil {
-			panic(tx.Error)
+		for _, v := range mdb.rewardBatch {
+			tx := mdb.db.Table("claim").Create(v)
+			if tx.Error != nil {
+				panic(tx.Error)
+			}
 		}
+		//		tx := mdb.db.Table("claim").CreateInBatches(mdb.claimBatch, len(mdb.claimBatch))
+		//		if tx.Error != nil {
+		//			panic(tx.Error)
+		//		}
 		height := *mdb.claimBatch[0].Height
 		for _, v := range mdb.claimBatch {
 			if *v.Height != height {
