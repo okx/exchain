@@ -21,7 +21,7 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 				log.Println(rewards)
 			}
 		} else {
-			panic(err)
+			log.Println(err)
 		}
 
 		mdb.rewardBatch = mdb.rewardBatch[:0]
