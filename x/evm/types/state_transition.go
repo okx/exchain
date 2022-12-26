@@ -46,7 +46,6 @@ type StateTransition struct {
 type GasInfo struct {
 	GasLimit    uint64
 	GasConsumed uint64
-	GasRefunded uint64
 }
 
 // ExecutionResult represents what's returned from a transition
@@ -211,6 +210,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		contractAddress common.Address
 		recipientLog    string
 		senderRef       = vm.AccountRef(st.Sender)
+		gasConsumed     uint64
 	)
 
 	// Get nonce of account outside of the EVM
@@ -249,8 +249,19 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		contractAddressStr := EthAddressToString(&contractAddress)
 		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
-
-		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas, nonce)
+		gasConsumed = gasLimit - leftOverGas
+		if !csdb.GuFactor.IsNegative() {
+			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
+		}
+		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
+		if err == nil {
+			if gasLimit < gasConsumed {
+				err = vm.ErrOutOfGas
+				//if out of gas,then err is ErrOutOfGas, gasConsumed change to gasLimit for can not make line.295 panic that will lead to 'RevertToSnapshot' panic
+				gasConsumed = gasLimit
+			}
+		}
+		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasConsumed, nonce)
 	default:
 		if !params.EnableCall {
 			if !st.Simulate {
@@ -271,11 +282,21 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		}
 
 		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
+		gasConsumed = gasLimit - leftOverGas
+		if !csdb.GuFactor.IsNegative() {
+			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
+		}
+		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
+		if err == nil {
+			if gasLimit < gasConsumed {
+				err = vm.ErrOutOfGas
+				//if out of gas,then err is ErrOutOfGas, gasConsumed change to gasLimit for can not make line.295 panic that will lead to 'RevertToSnapshot' panic
+				gasConsumed = gasLimit
+			}
+		}
 
-		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasLimit-leftOverGas, 0)
+		innertx.UpdateDefaultInnerTx(callTx, recipientStr, innertx.CosmosCallType, innertx.EvmCallName, gasConsumed, 0)
 	}
-
-	gasConsumed := gasLimit - leftOverGas
 
 	innerTxs, erc20Contracts = innertx.ParseInnerTxAndContract(evm, err != nil)
 
@@ -380,7 +401,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		GasInfo: GasInfo{
 			GasConsumed: gasConsumed,
 			GasLimit:    gasLimit,
-			GasRefunded: leftOverGas,
 		},
 	}
 	return

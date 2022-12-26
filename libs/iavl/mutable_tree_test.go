@@ -904,7 +904,7 @@ func TestFastStorageReUpgradeProtection_ForceUpgradeFirstTime_NoForceSecondTime_
 	endFormat := fastKeyFormat.Key()
 	endFormat[0]++
 	dbMock.EXPECT().Iterator(startFormat, endFormat).Return(iterMock, nil).Times(1)
-	dbMock.EXPECT().Compact()
+	//	dbMock.EXPECT().Compact()
 
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
 	rIterMock.EXPECT().Valid().Return(true).Times(2)
