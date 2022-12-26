@@ -8,9 +8,11 @@ import (
 )
 
 func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
+	if *claim.Useraddr == "0xacf041fc5a59978016e3b6c339b61a65762d10e2" {
+		log.Printf("giskook -------giskook %v\n", claim)
+	}
 	if mdb.claimSavedHeight == 0 {
 		mdb.claimSavedHeight = global.GetGlobalHeight()
-		log.Printf("giskook height %v %v\n", *claim.Height, mdb.claimSavedHeight)
 	}
 	if *claim.Height >= mdb.claimSavedHeight+2 && len(mdb.claimBatch) > 0 {
 		tx := mdb.db.Table("claim").CreateInBatches(mdb.claimBatch, len(mdb.claimBatch))
@@ -23,7 +25,6 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 				panic(fmt.Sprintf("%v", height))
 			}
 		}
-		log.Printf("insert claim %v %v\n", *claim.Height, len(mdb.claimBatch))
 
 		mdb.claimBatch = mdb.claimBatch[:0]
 		mdb.claimSavedHeight++
