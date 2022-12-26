@@ -11,9 +11,22 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 		if tx.Error != nil {
 			panic(tx.Error)
 		}
-		log.Printf("insert reward %v\n", len(mdb.rewardBatch))
+		var rewards model.Reward
+		if rows, err := tx.Rows(); err == nil {
+			if rows.Next() {
+				e := tx.ScanRows(rows, &rewards)
+				if e != nil {
+					panic(e)
+				}
+				log.Println(rewards)
+			}
+		} else {
+			panic(err)
+		}
+
 		mdb.rewardBatch = mdb.rewardBatch[:0]
 	} else {
 		mdb.rewardBatch = append(mdb.rewardBatch, reward)
+		//mdb.db.Model(model.Claim{}).Where("useraddr=? and reward=0", reward.Useraddr)
 	}
 }
