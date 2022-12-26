@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/x/evm/statistics/orm/model"
 	"log"
+	"runtime/debug"
 )
 
 func (mdb *mysqlDB) InsertReward(reward model.Reward) {
@@ -14,6 +15,7 @@ func (mdb *mysqlDB) InsertReward(reward model.Reward) {
 	var dbReward model.Reward
 	tx.Last(&dbReward)
 	log.Printf("%v %v %v\n", dbReward.ID, *dbReward.Txhash, *dbReward.Useraddr)
+	debug.PrintStack()
 
 	userAddr := "0xacf041fc5a59978016e3b6c339b61a65762d10e2"
 	//useraddr := *dbReward.Useraddr
