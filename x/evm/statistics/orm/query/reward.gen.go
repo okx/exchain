@@ -33,7 +33,7 @@ func newReward(db *gorm.DB, opts ...gen.DOOption) reward {
 	_reward.Txhash = field.NewString(tableName, "txhash")
 	_reward.Txsender = field.NewString(tableName, "txsender")
 	_reward.Useraddr = field.NewString(tableName, "useraddr")
-	_reward.Amount = field.NewInt64(tableName, "amount")
+	_reward.Amount = field.NewString(tableName, "amount")
 
 	_reward.fillFieldMap()
 
@@ -50,7 +50,7 @@ type reward struct {
 	Txhash    field.String
 	Txsender  field.String
 	Useraddr  field.String
-	Amount    field.Int64
+	Amount    field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -73,7 +73,7 @@ func (r *reward) updateTableName(table string) *reward {
 	r.Txhash = field.NewString(table, "txhash")
 	r.Txsender = field.NewString(table, "txsender")
 	r.Useraddr = field.NewString(table, "useraddr")
-	r.Amount = field.NewInt64(table, "amount")
+	r.Amount = field.NewString(table, "amount")
 
 	r.fillFieldMap()
 

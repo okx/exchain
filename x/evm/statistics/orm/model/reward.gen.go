@@ -15,10 +15,10 @@ type Reward struct {
 	ID        int64      `gorm:"column:id;type:int(11);primaryKey;autoIncrement:true" json:"id"`
 	Height    *int64     `gorm:"column:height;type:int(11)" json:"height"`
 	BlockTime *time.Time `gorm:"column:block_time;type:datetime" json:"block_time"`
-	Txhash    *string    `gorm:"column:txhash;type:varchar(64)" json:"txhash"`
-	Txsender  *string    `gorm:"column:txsender;type:varchar(64)" json:"txsender"`
-	Useraddr  *string    `gorm:"column:useraddr;type:varchar(64)" json:"useraddr"`
-	Amount    *int64     `gorm:"column:amount;type:int(11)" json:"amount"`
+	Txhash    *string    `gorm:"column:txhash;type:varchar(128)" json:"txhash"`
+	Txsender  *string    `gorm:"column:txsender;type:varchar(128)" json:"txsender"`
+	Useraddr  *string    `gorm:"column:useraddr;type:varchar(128)" json:"useraddr"`
+	Amount    *string    `gorm:"column:amount;type:varchar(128)" json:"amount"`
 }
 
 // TableName Reward's table name

@@ -9,7 +9,7 @@ type XenMint struct {
 	TxSender  string
 	UserAddr  string
 	Term      int64
-	Rank      int64
+	Rank      string
 }
 
 type XenClaimReward struct {
@@ -18,5 +18,5 @@ type XenClaimReward struct {
 	TxHash       string
 	TxSender     string
 	UserAddr     string
-	RewardAmount int64
+	RewardAmount string
 }

@@ -34,7 +34,7 @@ func newClaim(db *gorm.DB, opts ...gen.DOOption) claim {
 	_claim.Txsender = field.NewString(tableName, "txsender")
 	_claim.Useraddr = field.NewString(tableName, "useraddr")
 	_claim.Term = field.NewInt64(tableName, "term")
-	_claim.Rank = field.NewInt64(tableName, "rank")
+	_claim.Rank = field.NewString(tableName, "rank")
 	_claim.Reward = field.NewInt64(tableName, "reward")
 	_claim.RewardID = field.NewInt64(tableName, "reward_id")
 
@@ -54,7 +54,7 @@ type claim struct {
 	Txsender  field.String
 	Useraddr  field.String
 	Term      field.Int64
-	Rank      field.Int64
+	Rank      field.String
 	Reward    field.Int64
 	RewardID  field.Int64
 
@@ -80,7 +80,7 @@ func (c *claim) updateTableName(table string) *claim {
 	c.Txsender = field.NewString(table, "txsender")
 	c.Useraddr = field.NewString(table, "useraddr")
 	c.Term = field.NewInt64(table, "term")
-	c.Rank = field.NewInt64(table, "rank")
+	c.Rank = field.NewString(table, "rank")
 	c.Reward = field.NewInt64(table, "reward")
 	c.RewardID = field.NewInt64(table, "reward_id")
 

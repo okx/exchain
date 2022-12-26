@@ -15,11 +15,11 @@ type Claim struct {
 	ID        int64      `gorm:"column:id;type:int(11);primaryKey;autoIncrement:true" json:"id"`
 	Height    *int64     `gorm:"column:height;type:int(11)" json:"height"`
 	BlockTime *time.Time `gorm:"column:block_time;type:datetime" json:"block_time"`
-	Txhash    *string    `gorm:"column:txhash;type:varchar(64)" json:"txhash"`
-	Txsender  *string    `gorm:"column:txsender;type:varchar(64)" json:"txsender"`
-	Useraddr  *string    `gorm:"column:useraddr;type:varchar(64)" json:"useraddr"`
+	Txhash    *string    `gorm:"column:txhash;type:varchar(128)" json:"txhash"`
+	Txsender  *string    `gorm:"column:txsender;type:varchar(128)" json:"txsender"`
+	Useraddr  *string    `gorm:"column:useraddr;type:varchar(128)" json:"useraddr"`
 	Term      *int64     `gorm:"column:term;type:int(11)" json:"term"`
-	Rank      *int64     `gorm:"column:rank;type:int(11)" json:"rank"`
+	Rank      *string    `gorm:"column:rank;type:varchar(128)" json:"rank"`
 	Reward    *int64     `gorm:"column:reward;type:int(11)" json:"reward"`
 	RewardID  *int64     `gorm:"column:reward_id;type:int(11)" json:"reward_id"`
 }
