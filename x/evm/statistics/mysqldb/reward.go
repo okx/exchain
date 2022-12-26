@@ -6,6 +6,9 @@ import (
 )
 
 func (mdb *mysqlDB) InsertReward(reward model.Reward) {
+	if *reward.Height <= mdb.latestSavedHeight {
+		return
+	}
 	tx := mdb.db.Table("reward").Create(&reward)
 	if tx.Error != nil {
 		panic(tx.Error)
