@@ -60,7 +60,6 @@ func (is *IndexerService) OnStart() error {
 				eventDataHeader := msg.Data().(types.EventDataNewBlockHeader)
 				height := eventDataHeader.Header.Height
 				batch := NewBatch(eventDataHeader.NumTxs)
-				is.Logger.Error("tx indexer handle block at height:", "height", height)
 				for i := int64(0); i < eventDataHeader.NumTxs; i++ {
 					msg2 := <-txsSub.Out()
 					txResult := msg2.Data().(types.EventDataTx).TxResult
@@ -84,7 +83,6 @@ func (is *IndexerService) OnStart() error {
 					is.Logger.Info("Indexed block", "height", height)
 				}
 			case <-blockHeadersSub.Cancelled():
-				is.Logger.Error("tx indexer quit routine")
 				close(is.quit)
 				return
 			}
@@ -96,14 +94,12 @@ func (is *IndexerService) OnStart() error {
 
 // OnStop implements service.Service by unsubscribing from all transactions.
 func (is *IndexerService) OnStop() {
-	is.Logger.Error("IndexerService OnStop")
 	if is.eventBus.IsRunning() {
 		_ = is.eventBus.UnsubscribeAll(context.Background(), subscriber)
 	}
 }
 
 func (is *IndexerService) Wait() {
-	is.Logger.Error("tx finish quit")
 	<-is.quit
 }
 

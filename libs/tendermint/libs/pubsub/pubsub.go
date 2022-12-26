@@ -287,7 +287,6 @@ func (s *Server) PublishWithEvents(ctx context.Context, msg interface{}, events 
 
 // OnStop implements Service.OnStop by shutting down the server.
 func (s *Server) OnStop() {
-	s.Logger.Error("pubsub OnStop")
 	s.cmds <- cmd{op: shutdown}
 }
 
@@ -332,7 +331,6 @@ loop:
 			}
 		case shutdown:
 			state.removeAll(nil)
-			s.Logger.Error("pubsub quit event loop")
 			break loop
 		case sub:
 			state.add(cmd.clientID, cmd.query, cmd.subscription)
