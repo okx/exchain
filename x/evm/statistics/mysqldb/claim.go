@@ -36,10 +36,10 @@ func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
 				panic(fmt.Sprintf("%v", height))
 			}
 		}
-		log.Printf("insert claim height %v batch %v\n", mdb.claimSavedHeight+1, len(mdb.claimBatch))
+		log.Printf("insert claim height %v batch %v\n", height, len(mdb.claimBatch))
 
 		mdb.claimBatch = nil
-		mdb.claimSavedHeight++
+		mdb.claimSavedHeight = height
 	}
 	mdb.claimBatch = append(mdb.claimBatch, claim)
 }
