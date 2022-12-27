@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
@@ -194,10 +195,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 	tracer := newTracer(ctx, st.TxHash)
 	vmConfig := vm.Config{
-		ExtraEips:        params.ExtraEIPs,
-		Debug:            st.TraceTxLog,
-		Tracer:           tracer,
-		ContractVerifier: NewContractVerifier(params),
+		ExtraEips:               params.ExtraEIPs,
+		Debug:                   st.TraceTxLog,
+		Tracer:                  tracer,
+		ContractVerifier:        NewContractVerifier(params),
+		EnablePreimageRecording: st.TraceTxLog,
 	}
 
 	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, &config, vmConfig)
@@ -316,6 +318,11 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			traceLogs, err = GetTracerResult(tracer, result)
 			if err != nil {
 				traceLogs = []byte(err.Error())
+			} else {
+				traceLogs, err = integratePreimage(csdb, traceLogs)
+				if err != nil {
+					traceLogs = []byte(err.Error())
+				}
 			}
 			if exeRes == nil {
 				exeRes = &ExecutionResult{
@@ -420,4 +427,18 @@ func newRevertError(data []byte, e error) error {
 		return fmt.Errorf(e.Error()+"[%v]", hexutil.Encode(data))
 	}
 	return errors.New(string(ret))
+}
+
+func integratePreimage(csdb *CommitStateDB, traceLogs []byte) ([]byte, error) {
+	var traceLogsMap map[string]interface{}
+	if err := json.Unmarshal(traceLogs, &traceLogsMap); err != nil {
+		return nil, err
+	}
+
+	preimageMap := make(map[string]interface{})
+	for k, v := range csdb.preimages {
+		preimageMap[k.Hex()] = hexutil.Encode(v)
+	}
+	traceLogsMap["preimage"] = preimageMap
+	return json.Marshal(traceLogsMap)
 }
