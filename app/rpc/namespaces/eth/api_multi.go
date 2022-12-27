@@ -54,7 +54,7 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []string, blockNrOrHash 
 	for _, addr := range addresses {
 		address, err := sdk.AccAddressFromBech32(addr)
 		if err != nil {
-			return nil, fmt.Errorf("addr:%s,err:%s", address, err)
+			return nil, fmt.Errorf("addr:%s,err:%s", addr, err)
 		}
 		if acc, err := api.wrappedBackend.MustGetAccount(address); err == nil {
 			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
