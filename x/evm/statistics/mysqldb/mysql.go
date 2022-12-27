@@ -83,3 +83,7 @@ func (mdb *mysqlDB) DeleteFromHeight(height int64) {
 		panic(tx.Error)
 	}
 }
+
+func (mdb *mysqlDB) GetGormDB() *gorm.DB {
+	return mdb.db
+}
