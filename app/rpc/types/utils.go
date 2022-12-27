@@ -65,12 +65,15 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 	if err != nil {
 		return nil, err
 	}
-
-	gasUsed, ethTxs, err := EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
-	if err != nil {
-		return nil, err
+	var ethTxs []*watcher.Transaction
+	gasUsed := big.NewInt(0)
+	if len(block.Txs) <= 1000 {
+		gasUsed, ethTxs, err = EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
+		if err != nil {
+			return nil, err
+		}
 	}
-
+	
 	var bloom ethtypes.Bloom
 	clientCtx = clientCtx.WithHeight(block.Height)
 	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, block.Height))
