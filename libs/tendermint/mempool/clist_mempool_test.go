@@ -437,6 +437,10 @@ func TestMempoolTxsBytes(t *testing.T) {
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
 	config.Mempool.MaxTxsBytes = 10
+	config.Mempool.EnableDeleteMinGPTx = false
+	moc := cfg.MockDynamicConfig{}
+	moc.SetEnableDeleteMinGPTx(false)
+	cfg.SetDynamicConfig(moc)
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
@@ -998,6 +1002,9 @@ func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
 			prepare: func(mempool *CListMempool, tt *testing.T) {
 				mempool.Flush()
 				err := mempool.CheckTx([]byte{0x01}, nil, TxInfo{})
+				moc := cfg.MockDynamicConfig{}
+				moc.SetEnableDeleteMinGPTx(false)
+				cfg.SetDynamicConfig(moc)
 				require.NoError(tt, err)
 			},
 			execFunc: func(mempool *CListMempool, tt *testing.T) {
