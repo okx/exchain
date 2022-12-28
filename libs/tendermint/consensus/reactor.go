@@ -388,6 +388,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			// or this peer is not proposer
 			// or only then proposer ApplyBlock(height) has finished, do not handle prMsg
 			// or prMsg.height != prMsg.proposal.Height
+			conR.Logger.Error("rcv prMsg", "height", height, "msg.H", msg.Height, "time", tmtime.Now())
 			if msg.Height <= conR.hasViewChanged ||
 				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
 				msg.Height < height || (msg.Height == height && conR.conS.Step != cstypes.RoundStepNewHeight) ||
