@@ -312,7 +312,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
 		prMsg.Signature = signature
-		cs.Logger.Error("send prMsg-avc", "height", prMsg.Height, "time", tmtime.Now())
+		cs.Logger.Error("fire prMsg-avc", "height", prMsg.Height, "time", tmtime.Now())
 		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
 	} else {
 		cs.Logger.Error("requestForProposer", "err", err)
