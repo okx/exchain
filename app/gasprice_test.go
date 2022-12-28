@@ -135,6 +135,18 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			tpb:                 []int{200, 0, 0, 0, 0},
 		},
 		{
+			title:               "3 empty block",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        1000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 0, 46329800, 0, 0},
+			expectedRecommendGp: []string{"100200099", "100000000", "100200299", "100000000", "100000000"},
+			blocks:              5,
+			needMultiple:        false,
+			tpb:                 []int{200, 0, 200, 0, 0},
+		},
+		{
 			title:               "congestion, gp increase, higher gp mode",
 			buildTxs:            generateEvmTxs,
 			gpMaxTxNum:          300,
