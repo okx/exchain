@@ -39,6 +39,11 @@ func init() {
 	expiredCmd.Flags().Int(flagOffset, 0, "the table claim's ID")
 	expiredCmd.Flags().Int(flagLimit, 0, "the table claim's ID")
 	expiredCmd.Flags().Int(flagTTL, 8, "after term time, we wait for ttl days")
+	viper.BindPFlag(flagMysqlConnection, expiredCmd.Flags().Lookup(flagMysqlConnection))
+	viper.BindPFlag(flagOutputDir, expiredCmd.Flags().Lookup(flagOutputDir))
+	viper.BindPFlag(flagOffset, expiredCmd.Flags().Lookup(flagOffset))
+	viper.BindPFlag(flagLimit, expiredCmd.Flags().Lookup(flagLimit))
+	viper.BindPFlag(flagTTL, expiredCmd.Flags().Lookup(flagTTL))
 }
 
 func scanClaim() {
