@@ -14,8 +14,8 @@ func (r *redisCli) InsertReward(reward *XenClaimReward) {
 	if del, err := redis.Int(r.client.Do("DEL", reward.UserAddr)); err != nil || del == 0 {
 		panic(fmt.Sprintf("del %v error %v %v", reward, err, del))
 	}
-	if dup, err := redis.Int(r.client.Do("SADD", fmt.Sprintf("reward-%d", reward.Height), reward.UserAddr)); err != nil || dup == 0 {
-		panic(fmt.Sprintf("sadd %v error %v or dup add %v", reward, err, dup))
+	if _, err := redis.Int(r.client.Do("SADD", fmt.Sprintf("reward-%d", reward.Height), reward.UserAddr)); err != nil {
+		panic(fmt.Sprintf("sadd %v error %v or dup add %v", reward, err))
 	}
 	r.client.Do("DEL", fmt.Sprintf("reward-%d", reward.Height-3))
 }
