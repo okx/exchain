@@ -123,28 +123,52 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 		tpb          []int
 	}{
 		{
-			title:               "4 empty block",
+			title:               "5/5 empty block, higher gp mode",
 			buildTxs:            generateEvmTxs,
 			gpMaxTxNum:          300,
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
-			expectedTotalGU:     []int64{46329800, 0, 0, 0, 0},
-			expectedRecommendGp: []string{"100200099", "100000000", "100000000", "100000000", "100000000"},
+			expectedTotalGU:     []int64{0, 0, 0, 0, 0},
+			expectedRecommendGp: []string{"100000000", "100000000", "100000000", "100000000", "100000000"},
 			blocks:              5,
 			needMultiple:        false,
-			tpb:                 []int{200, 0, 0, 0, 0},
+			tpb:                 []int{0, 0, 0, 0, 0},
 		},
 		{
-			title:               "3 empty block",
+			title:               "4/6 empty block, gp increase, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        40000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 0, 0, 0, 0, 46329800},
+			expectedRecommendGp: []string{"100200099", "100000000", "100000000", "100000000", "100000000", "100200099"},
+			blocks:              6,
+			needMultiple:        false,
+			tpb:                 []int{200, 0, 0, 0, 0, 200},
+		},
+		{
+			title:               "4/6 uncongested block, gp increase, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        40000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 23164900, 23164900, 23164900, 23164900, 46329800},
+			expectedRecommendGp: []string{"100200099", "100000000", "100000000", "100000000", "100000000", "100200500"},
+			blocks:              6,
+			needMultiple:        false,
+			tpb:                 []int{200, 100, 100, 100, 100, 200},
+		},
+		{
+			title:               "2/5 empty block, congestion, gp increase, higher gp mode",
 			buildTxs:            generateEvmTxs,
 			gpMaxTxNum:          300,
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
-			expectedTotalGU:     []int64{46329800, 0, 46329800, 0, 0},
-			expectedRecommendGp: []string{"100200099", "100000000", "100200299", "100000000", "100000000"},
+			expectedTotalGU:     []int64{46329800, 0, 46329800, 0, 46329800},
+			expectedRecommendGp: []string{"100200099", "100000000", "100200099", "100000000", "100200299"},
 			blocks:              5,
 			needMultiple:        false,
-			tpb:                 []int{200, 0, 200, 0, 0},
+			tpb:                 []int{200, 0, 200, 0, 200},
 		},
 		{
 			title:               "congestion, gp increase, higher gp mode",
@@ -153,9 +177,34 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200099", "100200299", "100200499", "100200699", "100200899"},
+			expectedRecommendGp: []string{"100200099", "100200099", "100200299", "100200499", "100200699"},
 			blocks:              5,
 			needMultiple:        false,
+			tpb:                 []int{200, 200, 200, 200, 200},
+		},
+		{
+			title:               "2/5 empty block, uncongestion, gp increase, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        60000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 0, 46329800, 0, 46329800},
+			expectedRecommendGp: []string{"100000000", "100000000", "100000000", "100000000", "100000000"},
+			blocks:              5,
+			needMultiple:        false,
+			tpb:                 []int{200, 0, 200, 0, 200},
+		},
+		{
+			title:               "congestion, gp decrease, normal gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        1000000,
+			gpMode:              1,
+			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
+			expectedRecommendGp: []string{"100199802", "100199802", "100199801", "100199603", "100199603"},
+			blocks:              5,
+			needMultiple:        false,
+			gpDecrease:          true,
 			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
@@ -165,7 +214,7 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100199900", "100199700", "100199500", "100199300", "100199100"},
+			expectedRecommendGp: []string{"100199900", "100199700", "100199700", "100199700", "100199700"},
 			blocks:              5,
 			needMultiple:        false,
 			gpDecrease:          true,
@@ -178,7 +227,7 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              1,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200000", "100200200", "100200400", "100200600", "100200800"},
+			expectedRecommendGp: []string{"100200001", "100200201", "100200400", "100200402", "100200602"},
 			blocks:              5,
 			needMultiple:        false,
 			tpb:                 []int{200, 200, 200, 200, 200},
@@ -214,7 +263,7 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"5060109900", "5060120000", "5060130100", "5060140200", "5060150300"},
+			expectedRecommendGp: []string{"5060109900", "5060109900", "5060120000", "5060130100", "5060140200"},
 			blocks:              5,
 			needMultiple:        true,
 			tpb:                 []int{200, 200, 200, 200, 200},
@@ -226,7 +275,7 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"5060094901", "5060084801", "5060074701", "5060064601", "5060054501"},
+			expectedRecommendGp: []string{"5060094901", "5060084801", "5060084801", "5060084801", "5060084801"},
 			blocks:              5,
 			needMultiple:        true,
 			gpDecrease:          true,
@@ -239,13 +288,15 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              1,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200000", "100200200", "100200400", "100200600", "100200800"},
+			expectedRecommendGp: []string{"100200001", "100200201", "100200400", "100200402", "100200602"},
 			blocks:              5,
 			needMultiple:        true,
 			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 	}
 
+	appconfig.GetOecConfig().SetDynamicGpWeight(80)
+	appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 	suite.SetupTest()
 	for _, tc := range testCases {
 
@@ -273,9 +324,12 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 				}
 			})
 			//fmt.Println("totalGasUsed: ", totalGasUsed)
-			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU, totalGasUsed)
+			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU[i], totalGasUsed)
 			suite.endFakeBlock(tc.expectedRecommendGp[i])
 			height++
+		}
+		for !suite.app.gpo.BlockGPQueue.IsEmpty() {
+			suite.app.gpo.BlockGPQueue.Pop()
 		}
 
 		// tx parallel
@@ -300,9 +354,12 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 				}
 			})
 			//fmt.Println("totalGasUsed: ", totalGasUsed)
-			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU, totalGasUsed)
+			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU[i], totalGasUsed)
 			suite.endFakeBlock(tc.expectedRecommendGp[i])
 			height++
+		}
+		for !suite.app.gpo.BlockGPQueue.IsEmpty() {
+			suite.app.gpo.BlockGPQueue.Pop()
 		}
 	}
 }
