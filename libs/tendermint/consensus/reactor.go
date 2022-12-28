@@ -413,6 +413,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			proposal.Signature = sig
+			conR.Logger.Error("handle prMsg, br proposal", "height", height, "msg.H", msg.Height, "time", tmtime.Now())
 			// tell newProposer
 			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))

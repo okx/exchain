@@ -112,6 +112,7 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
 		return
 	}
+	cs.Logger.Error("handle rsp", "height", proposal.Height, "time", tmtime.Now())
 	cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 	for i := 0; i < res.blockParts.Total(); i++ {
 		part := res.blockParts.GetPart(i)
@@ -311,6 +312,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
 		prMsg.Signature = signature
+		cs.Logger.Error("send prMsg-avc", "height", prMsg.Height, "time", tmtime.Now())
 		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
 	} else {
 		cs.Logger.Error("requestForProposer", "err", err)
