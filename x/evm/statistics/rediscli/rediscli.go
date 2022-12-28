@@ -1,6 +1,8 @@
 package rediscli
 
-import "github.com/gomodule/redigo/redis"
+import (
+	"github.com/gomodule/redigo/redis"
+)
 
 const (
 	redisAddr = ":6379"
@@ -18,6 +20,7 @@ func GetInstance() *redisCli {
 
 type redisCli struct {
 	client redis.Conn
+	height int64
 }
 
 func (r *redisCli) Init() {
@@ -34,4 +37,14 @@ func (r *redisCli) Close() {
 
 func (r *redisCli) GetRawClient() redis.Conn {
 	return r.client
+}
+
+func (r *redisCli) UpdateHeight() {
+	claimHeight, _ := redis.Int64(r.client.Do("GET", "claim-height"))
+	rewardHeight, _ := redis.Int64(r.client.Do("GET", "reward-height"))
+	if claimHeight > rewardHeight {
+		r.height = claimHeight
+		return
+	}
+	r.height = rewardHeight
 }

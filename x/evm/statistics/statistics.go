@@ -38,6 +38,7 @@ func (s *statistics) Init(config *Config) {
 		mysqldb.GetInstance().GetLatestHeightAndDeleteHeight()
 
 		rediscli.GetInstance().Init()
+		rediscli.GetInstance().UpdateHeight()
 		s.config = config
 		s.chanXenMint = make(chan *XenMint, config.XenMintChanSize)
 		s.chanXenClaimReward = make(chan *XenClaimReward, config.XenClaimChanSize)
