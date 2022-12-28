@@ -371,3 +371,88 @@ Where proposal.json contains:
 		},
 	}
 }
+
+// GetCmdManageContractByteCodeProposal implements a command handler for submitting a manage contract bytecode proposal transaction
+func GetCmdManageContractByteCodeProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return &cobra.Command{
+		Use:   "update-contract-bytecode [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit an update contract bytecode proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit an update method contract bytecode proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal update-contract-bytecode <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+    "title":"update contract bytecode",
+    "description":"update contract bytecode",
+    "contract_addresses":[
+        {
+            "address":"ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
+            "block_methods": [
+                {
+                    "sign": "0x371303c0",
+                    "extra": "{\"gu_factor\":\"10.000000000000000000\"}"
+                },
+                {
+                    "sign": "0x579be378",
+                    "extra": "{\"gu_factor\":\"20.000000000000000000\"}"
+                }
+            ]
+        },
+        {
+            "address":"ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
+            "block_methods": [
+                {
+                    "sign": "0x371303c0",
+                    "extra": "{\"gu_factor\":\"30.000000000000000000\"}"
+                },
+                {
+                    "sign": "0x579be378",
+                    "extra": "{\"gu_factor\":\"40.000000000000000000\"}"
+                }
+            ]
+        }
+    ],
+    "is_added":true,
+    "deposit":[
+        {
+            "denom":"%s",
+            "amount":"100.000000000000000000"
+        }
+    ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := evmutils.ParseManageContractBytecodeProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewManageContractByteCodeProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.ContractAddr,
+				proposal.ByteCode,
+			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}

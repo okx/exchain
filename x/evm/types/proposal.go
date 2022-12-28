@@ -20,6 +20,7 @@ const (
 	proposalTypeManageContractMethodBlockedList = "ManageContractMethodBlockedList"
 	// proposalTypeManageSysContractAddress defines the type for a ManageSysContractAddress
 	proposalTypeManageSysContractAddress = "ManageSysContractAddress"
+	proposalTypeManageContractByteCode   = "ManageContractByteCode"
 )
 
 func init() {
@@ -450,6 +451,56 @@ func (mp ManageSysContractAddressProposal) String() string {
  IsAdded:				%t
 `,
 			mp.Title, mp.Description, mp.ProposalType(), mp.ContractAddr.String(), mp.IsAdded),
+	)
+	return strings.TrimSpace(builder.String())
+}
+
+type ManagerContractByteCodeProposal struct {
+	Title       string      `json:"title" yaml:"title"`
+	Description string      `json:"description" yaml:"description"`
+	Contract    sdk.Address `json:"contract_addresses" yaml:"contract_addresses"`
+	ByteCode    string      `json:"bytecode" yaml:"bytecode"`
+}
+
+func NewManageContractByteCodeProposal(title, description string, contract sdk.Address, bytecode string) ManagerContractByteCodeProposal {
+	return ManagerContractByteCodeProposal{
+		Title:       title,
+		Description: description,
+		Contract:    contract,
+		ByteCode:    bytecode,
+	}
+}
+
+func (mp ManagerContractByteCodeProposal) GetTitle() string {
+	return mp.Title
+}
+
+func (mp ManagerContractByteCodeProposal) GetDescription() string {
+	return mp.Description
+}
+
+func (mp ManagerContractByteCodeProposal) ProposalRoute() string {
+	return RouterKey
+}
+
+func (mp ManagerContractByteCodeProposal) ProposalType() string {
+	return proposalTypeManageContractByteCode
+}
+
+func (mp ManagerContractByteCodeProposal) ValidateBasic() sdk.Error {
+	return nil
+}
+func (mp ManagerContractByteCodeProposal) String() string {
+	var builder strings.Builder
+	builder.WriteString(
+		fmt.Sprintf(`ManageContractByteCodeProposal:
+ Title:					%s
+ Description:        	%s
+ Type:                	%s
+ ContractAddr:          %s
+ Bytecode:				%s
+`,
+			mp.Title, mp.Description, mp.ProposalType(), mp.Contract.String(), mp.ByteCode),
 	)
 	return strings.TrimSpace(builder.String())
 }

@@ -1,6 +1,7 @@
 package evm
 
 import (
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
@@ -27,6 +28,9 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 				return handleManageSysContractAddressProposal(ctx, k, content)
 			}
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
+		case types.ManagerContractByteCodeProposal:
+			return
+
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -82,4 +86,9 @@ func handleManageSysContractAddressProposal(ctx sdk.Context, k *Keeper,
 
 	// remove system contract address
 	return k.DelSysContractAddress(ctx)
+}
+
+func handleManageContractBytecodeProposal(ctx sdk.Context, k *Keeper, p types.ManagerContractByteCodeProposal) {
+	fmt.Println("handleManageContractBytecodeProposal : need implement")
+	return
 }

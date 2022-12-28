@@ -48,6 +48,15 @@ type (
 		Deposit      sdk.SysCoins   `json:"deposit" yaml:"deposit"`
 	}
 
+	ManageContractByteCodeProposalJSON struct {
+		Title       string `json:"title" yaml:"title"`
+		Description string `json:"description" yaml:"description"`
+		// Contract Address
+		ContractAddr sdk.AccAddress `json:"contract_address" yaml:"contract_address"`
+		ByteCode     string         `json:"bytecode" yaml:"bytecode"`
+		Deposit      sdk.SysCoins   `json:"deposit" yaml:"deposit"`
+	}
+
 	ResponseBlockContract struct {
 		Address      string                `json:"address" yaml:"address"`
 		BlockMethods types.ContractMethods `json:"block_methods" yaml:"block_methods"`
@@ -98,6 +107,18 @@ func ParseManageContractMethodBlockedListProposalJSON(cdc *codec.Codec, proposal
 // ManageSysContractAddressProposalJSON parses json from proposal file to ManageSysContractAddressProposal struct
 func ParseManageSysContractAddressProposalJSON(cdc *codec.Codec, proposalFilePath string) (
 	proposal ManageSysContractAddressProposalJSON, err error) {
+	contents, err := ioutil.ReadFile(proposalFilePath)
+	if err != nil {
+		return
+	}
+
+	cdc.MustUnmarshalJSON(contents, &proposal)
+	return
+}
+
+// ParseManageContractBytecodeProposalJSON parses json from proposal file to ManageContractByteCodeProposalJSON struct
+func ParseManageContractBytecodeProposalJSON(cdc *codec.Codec, proposalFilePath string) (
+	proposal ManageContractByteCodeProposalJSON, err error) {
 	contents, err := ioutil.ReadFile(proposalFilePath)
 	if err != nil {
 		return

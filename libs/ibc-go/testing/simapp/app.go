@@ -175,6 +175,7 @@ var (
 			evmclient.ManageContractMethodGuFactorProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			evmclient.ManageSysContractAddressProposalHandler,
+			evmclient.ManageContractByteCodeProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
