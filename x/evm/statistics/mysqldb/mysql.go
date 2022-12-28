@@ -12,6 +12,10 @@ const (
 	batchSize   = 100
 )
 
+var (
+	useMySQL = false
+)
+
 var db *mysqlDB
 
 func init() {
@@ -30,6 +34,9 @@ type mysqlDB struct {
 }
 
 func (mdb *mysqlDB) Init() {
+	if !useMySQL {
+		return
+	}
 	var err error
 	mdb.db, err = gorm.Open(mysql.Open(MysqlConfig))
 	if err != nil {
@@ -38,6 +45,9 @@ func (mdb *mysqlDB) Init() {
 }
 
 func (mdb *mysqlDB) GetMaxHeight(table string) int64 {
+	if !useMySQL {
+		return 0
+	}
 	var claim model.Claim
 	tx := mdb.db.Table(table).Last(&claim)
 	if tx.Error != nil && tx.Error.Error() == "record not found" {
@@ -57,6 +67,9 @@ func (mdb *mysqlDB) DeleteHeight(table string, height int64) {
 }
 
 func (mdb *mysqlDB) GetLatestHeightAndDeleteHeight() {
+	if !useMySQL {
+		return
+	}
 	claimHeight := mdb.GetMaxHeight("claim")
 	rewardHeight := mdb.GetMaxHeight("reward")
 	//	mdb.DeleteHeight("claim", claimHeight)
@@ -69,11 +82,10 @@ func (mdb *mysqlDB) GetLatestHeightAndDeleteHeight() {
 	}
 }
 
-func (mdb *mysqlDB) GetLatestSavedHeight() int64 {
-	return mdb.latestSavedHeight
-}
-
 func (mdb *mysqlDB) DeleteFromHeight(height int64) {
+	if !useMySQL {
+		return
+	}
 	tx := mdb.db.Table("claim").Where("height>=?", height).Delete(&model.Claim{})
 	if tx.Error != nil {
 		panic(tx.Error)
@@ -85,5 +97,8 @@ func (mdb *mysqlDB) DeleteFromHeight(height int64) {
 }
 
 func (mdb *mysqlDB) GetGormDB() *gorm.DB {
+	if !useMySQL {
+		return nil
+	}
 	return mdb.db
 }

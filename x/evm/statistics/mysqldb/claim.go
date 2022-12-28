@@ -11,6 +11,9 @@ const (
 )
 
 func (mdb *mysqlDB) InsertClaim(claim model.Claim) {
+	if !useMySQL {
+		return
+	}
 	if *claim.Height <= mdb.latestSavedHeight {
 		return
 	}

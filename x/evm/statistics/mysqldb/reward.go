@@ -6,6 +6,9 @@ import (
 )
 
 func (mdb *mysqlDB) InsertReward(reward model.Reward) {
+	if !useMySQL {
+		return
+	}
 	if *reward.Height <= mdb.latestSavedHeight {
 		return
 	}

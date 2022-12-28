@@ -3,6 +3,7 @@ package statistics
 import (
 	"github.com/okex/exchain/x/evm/statistics/mysqldb"
 	"github.com/okex/exchain/x/evm/statistics/orm/model"
+	"github.com/okex/exchain/x/evm/statistics/rediscli"
 	"log"
 	"sync"
 	"time"
@@ -35,6 +36,8 @@ func (s *statistics) Init(config *Config) {
 	s.initOnce.Do(func() {
 		mysqldb.GetInstance().Init()
 		mysqldb.GetInstance().GetLatestHeightAndDeleteHeight()
+
+		rediscli.GetInstance().Init()
 		s.config = config
 		s.chanXenMint = make(chan *XenMint, config.XenMintChanSize)
 		s.chanXenClaimReward = make(chan *XenClaimReward, config.XenClaimChanSize)
@@ -65,6 +68,15 @@ func (s *statistics) doMint() {
 	for {
 		select {
 		case mint := <-s.chanXenMint:
+			rediscli.GetInstance().InsertClaim(&rediscli.XenMint{
+				Height:    mint.Height,
+				BlockTime: mint.BlockTime,
+				TxHash:    mint.TxHash,
+				TxSender:  mint.TxSender,
+				UserAddr:  mint.UserAddr,
+				Term:      mint.Term,
+				Rank:      mint.Rank,
+			})
 			mysqldb.GetInstance().InsertClaim(model.Claim{
 				Height:    &mint.Height,
 				BlockTime: &mint.BlockTime,
@@ -86,6 +98,14 @@ func (s *statistics) doClaim() {
 	for {
 		select {
 		case claim := <-s.chanXenClaimReward:
+			rediscli.GetInstance().InsertReward(&rediscli.XenClaimReward{
+				Height:       claim.Height,
+				BlockTime:    claim.BlockTime,
+				TxHash:       claim.TxHash,
+				TxSender:     claim.TxSender,
+				UserAddr:     claim.UserAddr,
+				RewardAmount: claim.RewardAmount,
+			})
 			mysqldb.GetInstance().InsertReward(model.Reward{
 				Height:    &claim.Height,
 				BlockTime: &claim.BlockTime,
