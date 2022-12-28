@@ -84,8 +84,9 @@ func (hq *HeapQueue) Remove(element *clist.CElement) {
 	if gq, ok := hq.txs[element.Address]; ok {
 		gq.Remove(element)
 		key := txKeyFromMempoolTx(element.Value.(*mempoolTx))
-		hq.txsMap.Delete(key)
-		atomic.AddInt32(&hq.txCount, -1)
+		if _, ok := hq.txsMap.LoadAndDelete(key); ok {
+			atomic.AddInt32(&hq.txCount, -1)
+		}
 		if atomic.LoadInt32(&hq.txCount) == 0 {
 			hq.waitCh = make(chan struct{})
 		}
@@ -212,8 +213,10 @@ func (hq *HeapQueue) CleanItems(address string, nonce uint64) {
 				e = e.Next()
 				gq.Remove(temp)
 				key := txKeyFromMempoolTx(temp.Value.(*mempoolTx))
-				hq.txsMap.Delete(key)
-				atomic.AddInt32(&hq.txCount, -1)
+				_, ok := hq.txsMap.LoadAndDelete(key)
+				if ok {
+					atomic.AddInt32(&hq.txCount, -1)
+				}
 				if atomic.LoadInt32(&hq.txCount) == 0 {
 					hq.waitCh = make(chan struct{})
 				}
