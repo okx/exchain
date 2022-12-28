@@ -31,3 +31,7 @@ func (r *redisCli) Init() {
 func (r *redisCli) Close() {
 	r.client.Close()
 }
+
+func (r *redisCli) GetRawClient() redis.Conn {
+	return r.client
+}

@@ -3,6 +3,7 @@ module github.com/okex/exchain/dev/xen
 go 1.18
 
 require (
+	github.com/gomodule/redigo v1.8.9
 	github.com/okex/exchain v0.0.0-00010101000000-000000000000
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.12.0

@@ -11,6 +11,7 @@ func main() {
 		Short: "xen related command",
 	}
 	rootCmd.AddCommand(expired.Command())
+	rootCmd.AddCommand(expired.RedisCommand())
 
 	err := rootCmd.Execute()
 	if err != nil {

@@ -25,7 +25,7 @@ func Command() *cobra.Command {
 }
 
 var expiredCmd = &cobra.Command{
-	Use:   "expired",
+	Use:   "expired_mysql",
 	Short: "go the expired fss",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		scanClaim()
