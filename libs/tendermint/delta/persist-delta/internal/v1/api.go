@@ -3,14 +3,16 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/delta/internal"
 	"net/url"
+	"strings"
+
+	"github.com/okex/exchain/libs/tendermint/delta/internal"
 )
 
 const (
 	Version = 1
 
-	apiPathGetDelta = "api/v1/delta"
+	apiPathGetDelta = "api/v1/delta/"
 )
 
 type APIErrorResult struct {
@@ -24,9 +26,15 @@ type APISuccessResult struct {
 	Result  []byte `json:"result"`
 }
 
-func MakeGetDeltaRequestPath(base string, height int64) (string, error) {
+func MakeGetDeltaRequestPath(base string, height int64) string {
 	key := internal.GenDeltaKey(height)
-	return url.JoinPath(base, apiPathGetDelta, key)
+
+	path := base
+	if !strings.HasSuffix(path, "/") {
+		path = path + "/"
+	}
+
+	return path + apiPathGetDelta + url.PathEscape(key)
 }
 
 func ParseResponse(data []byte, height int64) ([]byte, error, int64) {

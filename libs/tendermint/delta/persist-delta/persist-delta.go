@@ -25,11 +25,7 @@ func NewPersistDeltaClient(srvURL string, logger log.Logger) *PersistDeltaClient
 }
 
 func (c *PersistDeltaClient) GetDeltas(height int64) ([]byte, error, int64) {
-	path, err := api.MakeGetDeltaRequestPath(c.url, height)
-	if err != nil {
-		c.logger.Error("join url error", c.url, height, err)
-		return nil, err, 0
-	}
+	path := api.MakeGetDeltaRequestPath(c.url, height)
 
 	resp, err := http.Get(path)
 	if err != nil {
