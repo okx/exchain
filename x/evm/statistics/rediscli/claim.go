@@ -8,7 +8,10 @@ import (
 
 const (
 	// ExpireDate date --date='2023-02-01 00:00:00' +%s
-	TermThreshold = 1675209600
+	// TermThreshold = 1675209600
+
+	// 2022/12/29 02:00:43 lrp
+	TermThreshold = 1672279243
 )
 
 func (r *redisCli) InsertClaim(claim *XenMint) {
