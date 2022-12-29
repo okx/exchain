@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/x/evm/statistics/rediscli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -84,9 +83,6 @@ func scanClaimRedis() {
 						parseClaim(&claims, key, value)
 					}
 					claims.UserAddr = useraddr
-					log.Println(time.Now().Unix())
-					log.Println(claims.BlockTime.Add(time.Duration(claims.Term+ttl) * time.Duration(24) * time.Hour).Unix())
-					log.Println(claims)
 					if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
 						counter++
 						line := fmt.Sprintf("%v, %v,%v\n", counter, claims.TxHash, claims.UserAddr)
