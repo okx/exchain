@@ -250,7 +250,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			return 0, err
 		}
 		if hasVersion {
-			rs.logger.Info("GetCommitVersion", "version :", version)
+			rs.logger.Error("GetCommitVersion", "version :", version)
 			return version, nil
 		}
 	}
@@ -280,6 +280,8 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 			if !ok {
 				rs.logger.Error(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
 				return false, nil
+			}else{
+				rs.logger.Error(fmt.Sprintf("iavl-%s has version: %d", key.Name(), targetVersion))
 			}
 
 		} else if storeParams.typ == types.StoreTypeMPT {
