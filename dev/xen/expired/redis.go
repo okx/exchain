@@ -54,6 +54,7 @@ func scanClaimRedis() {
 	defer db.Close()
 	var claims rediscli.XenMint
 
+	counter := 0
 	curse := viper.GetInt(flagCursor)
 	for {
 		curseValues, err := redis.Values(db.Do("SCAN", curse))
@@ -87,7 +88,8 @@ func scanClaimRedis() {
 					log.Println(claims.BlockTime.Add(time.Duration(claims.Term+ttl) * time.Duration(24) * time.Hour).Unix())
 					log.Println(claims)
 					if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
-						line := fmt.Sprintf("%v,%v\n", claims.TxHash, claims.UserAddr)
+						counter++
+						line := fmt.Sprintf("%v, %v,%v\n", counter, claims.TxHash, claims.UserAddr)
 						_, err = f.WriteString(line)
 						if err != nil {
 							panic(err)

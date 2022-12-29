@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -20,10 +21,10 @@ import (
 const (
 	RpcUrl          = "https://exchainrpc.okex.org"
 	XenContractAddr = "1cC4D981e897A3D2E7785093A648c0a75fAd0453"
-	//	XenBinPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.bin"
-	//	XenABIPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.abi"
-	XenBinPath = "/data/monitordb/xen/xen.bin"
-	XenABIPath = "/data/monitordb/xen/xen.abi"
+	XenBinPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.bin"
+	XenABIPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.abi"
+	//	XenBinPath = "/data/monitordb/xen/xen.bin"
+	//	XenABIPath = "/data/monitordb/xen/xen.abi"
 
 	XenExpiredFilePath = "./xen_expired.csv"
 )
@@ -60,11 +61,20 @@ type UserMints struct {
 }
 
 type ExpiredUser struct {
+	LineNum  string
 	TxHash   string
 	UserAddr string
 }
 
 func main() {
+	startLinePtr := flag.Int("start-line", 1, "start line")
+	flag.Parse()
+	var startLine int
+	if startLinePtr == nil {
+		startLine = 0
+	} else {
+		startLine = *startLinePtr
+	}
 	//time.2022/11/20 10:43:04
 	//	tim, _ := time.Parse("2006/01/02 15:04:05", "2022/11/20 10:43:04")
 	//	log.Println(tim.Add(time.Duration(365) * time.Duration(24) * time.Hour).Unix())
@@ -91,13 +101,18 @@ loop:
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	var counter int
 	for scanner.Scan() {
+		counter++
 		line := scanner.Text()
+		if counter < startLine {
+			continue
+		}
 		eu := getExpiredUser(line)
 		um := ReadContract(client, common.HexToAddress(XenContractAddr), "userMints", common.HexToAddress(eu.UserAddr[2:]))
 
 		if um.UserAddr.String() != "0x0000000000000000000000000000000000000000" && time.Now().Unix()-um.MaturityTs > 8*24*60*60 {
-			fmt.Printf("%v,%v\n", eu.TxHash, eu.UserAddr)
+			fmt.Printf("%v,%v,%v\n", eu.LineNum, eu.TxHash, eu.UserAddr)
 		}
 		time.Sleep(time.Duration(50) * time.Millisecond)
 		//	if time.Now().Unix()-um.MaturityTs < 7*24*60*60 {
@@ -143,12 +158,13 @@ func ReadContract(client *ethclient.Client, contractAddr common.Address, name st
 
 func getExpiredUser(line string) ExpiredUser {
 	eu := strings.Split(line, ",")
-	if len(eu) != 2 {
+	if len(eu) != 3 {
 		panic(fmt.Sprintf("error format %v\n", line))
 	}
 
 	return ExpiredUser{
-		TxHash:   eu[0],
-		UserAddr: eu[1],
+		LineNum:  eu[0],
+		TxHash:   eu[1],
+		UserAddr: eu[2],
 	}
 }
