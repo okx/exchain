@@ -32,6 +32,10 @@ func AllDeltaModes() []string {
 	}
 }
 
+func DeltaServceURL() string {
+	return deltaServceURL
+}
+
 func InitDeltaFlagInfo(mode, srvURL string) {
 	if !isValidMode(mode) {
 		panic(fmt.Errorf("invalid delte mode '%s'", mode))
@@ -45,16 +49,36 @@ func InitDeltaFlagInfo(mode, srvURL string) {
 	// execute different logic depend their value
 	if IsDeltaModeDownload(deltaMode) {
 		DownloadDelta = true
-	} else if IsDeltaModeUp(deltaMode) {
+	} else if isDeltaModeUp(deltaMode) {
 		UploadDelta = true
 	}
 }
 
-func IsDeltaModeDownload(mode string) bool {
-	return mode == deltaModeDownRedis || mode == deltaModeDownPersist
+func IsDeltaModeUp() bool {
+	return isDeltaModeUp(deltaMode)
 }
 
-func IsDeltaModeUp(mode string) bool {
+func IsDeltaModeDownRedis() bool {
+	return isDeltaModeDownRedis(deltaMode)
+}
+
+func IsDeltaModeDownPersist() bool {
+	return isDeltaModeDownPersist(deltaMode)
+}
+
+func IsDeltaModeDownload(mode string) bool {
+	return isDeltaModeDownRedis(mode) || isDeltaModeDownPersist(mode)
+}
+
+func isDeltaModeDownRedis(mode string) bool {
+	return mode == deltaModeDownRedis
+}
+
+func isDeltaModeDownPersist(mode string) bool {
+	return mode == deltaModeDownPersist
+}
+
+func isDeltaModeUp(mode string) bool {
 	return mode == deltaModeUp
 }
 
