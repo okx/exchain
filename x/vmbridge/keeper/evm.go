@@ -89,10 +89,11 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 	if err != nil {
 		return false, err
 	}
+	success, err = types.GetMintERC20Output(result.Ret)
 	if watcher.IsWatcherEnabled() && err == nil {
 		ctx.GetWatcher().Finalize()
 	}
-	return types.GetMintERC20Output(result.Ret)
+	return success, err
 }
 
 // callEvm execute an evm message from native module
