@@ -245,7 +245,7 @@ func (c *Cache) writeStorage(updateDirty bool) {
 }
 
 func (c *Cache) Clear() {
-	if c.skip() {
+	if c == nil {
 		return
 	}
 
