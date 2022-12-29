@@ -242,7 +242,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 
 	//sort the versions list
 	sort.Slice(versions, func(i, j int) bool { return versions[i] > versions[j] })
-	rs.logger.Info("GetCommitVersion", "iavl:", firstKey.Name(), "versions :", versions)
+	rs.logger.Error("GetCommitVersion", "iavl:", firstKey.Name(), "versions :", versions)
 	//find version in rootmultistore
 	for _, version := range versions {
 		hasVersion, err := rs.hasVersion(version)
