@@ -20,8 +20,10 @@ import (
 const (
 	RpcUrl          = "https://exchainrpc.okex.org"
 	XenContractAddr = "1cC4D981e897A3D2E7785093A648c0a75fAd0453"
-	XenBinPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.bin"
-	XenABIPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.abi"
+	//	XenBinPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.bin"
+	//	XenABIPath      = "/Users/oker/workspace/tools/monitordb/xen/xen.abi"
+	XenBinPath = "/data/monitordb/xen/xen.bin"
+	XenABIPath = "/data/monitordb/xen/xen.abi"
 
 	XenExpiredFilePath = "./xen_expired.csv"
 )
