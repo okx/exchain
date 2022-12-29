@@ -182,8 +182,7 @@ func Init() {
 		panic(fmt.Sprintf("error while reading wasm config: %s", err))
 	}
 	gWasmConfig = wasmConfig
-	gWasmDir = filepath.Join(viper.GetString(tmcli.HomeFlag), "/data/wasm")
-
+	gWasmDir = filepath.Join(viper.GetString(tmcli.HomeFlag), "data")
 }
 
 // ReadWasmConfig reads the wasm specifig configuration
