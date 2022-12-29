@@ -29,6 +29,7 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 			}
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		case types.ManagerContractByteCodeProposal:
+			handleManageContractBytecodeProposal(ctx, k, content)
 			return
 
 		default:

@@ -17,7 +17,7 @@ var _ govKeeper.ProposalHandler = (*Keeper)(nil)
 func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDeposit sdk.SysCoins) {
 	switch content.(type) {
 	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal,
-		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal:
+		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal, types.ManagerContractByteCodeProposal:
 		minDeposit = k.govKeeper.GetDepositParams(ctx).MinDeposit
 	}
 
@@ -28,7 +28,7 @@ func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDepos
 func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (maxDepositPeriod time.Duration) {
 	switch content.(type) {
 	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal,
-		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal:
+		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal, types.ManagerContractByteCodeProposal:
 		maxDepositPeriod = k.govKeeper.GetDepositParams(ctx).MaxDepositPeriod
 	}
 
@@ -39,7 +39,7 @@ func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (ma
 func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (votingPeriod time.Duration) {
 	switch content.(type) {
 	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal,
-		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal:
+		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal, types.ManagerContractByteCodeProposal:
 		votingPeriod = k.govKeeper.GetVotingParams(ctx).VotingPeriod
 	}
 
@@ -81,6 +81,10 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 			return types.ErrNotContracAddress(fmt.Errorf(content.ContractAddr.String()))
 		}
 		return nil
+	case types.ManagerContractByteCodeProposal:
+		fmt.Println("check---")
+		return nil
+
 	default:
 		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))
 	}

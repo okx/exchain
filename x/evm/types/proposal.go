@@ -28,10 +28,12 @@ func init() {
 	govtypes.RegisterProposalType(proposalTypeManageContractBlockedList)
 	govtypes.RegisterProposalType(proposalTypeManageContractMethodBlockedList)
 	govtypes.RegisterProposalType(proposalTypeManageSysContractAddress)
+	govtypes.RegisterProposalType(proposalTypeManageContractByteCode)
 	govtypes.RegisterProposalTypeCodec(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageSysContractAddressProposal{}, "okexchain/evm/ManageSysContractAddressProposal")
+	govtypes.RegisterProposalTypeCodec(ManagerContractByteCodeProposal{}, "okexchain/evm/ManageContractBytecode")
 }
 
 var (
@@ -39,6 +41,7 @@ var (
 	_ govtypes.Content = (*ManageContractBlockedListProposal)(nil)
 	_ govtypes.Content = (*ManageContractMethodBlockedListProposal)(nil)
 	_ govtypes.Content = (*ManageSysContractAddressProposal)(nil)
+	_ govtypes.Content = (*ManagerContractByteCodeProposal)(nil)
 )
 
 // ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
@@ -456,13 +459,13 @@ func (mp ManageSysContractAddressProposal) String() string {
 }
 
 type ManagerContractByteCodeProposal struct {
-	Title       string      `json:"title" yaml:"title"`
-	Description string      `json:"description" yaml:"description"`
-	Contract    sdk.Address `json:"contract_addresses" yaml:"contract_addresses"`
-	ByteCode    string      `json:"bytecode" yaml:"bytecode"`
+	Title       string         `json:"title" yaml:"title"`
+	Description string         `json:"description" yaml:"description"`
+	Contract    sdk.AccAddress `json:"contract_addresses" yaml:"contract_addresses"`
+	ByteCode    string         `json:"bytecode" yaml:"bytecode"`
 }
 
-func NewManageContractByteCodeProposal(title, description string, contract sdk.Address, bytecode string) ManagerContractByteCodeProposal {
+func NewManageContractByteCodeProposal(title, description string, contract sdk.AccAddress, bytecode string) ManagerContractByteCodeProposal {
 	return ManagerContractByteCodeProposal{
 		Title:       title,
 		Description: description,

@@ -32,6 +32,7 @@ func NewHandler(keeper Keeper) sdk.Handler {
 }
 
 func handleMsgSubmitProposal(ctx sdk.Context, keeper keeper.Keeper, msg MsgSubmitProposal) (*sdk.Result, error) {
+	fmt.Println("handleMsgSubmitProposal----", msg.Content.String())
 	err := hasOnlyDefaultBondDenom(msg.InitialDeposit)
 	if err != nil {
 		return sdk.EnvelopedErr{err}.Result()

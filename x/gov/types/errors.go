@@ -5,6 +5,7 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"runtime/debug"
 )
 
 const (
@@ -39,6 +40,7 @@ func ErrInvalidProposalContent(msg string) sdk.Error {
 }
 
 func ErrInvalidProposalType(proposalType string) sdk.Error {
+	debug.PrintStack()
 	return sdkerrors.New(DefaultCodespace, CodeInvalidProposalType, fmt.Sprintf("proposal type '%s' is not valid", proposalType))
 }
 

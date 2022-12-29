@@ -874,6 +874,7 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 // Handler does not exist for a given message route. Otherwise, a reference to a
 // Result is returned. The caller must not commit state if an error is returned.
 func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*sdk.Result, error) {
+	fmt.Println("runMsg-----", len(msgs), mode.String())
 	msgLogs := make(sdk.ABCIMessageLogs, 0, len(msgs))
 	data := make([]byte, 0, len(msgs))
 	events := sdk.EmptyEvents()
