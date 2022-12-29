@@ -47,7 +47,9 @@ func scanClaimRedis() {
 	defer f.Close()
 
 	rediscli.GetInstance().Init()
-	db := rediscli.GetInstance().GetRawClient()
+	pool := rediscli.GetInstance().GetClientPool()
+	db := pool.Get()
+	defer db.Close()
 	//	var claims []*rediscli.XenMint
 
 	curse := viper.GetInt(flagCursor)
