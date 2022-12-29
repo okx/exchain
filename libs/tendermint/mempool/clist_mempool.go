@@ -859,7 +859,7 @@ func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	mem.updateMtx.RLock()
 	defer mem.updateMtx.RUnlock()
-
+	begin := time.Now()
 	var (
 		totalBytes int64
 		totalGas   int64
@@ -958,7 +958,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 			tx = hq.Peek(heads)
 		}
 	}
-
+	mem.logger.Error("ReapMaxBytesMaxGas", "cost", time.Since(begin))
 	return txs
 }
 
@@ -1057,6 +1057,7 @@ func (mem *CListMempool) Update(
 	preCheck PreCheckFunc,
 	postCheck PostCheckFunc,
 ) error {
+	begin := time.Now()
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
@@ -1116,12 +1117,14 @@ func (mem *CListMempool) Update(
 			mem.rmPendingTxChan <- types.EventDataRmPendingTx{txhash, addr, nonce, types.Confirmed}
 		}
 	}
+	timeClean := time.Now()
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
 
 	for accAddr, accMaxNonce := range toCleanAccMap {
 		mem.txs.CleanItems(accAddr, accMaxNonce)
 	}
+	timeCleanItem := time.Now()
 
 	// Either recheck non-committed txs to see if they became invalid
 	// or just notify there're some txs left.
@@ -1166,11 +1169,12 @@ func (mem *CListMempool) Update(
 	if cfg.DynamicConfig.GetEnableDeleteMinGPTx() {
 		mem.deleteMinGPTxOnlyFull()
 	}
+	timedelete := time.Now()
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
 	// already sorted int the last round (will only affect the account that send these txs).
-
+	mem.logger.Error("Update", "sum", timedelete.Sub(begin), "timeClean", timeClean.Sub(begin), "timeCleanItem", timeCleanItem.Sub(timeClean), "deleteMinGPTxOnlyFull", timedelete.Sub(timeCleanItem))
 	return nil
 }
 
