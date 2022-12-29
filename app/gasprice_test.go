@@ -21,9 +21,8 @@ import (
 )
 
 var (
-	txCoin100000  = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom, 100000)
-	nonce         = uint64(0)
-	txNumPerBlock = 200
+	txCoin100000 = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom, 100000)
+	nonce        = uint64(0)
 )
 
 type FakeBlockRecommendGPTestSuite struct {
@@ -121,7 +120,56 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 
 		needMultiple bool
 		gpDecrease   bool
+		tpb          []int
 	}{
+		{
+			title:               "5/5 empty block, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        1000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{0, 0, 0, 0, 0},
+			expectedRecommendGp: []string{"100000000", "100000000", "100000000", "100000000", "100000000"},
+			blocks:              5,
+			needMultiple:        false,
+			tpb:                 []int{0, 0, 0, 0, 0},
+		},
+		{
+			title:               "4/6 empty block, gp increase, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        40000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 0, 0, 0, 0, 46329800},
+			expectedRecommendGp: []string{"100200099", "100000000", "100000000", "100000000", "100000000", "100200099"},
+			blocks:              6,
+			needMultiple:        false,
+			tpb:                 []int{200, 0, 0, 0, 0, 200},
+		},
+		{
+			title:               "4/6 uncongested block, gp increase, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        40000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 23164900, 23164900, 23164900, 23164900, 46329800},
+			expectedRecommendGp: []string{"100200099", "100000000", "100000000", "100000000", "100000000", "100200500"},
+			blocks:              6,
+			needMultiple:        false,
+			tpb:                 []int{200, 100, 100, 100, 100, 200},
+		},
+		{
+			title:               "2/5 empty block, congestion, gp increase, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        1000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 0, 46329800, 0, 46329800},
+			expectedRecommendGp: []string{"100200099", "100000000", "100200099", "100000000", "100200299"},
+			blocks:              5,
+			needMultiple:        false,
+			tpb:                 []int{200, 0, 200, 0, 200},
+		},
 		{
 			title:               "congestion, gp increase, higher gp mode",
 			buildTxs:            generateEvmTxs,
@@ -129,9 +177,35 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200099", "100200299", "100200499", "100200699", "100200899"},
+			expectedRecommendGp: []string{"100200099", "100200099", "100200299", "100200499", "100200699"},
 			blocks:              5,
 			needMultiple:        false,
+			tpb:                 []int{200, 200, 200, 200, 200},
+		},
+		{
+			title:               "2/5 empty block, uncongestion, gp increase, higher gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        60000000,
+			gpMode:              0,
+			expectedTotalGU:     []int64{46329800, 0, 46329800, 0, 46329800},
+			expectedRecommendGp: []string{"100000000", "100000000", "100000000", "100000000", "100000000"},
+			blocks:              5,
+			needMultiple:        false,
+			tpb:                 []int{200, 0, 200, 0, 200},
+		},
+		{
+			title:               "congestion, gp decrease, normal gp mode",
+			buildTxs:            generateEvmTxs,
+			gpMaxTxNum:          300,
+			gpMaxGasUsed:        1000000,
+			gpMode:              1,
+			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
+			expectedRecommendGp: []string{"100199802", "100199802", "100199801", "100199603", "100199603"},
+			blocks:              5,
+			needMultiple:        false,
+			gpDecrease:          true,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
 			title:               "congestion, gp decrease, higher gp mode",
@@ -140,10 +214,11 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100199900", "100199700", "100199500", "100199300", "100199100"},
+			expectedRecommendGp: []string{"100199900", "100199700", "100199700", "100199700", "100199700"},
 			blocks:              5,
 			needMultiple:        false,
 			gpDecrease:          true,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
 			title:               "congestion, gp increase, normal mode",
@@ -152,9 +227,10 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              1,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200000", "100200200", "100200400", "100200600", "100200800"},
+			expectedRecommendGp: []string{"100200001", "100200201", "100200400", "100200402", "100200602"},
 			blocks:              5,
 			needMultiple:        false,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
 			title:               "no congestion, gp increase, higher gp mode",
@@ -163,9 +239,10 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        60000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200000", "100200200", "100200400", "100200600", "100200800"},
+			expectedRecommendGp: []string{"100000000", "100000000", "100000000", "100000000", "100000000"},
 			blocks:              5,
 			needMultiple:        false,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
 			title:               "no congestion, gp increase, gp multiple, higher gp mode",
@@ -174,9 +251,10 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        60000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200000", "100200200", "100200400", "100200600", "100200800"},
+			expectedRecommendGp: []string{"100000000", "100000000", "100000000", "100000000", "100000000"},
 			blocks:              5,
 			needMultiple:        true,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
 			title:               "congestion, gp increase, gp multiple, higher gp mode",
@@ -185,9 +263,10 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"5060109900", "5060120000", "5060130100", "5060140200", "5060150300"},
+			expectedRecommendGp: []string{"5060109900", "5060109900", "5060120000", "5060130100", "5060140200"},
 			blocks:              5,
 			needMultiple:        true,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
 			title:               "congestion, gp decrease, gp multiple, higher gp mode",
@@ -196,10 +275,11 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              0,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"5060094901", "5060084801", "5060074701", "5060064601", "5060054501"},
+			expectedRecommendGp: []string{"5060094901", "5060084801", "5060084801", "5060084801", "5060084801"},
 			blocks:              5,
 			needMultiple:        true,
 			gpDecrease:          true,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 		{
 			title:               "congestion, gp increase, gp multiple, normal mode",
@@ -208,12 +288,15 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			gpMaxGasUsed:        1000000,
 			gpMode:              1,
 			expectedTotalGU:     []int64{46329800, 46329800, 46329800, 46329800, 46329800},
-			expectedRecommendGp: []string{"100200000", "100200200", "100200400", "100200600", "100200800"},
+			expectedRecommendGp: []string{"100200001", "100200201", "100200400", "100200402", "100200602"},
 			blocks:              5,
 			needMultiple:        true,
+			tpb:                 []int{200, 200, 200, 200, 200},
 		},
 	}
 
+	appconfig.GetOecConfig().SetDynamicGpWeight(80)
+	appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
 	suite.SetupTest()
 	for _, tc := range testCases {
 
@@ -229,7 +312,7 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			totalGasUsed := int64(0)
 			suite.beginFakeBlock(height)
 			suite.Run(tc.title+", tx serial", func() {
-				txs := tc.buildTxs(txNumPerBlock, baseGP, &gpOffset, tc.gpDecrease, tc.needMultiple)
+				txs := tc.buildTxs(tc.tpb[i], baseGP, &gpOffset, tc.gpDecrease, tc.needMultiple)
 				for _, tx := range txs {
 					tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
 					txBytes, err := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
@@ -241,9 +324,12 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 				}
 			})
 			//fmt.Println("totalGasUsed: ", totalGasUsed)
-			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU, totalGasUsed)
+			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU[i], totalGasUsed)
 			suite.endFakeBlock(tc.expectedRecommendGp[i])
 			height++
+		}
+		for !suite.app.gpo.BlockGPQueue.IsEmpty() {
+			suite.app.gpo.BlockGPQueue.Pop()
 		}
 
 		// tx parallel
@@ -254,7 +340,7 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 			totalGasUsed := int64(0)
 			suite.beginFakeBlock(height)
 			suite.Run(tc.title+", tx parallel", func() {
-				txs := tc.buildTxs(txNumPerBlock, baseGP, &gpOffset, tc.gpDecrease, tc.needMultiple)
+				txs := tc.buildTxs(tc.tpb[i], baseGP, &gpOffset, tc.gpDecrease, tc.needMultiple)
 				txsBytes := make([][]byte, 0)
 				for _, tx := range txs {
 					tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
@@ -268,9 +354,12 @@ func (suite *FakeBlockRecommendGPTestSuite) TestRecommendGP() {
 				}
 			})
 			//fmt.Println("totalGasUsed: ", totalGasUsed)
-			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU, totalGasUsed)
+			suite.Require().True(totalGasUsed == tc.expectedTotalGU[i], "block gas expect %d, but %d ", tc.expectedTotalGU[i], totalGasUsed)
 			suite.endFakeBlock(tc.expectedRecommendGp[i])
 			height++
+		}
+		for !suite.app.gpo.BlockGPQueue.IsEmpty() {
+			suite.app.gpo.BlockGPQueue.Pop()
 		}
 	}
 }
