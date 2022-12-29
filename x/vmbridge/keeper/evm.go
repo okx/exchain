@@ -81,7 +81,7 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 	if err != nil {
 		return false, err
 	}
-	// only after minting vouchers on this chain
+	// k.CallEvm will call evm, so we must enable evm watch db with follow code
 	if watcher.IsWatcherEnabled() {
 		ctx.SetWatcher(watcher.NewTxWatcher())
 	}
