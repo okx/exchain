@@ -278,7 +278,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 				return false, err
 			}
 			if !ok {
-				rs.logger.Info(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
+				rs.logger.Error(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
 				return false, nil
 			}
 
