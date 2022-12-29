@@ -78,6 +78,14 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice, adoptHigherGp)
 
 	price := new(big.Int).Set(gpo.lastPrice)
+
+	// If the block is not congested, return the minimal GP
+	if !isCongested {
+		price.Set(MinPrice)
+		gpo.lastPrice.Set(price)
+		return price
+	}
+
 	if len(txPrices) > 0 {
 		sort.Sort(types.BigIntArray(txPrices))
 		price.Set(txPrices[(len(txPrices)-1)*gpo.weight/100])
