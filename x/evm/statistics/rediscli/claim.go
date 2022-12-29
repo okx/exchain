@@ -35,4 +35,5 @@ func (r *redisCli) InsertClaim(claim *XenMint) {
 	if claim.Height > r.height {
 		db.Do("SET", "claim-height", claim.Height)
 	}
+	db.Do("INCR", "mint-counter")
 }

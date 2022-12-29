@@ -22,4 +22,5 @@ func (r *redisCli) InsertReward(reward *XenClaimReward) {
 	if reward.Height > r.height {
 		db.Do("SET", "reward-height", reward.Height)
 	}
+	db.Do("INCR", "reward-counter")
 }

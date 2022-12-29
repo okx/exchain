@@ -39,7 +39,9 @@ func TestHSet(t *testing.T) {
 		Term:      30,
 		Rank:      "11600774",
 	}
-	_, err := redis.Int(GetInstance().client.Do("HSET", claim.UserAddr, "height", claim.Height,
+	db := GetInstance().GetClientPool().Get()
+	defer db.Close()
+	_, err := redis.Int(db.Do("HSET", claim.UserAddr, "height", claim.Height,
 		"btime", claim.BlockTime.Unix(), "txhash", claim.TxHash, "term", claim.Term, "rank", claim.Rank, "reward", 0))
 	if err != nil {
 		panic(err)
