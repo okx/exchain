@@ -85,7 +85,7 @@ func scanClaimRedis() {
 					claims.UserAddr = useraddr
 					if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
 						counter++
-						line := fmt.Sprintf("%v, %v,%v\n", counter, claims.TxHash, claims.UserAddr)
+						line := fmt.Sprintf("%v,%v,%v\n", counter, claims.TxHash, claims.UserAddr)
 						_, err = f.WriteString(line)
 						if err != nil {
 							panic(err)
