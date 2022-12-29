@@ -93,15 +93,19 @@ loop:
 		line := scanner.Text()
 		eu := getExpiredUser(line)
 		um := ReadContract(client, common.HexToAddress(XenContractAddr), "userMints", common.HexToAddress(eu.UserAddr[2:]))
-		if time.Now().Unix()-um.MaturityTs < 7*24*60*60 {
-			log.Printf("\nuserAddr %v not expired\n", eu)
+
+		if um.UserAddr.String() != "0x0000000000000000000000000000000000000000" && time.Now().Unix()-um.MaturityTs > 8*24*60*60 {
+			fmt.Printf("%v,%v\n", eu.TxHash, eu.UserAddr)
 		}
-		if um.UserAddr.String() == "0x0000000000000000000000000000000000000000" {
-			log.Printf("\nuserAddr %v has reward \n", eu)
-		}
-		fmt.Printf(".")
+		time.Sleep(time.Duration(50) * time.Millisecond)
+		//	if time.Now().Unix()-um.MaturityTs < 7*24*60*60 {
+		//		log.Printf("\nuserAddr %v not expired\n", eu)
+		//	}
+		//	if um.UserAddr.String() == "0x0000000000000000000000000000000000000000" {
+		//		log.Printf("\nuserAddr %v has reward \n", eu)
+		//	}
+		//	fmt.Printf(".")
 	}
-	log.Println("Success")
 }
 
 func ReadContract(client *ethclient.Client, contractAddr common.Address, name string, args ...interface{}) UserMints {
@@ -137,12 +141,12 @@ func ReadContract(client *ethclient.Client, contractAddr common.Address, name st
 
 func getExpiredUser(line string) ExpiredUser {
 	eu := strings.Split(line, ",")
-	if len(eu) != 3 {
+	if len(eu) != 2 {
 		panic(fmt.Sprintf("error format %v\n", line))
 	}
 
 	return ExpiredUser{
-		TxHash:   eu[1],
-		UserAddr: eu[2],
+		TxHash:   eu[0],
+		UserAddr: eu[1],
 	}
 }
