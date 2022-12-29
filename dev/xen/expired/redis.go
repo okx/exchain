@@ -9,7 +9,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -35,7 +37,7 @@ func init() {
 }
 
 func scanClaimRedis() {
-	//	ttl := viper.GetInt64(flagTTL)
+	ttl := viper.GetInt64(flagTTL)
 
 	filename := filepath.Join(viper.GetString(flagOutputDir), xenExpiredAddr)
 
@@ -50,7 +52,7 @@ func scanClaimRedis() {
 	pool := rediscli.GetInstance().GetClientPool()
 	db := pool.Get()
 	defer db.Close()
-	//	var claims []*rediscli.XenMint
+	var claims rediscli.XenMint
 
 	curse := viper.GetInt(flagCursor)
 	for {
@@ -63,24 +65,33 @@ func scanClaimRedis() {
 			if err != nil {
 				panic(fmt.Sprintf("got curse error %v %v", curseValues[0], err))
 			}
-			log.Println(curseValues[1])
 			values, err := redis.Values(curseValues[1], err)
 			if err != nil {
 				panic(fmt.Sprintf("get values error %v %v", curseValues[1], err))
 			}
 			for _, v := range values {
-				key, err := redis.String(v, nil)
+				useraddr, err := redis.String(v, nil)
 				if err != nil {
 					panic(err)
 				}
-				if strings.Contains(key, "0x") {
-					content, err := redis.Values(db.Do("HGETALL", key))
+				if strings.Contains(useraddr, "0x") {
+					content, err := redis.StringMap(db.Do("HGETALL", useraddr))
 					if err != nil {
 						panic(err)
 					}
-					for _, v := range content {
-						s, _ := redis.String(v, nil)
-						log.Println(s)
+					for key, value := range content {
+						parseClaim(&claims, key, value)
+					}
+					claims.UserAddr = useraddr
+					log.Println(time.Now().Unix())
+					log.Println(claims.BlockTime.Add(time.Duration(claims.Term+ttl) * time.Duration(24) * time.Hour).Unix())
+					log.Println(claims)
+					if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
+						line := fmt.Sprintf("%v,%v\n", claims.TxHash, claims.UserAddr)
+						_, err = f.WriteString(line)
+						if err != nil {
+							panic(err)
+						}
 					}
 				}
 			}
@@ -89,12 +100,22 @@ func scanClaimRedis() {
 				return
 			}
 		}
-		//			if time.Now().Unix() > v.BlockTime.Add(time.Duration(*v.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
-		//				line := fmt.Sprintf("%v,%v,%v\n", v.ID, *v.Txhash, *v.Useraddr)
-		//				_, err = f.WriteString(line)
-		//				if err != nil {
-		//					panic(err)
-		//				}
-		//			}
+	}
+}
+
+func parseClaim(claim *rediscli.XenMint, key, value string) {
+	switch key {
+	case "height":
+		height, _ := strconv.Atoi(value)
+		claim.Height = int64(height)
+	case "txhash":
+		claim.TxHash = value
+	case "term":
+		term, _ := strconv.Atoi(value)
+		claim.Term = int64(term)
+	case "btime":
+		utc, _ := strconv.Atoi(value)
+		tim := time.Unix(int64(utc), 0)
+		claim.BlockTime = tim
 	}
 }
