@@ -9,6 +9,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	erc20types "github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/vmbridge/types"
 	"math/big"
 )
@@ -80,9 +81,16 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 	if err != nil {
 		return false, err
 	}
+	// only after minting vouchers on this chain
+	if watcher.IsWatcherEnabled() {
+		ctx.SetWatcher(watcher.NewTxWatcher())
+	}
 	_, result, err := k.CallEvm(ctx, &conrtractAddr, big.NewInt(0), input)
 	if err != nil {
 		return false, err
+	}
+	if watcher.IsWatcherEnabled() && err == nil {
+		ctx.GetWatcher().Finalize()
 	}
 	return types.GetMintERC20Output(result.Ret)
 }
