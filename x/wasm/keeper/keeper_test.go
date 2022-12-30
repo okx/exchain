@@ -149,6 +149,7 @@ func TestCreateWithParamPermissions(t *testing.T) {
 	}{
 		"default": {
 			srcPermission: types.DefaultUploadAccess,
+			expError:      sdkerrors.ErrUnauthorized,
 		},
 		"everybody": {
 			srcPermission: types.AllowEverybody,
@@ -244,7 +245,7 @@ func TestEnforceValidPermissionsOnCreate(t *testing.T) {
 	}
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
-			params := types.DefaultParams()
+			params := types.TestParams()
 			params.InstantiateDefaultPermission = spec.defaultPermssion
 			keeper.SetParams(ctx, params)
 			codeID, err := contractKeeper.Create(ctx, creator, hackatomWasm, spec.requestedPermission)
@@ -504,6 +505,7 @@ func TestInstantiateWithPermissions(t *testing.T) {
 		"default": {
 			srcPermission: types.DefaultUploadAccess,
 			srcActor:      anyAddr,
+			expError:      sdkerrors.ErrUnauthorized,
 		},
 		"everybody": {
 			srcPermission: types.AllowEverybody,
