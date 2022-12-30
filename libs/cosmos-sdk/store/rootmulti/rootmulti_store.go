@@ -232,7 +232,6 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			}
 			// ignore empty tree
 			if len(versions) == 0{
-				rs.logger.Error("Empty tree", "ival:", firstKey.Name())
 				continue
 			}
 			isFindIavlStoreParam = true
@@ -247,7 +246,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 
 	//sort the versions list
 	sort.Slice(versions, func(i, j int) bool { return versions[i] > versions[j] })
-	rs.logger.Error("GetCommitVersion", "iavl:", firstKey.Name(), "versions :", versions)
+	rs.logger.Info("GetCommitVersion", "iavl:", firstKey.Name(), "versions :", versions)
 	//find version in rootmultistore
 	for _, version := range versions {
 		hasVersion, err := rs.hasVersion(version)
@@ -255,7 +254,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			return 0, err
 		}
 		if hasVersion {
-			rs.logger.Error("GetCommitVersion", "version :", version)
+			rs.logger.Info("GetCommitVersion", "version :", version)
 			return version, nil
 		}
 	}
@@ -283,10 +282,8 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 				return false, err
 			}
 			if !ok {
-				rs.logger.Error(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
+				rs.logger.Info(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
 				return false, nil
-			}else{
-				rs.logger.Error(fmt.Sprintf("iavl-%s has version: %d", key.Name(), targetVersion))
 			}
 
 		} else if storeParams.typ == types.StoreTypeMPT {

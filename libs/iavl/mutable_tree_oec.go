@@ -131,7 +131,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	if shouldPersist {
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
-		tree.log(IavlInfo, "--Persist tree:", version, tree.GetModuleName())
 		tree.persist(version)
 	}
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
