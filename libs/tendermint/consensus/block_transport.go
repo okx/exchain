@@ -48,9 +48,9 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.bpNOTransByData = 0
 	bt.bpNOTransByACK = 0
 	bt.bpSend = 0
-	bt.lastBPSender = ""
-	bt.lastPrecommitSender = ""
-	bt.lastPrevoteSender = ""
+	bt.lastBPSender = "-"
+	bt.lastPrecommitSender = "-"
+	bt.lastPrevoteSender = "-"
 }
 
 func (bt *BlockTransport) on1stPart(height int64) {

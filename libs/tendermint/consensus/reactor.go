@@ -428,9 +428,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *NewRoundStepMessage:
-			v, _:=pID2Pubkey.Load(src.ID())
-			if !bytes.Equal(v.(types.Address), msg.ConsensusAddress) {
-				pID2Pubkey.Store(src.ID(),msg.ConsensusAddress)
+			v, _ := pID2Pubkey.Load(src.ID())
+			if (v == nil) || !bytes.Equal(v.(types.Address), msg.ConsensusAddress) {
+				pID2Pubkey.Store(src.ID(), msg.ConsensusAddress)
 			}
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
