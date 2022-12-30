@@ -47,12 +47,16 @@ func (cs *State) traceDump() {
 		cs.bt.totalParts,
 	))
 
+	trace.GetElapsedInfo().AddInfo(trace.CSP2P, fmt.Sprintf("%s|%s|%s",
+		cs.bt.lastBPSender, cs.bt.lastPrevoteSender, cs.bt.lastPrecommitSender))
+
 	trace.GetElapsedInfo().AddInfo(trace.BlockPartsP2P, fmt.Sprintf("%d|%d|%d",
 		cs.bt.bpNOTransByACK, cs.bt.bpNOTransByData, cs.bt.bpSend))
 
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
+	cs.bt.reset(cs.Height)
 }
 
 // Enter: +2/3 precommits for block
@@ -383,7 +387,6 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	cs.bt.reset(height)
 
 	cs.Validators = validators
 	cs.Proposal = nil

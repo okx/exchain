@@ -39,6 +39,7 @@ var (
 		{trace.Produce, 0},
 		{trace.CompressBlock, 0},
 		{trace.UncompressBlock, 0},
+		{trace.CSP2P, 1},
 	}
 
 	mandatorySchemas = []string{

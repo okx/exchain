@@ -85,6 +85,7 @@ const (
 	IavlRuntime     = "IavlRuntime"
 
 	BlockPartsP2P = "BlockPartsP2P"
+	CSP2P         = "CSP2P"
 
 	Workload = "Workload"
 	ACOffset = "ACOffset"

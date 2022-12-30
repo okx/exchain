@@ -33,7 +33,7 @@ var (
 
 	activeViewChange = false
 
-	pID2Pubkey = map[p2p.ID]types.Address{}
+	pID2Pubkey = sync.Map{}
 )
 
 func SetActiveVC(value bool) {

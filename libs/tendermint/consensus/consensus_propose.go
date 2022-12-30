@@ -77,7 +77,9 @@ func (cs *State) isBlockProducer() (string, string) {
 
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
 // Enter (CreateEmptyBlocks, CreateEmptyBlocksInterval > 0 ):
-// 		after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
+//
+//	after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
+//
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
@@ -351,7 +353,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return
 		}
 		cs.trc.Pin("lastPart")
-		cs.bt.onRecvBlock(height)
+		cs.bt.onRecvBlock(height, peerID, cs.privValidatorPubKey.Address())
 		cs.bt.totalParts = cs.ProposalBlockParts.Total()
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock)

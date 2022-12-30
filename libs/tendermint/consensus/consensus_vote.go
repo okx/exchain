@@ -180,6 +180,7 @@ func (cs *State) addVote(
 		case cs.Round == vote.Round && cstypes.RoundStepPrevote <= cs.Step: // current round
 			blockID, ok := prevotes.TwoThirdsMajority()
 			if ok && (cs.isProposalComplete() || len(blockID.Hash) == 0) {
+				cs.bt.onLastPrevote(height, peerID, vote.ValidatorAddress, cs.privValidatorPubKey.Address())
 				cs.enterPrecommit(height, vote.Round)
 			} else if prevotes.HasTwoThirdsAny() {
 				cs.enterPrevoteWait(height, vote.Round)
@@ -201,6 +202,7 @@ func (cs *State) addVote(
 			cs.enterNewRound(height, vote.Round)
 			cs.enterPrecommit(height, vote.Round)
 			if len(blockID.Hash) != 0 {
+				cs.bt.onLastPrecommit(height, peerID, vote.ValidatorAddress, cs.privValidatorPubKey.Address())
 				cs.enterCommit(height, vote.Round)
 				if cs.config.SkipTimeoutCommit && precommits.HasAll() {
 					cs.enterNewRound(cs.Height, 0)
