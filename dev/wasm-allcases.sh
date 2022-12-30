@@ -136,6 +136,24 @@ proposal_vote() {
   fi;
 }
 
+res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+failed_log="unauthorized: can not create code: failed to execute message; message index: 0"
+if [[ "${raw_log}" != "${failed_log}" ]];
+then
+  echo "expect fail when update-wasm-deployment-whitelist is nobody"
+  exit 1
+fi;
+
+#####################################################
+########    update deployment whitelist     #########
+#####################################################
+echo "## update wasm code deployment whitelist"
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "$captain,$admin18" --deposit 10okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "proposal_id: $proposal_id"
+proposal_vote "$proposal_id"
+
 #####################################################
 #############       store code       ################
 #####################################################
