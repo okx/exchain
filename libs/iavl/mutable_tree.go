@@ -1022,7 +1022,13 @@ func (tree *MutableTree) addUnsavedAddition(key, value []byte, version int64) {
 }
 
 func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*FastNode) error {
+	keysToSort := make([]string, 0, len(additions))
 	for key := range additions {
+		keysToSort = append(keysToSort, key)
+	}
+	sort.Strings(keysToSort)
+
+	for _, key := range keysToSort {
 		if err := ndb.SaveFastNode(additions[key], batch); err != nil {
 			return err
 		}
@@ -1038,7 +1044,13 @@ func (tree *MutableTree) addUnsavedRemoval(key []byte) {
 }
 
 func (ndb *nodeDB) saveFastNodeRemovals(batch dbm.Batch, removals map[string]interface{}) error {
+	keysToSort := make([]string, 0, len(removals))
 	for key := range removals {
+		keysToSort = append(keysToSort, key)
+	}
+	sort.Strings(keysToSort)
+
+	for _, key := range keysToSort {
 		if err := ndb.DeleteFastNode([]byte(key), batch); err != nil {
 			return err
 		}
