@@ -15,15 +15,15 @@ const (
 	apiPathGetDelta = "api/v1/delta/"
 )
 
-type APIErrorResult struct {
-	Code    int           `json:"code"`
-	Message string        `json:"message"`
-	Details []interface{} `json:"details"`
+type APIResult struct {
+	Success bool   `json:"success"`
+	Version int    `json:"version"`
+	Data    []byte `json:"data"`
 }
 
-type APISuccessResult struct {
-	Version int    `json:"version"`
-	Result  []byte `json:"result"`
+type APIErrorResult struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 func MakeGetDeltaRequestPath(base string, height int64) string {
@@ -38,19 +38,22 @@ func MakeGetDeltaRequestPath(base string, height int64) string {
 }
 
 func ParseResponse(data []byte, height int64) ([]byte, error, int64) {
-	var succ APISuccessResult
-	if err := json.Unmarshal(data, &succ); err != nil {
+	var result APIResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("unknown response APIResult returned by persist-delta server"), 0
+	}
+	if !result.Success {
 		var apiError APIErrorResult
-		if err := json.Unmarshal(data, &apiError); err != nil {
-			return nil, fmt.Errorf("unknown response format returned by persist-delta server"), 0
+		if err := json.Unmarshal(result.Data, &apiError); err != nil {
+			return nil, fmt.Errorf("unknown response error data returned by persist-delta server"), 0
 		}
 		return nil, fmt.Errorf("persist-delta server error: code: %d; message: %s", apiError.Code, apiError.Message), 0
 	}
 
-	if succ.Version != Version {
-		return nil, fmt.Errorf("unexpect response verion: current is %d but got %d", Version, succ.Version), 0
+	if result.Version != Version {
+		return nil, fmt.Errorf("unexpect response verion: current is %d but got %d", Version, result.Version), 0
 	}
 
 	// TODO: most recent height(mrh) seems link useless, delete it.
-	return succ.Result, nil, height
+	return result.Data, nil, height
 }
