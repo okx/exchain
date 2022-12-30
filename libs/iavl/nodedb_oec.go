@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+	"sort"
 
 	cmap "github.com/orcaman/concurrent-map"
 
@@ -96,14 +97,22 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, writeToDB bool, trc *trace.Tra
 	batch := event.batch
 	tpp := event.tpp
 
+	trc.Pin("sort-node")
+
+	keysToSort := make([]string, 0, len(tpp))
+	for key := range tpp {
+		keysToSort = append(keysToSort, key)
+	}
+	sort.Strings(keysToSort)
+
 	trc.Pin("batchSet-node")
 	if !writeToDB {
-		for _, node := range tpp {
-			ndb.batchSet(node, batch)
+		for _, key := range keysToSort {
+			ndb.batchSet(tpp[key], batch)
 		}
 	} else {
-		for _, node := range tpp {
-			err := ndb.saveNodeToDB(node)
+		for _, key := range keysToSort {
+			err := ndb.saveNodeToDB(tpp[key])
 			if err != nil {
 				panic(err)
 			}
