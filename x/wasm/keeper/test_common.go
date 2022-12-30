@@ -414,7 +414,9 @@ func createTestInput(
 		supportedFeatures,
 		opts...,
 	)
-	keeper.SetParams(ctx, types.DefaultParams())
+	wasmParams := types.DefaultParams()
+	wasmParams.CodeUploadAccess = types.AllowEverybody
+	keeper.SetParams(ctx, wasmParams)
 	// add wasm handler so we can loop-back (contracts calling contracts)
 	contractKeeper := NewDefaultPermissionKeeper(&keeper)
 	router.AddRoute(types.RouterKey, TestHandler(contractKeeper))
