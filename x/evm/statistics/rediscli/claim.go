@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"github.com/okex/exchain/libs/tendermint/global"
+	"strconv"
 	"time"
 )
 
@@ -17,18 +18,24 @@ const (
 
 func (r *redisCli) InsertClaim(claim *XenMint) {
 	if global.RedisPassword == "" {
-		r.insertSingle(claim)
+		r.insertSingle(claim, true)
 	} else {
 		r.insertMulti(claim)
 	}
 }
 
-func (r *redisCli) parseXenMint(userAddr string) *XenMint {
+func (r *redisCli) parseXenMint(uaddr string) *XenMint {
+	userAddr := "c" + uaddr
 	db := r.client.Get()
 	defer db.Close()
-	db.Do("HGETALL", userAddr)
-	return nil
+	mintValues, _ := redis.StringMap(db.Do("HGETALL", userAddr))
+	var ret XenMint
+	ret.UserAddr = userAddr
+	for key, value := range mintValues {
+		parseClaim(&ret, key, value)
+	}
 
+	return &ret
 }
 
 func (r *redisCli) insertMulti(claim *XenMint) {
@@ -40,10 +47,16 @@ func (r *redisCli) insertMulti(claim *XenMint) {
 
 	exists, _ := redis.Int(db.Do("EXISTS", claim.UserAddr))
 	if exists == 1 {
+		mint := r.parseXenMint(claim.UserAddr)
+		if mint.Height < claim.Height {
+			r.insertSingle(claim, false)
+		}
+	} else {
+		r.insertSingle(claim, false)
 	}
 }
 
-func (r *redisCli) insertSingle(claim *XenMint) {
+func (r *redisCli) insertSingle(claim *XenMint, updateMeta bool) {
 	if claim.Height < int64(r.height) {
 		return
 	}
@@ -57,14 +70,37 @@ func (r *redisCli) insertSingle(claim *XenMint) {
 	//		panic(fmt.Sprintf("error %v or exists %v", err, claim.UserAddr))
 	//	}
 
-	_, err := redis.Int(db.Do("HSET", claim.UserAddr, "height", claim.Height,
+	userAddrKey := claim.UserAddr
+	if !updateMeta {
+		userAddrKey = "c" + claim.UserAddr
+	}
+	_, err := redis.Int(db.Do("HSET", userAddrKey, "height", claim.Height,
 		"btime", claim.BlockTime.Unix(), "txhash", claim.TxHash, "term", claim.Term, "rank", claim.Rank, "reward", 0))
 	if err != nil && claim.Height != r.height {
 		panic(fmt.Sprintf("hset %v error %v", claim, err))
 	}
 
-	if claim.Height > r.height {
-		db.Do("SET", "claim-height", claim.Height)
+	if updateMeta {
+		if claim.Height > r.height {
+			db.Do("SET", "claim-height", claim.Height)
+		}
+		db.Do("INCR", "mint-counter")
 	}
-	db.Do("INCR", "mint-counter")
+}
+
+func parseClaim(claim *XenMint, key, value string) {
+	switch key {
+	case "height":
+		height, _ := strconv.Atoi(value)
+		claim.Height = int64(height)
+	case "txhash":
+		claim.TxHash = value
+	case "term":
+		term, _ := strconv.Atoi(value)
+		claim.Term = int64(term)
+	case "btime":
+		utc, _ := strconv.Atoi(value)
+		tim := time.Unix(int64(utc), 0)
+		claim.BlockTime = tim
+	}
 }

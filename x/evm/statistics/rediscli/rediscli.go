@@ -35,9 +35,11 @@ func (r *redisCli) Init() {
 			if err != nil {
 				return nil, err
 			}
-			if _, err := c.Do("AUTH", global.RedisPassword); err != nil {
-				c.Close()
-				return nil, err
+			if global.RedisPassword != "" {
+				if _, err := c.Do("AUTH", global.RedisPassword); err != nil {
+					c.Close()
+					return nil, err
+				}
 			}
 			return c, nil
 		},
