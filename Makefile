@@ -59,7 +59,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    Venus1Height=12067000
    Venus2Height=14781000
    Venus3Height=15540000
-   EarthHeight=17363500
+   EarthHeight=17364500
 
    WITH_ROCKSDB=true
 endif
