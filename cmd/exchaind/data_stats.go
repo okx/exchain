@@ -23,7 +23,7 @@ func dbStatsCmd(ctx *server.Context) *cobra.Command {
 
 			// {home}/data/*
 			fromDir := ctx.Config.DBDir()
-			R2TiKV("application", fromDir)
+			loop("application", fromDir)
 
 			return nil
 		},
@@ -32,7 +32,7 @@ func dbStatsCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
-func R2TiKV(name, fromDir string) {
+func loop(name, fromDir string) {
 	rdb, err := dbm.NewRocksDB(name, fromDir)
 	if err != nil {
 		panic(err)
@@ -45,15 +45,49 @@ func R2TiKV(name, fromDir string) {
 	}
 
 	counter := 0
-	const commitGap = 50000
+	total := 0
+	latestPrefix := ""
+	keys := make(map[string]int)
 
 	for ; iter.Valid(); iter.Next() {
-		if counter%commitGap == 0 {
-			log.Printf("touching %v ...\n", counter)
+		total++
+		fk, format := getFormatKey(iter.Key())
+		if format {
+			if fk != latestPrefix {
+				keys[latestPrefix] = counter + 1
+				latestPrefix = fk
+				counter = 0
+			} else {
+				counter++
+			}
+		} else {
+			log.Println("unknown ", string(iter.Key()))
 		}
-		counter++
-		log.Println(iter.Key())
 	}
-	log.Printf("total %v done \n", counter)
+	keys[latestPrefix] = counter + 1
+
+	tt := 0
+	for _, v := range keys {
+		tt += v
+	}
+	log.Printf("total map %v done \n", tt)
+	log.Printf("total %v done \n", total)
+	log.Println(keys)
 	iter.Close()
+}
+
+func getFormatKey(key []byte) (string, bool) {
+	slashCount := 0
+	slashIndex := 0
+	for _, v := range key {
+		if v == '/' {
+			slashCount++
+		}
+		slashIndex++
+		if slashCount == 2 && len(key) > slashIndex {
+			return string(key[:slashIndex+1]), true
+		}
+	}
+
+	return "", false
 }
