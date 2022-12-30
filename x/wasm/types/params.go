@@ -105,6 +105,7 @@ func DefaultParams() Params {
 func TestParams() Params {
 	params := DefaultParams()
 	params.CodeUploadAccess = AllowEverybody
+	params.VmbridgeEnable = true
 	return params
 }
 
