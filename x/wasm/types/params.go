@@ -97,7 +97,7 @@ func DefaultParams() Params {
 		CodeUploadAccess:             AllowNobody,
 		InstantiateDefaultPermission: AccessTypeEverybody,
 		UseContractBlockedList:       true,
-		VmbridgeEnable:               true,
+		VmbridgeEnable:               false,
 	}
 }
 
