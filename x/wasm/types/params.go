@@ -81,7 +81,7 @@ func (a AccessConfig) Equals(o AccessConfig) bool {
 }
 
 var (
-	DefaultUploadAccess = AllowEverybody
+	DefaultUploadAccess = AllowNobody
 	AllowEverybody      = AccessConfig{Permission: AccessTypeEverybody}
 	AllowNobody         = AccessConfig{Permission: AccessTypeNobody}
 )
@@ -99,6 +99,13 @@ func DefaultParams() Params {
 		UseContractBlockedList:       true,
 		VmbridgeEnable:               false,
 	}
+}
+
+// TestParams returns default wasm parameters for unit tests
+func TestParams() Params {
+	params := DefaultParams()
+	params.CodeUploadAccess = AllowEverybody
+	return params
 }
 
 func (p Params) String() string {
