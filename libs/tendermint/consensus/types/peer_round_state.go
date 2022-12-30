@@ -40,8 +40,6 @@ type PeerRoundState struct {
 	CatchupCommit *bits.BitArray `json:"catchup_commit"`
 
 	AVCHeight int64 `json:"avc_height"`
-
-	PeerValidatorPubKey types.Address `json:"peer_validator_pub_key"`
 }
 
 // String returns a string representation of the PeerRoundState

@@ -428,6 +428,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *NewRoundStepMessage:
+			if !bytes.Equal(pID2Pubkey[src.ID()], msg.ConsensusAddress) {
+				pID2Pubkey[src.ID()] = msg.ConsensusAddress
+			}
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
 			ps.ApplyNewValidBlockMessage(msg)
@@ -595,7 +598,7 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		})
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
 		func(data tmevents.EventData) {
-			conR.sendProposeRequestMessage(data.(*ProposeRequestMessage))
+			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
 		})
 }
 
@@ -604,23 +607,8 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	conR.conS.evsw.RemoveListener(subscriber)
 }
 
-func (conR *Reactor) checkSendPrMsg(prMsg *ProposeRequestMessage) {
-	peers := conR.Switch.Peers().List()
-	for _, peer := range peers {
-		if ps, ok := peer.Get(types.PeerStateKey).(*PeerState); ok {
-			prs := ps.GetRoundState()
-			if bytes.Equal(prs.PeerValidatorPubKey, prMsg.CurrentProposer) {
-				if prs.Height <= conR.conHeight {
-					peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
-				}
-				return
-			}
-		}
-	}
-}
-
-func (conR *Reactor) sendProposeRequestMessage(prMsg *ProposeRequestMessage) {
-	conR.checkSendPrMsg(prMsg)
+func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage) {
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
 func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
@@ -1567,8 +1555,6 @@ func (ps *PeerState) setHasVote(height int64, round int, voteType types.SignedMs
 func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
-
-	ps.PRS.PeerValidatorPubKey = msg.ConsensusAddress
 
 	// Ignore duplicates or decreases
 	if CompareHRS(msg.Height, msg.Round, msg.Step,

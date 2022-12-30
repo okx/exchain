@@ -32,6 +32,8 @@ var (
 	errPubKeyIsNotSet = errors.New("pubkey is not set. Look for \"Can't get private validator pubkey\" errors")
 
 	activeViewChange = false
+
+	pID2Pubkey = map[p2p.ID]types.Address{}
 )
 
 func SetActiveVC(value bool) {
