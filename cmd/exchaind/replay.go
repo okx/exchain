@@ -65,6 +65,8 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 		Use:   "replay",
 		Short: "Replay blocks from local db",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			global.RedisAddr = viper.GetString(flagRedisAddr)
+			global.RedisPassword = viper.GetString(flagRedisPassword)
 			// set external package flags
 			log.Println("--------- replay preRun ---------")
 			err := sanity.CheckStart()
@@ -193,6 +195,8 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
+	cmd.Flags().String(flagRedisAddr, ":6379", "redisAddr")
+	cmd.Flags().String(flagRedisPassword, "", "redis password")
 
 	viper.SetDefault(watcher.FlagFastQuery, false)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)

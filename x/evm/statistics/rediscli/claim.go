@@ -3,6 +3,7 @@ package rediscli
 import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"time"
 )
 
@@ -15,11 +16,38 @@ const (
 )
 
 func (r *redisCli) InsertClaim(claim *XenMint) {
+	if global.RedisPassword == "" {
+		r.insertSingle(claim)
+	} else {
+		r.insertMulti(claim)
+	}
+}
 
+func (r *redisCli) parseXenMint(userAddr string) *XenMint {
+	db := r.client.Get()
+	defer db.Close()
+	db.Do("HGETALL", userAddr)
+	return nil
+
+}
+
+func (r *redisCli) insertMulti(claim *XenMint) {
+	if (claim.BlockTime).Add(time.Duration(claim.Term+8)*time.Duration(24)*time.Hour).Unix() > TermThreshold {
+		return
+	}
+	db := r.client.Get()
+	defer db.Close()
+
+	exists, _ := redis.Int(db.Do("EXISTS", claim.UserAddr))
+	if exists == 1 {
+	}
+}
+
+func (r *redisCli) insertSingle(claim *XenMint) {
 	if claim.Height < int64(r.height) {
 		return
 	}
-	if (claim.BlockTime).Add(time.Duration(claim.Term)*time.Duration(24)*time.Hour).Unix() > TermThreshold {
+	if (claim.BlockTime).Add(time.Duration(claim.Term+8)*time.Duration(24)*time.Hour).Unix() > TermThreshold {
 		return
 	}
 	db := r.client.Get()
