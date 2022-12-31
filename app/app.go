@@ -573,7 +573,7 @@ func NewOKExChainApp(
 	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
 	// Set IBC hooks
-	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(app.TokenKeeper)
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	left := common.NewDisaleProxyMiddleware()

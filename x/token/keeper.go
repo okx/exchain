@@ -447,3 +447,78 @@ func (k Keeper) DeleteConfirmOwnership(ctx sdk.Context, symbol string) {
 	key := types.GetConfirmOwnershipKey(symbol)
 	store.Delete(key)
 }
+
+func (k Keeper) AfterSendTransfer(
+	ctx sdk.Context,
+	sourcePort, sourceChannel string,
+	token sdk.SysCoin,
+	sender sdk.AccAddress,
+	receiver string,
+	isSource bool,
+) error {
+	if isSource {
+		return nil
+	}
+	store := ctx.KVStore(k.tokenStoreKey)
+	b := store.Get(types.GetTokenAddress(token.Denom))
+	var ibcToken types.Token
+	k.cdc.MustUnmarshalBinaryBare(b, &ibcToken)
+	ibcToken.OriginalTotalSupply.Sub(token.Amount)
+	store.Set(types.GetTokenAddress(token.Denom), k.cdc.MustMarshalBinaryBare(ibcToken))
+	return nil
+}
+
+func (k Keeper) AfterRecvTransfer(
+	ctx sdk.Context,
+	destPort, destChannel string,
+	token sdk.SysCoin,
+	receiver string,
+	isSource bool,
+) error {
+	if isSource {
+		return nil
+	}
+
+	store := ctx.KVStore(k.tokenStoreKey)
+	if !store.Has(types.GetTokenAddress(token.Denom)) {
+		ibcToken := types.Token{
+			Description:         "IBC token",
+			OriginalSymbol:      token.Denom,
+			WholeName:           token.Denom,
+			OriginalTotalSupply: token.Amount,
+		}
+		store.Set(types.GetTokenAddress(token.Denom), k.cdc.MustMarshalBinaryBare(ibcToken))
+		// update token number
+		tokenNumber := k.getTokenNum(ctx)
+		b := k.cdc.MustMarshalBinaryBare(tokenNumber + 1)
+		store.Set(types.TokenNumberKey, b)
+	} else {
+		b := store.Get(types.GetTokenAddress(token.Denom))
+		var ibcToken types.Token
+		k.cdc.MustUnmarshalBinaryBare(b, &ibcToken)
+		ibcToken.OriginalTotalSupply.Add(token.Amount)
+		store.Set(types.GetTokenAddress(token.Denom), k.cdc.MustMarshalBinaryBare(ibcToken))
+	}
+
+	return nil
+}
+
+func (k Keeper) AfterRefundTransfer(
+	ctx sdk.Context,
+	sourcePort, sourceChannel string,
+	token sdk.SysCoin,
+	sender string,
+	isSource bool,
+) error {
+	if isSource {
+		return nil
+	}
+
+	store := ctx.KVStore(k.tokenStoreKey)
+	b := store.Get(types.GetTokenAddress(token.Denom))
+	var ibcToken types.Token
+	k.cdc.MustUnmarshalBinaryBare(b, &ibcToken)
+	ibcToken.OriginalTotalSupply.Add(token.Amount)
+	store.Set(types.GetTokenAddress(token.Denom), k.cdc.MustMarshalBinaryBare(ibcToken))
+	return nil
+}
