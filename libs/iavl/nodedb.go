@@ -972,3 +972,10 @@ func (ndb *nodeDB) String() string {
 	str = strings.Join(strs, ",")
 	return "-" + "\n" + str + "-"
 }
+
+func GetToFrom(key []byte) (int64, int64) {
+	var to, from int64
+	orphanKeyFormat.Scan(key, &to, &from)
+
+	return to, from
+}

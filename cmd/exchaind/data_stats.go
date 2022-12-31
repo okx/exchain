@@ -54,7 +54,6 @@ func loop(name, fromDir string) {
 	orpanStatsFrom := make(map[int64]int)
 
 	for ; iter.Valid(); iter.Next() {
-		log.Println(string(iter.Key()))
 		total++
 		fk, format := getFormatKey(iter.Key())
 		if format {
@@ -66,8 +65,7 @@ func loop(name, fromDir string) {
 				counter++
 			}
 			if fk == "s/k:evm/o" {
-				var to, from int64
-				iavl.MyOrphanKeyFormat.Scan(iter.Key(), &to, &from)
+				to, from := iavl.GetToFrom(iter.Key()[len(fk)-1:])
 				orpanStatsTo[to]++
 				orpanStatsFrom[from]++
 			}
