@@ -6,6 +6,7 @@ package main
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/cobra"
@@ -49,7 +50,11 @@ func loop(name, fromDir string) {
 	latestPrefix := ""
 	keys := make(map[string]int)
 
+	orpanStatsTo := make(map[int64]int)
+	orpanStatsFrom := make(map[int64]int)
+
 	for ; iter.Valid(); iter.Next() {
+		log.Println(string(iter.Key()))
 		total++
 		fk, format := getFormatKey(iter.Key())
 		if format {
@@ -60,6 +65,12 @@ func loop(name, fromDir string) {
 			} else {
 				counter++
 			}
+			if fk == "s/k:evm/o" {
+				var to, from int64
+				iavl.MyOrphanKeyFormat.Scan(iter.Key(), &to, &from)
+				orpanStatsTo[to]++
+				orpanStatsFrom[from]++
+			}
 		} else {
 			log.Println("unknown ", string(iter.Key()))
 		}
@@ -69,6 +80,14 @@ func loop(name, fromDir string) {
 	tt := 0
 	for _, v := range keys {
 		tt += v
+	}
+	log.Println("-----print orpan from-----")
+	for k, v := range orpanStatsFrom {
+		log.Printf("%v,%v\n", k, v)
+	}
+	log.Println("-----print orpan to-----")
+	for k, v := range orpanStatsTo {
+		log.Printf("%v,%v\n", k, v)
 	}
 	log.Printf("total map %v done \n", tt)
 	log.Printf("total %v done \n", total)
