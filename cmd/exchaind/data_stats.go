@@ -71,7 +71,7 @@ func loop(name, fromDir string) {
 				orpanStatsFrom[from]++
 			}
 		} else {
-			log.Println("unknown ", string(iter.Key()))
+			//			log.Println("unknown ", string(iter.Key()))
 		}
 	}
 	keys[latestPrefix] = counter + 1
@@ -80,10 +80,10 @@ func loop(name, fromDir string) {
 	for _, v := range keys {
 		tt += v
 	}
-	log.Println("-----print orpan from-----")
-	for k, v := range orpanStatsFrom {
-		log.Printf("%v,%v\n", k, v)
-	}
+	//	log.Println("-----print orpan from-----")
+	//	for k, v := range orpanStatsFrom {
+	//		log.Printf("%v,%v\n", k, v)
+	//	}
 	log.Println("-----print orpan to-----")
 	for k, v := range orpanStatsTo {
 		log.Printf("%v,%v\n", k, v)
