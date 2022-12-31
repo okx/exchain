@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/iavl"
@@ -90,6 +91,7 @@ func loop(name, fromDir string) {
 	log.Printf("total map %v done \n", tt)
 	log.Printf("total %v done \n", total)
 	log.Println(keys)
+	fmt.Printf("evmn-%v,evmo-%v,total-%v\n", keys["s/k:evm/n"], keys["s/k:evm/o"], total)
 	iter.Close()
 }
 
