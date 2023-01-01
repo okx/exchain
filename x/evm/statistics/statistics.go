@@ -69,26 +69,28 @@ func (s *statistics) doMint() {
 	for {
 		select {
 		case mint := <-s.chanXenMint:
-			rediscli.GetInstance().InsertClaim(&rediscli.XenMint{
-				Height:    mint.Height,
-				BlockTime: mint.BlockTime,
-				TxHash:    mint.TxHash,
-				TxSender:  mint.TxSender,
-				UserAddr:  mint.UserAddr,
-				Term:      mint.Term,
-				Rank:      mint.Rank,
-			})
-			mysqldb.GetInstance().InsertClaim(model.Claim{
-				Height:    &mint.Height,
-				BlockTime: &mint.BlockTime,
-				Txhash:    &mint.TxHash,
-				Txsender:  &mint.TxSender,
-				Useraddr:  &mint.UserAddr,
-				Term:      &mint.Term,
-				Rank:      &mint.Rank,
-				Reward:    &reward,
-				RewardID:  &rewardID,
-			})
+			if mint != nil {
+				rediscli.GetInstance().InsertClaim(&rediscli.XenMint{
+					Height:    mint.Height,
+					BlockTime: mint.BlockTime,
+					TxHash:    mint.TxHash,
+					TxSender:  mint.TxSender,
+					UserAddr:  mint.UserAddr,
+					Term:      mint.Term,
+					Rank:      mint.Rank,
+				})
+				mysqldb.GetInstance().InsertClaim(model.Claim{
+					Height:    &mint.Height,
+					BlockTime: &mint.BlockTime,
+					Txhash:    &mint.TxHash,
+					Txsender:  &mint.TxSender,
+					Useraddr:  &mint.UserAddr,
+					Term:      &mint.Term,
+					Rank:      &mint.Rank,
+					Reward:    &reward,
+					RewardID:  &rewardID,
+				})
+			}
 		case <-s.exit:
 			return
 		}
@@ -99,22 +101,24 @@ func (s *statistics) doClaim() {
 	for {
 		select {
 		case claim := <-s.chanXenClaimReward:
-			rediscli.GetInstance().InsertReward(&rediscli.XenClaimReward{
-				Height:       claim.Height,
-				BlockTime:    claim.BlockTime,
-				TxHash:       claim.TxHash,
-				TxSender:     claim.TxSender,
-				UserAddr:     claim.UserAddr,
-				RewardAmount: claim.RewardAmount,
-			})
-			mysqldb.GetInstance().InsertReward(model.Reward{
-				Height:    &claim.Height,
-				BlockTime: &claim.BlockTime,
-				Txhash:    &claim.TxHash,
-				Txsender:  &claim.TxSender,
-				Useraddr:  &claim.UserAddr,
-				Amount:    &claim.RewardAmount,
-			})
+			if claim != nil {
+				rediscli.GetInstance().InsertReward(&rediscli.XenClaimReward{
+					Height:       claim.Height,
+					BlockTime:    claim.BlockTime,
+					TxHash:       claim.TxHash,
+					TxSender:     claim.TxSender,
+					UserAddr:     claim.UserAddr,
+					RewardAmount: claim.RewardAmount,
+				})
+				mysqldb.GetInstance().InsertReward(model.Reward{
+					Height:    &claim.Height,
+					BlockTime: &claim.BlockTime,
+					Txhash:    &claim.TxHash,
+					Txsender:  &claim.TxSender,
+					Useraddr:  &claim.UserAddr,
+					Amount:    &claim.RewardAmount,
+				})
+			}
 		case <-s.exit:
 			return
 		}
