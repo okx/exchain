@@ -3,10 +3,10 @@ package expired
 import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/x/evm/statistics/rediscli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -22,17 +22,20 @@ const (
 func init() {
 	expiredRedisV2Cmd.Flags().String(flagRedisAddr, ":6379", "redis addr")
 	expiredRedisV2Cmd.Flags().String(flagRedisPassWord, "", "redis password")
-	viper.BindPFlag(flagRedisAddr, expiredCmd.Flags().Lookup(flagRedisAddr))
-	viper.BindPFlag(flagRedisPassWord, expiredCmd.Flags().Lookup(flagRedisPassWord))
+	viper.BindPFlag(flagRedisAddr, expiredRedisV2Cmd.Flags().Lookup(flagRedisAddr))
+	viper.BindPFlag(flagRedisPassWord, expiredRedisV2Cmd.Flags().Lookup(flagRedisPassWord))
 }
 
 func RedisV2Command() *cobra.Command {
-	return expiredRedisCmd
+	return expiredRedisV2Cmd
 }
 
 var expiredRedisV2Cmd = &cobra.Command{
-	Use:   "expired_redis_parallel",
+	Use:   "expired_redis_v2",
 	Short: "get the expired xen",
+	PreRun: func(cmd *cobra.Command, args []string) {
+
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		scanClaimRedisV2()
 		return nil
@@ -41,7 +44,6 @@ var expiredRedisV2Cmd = &cobra.Command{
 
 func scanClaimRedisV2() {
 	ttl := viper.GetInt64(flagTTL)
-	log.Println("ttl", ttl)
 
 	filename := filepath.Join(viper.GetString(flagOutputDir), xenExpiredAddr)
 
@@ -52,6 +54,8 @@ func scanClaimRedisV2() {
 
 	defer f.Close()
 
+	global.RedisAddr = viper.GetString(flagRedisAddr)
+	global.RedisPassword = viper.GetString(flagRedisPassWord)
 	rediscli.GetInstance().Init()
 	pool := rediscli.GetInstance().GetClientPool()
 	db := pool.Get()

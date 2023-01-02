@@ -41,6 +41,10 @@ func (r *redisCli) Init() {
 					return nil, err
 				}
 			}
+			_, err = c.Do("SELECT", 0)
+			if err != nil {
+				return nil, err
+			}
 			return c, nil
 		},
 	}
