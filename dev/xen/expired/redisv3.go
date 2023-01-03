@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/x/evm/statistics/rediscli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,7 +61,6 @@ func scanClaimRedisV3() {
 	if err != nil {
 		panic(err)
 	}
-	var claims rediscli.XenMint
 
 	counter := 0
 	curse := viper.GetInt(flagCursor)
@@ -76,6 +74,7 @@ func scanClaimRedisV3() {
 			if err != nil {
 				panic(fmt.Sprintf("got curse error %v %v", curseValues[0], err))
 			}
+
 			values, err := redis.Values(curseValues[1], err)
 			if err != nil {
 				panic(fmt.Sprintf("get values error %v %v", curseValues[1], err))
@@ -86,16 +85,10 @@ func scanClaimRedisV3() {
 					panic(err)
 				}
 				if strings.Contains(useraddr, "0x") {
-					content, err := redis.StringMap(db.Do("HGETALL", useraddr))
-					if err != nil {
-						panic(err)
-					}
-					for key, value := range content {
-						parseClaim(&claims, key, value)
-					}
-					claims.UserAddr = useraddr
+					unRewardKey := checkMintRewardIfNotEqualReturnTheLatestMint(useraddr)
+					claims := getLatestClaim(unRewardKey, useraddr[1:])
 					if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
-						reward := filterReward(claims.UserAddr[1:])
+						reward := getLatestReward(claims.UserAddr[1:])
 						if reward == nil ||
 							(reward != nil && reward.BlockTime.Unix() < claims.BlockTime.Add(time.Duration(claims.Term)*time.Duration(24)*time.Hour).Unix()) {
 							counter++
@@ -155,7 +148,58 @@ func checkMintRewardIfNotEqualReturnTheLatestMint(userAddr string) string {
 	if err != nil {
 		panic(err)
 	}
-	log.Println(v)
 
 	return userAddr + "_" + v[0]
+}
+
+func getLatestReward(userAddr string) *rediscli.XenClaimReward {
+	pool := rediscli.GetInstance().GetClientPool()
+	db := pool.Get()
+	defer db.Close()
+	_, err := db.Do("SELECT", 3)
+	if err != nil {
+		panic(err)
+	}
+
+	v, err := redis.Strings(db.Do("ZREVRANGE", "r"+userAddr, 0, -1))
+	if err != nil {
+		panic(err)
+	}
+	if len(v) == 0 {
+		return nil
+	}
+	latestRewardKey := "r" + userAddr + "_" + v[0]
+
+	content, err := redis.StringMap(db.Do("HGETALL", latestRewardKey))
+	if err != nil {
+		panic(err)
+	}
+	var reward rediscli.XenClaimReward
+	for key, value := range content {
+		parseReward(&reward, key, value)
+	}
+
+	return &reward
+}
+
+func getLatestClaim(key, userAddr string) *rediscli.XenMint {
+	pool := rediscli.GetInstance().GetClientPool()
+	db := pool.Get()
+	defer db.Close()
+	_, err := db.Do("SELECT", 0)
+	if err != nil {
+		panic(err)
+	}
+	var ret rediscli.XenMint
+
+	content, err := redis.StringMap(db.Do("HGETALL", key))
+	if err != nil || len(content) == 0 {
+		panic(fmt.Sprintf("%v map %v error %v", key, len(content), err))
+	}
+	for key, value := range content {
+		parseClaim(&ret, key, value)
+	}
+	ret.UserAddr = userAddr
+
+	return &ret
 }
