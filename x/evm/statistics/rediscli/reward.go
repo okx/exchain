@@ -3,18 +3,18 @@ package rediscli
 import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"log"
 	"strconv"
 	"time"
 )
 
 func (r *redisCli) InsertReward(reward *XenClaimReward) {
-	if global.RedisPassword == "" {
-		r.insertRewardSingle(reward)
-	} else {
-		r.insertRewardMulti(reward)
-	}
+	r.insertRawReward(reward)
+	//	if global.RedisPassword == "" {
+	//		r.insertRewardSingle(reward)
+	//	} else {
+	//		r.insertRewardMulti(reward)
+	//	}
 }
 
 func (r *redisCli) insertRewardSingleEx(reward *XenClaimReward) {

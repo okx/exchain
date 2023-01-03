@@ -3,7 +3,6 @@ package rediscli
 import (
 	"fmt"
 	"github.com/gomodule/redigo/redis"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"strconv"
 	"time"
 )
@@ -17,11 +16,12 @@ const (
 )
 
 func (r *redisCli) InsertClaim(claim *XenMint) {
-	if global.RedisPassword == "" {
-		r.insertSingle(claim, true)
-	} else {
-		r.insertMulti(claim)
-	}
+	r.insertRawMint(claim)
+	//	if global.RedisPassword == "" {
+	//		r.insertSingle(claim, true)
+	//	} else {
+	//		r.insertMulti(claim)
+	//	}
 }
 
 func (r *redisCli) parseXenMint(uaddr string) *XenMint {
