@@ -505,14 +505,14 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
 
-	var err error
-	blockNum := rpctypes.LatestBlockNumber
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+
 	// do not support block number param when node is pruning everything
-	if !api.backend.PruneEverything() {
-		blockNum, err = api.backend.ConvertToBlockNumber(blockNrOrHash)
-		if err != nil {
-			return nil, err
-		}
+	if api.backend.PruneEverything() && blockNum != rpctypes.PendingBlockNumber {
+		blockNum = rpctypes.LatestBlockNumber
 	}
 
 	clientCtx := api.clientCtx
