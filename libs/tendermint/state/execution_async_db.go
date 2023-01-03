@@ -39,9 +39,10 @@ func (blockExec *BlockExecutor) initAsyncDBContext() {
 	blockExec.stateQueue = make(chan State, MAXCHAN_LEN)
 	blockExec.asyncFeedbackQueue = make(chan int64, FEEDBACK_LEN)
 
-	blockExec.wg.Add(2)
+	blockExec.wg.Add(3)
 	go blockExec.asyncSaveStateRoutine()
 	go blockExec.asyncSaveABCIRespRoutine()
+	go blockExec.fireEventsRountine()
 }
 
 func (blockExec *BlockExecutor) stopAsyncDBContext() {

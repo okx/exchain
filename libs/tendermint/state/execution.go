@@ -119,7 +119,7 @@ func NewBlockExecutor(
 	res.deltaContext.init()
 
 	res.initAsyncDBContext()
-	go res.fireEventsRountine()
+
 	return res
 }
 
@@ -130,6 +130,7 @@ func (blockExec *BlockExecutor) fireEventsRountine() {
 		}
 		fireEvents(blockExec.logger, blockExec.eventBus, et.block, et.abciRsp, et.vals)
 	}
+	blockExec.wg.Done()
 }
 
 func (blockExec *BlockExecutor) DB() dbm.DB {
