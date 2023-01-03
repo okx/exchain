@@ -1,0 +1,22 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:Loop the mint_stats
+:get a userAddr;
+if (count(userAddr.mint) > count(userAddr.reward)) then (true)
+  :get this userAddr latest height;
+  :get this userAddr's mint details;
+  if (time.Now() > userAddr.latestMint.BlockTime+term+ttl(8d))) then(true)
+      :get this userAddr's latest reward height;
+      :get this userAddr's reward details;
+      if (userAddr.latestReward.Time < userAddr.latestMint.BlockTime+term) then (true)
+          :record the userAddr&txHash;
+      endif
+
+   endif
+endif
+
+stop
+
+@enduml
