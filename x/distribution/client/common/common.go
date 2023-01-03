@@ -102,7 +102,7 @@ type WrapError struct {
 	RawError  error  `json:"-"`
 }
 
-func (e WrapError) Error() string {
+func (e *WrapError) Error() string {
 	data, jsonErr := json.Marshal(e)
 	if jsonErr != nil {
 		fmt.Fprintf(os.Stderr, "Trans wrap error, marshal err=%v\n", jsonErr)
@@ -111,13 +111,13 @@ func (e WrapError) Error() string {
 	return string(data)
 }
 
-func (e *WrapError) SetLog(log string) {
+func (e *WrapError) setLog(log string) {
 	e.Log = log
 }
 
 func (e *WrapError) Trans(code uint32, newLog string) {
 	if e.Code == abci.CodeTypeNonceInc+code {
-		e.SetLog(fmt.Sprintf("%s;%s", newLog, e.Log))
+		e.setLog(fmt.Sprintf("%s;%s", newLog, e.Log))
 		e.Changed = true
 	}
 }
