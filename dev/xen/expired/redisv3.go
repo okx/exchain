@@ -86,18 +86,20 @@ func scanClaimRedisV3() {
 				}
 				if strings.Contains(useraddr, "0x") {
 					unRewardKey := checkMintRewardIfNotEqualReturnTheLatestMint(useraddr)
-					claims := getLatestClaim(unRewardKey, useraddr[1:])
-					if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
-						reward := getLatestReward(claims.UserAddr[1:])
-						if reward == nil ||
-							(reward != nil && reward.BlockTime.Unix() < claims.BlockTime.Add(time.Duration(claims.Term)*time.Duration(24)*time.Hour).Unix()) {
-							counter++
-							line := fmt.Sprintf("%v,%v,%v\n", counter, claims.TxHash, claims.UserAddr)
-							_, err = f.WriteString(line)
-							if err != nil {
-								panic(err)
-							}
+					if unRewardKey != "" {
+						claims := getLatestClaim(unRewardKey, useraddr[1:])
+						if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
+							reward := getLatestReward(claims.UserAddr[1:])
+							if reward == nil ||
+								(reward != nil && reward.BlockTime.Unix() < claims.BlockTime.Add(time.Duration(claims.Term)*time.Duration(24)*time.Hour).Unix()) {
+								counter++
+								line := fmt.Sprintf("%v,%v,%v\n", counter, claims.TxHash, claims.UserAddr)
+								_, err = f.WriteString(line)
+								if err != nil {
+									panic(err)
+								}
 
+							}
 						}
 					}
 				}
