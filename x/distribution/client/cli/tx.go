@@ -4,23 +4,24 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/spf13/viper"
+	"os"
 	"strings"
-
-	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/gov"
+	staking "github.com/okex/exchain/x/staking/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -80,14 +81,16 @@ func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 		Use:   "withdraw-rewards [validator-addr]",
 		Short: "withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Withdraw rewards from a given delegation address, 
-and optionally withdraw validator commission if the delegation address given is a validator operator
+			fmt.Sprintf(`Withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator.
+If you are a validator, you will withdraw validator commission without param "--commission", and if it is also a delegator, it will withdraw delegator reward.
 
 Example:
-$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey 
-$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey --commission
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(delegator)			# withdraw mykey's reward only
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator and delegator)	# withdraw mykey's reward only
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator)	 --commission	# withdraw mykey's commission only
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator)			# withdraw mykey's commission only
 `,
-				version.ClientName, version.ClientName,
+				version.ClientName, version.ClientName, version.ClientName, version.ClientName,
 			),
 		),
 		Args: cobra.ExactArgs(1),
@@ -102,18 +105,74 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 				return err
 			}
 
+			isVal := isValidator(cliCtx, cdc, sdk.ValAddress(delAddr))
+			isDel := isDelegator(cliCtx, cdc, delAddr)
+
 			msgs := []sdk.Msg{}
-			if viper.GetBool(flagCommission) {
+			if viper.GetBool(flagCommission) || (isVal && !isDel) {
 				msgs = append(msgs, types.NewMsgWithdrawValidatorCommission(valAddr))
 			} else {
 				msgs = append(msgs, types.NewMsgWithdrawDelegatorReward(delAddr, valAddr))
+				if isVal && isDel {
+					fmt.Fprintf(os.Stdout, "%s\n", "\nWarning, check that you are a validator and can add the --commission flag to withdraw your validator commission.")
+				}
 			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)
+			return transErrInfo(utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs))
 		},
 	}
 	cmd.Flags().Bool(flagCommission, false, "withdraw validator's commission")
 	return cmd
+}
+
+func isValidator(cliCtx context.CLIContext, cdc *codec.Codec, valAddress sdk.ValAddress) bool {
+	resKVs, _, err := cliCtx.QuerySubspace(staking.ValidatorsKey, staking.StoreKey)
+	if err != nil {
+		return false
+	}
+
+	for _, kv := range resKVs {
+		if staking.MustUnmarshalValidator(cdc, kv.Value).GetOperator().Equals(valAddress) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isDelegator(cliCtx context.CLIContext, cdc *codec.Codec, delAddr sdk.AccAddress) bool {
+	delegator := staking.NewDelegator(delAddr)
+	resp, _, err := cliCtx.QueryStore(staking.GetDelegatorKey(delAddr), staking.StoreKey)
+	if err != nil {
+		return false
+	}
+	if len(resp) == 0 {
+		return false
+	}
+	cdc.MustUnmarshalBinaryLengthPrefixed(resp, &delegator)
+
+	if delegator.Tokens.IsZero() {
+		return false
+	}
+
+	return true
+}
+
+func transErrInfo(err error) error {
+	check := func(code uint32, describe string) {
+		if err == nil {
+			return
+		}
+		if strings.Contains(err.Error(), fmt.Sprint(abci.CodeTypeNonceInc+code)) {
+			fmt.Fprintf(os.Stderr, "\nWaring: %s\n", describe)
+		}
+	}
+	check(types.CodeEmptyDelegationDistInfo, "your account(--from) is not a delegator, please check it first.")
+	check(types.CodeNoValidatorCommission, "your account(--from) is not a validator, please check it first.")
+	check(types.CodeEmptyValidatorDistInfo, "your validator address is error, it's not a validator, please check it first.")
+	check(types.CodeEmptyDelegationVoteValidator, "your validator address is error, you haven't voted the validator, please check it first.")
+
+	return err
 }
 
 // GetCmdCommunityPoolSpendProposal implements the command to submit a community-pool-spend proposal
