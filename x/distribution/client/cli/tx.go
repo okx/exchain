@@ -81,16 +81,17 @@ func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 		Short: "withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Withdraw rewards from a given delegation address, 
-and optionally withdraw validator commission if the delegation address given is a validator operator.
+and optionally withdraw validator commission if the delegation address given is a validator operator
 
 Example:
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey 
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey --commission
 
-Withdraw validator commissions without the flag "--commission" for validators, but withdraw delegator rewards if it is also a delegator.
+Withdraw validator commissions without the flag "--commission" for validators, 
+but withdraw delegator rewards if it is also a delegator
 Example:
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator)			# withdraw mykey's commission only
-$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator & delegator)	# withdraw mykey's reward only
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator&delegator)	# withdraw mykey's reward only
 `,
 				version.ClientName, version.ClientName, version.ClientName, version.ClientName,
 			),
