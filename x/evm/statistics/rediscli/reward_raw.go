@@ -16,17 +16,17 @@ func (r *redisCli) insertRawReward(reward *XenClaimReward) {
 	if err != nil {
 		panic(err)
 	}
-	r.insertUserAddrReward(reward, key, int(reward.Height))
+	r.insertUserAddrReward(reward, int(reward.Height))
 }
 
-func (r *redisCli) insertUserAddrReward(reward *XenClaimReward, key string, score int) {
+func (r *redisCli) insertUserAddrReward(reward *XenClaimReward, height int) {
 	db := r.client.Get()
 	defer db.Close()
 	_, err := db.Do("SELECT", 3)
 	if err != nil {
 		panic(err)
 	}
-	_, err = db.Do("ZADD", reward.UserAddr, score, key)
+	_, err = db.Do("ZADD", "r"+reward.UserAddr, height, height)
 	if err != nil {
 		panic(err)
 	}

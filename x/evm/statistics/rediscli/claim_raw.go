@@ -15,17 +15,17 @@ func (r *redisCli) insertRawMint(mint *XenMint) {
 	if err != nil {
 		panic(err)
 	}
-	r.insertUserAddr(mint, key, int(mint.Height))
+	r.insertUserAddr(mint, int(mint.Height))
 }
 
-func (r *redisCli) insertUserAddr(mint *XenMint, key string, score int) {
+func (r *redisCli) insertUserAddr(mint *XenMint, height int) {
 	db := r.client.Get()
 	defer db.Close()
 	_, err := db.Do("SELECT", 2)
 	if err != nil {
 		panic(err)
 	}
-	_, err = db.Do("ZADD", mint.UserAddr, score, key)
+	_, err = db.Do("ZADD", "c"+mint.UserAddr, height, height)
 	if err != nil {
 		panic(err)
 	}
