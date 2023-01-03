@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/x/evm/statistics/rediscli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -57,7 +58,7 @@ func scanClaimRedisV3() {
 	db := pool.Get()
 	defer db.Close()
 
-	_, err = db.Do("SELECT", 3)
+	_, err = db.Do("SELECT", 2)
 	if err != nil {
 		panic(err)
 	}
@@ -114,4 +115,47 @@ func scanClaimRedisV3() {
 			}
 		}
 	}
+}
+
+func checkMintRewardIfNotEqualReturnTheLatestMint(userAddr string) string {
+	pool := rediscli.GetInstance().GetClientPool()
+	db := pool.Get()
+	defer db.Close()
+	_, err := db.Do("SELECT", 2)
+	if err != nil {
+		panic(err)
+	}
+	countMint, err := redis.Int(db.Do("ZCOUNT", userAddr, minHeight, maxHeight))
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.Do("SELECT", 3)
+	if err != nil {
+		panic(err)
+	}
+
+	rewardUserAddr := "r" + userAddr[1:]
+	countReward, err := redis.Int(db.Do("ZCOUNT", rewardUserAddr, minHeight, maxHeight))
+	if err != nil {
+		panic(err)
+	}
+	if countReward > countMint {
+		panic(fmt.Sprintf("%v impossible!", userAddr))
+	}
+	if countReward == countMint {
+		return ""
+	}
+
+	_, err = db.Do("SELECT", 2)
+	if err != nil {
+		panic(err)
+	}
+	v, err := redis.Strings(db.Do("ZREVRANGE", userAddr, 0, -1))
+	if err != nil {
+		panic(err)
+	}
+	log.Println(v)
+
+	return userAddr + "_" + v[0]
 }
