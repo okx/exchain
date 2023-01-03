@@ -16,10 +16,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/gov"
-	staking "github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -105,8 +104,9 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 				return err
 			}
 
-			isVal := isValidator(cliCtx, cdc, sdk.ValAddress(delAddr))
-			isDel := isDelegator(cliCtx, cdc, delAddr)
+			isVal := common.IsValidator(cliCtx, cdc, sdk.ValAddress(delAddr))
+			isDel := common.IsDelegator(cliCtx, cdc, delAddr)
+			needWarning := false
 
 			msgs := []sdk.Msg{}
 			if viper.GetBool(flagCommission) || (isVal && !isDel) {
@@ -114,65 +114,36 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 			} else {
 				msgs = append(msgs, types.NewMsgWithdrawDelegatorReward(delAddr, valAddr))
 				if isVal && isDel {
-					fmt.Fprintf(os.Stdout, "%s\n", "\nWarning, check that you are a validator and can add the --commission flag to withdraw your validator commission.")
+					needWarning = true
 				}
 			}
-
-			return transErrInfo(utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs))
+			result := transWrapError(common.NewWrapError(utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)), delAddr, valAddr)
+			if needWarning {
+				fmt.Fprintf(os.Stdout, "%s\n", fmt.Sprintf("\nFound address: \"%s\" is a validator, please add the `--commission` flag to the command line if you want to withdraw the commission, for example:\n"+
+					"%s ..... --commission.\n",
+					delAddr.String(), version.ClientName))
+			}
+			return result
 		},
 	}
 	cmd.Flags().Bool(flagCommission, false, "withdraw validator's commission")
 	return cmd
 }
 
-func isValidator(cliCtx context.CLIContext, cdc *codec.Codec, valAddress sdk.ValAddress) bool {
-	resKVs, _, err := cliCtx.QuerySubspace(staking.ValidatorsKey, staking.StoreKey)
-	if err != nil {
-		return false
+func transWrapError(wrapErr *common.WrapError, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+	if wrapErr == nil {
+		return nil
 	}
 
-	for _, kv := range resKVs {
-		if staking.MustUnmarshalValidator(cdc, kv.Value).GetOperator().Equals(valAddress) {
-			return true
-		}
+	wrapErr.Trans(types.CodeEmptyDelegationDistInfo, fmt.Sprintf("found account %s is not a delegator, please check it first", delAddr.String()))
+	wrapErr.Trans(types.CodeNoValidatorCommission, fmt.Sprintf("found account %s is not a validator, please check it first", delAddr.String()))
+	wrapErr.Trans(types.CodeEmptyValidatorDistInfo, fmt.Sprintf("found validator address %s is not a validator, please check it first", valAddr.String()))
+	wrapErr.Trans(types.CodeEmptyDelegationVoteValidator, fmt.Sprintf("found validator address %s haven't been voted, please check it first", valAddr.String()))
+	if wrapErr.Changed {
+		return wrapErr
 	}
 
-	return false
-}
-
-func isDelegator(cliCtx context.CLIContext, cdc *codec.Codec, delAddr sdk.AccAddress) bool {
-	delegator := staking.NewDelegator(delAddr)
-	resp, _, err := cliCtx.QueryStore(staking.GetDelegatorKey(delAddr), staking.StoreKey)
-	if err != nil {
-		return false
-	}
-	if len(resp) == 0 {
-		return false
-	}
-	cdc.MustUnmarshalBinaryLengthPrefixed(resp, &delegator)
-
-	if delegator.Tokens.IsZero() {
-		return false
-	}
-
-	return true
-}
-
-func transErrInfo(err error) error {
-	check := func(code uint32, describe string) {
-		if err == nil {
-			return
-		}
-		if strings.Contains(err.Error(), fmt.Sprint(abci.CodeTypeNonceInc+code)) {
-			fmt.Fprintf(os.Stderr, "\nWaring: %s\n", describe)
-		}
-	}
-	check(types.CodeEmptyDelegationDistInfo, "your account(--from) is not a delegator, please check it first.")
-	check(types.CodeNoValidatorCommission, "your account(--from) is not a validator, please check it first.")
-	check(types.CodeEmptyValidatorDistInfo, "your validator address is error, it's not a validator, please check it first.")
-	check(types.CodeEmptyDelegationVoteValidator, "your validator address is error, you haven't voted the validator, please check it first.")
-
-	return err
+	return wrapErr.RawError
 }
 
 // GetCmdCommunityPoolSpendProposal implements the command to submit a community-pool-spend proposal
