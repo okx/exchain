@@ -624,6 +624,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpct
 	}
 
 	code, err := api.wrappedBackend.GetCode(address, uint64(blockNumber))
+	fmt.Println("GetCode-1", err, len(code))
 	if err == nil {
 		return code, nil
 	}
@@ -639,6 +640,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpct
 
 	var out evmtypes.QueryResCode
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+	fmt.Println("GetCode-2", err, len(out.Code))
 	return out.Code, nil
 }
 

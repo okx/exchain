@@ -1,6 +1,7 @@
 package deliver
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -109,6 +110,8 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
 	if msg.Data.Recipient == nil && tx.Ctx.GetWatcher().Enabled() {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
+			cc := tx.Ctx.GetWatcher()
+			fmt.Println("save to watcher", &cc, addr.String(), len(c.Code), hex.EncodeToString(c.CodeHash))
 			tx.Ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(tx.Ctx.BlockHeight()))
 			tx.Ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
 			return true

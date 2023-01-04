@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -323,11 +324,17 @@ func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
 }
 
 func (w *Watcher) Commit() {
+	fmt.Println("watcher-commit---")
 	if !w.Enabled() {
+		fmt.Println("watcher-commit---return ")
 		return
 	}
 	//hold it in temp
 	batch := w.batch
+	fmt.Println("watcher-commit---", len(batch))
+	for _, v := range batch {
+		fmt.Println("watcher", reflect.TypeOf(v))
+	}
 	// No need to write db when upload delta is enabled.
 	if tmtypes.UploadDelta {
 		return
@@ -642,10 +649,15 @@ func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
 	if !w.enable {
 		return
 	}
+	fmt.Println("collet", len(w.batch), len(watchers))
 	for _, watcher := range watchers {
+		fmt.Println("collet-start", reflect.TypeOf(watcher))
 		batch := watcher.Destruct()
 		w.batch = append(w.batch, batch...)
+		fmt.Println("collet-end", len(w.batch))
+
 	}
+
 }
 
 func (w *Watcher) saveStdTxResponse(result *ctypes.ResultTx) {

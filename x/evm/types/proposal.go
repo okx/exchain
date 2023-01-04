@@ -459,18 +459,18 @@ func (mp ManageSysContractAddressProposal) String() string {
 }
 
 type ManagerContractByteCodeProposal struct {
-	Title       string         `json:"title" yaml:"title"`
-	Description string         `json:"description" yaml:"description"`
-	Contract    sdk.AccAddress `json:"contract_addresses" yaml:"contract_addresses"`
-	ByteCode    string         `json:"bytecode" yaml:"bytecode"`
+	Title           string         `json:"title" yaml:"title"`
+	Description     string         `json:"description" yaml:"description"`
+	OldContractAddr sdk.AccAddress `json:"old_contract_addr" yaml:"old_contract_addr"`
+	NewContractAddr sdk.AccAddress `json:"new_contract_addr" yaml:"new_contract_addr"`
 }
 
-func NewManageContractByteCodeProposal(title, description string, contract sdk.AccAddress, bytecode string) ManagerContractByteCodeProposal {
+func NewManageContractByteCodeProposal(title, description string, oldContract sdk.AccAddress, NewContractAddr sdk.AccAddress) ManagerContractByteCodeProposal {
 	return ManagerContractByteCodeProposal{
-		Title:       title,
-		Description: description,
-		Contract:    contract,
-		ByteCode:    bytecode,
+		Title:           title,
+		Description:     description,
+		OldContractAddr: oldContract,
+		NewContractAddr: NewContractAddr,
 	}
 }
 
@@ -491,6 +491,26 @@ func (mp ManagerContractByteCodeProposal) ProposalType() string {
 }
 
 func (mp ManagerContractByteCodeProposal) ValidateBasic() sdk.Error {
+
+	if len(strings.TrimSpace(mp.Title)) == 0 {
+		return govtypes.ErrInvalidProposalContent("title is required")
+	}
+	if len(mp.Title) > govtypes.MaxTitleLength {
+		return govtypes.ErrInvalidProposalContent("title length is longer than the maximum title length")
+	}
+
+	if len(mp.Description) == 0 {
+		return govtypes.ErrInvalidProposalContent("description is required")
+	}
+
+	if len(mp.Description) > govtypes.MaxDescriptionLength {
+		return govtypes.ErrInvalidProposalContent("description length is longer than the maximum description length")
+	}
+
+	if mp.ProposalType() != proposalTypeManageContractByteCode {
+		return govtypes.ErrInvalidProposalType(mp.ProposalType())
+	}
+
 	return nil
 }
 func (mp ManagerContractByteCodeProposal) String() string {
@@ -500,10 +520,10 @@ func (mp ManagerContractByteCodeProposal) String() string {
  Title:					%s
  Description:        	%s
  Type:                	%s
- ContractAddr:          %s
- Bytecode:				%s
+ OldContractAddr:          %s
+ NewContractAddr:				%s
 `,
-			mp.Title, mp.Description, mp.ProposalType(), mp.Contract.String(), mp.ByteCode),
+			mp.Title, mp.Description, mp.ProposalType(), mp.OldContractAddr.String(), mp.NewContractAddr),
 	)
 	return strings.TrimSpace(builder.String())
 }

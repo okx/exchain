@@ -4,8 +4,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"reflect"
 	"strconv"
 	"sync"
 
@@ -205,6 +207,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 	}
 	var codeInfo CodeInfo
 	info, e := q.store.Get(append(prefixCode, contractAddr.Bytes()...))
+	fmt.Println("GetCode-3", reflect.TypeOf(q.store), len(info), e)
 	if e != nil {
 		return nil, e
 	}

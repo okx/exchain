@@ -443,8 +443,8 @@ Where proposal.json contains:
 			content := types.NewManageContractByteCodeProposal(
 				proposal.Title,
 				proposal.Description,
-				proposal.ContractAddr,
-				proposal.ByteCode,
+				proposal.OldContractAddr,
+				proposal.NewContractAddr,
 			)
 
 			err = content.ValidateBasic()

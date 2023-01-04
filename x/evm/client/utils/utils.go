@@ -52,9 +52,9 @@ type (
 		Title       string `json:"title" yaml:"title"`
 		Description string `json:"description" yaml:"description"`
 		// Contract Address
-		ContractAddr sdk.AccAddress `json:"contract_address" yaml:"contract_address"`
-		ByteCode     string         `json:"bytecode" yaml:"bytecode"`
-		Deposit      sdk.SysCoins   `json:"deposit" yaml:"deposit"`
+		OldContractAddr sdk.AccAddress `json:"old_contract_addr" yaml:"old_contract_addr"`
+		NewContractAddr sdk.AccAddress `json:"new_contract_addr" yaml:"new_contract_addr"`
+		Deposit         sdk.SysCoins   `json:"deposit" yaml:"deposit"`
 	}
 
 	ResponseBlockContract struct {

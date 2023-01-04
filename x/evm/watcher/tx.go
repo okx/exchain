@@ -19,6 +19,7 @@ type WatchTx interface {
 }
 
 func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.ResponseDeliverTx, txDecoder sdk.TxDecoder) {
+	fmt.Println("fuck0-0-------")
 	if !w.Enabled() {
 		return
 	}
