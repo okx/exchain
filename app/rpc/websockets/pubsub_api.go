@@ -68,11 +68,7 @@ func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, err
 	case "syncing":
 		return api.subscribeSyncing(conn)
 	case "blockTime":
-		var p interface{}
-		if len(params) > 1 {
-			p = params[1]
-		}
-		return api.subscribeLogs(conn, p)
+		return api.subscribeLatestBlockTime(conn)
 
 	default:
 		return "0", fmt.Errorf("unsupported method %s", method)

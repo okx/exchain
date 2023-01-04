@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"strconv"
 	"time"
 
@@ -239,9 +240,17 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
+	// Events are fired after runAbci.
+	// NOTE: if we crash between Commit and Save, events wont be fired during replay
+	if !blockExec.isNullIndexer {
+		blockExec.eventsChan <- event{
+			block:   block,
+			abciRsp: abciResponses,
+		}
+	}
 	// publish eventLog
 	if types.EnableEventBlockTime {
-		blockExec.preFireEventsTxs(block, abciResponses)
+		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs))
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
@@ -304,16 +313,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
-
-	// Events are fired after everything else.
-	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	if !blockExec.isNullIndexer {
-		blockExec.eventsChan <- event{
-			block:   block,
-			abciRsp: abciResponses,
-			vals:    validatorUpdates,
-		}
-	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
@@ -742,30 +741,20 @@ func fireEvents(
 	}
 
 	//publish batch txs event
-	if len(block.Data.Txs) > 0 && !types.EnableEventBlockTime {
+	if len(block.Data.Txs) > 0 {
 		eventBus.PublishEventTxs(types.EventDataTxs{
 			Height:  block.Height,
 			Results: abciResponses.DeliverTxs,
 		})
 	}
 
-	if len(validatorUpdates) > 0 {
-		eventBus.PublishEventValidatorSetUpdates(
-			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
-	}
+	//if len(validatorUpdates) > 0 {
+	//	eventBus.PublishEventValidatorSetUpdates(
+	//		types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
+	//}
 }
 
-func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, address types.Address) {
+func (blockExec *BlockExecutor) FireBlockTimeEvents(height int64, txNum int) {
 	blockExec.eventBus.PublishEventLatestBlockTime(
-		types.EventDataBlockTime{Height: height, BlockTime: blockTime, NextProposer: address})
-}
-
-func (blockExec *BlockExecutor) preFireEventsTxs(block *types.Block, abciResponses *ABCIResponses) {
-	//publish batch txs event
-	if len(block.Data.Txs) > 0 {
-		blockExec.eventBus.PublishEventTxs(types.EventDataTxs{
-			Height:  block.Height,
-			Results: abciResponses.DeliverTxs,
-		})
-	}
+		types.EventDataBlockTime{Height: height, TimeNow: tmtime.Now().UnixMilli(), TxNum: txNum})
 }
