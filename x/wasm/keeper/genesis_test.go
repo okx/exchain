@@ -562,7 +562,7 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 	)
 	const denom = "stake"
 	importState := types.GenesisState{
-		Params: types.DefaultParams(),
+		Params: types.TestParams(),
 		GenMsgs: []types.GenesisState_GenMsgs{
 			{
 				Sum: &types.GenesisState_GenMsgs_StoreCode{
