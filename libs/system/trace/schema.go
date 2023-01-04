@@ -61,7 +61,13 @@ const (
 
 	Abci = "abci"
 	//SaveResp        = "saveResp"
-	Persist = "persist"
+	Persist        = "persist"
+	PersistDetails = "persistDetails"
+	PreChange      = "preChange"
+	FlushCache     = "flushCache"
+	CommitStores   = "commitStores"
+	FlushMeta      = "flushMeta"
+
 	//MempoolUpdate   = "mpUpdate"
 	//SaveState       = "saveState"
 	ApplyBlock    = "ApplyBlock"
@@ -81,6 +87,7 @@ const (
 	BlockPartsP2P = "BlockPartsP2P"
 
 	Workload = "Workload"
+	ACOffset = "ACOffset"
 )
 
 const (

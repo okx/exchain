@@ -61,7 +61,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	err := acc.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
 	suite.Require().NoError(err)
 
-	suite.app.WasmKeeper.SetParams(suite.ctx, wasmtypes.DefaultParams())
+	suite.app.WasmKeeper.SetParams(suite.ctx, wasmtypes.TestParams())
 	evmParams := evmtypes.DefaultParams()
 	evmParams.EnableCreate = true
 	evmParams.EnableCall = true

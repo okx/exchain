@@ -127,7 +127,7 @@ func (suite *JournalTestSuite) setup() {
 
 	ak := auth.NewAccountKeeper(cdc, authKey, mptKey, authSubspace, ethermint.ProtoAccount)
 	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
-	sk := supply.NewKeeper(cdc, supplyKey, ak, bk, make(map[string][]string))
+	sk := supply.NewKeeper(cdc, supplyKey, ak, bank.NewBankKeeperAdapter(bk), make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
 	csdbParams := CommitStateDBParams{
 		StoreKey:      storeKey,

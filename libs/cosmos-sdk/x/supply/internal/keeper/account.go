@@ -2,6 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
 )
@@ -58,4 +59,8 @@ func (k Keeper) GetModuleAccount(ctx sdk.Context, moduleName string) exported.Mo
 // SetModuleAccount sets the module account to the auth account store
 func (k Keeper) SetModuleAccount(ctx sdk.Context, macc exported.ModuleAccountI) { //nolint:interfacer
 	k.ak.SetAccount(ctx, macc)
+}
+
+func (k Keeper) GetAccount(ctx sdk.Context, acc sdk.AccAddress) authtypes.Account {
+	return k.ak.GetAccount(ctx, acc)
 }

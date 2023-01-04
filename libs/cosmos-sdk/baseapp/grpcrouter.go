@@ -2,11 +2,13 @@ package baseapp
 
 import (
 	"fmt"
-	gogogrpc "github.com/gogo/protobuf/grpc"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/grpc/reflection"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
+	gogogrpc "github.com/gogo/protobuf/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"

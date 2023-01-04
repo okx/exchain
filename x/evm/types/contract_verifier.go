@@ -12,11 +12,12 @@ import (
 // ContractVerifier which verify contract method whether blocked
 type ContractVerifier struct {
 	params Params
+	hook   *GuFactorHook
 }
 
 // NewContractVerifier return a point of ContractVerifier
 func NewContractVerifier(params Params) *ContractVerifier {
-	return &ContractVerifier{params: params}
+	return &ContractVerifier{params: params, hook: &GuFactorHook{}}
 }
 
 // Verify check the contract whether is blocked.
@@ -29,6 +30,9 @@ func (cv ContractVerifier) Verify(stateDB vm.StateDB, op vm.OpCode, from, to com
 	if !ok {
 		panic(ErrContractBlockedVerify{"unknown stateDB expected CommitStateDB"})
 	}
+
+	cv.hook.UpdateGuFactor(csdb, op, from, to, input, value)
+
 	//check whether contract has been blocked
 	if !cv.params.EnableContractBlockedList {
 		return nil

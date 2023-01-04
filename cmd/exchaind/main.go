@@ -72,7 +72,7 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
-		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
+		PersistentPreRunE: preRun(ctx),
 	}
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(
@@ -107,6 +107,9 @@ func main() {
 	// Tendermint node base commands
 	server.AddCommands(ctx, codecProxy, registry, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
 		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
+
+	// precheck flag syntax
+	preCheckLongFlagSyntax()
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, OkcEnvPrefix, app.DefaultNodeHome)
@@ -180,4 +183,26 @@ func exportAppStateAndTMValidators(
 	}
 
 	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
+}
+
+// All long flag must be in k=v format
+func preCheckLongFlagSyntax() {
+	params := os.Args[1:]
+	for _, f := range params {
+		tf := strings.TrimSpace(f)
+
+		if strings.ToUpper(tf) == "TRUE" ||
+			strings.ToUpper(tf) == "FALSE" {
+			fmt.Fprintf(os.Stderr, "ERROR: Invalid parameter,"+
+				" boolean flag should be --flag=true or --flag=false \n")
+			os.Exit(1)
+		}
+	}
+}
+
+func preRun(ctx *server.Context) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		setReplayDefaultFlag()
+		return server.PersistentPreRunEFn(ctx)(cmd, args)
+	}
 }
