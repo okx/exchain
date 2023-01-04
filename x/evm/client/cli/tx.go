@@ -435,7 +435,6 @@ Where proposal.json contains:
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
 			proposal, err := evmutils.ParseManageContractBytecodeProposalJSON(cdc, args[0])
-			fmt.Println("Parse err", err)
 			if err != nil {
 				return err
 			}
@@ -448,14 +447,12 @@ Where proposal.json contains:
 			)
 
 			err = content.ValidateBasic()
-			fmt.Println("ValidateBasic", err)
 			if err != nil {
 				return err
 			}
 
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
 			err = utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
-			fmt.Println("err----", err)
 			return err
 		},
 	}

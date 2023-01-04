@@ -74,8 +74,6 @@ func (app *BaseApp) runTx(mode runTxMode,
 	info = &runTxInfo{}
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
 	if app.watcherCollector != nil && mode == runTxModeDeliver {
-		cc := info.runMsgCtx.GetWatcher()
-		fmt.Println("ccccccccccccccc-runTx", &cc)
 		app.watcherCollector(info.runMsgCtx.GetWatcher())
 	}
 	return

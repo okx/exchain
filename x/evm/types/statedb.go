@@ -475,7 +475,6 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 		defer trace.StopTxLog(funcName)
 	}
 
-	fmt.Println("SetCode  addr--", addr.String())
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
 		hash := Keccak256HashWithCache(code)
@@ -905,7 +904,6 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // state (storage) updated. In addition, the state object (account) itself will
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	fmt.Println("Commit---1")
 	// Finalize any pending changes and merge everything into the tries
 	csdb.IntermediateRoot(deleteEmptyObjects)
 
@@ -924,8 +922,6 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 		}()
 	}
 
-	fmt.Println("Code-2")
-
 	// Now we're about to start to write changes to the trie. The trie is so far
 	// _untouched_. We can check with the prefetcher, if it can give us a trie
 	// which has the same root, but also has some content loaded into it.
@@ -934,7 +930,6 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 			csdb.trie = trie
 		}
 	}
-	fmt.Println("Code-3", mpt.TrieWriteAhead)
 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		if mpt.TrieWriteAhead {
@@ -976,10 +971,8 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 		} else {
 			// Commit objects to the trie, measuring the elapsed time
 			for addr := range csdb.stateObjectsDirty {
-				fmt.Println("979----", addr.String())
 				if so := csdb.stateObjects[addr]; !so.deleted {
 					// Write any contract code associated with the state object
-					fmt.Println("982---", !so.deleted, so.code != nil, so.dirtyCode, len(so.code))
 					if so.code != nil && so.dirtyCode {
 						so.commitCode()
 						so.dirtyCode = false
@@ -1003,11 +996,8 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 // refunds.
 func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 	addressesToPrefetch := make([][]byte, 0, len(csdb.journal.dirties))
-	fmt.Println("Finalise--- dirty size", len(csdb.journal.dirties))
 	for addr := range csdb.journal.dirties {
-		fmt.Println("Finalise", addr.String())
 		obj, exist := csdb.stateObjects[addr]
-		fmt.Println("Finalise exist", exist)
 		if !exist {
 			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
 			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the
@@ -1047,7 +1037,6 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 // BaseApps' EndBlocker.
 func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash {
 	// Finalise all the dirty storage states and write them into the tries
-	fmt.Println("IntermediateRoot")
 	csdb.Finalise(deleteEmptyObjects)
 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {

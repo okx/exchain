@@ -216,7 +216,6 @@ func (k *Keeper) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64, log l
 }
 
 func (k *Keeper) Commit(ctx sdk.Context) {
-	fmt.Println("evmKeep Commit")
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 	k.EvmStateDb.StopPrefetcher()

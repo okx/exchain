@@ -1,8 +1,6 @@
 package evm
 
 import (
-	"encoding/hex"
-	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -10,7 +8,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	govTypes "github.com/okex/exchain/x/gov/types"
-	"reflect"
 )
 
 // NewManageContractDeploymentWhitelistProposalHandler handles "gov" type message in "evm"
@@ -98,7 +95,6 @@ func handleManageSysContractAddressProposal(ctx sdk.Context, k *Keeper,
 }
 
 func handleManageContractBytecodeProposal(ctx sdk.Context, k *Keeper, p types.ManagerContractByteCodeProposal) error {
-	fmt.Println("handleManageContractBytecodeProposal", p.String())
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 
 	ethOldAddr := ethcmn.BytesToAddress(p.OldContractAddr)
@@ -110,8 +106,6 @@ func handleManageContractBytecodeProposal(ctx sdk.Context, k *Keeper, p types.Ma
 
 	k.EvmStateDb.Commit(false)
 	k.EvmStateDb.WithContext(ctx).IteratorCode(func(addr ethcmn.Address, c types.CacheCode) bool {
-		ww := ctx.GetWatcher()
-		fmt.Println("save to watcher", &ww, reflect.TypeOf(ctx.GetWatcher()), addr.String(), len(c.Code), hex.EncodeToString(c.CodeHash))
 		ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(ctx.BlockHeight()))
 		ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
 		return true

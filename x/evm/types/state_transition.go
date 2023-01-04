@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -247,7 +246,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		defer StopTxLog(trace.EVMCORE)
 		nonce := evm.StateDB.GetNonce(st.Sender)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
-		fmt.Println("-----create----", contractAddress.String(), hex.EncodeToString(st.Payload))
 		contractAddressStr := EthAddressToString(&contractAddress)
 		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
 		gasConsumed = gasLimit - leftOverGas
