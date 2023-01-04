@@ -19,6 +19,12 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 		if watcher.IsWatcherEnabled() {
 			ctx.SetWatcher(watcher.NewTxWatcher())
 		}
+
+		defer func() {
+			if err == nil {
+				ctx.GetWatcher().Finalize()
+			}
+		}()
 		switch content := proposal.Content.(type) {
 		case types.ManageContractDeploymentWhitelistProposal:
 			return handleManageContractDeploymentWhitelistProposal(ctx, k, content)

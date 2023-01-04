@@ -58,8 +58,10 @@ func TestAsd(t *testing.T) {
 		panic(err)
 	}
 	code, err := c.CodeAt(context.Background(), common.HexToAddress("0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a"), nil)
-	fmt.Println("len(code)", len(code), err)
-	//time.Sleep(10000 * time.Second)
+	fmt.Println("xen len(code)", len(code), err)
+	code, err = c.CodeAt(context.Background(), common.HexToAddress("0x9a59ae3Fc0948717F94242fc170ac1d5dB3f0D5D"), nil)
+	fmt.Println("cointool len(code)", len(code), err)
+	time.Sleep(10000 * time.Second)
 
 	signer := ethtypes.NewEIP155Signer(new(big.Int).SetInt64(67))
 	privKey, err := crypto.HexToECDSA("8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17")
