@@ -87,8 +87,9 @@ Example:
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey 
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey --commission
 
-Withdraw validator commissions without the flag "--commission" for validators, 
-but withdraw delegator rewards if it is also a delegator
+If this command is used without "--commission", and the address you want to withdraw rewards is both validator and delegator, 
+only the delegator's rewards can be withdrew. However, if the address you want to withdraw rewards is only the validator, 
+the validator commissions will be withdrew.
 Example:
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator)			# withdraw mykey's commission only
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator&delegator)	# withdraw mykey's reward only
