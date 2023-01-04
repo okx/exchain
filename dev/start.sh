@@ -25,13 +25,14 @@ run() {
 #--mempool.enable_delete_min_gp_tx false \
 #    exchaind start --pruning=nothing --rpc.unsafe \
     exchaind start --rpc.unsafe \
+    	--pruning=nothing \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
       --dynamic-gp-mode=2 \
       --consensus.timeout_commit 2000ms \
       --enable-preruntx=1 \
-      --iavl-enable-async-commit \
+      --iavl-enable-async-commit=false \
       --enable-gid \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
