@@ -78,6 +78,7 @@ func (t *TiKV) DeleteSync(keys []byte) error {
 
 func (t *TiKV) Iterator(start, end []byte) (dbm.Iterator, error) {
 	iterator := newIterator(start, end, false, t.client)
+	iterator.Next()
 	return iterator, nil
 }
 

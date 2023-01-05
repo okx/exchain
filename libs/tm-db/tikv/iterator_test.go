@@ -1,6 +1,12 @@
+//go:build rocksdb
+// +build rocksdb
+
 package tikv
 
 import (
+	"fmt"
+	"github.com/okex/exchain/libs/iavl"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"testing"
 
 	"github.com/tikv/client-go/v2/rawkv"
@@ -38,5 +44,26 @@ func TestIterator_Valid(t *testing.T) {
 				t.Errorf("Valid() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLoadVersion(t *testing.T) {
+	db, err := NewTiKV("", "127.0.0.1:2379")
+	//db, err := dbm.NewRocksDB("application", "/Users/oker/workspace/exchain/dev/s0/data/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prefix := []byte(fmt.Sprintf("s/k:%s/", "evm"))
+
+	prefixDB := dbm.NewPrefixDB(db, prefix)
+
+	tree, err := iavl.NewMutableTree(prefixDB, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tree.LoadVersion(0)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
