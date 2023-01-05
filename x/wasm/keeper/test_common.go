@@ -414,7 +414,7 @@ func createTestInput(
 		supportedFeatures,
 		opts...,
 	)
-	keeper.SetParams(ctx, types.DefaultParams())
+	keeper.SetParams(ctx, types.TestParams())
 	// add wasm handler so we can loop-back (contracts calling contracts)
 	contractKeeper := NewDefaultPermissionKeeper(&keeper)
 	router.AddRoute(types.RouterKey, TestHandler(contractKeeper))

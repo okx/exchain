@@ -73,6 +73,7 @@ type CacheCode struct {
 //
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
+// Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 type CommitStateDB struct {
 	db           ethstate.Database
 	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
@@ -133,7 +134,11 @@ type CommitStateDB struct {
 	cdc *codec.Codec
 
 	updatedAccount map[ethcmn.Address]struct{} // will destroy every block
+
+	GuFactor sdk.Dec
 }
+
+// Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 
 type StoreProxy interface {
 	Set(key, value []byte)
@@ -183,6 +188,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
+		GuFactor:            DefaultGuFactor,
 	}
 
 	return csdb
@@ -301,6 +307,7 @@ func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx
 	csdb.dbErr = nil
 	csdb.nextRevisionID = 0
 	csdb.params = nil
+	csdb.GuFactor = DefaultGuFactor
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
@@ -1567,11 +1574,18 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
 	if csdb.ctx.UseParamCache() {
+		tempEnableCache := true
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
+			// Note: when checktx GetEvmParamsCache().UpdateBlockedContractMethod will not be really update, so we must find GetBlockedContract from db.
+			if csdb.ctx.IsCheckTx() {
+				tempEnableCache = false
+			}
 		}
-		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
+		if tempEnableCache {
+			return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
+		}
 	}
 
 	//use dbAdapter for watchdb or prefixdb
@@ -1615,6 +1629,9 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 // InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store
 func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
 	defer GetEvmParamsCache().SetNeedBlockedUpdate()
+	if err := contractList.ValidateExtra(); err != nil {
+		return err
+	}
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
