@@ -28,6 +28,11 @@ type IDynamicConfig interface {
 	GetEnableHasBlockPartMsg() bool
 	GetCommitGapOffset() int64
 	GetIavlAcNoBatch() bool
+	GetDynamicGpWeight() int
+	GetDynamicGpCheckBlocks() int
+	GetDynamicGpMode() int
+	GetDynamicGpMaxTxNum() int64
+	GetDynamicGpMaxGasUsed() int64
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -135,4 +140,25 @@ func (d MockDynamicConfig) GetCommitGapOffset() int64 {
 
 func (d MockDynamicConfig) GetIavlAcNoBatch() bool {
 	return false
+}
+
+//todo
+func (d MockDynamicConfig) GetDynamicGpMode() int {
+	return 2
+}
+
+func (d MockDynamicConfig) GetDynamicGpCheckBlocks() int {
+	return 5
+}
+
+func (d MockDynamicConfig) GetDynamicGpWeight() int {
+	return 80
+}
+
+func (d MockDynamicConfig) GetDynamicGpMaxTxNum() int64 {
+	return DefaultMempoolConfig().MaxTxNumPerBlock
+}
+
+func (d MockDynamicConfig) GetDynamicGpMaxGasUsed() int64 {
+	return DefaultMempoolConfig().MaxGasUsedPerBlock
 }

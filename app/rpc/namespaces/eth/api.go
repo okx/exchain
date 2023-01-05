@@ -23,17 +23,15 @@ import (
 	"github.com/spf13/viper"
 
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 
-	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	"github.com/okex/exchain/app/types"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -259,10 +257,10 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	defer monitor.OnEnd()
 
 	recommendGP := (*big.Int)(api.gasPrice)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		price := new(big.Int).Set(app.GlobalGp)
-		if price.Cmp(gasprice.MinPrice) == -1 {
-			price.Set(gasprice.MinPrice)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+		price := new(big.Int).Set(mempool.GlobalRecommendedGP)
+		if price.Cmp(mempool.MinGasPrice) == -1 {
+			price.Set(mempool.MinGasPrice)
 		}
 
 		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
@@ -272,8 +270,8 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 			recommendGP = price
 		}
 
-		if recommendGP.Cmp(gasprice.MaxPrice) == 1 {
-			recommendGP.Set(gasprice.MaxPrice)
+		if recommendGP.Cmp(mempool.MaxGasPrice) == 1 {
+			recommendGP.Set(mempool.MaxGasPrice)
 		}
 	}
 
@@ -285,10 +283,10 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	defer monitor.OnEnd()
 
 	avgGP := (*big.Int)(api.gasPrice)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		price := new(big.Int).Set(app.GlobalGp)
-		if price.Cmp(gasprice.MinPrice) == -1 {
-			price.Set(gasprice.MinPrice)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+		price := new(big.Int).Set(mempool.GlobalRecommendedGP)
+		if price.Cmp(mempool.MinGasPrice) == -1 {
+			price.Set(mempool.MinGasPrice)
 		}
 
 		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
@@ -298,19 +296,19 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 			avgGP = price
 		}
 
-		if avgGP.Cmp(gasprice.MaxPrice) == 1 {
-			avgGP.Set(gasprice.MaxPrice)
+		if avgGP.Cmp(mempool.MaxGasPrice) == 1 {
+			avgGP.Set(mempool.MaxGasPrice)
 		}
 	}
 	// safe low GP = average GP * 0.5, but it will not be less than the minimal GP.
 	safeGp := new(big.Int).Quo(avgGP, big.NewInt(2))
-	if safeGp.Cmp(gasprice.MinPrice) == -1 {
-		safeGp.Set(gasprice.MinPrice)
+	if safeGp.Cmp(mempool.MinGasPrice) == -1 {
+		safeGp.Set(mempool.MinGasPrice)
 	}
 	// fastest GP = average GP * 1.5, but it will not be greater than the max GP.
 	fastestGp := new(big.Int).Add(avgGP, new(big.Int).Quo(avgGP, big.NewInt(2)))
-	if fastestGp.Cmp(gasprice.MaxPrice) == 1 {
-		fastestGp.Set(gasprice.MaxPrice)
+	if fastestGp.Cmp(mempool.MaxGasPrice) == 1 {
+		fastestGp.Set(mempool.MaxGasPrice)
 	}
 
 	res := rpctypes.NewGPIn3Gears(safeGp, avgGP, fastestGp)
