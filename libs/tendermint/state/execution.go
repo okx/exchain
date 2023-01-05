@@ -248,9 +248,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			abciRsp: abciResponses,
 		}
 	}
-	// publish eventLog
+	// publish event
 	if types.EnableEventBlockTime {
-		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs))
+		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), true)
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
@@ -754,7 +754,7 @@ func fireEvents(
 	//}
 }
 
-func (blockExec *BlockExecutor) FireBlockTimeEvents(height int64, txNum int) {
+func (blockExec *BlockExecutor) FireBlockTimeEvents(height int64, txNum int, available bool) {
 	blockExec.eventBus.PublishEventLatestBlockTime(
-		types.EventDataBlockTime{Height: height, TimeNow: tmtime.Now().UnixMilli(), TxNum: txNum})
+		types.EventDataBlockTime{Height: height, TimeNow: tmtime.Now().UnixMilli(), TxNum: txNum, Available: available})
 }

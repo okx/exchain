@@ -120,9 +120,10 @@ type EventDataRmPendingTx struct {
 
 // latest blockTime
 type EventDataBlockTime struct {
-	Height  int64
-	TimeNow int64
-	TxNum   int
+	Height    int64
+	TimeNow   int64
+	TxNum     int
+	Available bool
 }
 
 // NOTE: This goes into the replay WAL
