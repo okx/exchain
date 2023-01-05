@@ -198,11 +198,15 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flagRedisAddr, ":6379", "redisAddr")
 	cmd.Flags().String(flagRedisPassword, "", "redis password")
 
-	viper.SetDefault(watcher.FlagFastQuery, false)
-	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
-	viper.SetDefault(iavl.FlagIavlCommitAsyncNoBatch, true)
-
 	return cmd
+}
+
+func setReplayDefaultFlag() {
+	if len(os.Args) > 1 && os.Args[1] == "replay" {
+		viper.SetDefault(watcher.FlagFastQuery, false)
+		viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
+		viper.SetDefault(iavl.FlagIavlCommitAsyncNoBatch, true)
+	}
 }
 
 // panic if error is not nil

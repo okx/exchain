@@ -13,7 +13,7 @@ import (
 
 var commitStateDBPool = &sync.Pool{
 	New: func() interface{} {
-		return &types.CommitStateDB{}
+		return &types.CommitStateDB{GuFactor: types.DefaultGuFactor}
 	},
 }
 

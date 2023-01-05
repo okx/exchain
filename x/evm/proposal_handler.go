@@ -5,12 +5,16 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 	govTypes "github.com/okex/exchain/x/gov/types"
 )
 
 // NewManageContractDeploymentWhitelistProposalHandler handles "gov" type message in "evm"
 func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Handler {
 	return func(ctx sdk.Context, proposal *govTypes.Proposal) (err sdk.Error) {
+		if watcher.IsWatcherEnabled() {
+			ctx.SetWatcher(watcher.NewTxWatcher())
+		}
 		switch content := proposal.Content.(type) {
 		case types.ManageContractDeploymentWhitelistProposal:
 			return handleManageContractDeploymentWhitelistProposal(ctx, k, content)

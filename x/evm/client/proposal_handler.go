@@ -26,4 +26,8 @@ var (
 		cli.GetCmdManageSysContractAddressProposal,
 		rest.ManageSysContractAddressProposalRESTHandler,
 	)
+	ManageContractMethodGuFactorProposalHandler = govcli.NewProposalHandler(
+		cli.GetCmdManageContractMethodGuFactorProposal,
+		rest.ManageContractMethodBlockedListProposalRESTHandler,
+	)
 )

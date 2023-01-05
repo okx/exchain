@@ -962,13 +962,12 @@ func (n *Node) OnStop() {
 	n.Logger.Info("Stopping Node")
 
 	// first stop the non-reactor services
+	n.blockExec.Stop()
 	n.eventBus.Stop()
 	n.indexerService.Stop()
 
 	// now stop the reactors
 	n.sw.Stop()
-
-	n.blockExec.Stop()
 
 	if err := n.transport.Close(); err != nil {
 		n.Logger.Error("Error closing transport", "err", err)

@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/cosmos/gorocksdb"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 )
 
@@ -77,6 +78,12 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 		}
 		if enable {
 			opts.EnableStatistics()
+
+			if name == "application" {
+				rdbMetrics := NewRocksDBMetrics(opts)
+				prometheus.Unregister(rdbMetrics)
+				prometheus.MustRegister(rdbMetrics)
+			}
 		}
 	}
 

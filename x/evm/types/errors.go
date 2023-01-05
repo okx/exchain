@@ -62,6 +62,9 @@ var (
 	ErrorHexData = "HexData"
 
 	ErrorContractMethodBlockedIsNotExist = errors.New("it's not exist in contract method blocked list")
+
+	// ErrGUFactor returns an error if gu_factor is negative
+	ErrGUFactor = sdkerrors.Register(ModuleName, 24, "gu_factor should non-negative")
 )
 
 const (
