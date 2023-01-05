@@ -185,7 +185,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	// repair state
 	eventBus := types.NewEventBus()
-	txStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
+	txStore, blockIndexStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetEventBus(eventBus)
@@ -208,6 +208,10 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			err := txStore.Close()
 			panicError(err)
 		}
+		if blockIndexStore != nil {
+			err := blockIndexStore.Close()
+			panicError(err)
+		}
 	}()
 
 	global.SetGlobalHeight(startHeight + 1)
@@ -225,10 +229,10 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 }
 
-func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, indexerService *txindex.IndexerService, err error) {
+func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, blockIndexStore dbm.DB, indexerService *txindex.IndexerService, err error) {
 	eventBus.SetLogger(logger.With("module", "events"))
 	if err := eventBus.Start(); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	// Transaction indexing
 	var txIndexer txindex.TxIndexer
@@ -237,11 +241,11 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	case "kv":
 		txStore, err = sdk.NewDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		blockIndexStore, err := sdk.NewDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
+		blockIndexStore, err = sdk.NewDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		switch {
 		case config.TxIndex.IndexKeys != "":
@@ -267,9 +271,9 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 			txStore.Close()
 		}
 
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return txStore, indexerService, nil
+	return txStore, blockIndexStore, indexerService, nil
 }
 
 // splitAndTrimEmpty slices s into all subslices separated by sep and returns a
