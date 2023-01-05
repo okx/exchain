@@ -32,7 +32,6 @@ var (
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
 	KeyPrefixSysContractAddress          = []byte{0x10}
-	KeyPrefixContractBytecode            = []byte{0x11}
 
 	KeyPrefixEvmRootHash = []byte("evmRootHash")
 )

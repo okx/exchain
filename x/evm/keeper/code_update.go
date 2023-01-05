@@ -34,6 +34,5 @@ func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContract
 		ctx.GetWatcher().SaveAccount(oldAccAfterUpdateCode)
 		return true
 	})
-	k.Commit(ctx)
 	return nil
 }
