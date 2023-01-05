@@ -1003,11 +1003,13 @@ func (mem *CListMempool) Update(
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
 			gasUsed += uint64(gasUsedPerTx)
-			if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
-				// Collect gas price and gas used of valid tx for gas price recommendation
-				mem.gpo.CurrentBlockGPs.Update(gasPricePerTx, uint64(gasUsedPerTx))
-			}
 		}
+
+		if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
+			// Collect gas price and gas used of valid tx for gas price recommendation
+			mem.gpo.CurrentBlockGPs.Update(gasPricePerTx, uint64(gasUsedPerTx))
+		}
+
 		if mem.pendingPool != nil {
 			addressNonce[addr] = nonce
 		}
