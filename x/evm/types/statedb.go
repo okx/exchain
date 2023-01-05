@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
@@ -1737,13 +1738,11 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 	store.Set(key, value)
 }
 
-func (csdb *CommitStateDB) SetContractByteCode(contractAddr sdk.AccAddress, bytecode []byte) {
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
-	} else {
-		store = csdb.ctx.KVStore(csdb.storeKey)
-	}
+func (csdb *CommitStateDB) GetAccount(addr ethcmn.Address) *ethermint.EthAccount {
 
-	store.Set(GetUpdateContractBytecodeKey(contractAddr), bytecode)
+	obj := csdb.getStateObject(addr)
+	if obj == nil {
+		return nil
+	}
+	return obj.account
 }

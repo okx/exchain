@@ -80,7 +80,3 @@ func splitBlockedContractAddress(key []byte) sdk.AccAddress {
 func GetSysContractAddressKey() []byte {
 	return append(KeyPrefixSysContractAddress, []byte(SysContractAddressKey)...)
 }
-
-func GetUpdateContractBytecodeKey(contractAddr sdk.AccAddress) []byte {
-	return append(KeyPrefixContractBytecode, contractAddr...)
-}

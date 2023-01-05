@@ -51,7 +51,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 		NewValidateMsgHandlerDecorator(validateMsgHandler),
 		ibcante.NewAnteDecorator(ibcChannelKeepr),
-		govante.NewAnteDecorator(s),
+		govante.NewAnteDecorator(s, ak),
 	)
 
 	evmTxAnteHandler = sdk.ChainAnteDecorators(

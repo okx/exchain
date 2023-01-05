@@ -1,7 +1,6 @@
 package evm
 
 import (
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
@@ -95,22 +94,5 @@ func handleManageSysContractAddressProposal(ctx sdk.Context, k *Keeper,
 }
 
 func handleManageContractBytecodeProposal(ctx sdk.Context, k *Keeper, p types.ManagerContractByteCodeProposal) error {
-	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-
-	ethOldAddr := ethcmn.BytesToAddress(p.OldContractAddr)
-	ethNewAddr := ethcmn.BytesToAddress(p.NewContractAddr)
-
-	newCode := k.EvmStateDb.GetCode(ethNewAddr)
-
-	k.EvmStateDb.SetCode(ethOldAddr, newCode)
-
-	k.EvmStateDb.Commit(false)
-	k.EvmStateDb.WithContext(ctx).IteratorCode(func(addr ethcmn.Address, c types.CacheCode) bool {
-		ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(ctx.BlockHeight()))
-		ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
-		return true
-	})
-	csdb.SetContractByteCode(p.OldContractAddr, newCode)
-	k.Commit(ctx)
-	return nil
+	return k.UpdateContractBytecode(ctx, p)
 }
