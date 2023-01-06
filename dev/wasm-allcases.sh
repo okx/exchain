@@ -79,12 +79,9 @@ QUERY_EXTRA="--node=$NODE"
 TX_EXTRA_UNBLOCKED="--fees 0.01okt --gas 3000000 --chain-id=$CHAIN_ID --node $NODE -b async -y"
 TX_EXTRA="--fees 0.01okt --gas 3000000 --chain-id=$CHAIN_ID --node $NODE -b block -y"
 
-if [[ $CHAIN_ID == "exchain-64" ]];
-then
-  exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
-  exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
-  exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
-fi;
+exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
+exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
+exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
 
 captain=$(exchaincli keys show captain -a)
 admin18=$(exchaincli keys show admin18 -a)
@@ -109,15 +106,9 @@ fi;
 proposal_vote() {
   if [[ $CHAIN_ID == "exchain-67" ]];
   then
-    res=$(exchaincli tx gov deposit "$proposal_id" "$proposal_deposit" --from captain $TX_EXTRA)
     res=$(exchaincli tx gov vote "$proposal_id" yes --from captain $TX_EXTRA)
   else
     echo "gov voting, please wait..."
-    for ((i=0; i<${VAL_NODE_NUM}; i++))
-    do
-      res=$(exchaincli tx gov deposit "$1" "$proposal_deposit" --from val"$i" $TX_EXTRA_UNBLOCKED)
-    done
-    sleep 4
     for ((i=0; i<${VAL_NODE_NUM}; i++))
     do
       if [[ ${i} -lt $((${VAL_NODE_NUM}*2/3)) ]];
@@ -149,7 +140,7 @@ fi;
 ########    update deployment whitelist     #########
 #####################################################
 echo "## update wasm code deployment whitelist"
-res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "$captain,$admin18" --deposit 10okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "$captain,$admin18" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -356,7 +347,7 @@ then
 fi;
 
 echo "## pin cw20 code..."
-res=$(exchaincli tx gov submit-proposal pin-codes "$cw20_code_id5" --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal pin-codes "$cw20_code_id5" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 proposal_vote "$proposal_id"
 
@@ -414,7 +405,7 @@ then
 fi;
 
 echo "## unpin cw20 code..."
-res=$(exchaincli tx gov submit-proposal unpin-codes "$cw20_code_id5" --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal unpin-codes "$cw20_code_id5" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 proposal_vote "$proposal_id"
 
@@ -549,7 +540,7 @@ then
 fi;
 
 history_operation_count=$(exchaincli query wasm contract-history "$cw20contractAddr" $QUERY_EXTRA | jq '.entries|length')
-res=$(exchaincli tx gov submit-proposal migrate-contract "$cw20contractAddr" "$burner_code_id" '{"payout": "'$admin18'"}' --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal migrate-contract "$cw20contractAddr" "$burner_code_id" '{"payout": "'$admin18'"}' --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -678,7 +669,7 @@ then
 fi
 
 echo "## block cw20 contract methods <transfer> and <send>"
-res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "${cw20contractAddr}" "transfer,send" --deposit 10okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "${cw20contractAddr}" "transfer,send" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "block <transfer> and <send> proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -706,7 +697,7 @@ then
   exit 1
 fi;
 
-res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "$cw20contractAddr" "transfer" --delete=true --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "$cw20contractAddr" "transfer" --delete=true --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "unblock <transfer> proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -735,7 +726,7 @@ echo "burner_code_id: $burner_code_id"
 
 # block contract to execute
 echo "## migrate cw20 contract to a new wasm code"
-res=$(exchaincli tx gov submit-proposal migrate-contract "$cw20contractAddr" "$burner_code_id" '{"payout": "'$captain'"}' --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal migrate-contract "$cw20contractAddr" "$burner_code_id" '{"payout": "'$captain'"}' --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -757,7 +748,7 @@ then
 fi;
 
 echo "## gov set cw20 admin"
-res=$(exchaincli tx gov submit-proposal set-contract-admin $cw20contractAddr $captain --deposit 10okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal set-contract-admin $cw20contractAddr $captain --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -770,7 +761,7 @@ then
 fi
 
 echo "## gov clear cw20 admin"
-res=$(exchaincli tx gov submit-proposal clear-contract-admin $cw20contractAddr --deposit 10okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal clear-contract-admin $cw20contractAddr --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -784,7 +775,7 @@ fi
 
 # update whitelist
 echo "## update deployment whitelist and store wasm code"
-res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v,ex15nnhqdf9sds0s063kaaretxj3ftlnzrguhfdeq" --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v,ex15nnhqdf9sds0s063kaaretxj3ftlnzrguhfdeq" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -804,7 +795,7 @@ burner_code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed
 echo "burner_code_id: $burner_code_id"
 
 # update whitelist
-res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist all --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist all --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -867,7 +858,7 @@ echo "claim okt from caontract succeed"
 
 
 # update nobody whitelist
-res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist nobody --deposit 10.1okt --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist nobody --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
