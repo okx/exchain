@@ -2,13 +2,13 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/config"
 	"io"
 	"log"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/utils/appstatus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -93,6 +93,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 		return
 	}
 
+	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
@@ -178,7 +179,7 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	stateCopy := state.Copy()
-	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
+
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
