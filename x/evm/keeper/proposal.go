@@ -85,11 +85,11 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 		if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
 			return types.ErrCodeProposerMustBeValidator()
 		}
-		if !k.IsContractAccount(ctx, content.OldContractAddr) {
-			return types.ErrNotContracAddress(fmt.Errorf(content.OldContractAddr.String()))
+		if !k.IsContractAccount(ctx, content.Contract) {
+			return types.ErrNotContracAddress(fmt.Errorf(content.Contract.String()))
 		}
-		if !k.IsContractAccount(ctx, content.NewContractAddr) {
-			return types.ErrNotContracAddress(fmt.Errorf(content.NewContractAddr.String()))
+		if !k.IsContractAccount(ctx, content.SubstituteContract) {
+			return types.ErrNotContracAddress(fmt.Errorf(content.SubstituteContract.String()))
 		}
 		return nil
 

@@ -29,24 +29,24 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 				return ctx, evmtypes.ErrCodeProposerMustBeValidator()
 			}
 
-			// check oldContract
-			oldAcc := ad.ak.GetAccount(ctx, proposalType.OldContractAddr)
-			oldEthAcc, ok := oldAcc.(*ethermint.EthAccount)
+			// check operation contract
+			contract := ad.ak.GetAccount(ctx, proposalType.Contract)
+			contractAcc, ok := contract.(*ethermint.EthAccount)
 			if !ok {
-				return ctx, fmt.Errorf("acc:%s not EthAccount", proposalType.OldContractAddr)
+				return ctx, fmt.Errorf("contract: %s not EthAccount", proposalType.Contract)
 			}
-			if !oldEthAcc.IsContract() {
-				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(proposalType.OldContractAddr.String()))
+			if !contractAcc.IsContract() {
+				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(proposalType.Contract.String()))
 			}
 
-			//check newContract
-			newAcc := ad.ak.GetAccount(ctx, proposalType.NewContractAddr)
-			newEthAcc, ok := newAcc.(*ethermint.EthAccount)
+			//check substitute contract
+			substitute := ad.ak.GetAccount(ctx, proposalType.SubstituteContract)
+			substituteAcc, ok := substitute.(*ethermint.EthAccount)
 			if !ok {
-				return ctx, fmt.Errorf("acc:%s not EthAccount", proposalType.NewContractAddr)
+				return ctx, fmt.Errorf("substitute contract:%s not EthAccount", proposalType.SubstituteContract)
 			}
-			if !newEthAcc.IsContract() {
-				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(proposalType.NewContractAddr.String()))
+			if !substituteAcc.IsContract() {
+				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(proposalType.SubstituteContract.String()))
 			}
 		}
 

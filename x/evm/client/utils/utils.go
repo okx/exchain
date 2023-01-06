@@ -49,11 +49,11 @@ type (
 	}
 
 	ManageContractByteCodeProposalJSON struct {
-		Title           string         `json:"title" yaml:"title"`
-		Description     string         `json:"description" yaml:"description"`
-		OldContractAddr sdk.AccAddress `json:"old_contract_addr" yaml:"old_contract_addr"`
-		NewContractAddr sdk.AccAddress `json:"new_contract_addr" yaml:"new_contract_addr"`
-		Deposit         sdk.SysCoins   `json:"deposit" yaml:"deposit"`
+		Title              string         `json:"title" yaml:"title"`
+		Description        string         `json:"description" yaml:"description"`
+		Contract           sdk.AccAddress `json:"contract" yaml:"contract"`
+		SubstituteContract sdk.AccAddress `json:"substitute_contract" yaml:"substitute_contract"`
+		Deposit            sdk.SysCoins   `json:"deposit" yaml:"deposit"`
 	}
 
 	ResponseBlockContract struct {

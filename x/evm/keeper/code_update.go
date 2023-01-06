@@ -14,46 +14,77 @@ var (
 
 // UpdateContractBytecode update contract bytecode
 func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContractByteCodeProposal) sdk.Error {
-	oldEthAddr := ethcmn.BytesToAddress(p.OldContractAddr)
+	contract := ethcmn.BytesToAddress(p.Contract)
+	substituteContract := ethcmn.BytesToAddress(p.SubstituteContract)
 
-	newCode := k.EvmStateDb.GetCode(ethcmn.BytesToAddress(p.NewContractAddr))
+	revertContractByteCode := p.Contract.String() == p.SubstituteContract.String()
 
-	oldCode := k.EvmStateDb.GetCode(oldEthAddr)
-	oldAcc := k.EvmStateDb.GetAccount(oldEthAddr)
-	if oldAcc == nil {
-		return fmt.Errorf("unexcepted behavior: oldAcc %s  is null", oldEthAddr.String())
+	preCode := k.EvmStateDb.GetCode(contract)
+	ContractAddr := k.EvmStateDb.GetAccount(contract)
+	if ContractAddr == nil {
+		return fmt.Errorf("unexcepted behavior: contract %s  is null", contract.String())
 	}
-	oldCodeHash := oldAcc.CodeHash
+	preCodeHash := ContractAddr.CodeHash
 
+	var newCode []byte
+	if revertContractByteCode {
+		newCode = k.getInitContractCode(ctx, p.Contract)
+		if len(newCode) == 0 {
+			return nil
+		}
+	} else {
+		newCode = k.EvmStateDb.GetCode(substituteContract)
+	}
 	// update code
-	k.EvmStateDb.SetCode(oldEthAddr, newCode)
+	k.EvmStateDb.SetCode(contract, newCode)
+
+	k.storeInitContractCode(ctx, p.Contract, preCode)
+
 	// commit evm state db
 	k.EvmStateDb.Commit(false)
 
-	oldAccAfterUpdateCode := k.EvmStateDb.GetAccount(oldEthAddr)
-	if oldAccAfterUpdateCode == nil {
-		return fmt.Errorf("unexcepted behavior: oldAccAfterUpdateCode %s is null", oldEthAddr.String())
+	return k.AfterUpdateContractByteCode(ctx, contract, substituteContract, preCodeHash, preCode, newCode)
+}
+
+func (k *Keeper) AfterUpdateContractByteCode(ctx sdk.Context, contract, substituteContract ethcmn.Address, preCodeHash, preCode, newCode []byte) error {
+	contractAfterUpdateCode := k.EvmStateDb.GetAccount(contract)
+	if contractAfterUpdateCode == nil {
+		return fmt.Errorf("unexcepted behavior: contractAfterUpdateCode %s is null", contract.String())
 	}
 
 	// log
-	k.logger.Info("updateContractByteCode", "oldCodeHash", hex.EncodeToString(oldCodeHash), "oldCodeSize", len(oldCode),
-		"oldCodeHashAfterUpdateCode", hex.EncodeToString(oldAccAfterUpdateCode.CodeHash), "oldCodeSizeAfterUpdateCode", len(newCode))
+	k.logger.Info("updateContractByteCode", "contract", contract, "preCodeHash", hex.EncodeToString(preCodeHash), "preCodeSize", len(preCode),
+		"codeHashAfterUpdateCode", hex.EncodeToString(contractAfterUpdateCode.CodeHash), "codeSizeAfterUpdateCode", len(newCode))
 	// emit event
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		EventTypeContractUpdateByProposal,
-		sdk.NewAttribute("oldContract", p.OldContractAddr.String()),
-		sdk.NewAttribute("oldCodeHash", hex.EncodeToString(oldCodeHash)),
-		sdk.NewAttribute("oldCodeSize", fmt.Sprintf("%d", len(oldCode))),
-		sdk.NewAttribute("newContract", p.NewContractAddr.String()),
-		sdk.NewAttribute("oldCodeHashAfterUpdateCode", hex.EncodeToString(oldAccAfterUpdateCode.CodeHash)),
-		sdk.NewAttribute("oldCodeSizeAfterUpdateCode", fmt.Sprintf("%d", len(newCode))),
+		sdk.NewAttribute("contract", contract.String()),
+		sdk.NewAttribute("preCodeHash", hex.EncodeToString(preCodeHash)),
+		sdk.NewAttribute("preCodeSize", fmt.Sprintf("%d", len(preCode))),
+		sdk.NewAttribute("SubstituteContract", substituteContract.String()),
+		sdk.NewAttribute("codeHashAfterUpdateCode", hex.EncodeToString(contractAfterUpdateCode.CodeHash)),
+		sdk.NewAttribute("codeSizeAfterUpdateCode", fmt.Sprintf("%d", len(newCode))),
 	))
 	// update watcher
 	k.EvmStateDb.WithContext(ctx).IteratorCode(func(addr ethcmn.Address, c types.CacheCode) bool {
 		ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(ctx.BlockHeight()))
 		ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
-		ctx.GetWatcher().SaveAccount(oldAccAfterUpdateCode)
+		ctx.GetWatcher().SaveAccount(contractAfterUpdateCode)
 		return true
 	})
 	return nil
+}
+
+func (k *Keeper) storeInitContractCode(ctx sdk.Context, addr sdk.AccAddress, code []byte) {
+	store := k.paramSpace.CustomKVStore(ctx)
+	key := types.GetInitContractCode(addr)
+	if len(store.Get(key)) == 0 {
+		store.Set(key, code)
+	}
+}
+
+func (k *Keeper) getInitContractCode(ctx sdk.Context, addr sdk.AccAddress) []byte {
+	store := k.paramSpace.CustomKVStore(ctx)
+	key := types.GetInitContractCode(addr)
+	return store.Get(key)
 }

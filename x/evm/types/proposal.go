@@ -459,18 +459,18 @@ func (mp ManageSysContractAddressProposal) String() string {
 }
 
 type ManagerContractByteCodeProposal struct {
-	Title           string         `json:"title" yaml:"title"`
-	Description     string         `json:"description" yaml:"description"`
-	OldContractAddr sdk.AccAddress `json:"old_contract_addr" yaml:"old_contract_addr"`
-	NewContractAddr sdk.AccAddress `json:"new_contract_addr" yaml:"new_contract_addr"`
+	Title              string         `json:"title" yaml:"title"`
+	Description        string         `json:"description" yaml:"description"`
+	Contract           sdk.AccAddress `json:"contract" yaml:"contract"`
+	SubstituteContract sdk.AccAddress `json:"substitute_contract" yaml:"substitute_contract"`
 }
 
-func NewManageContractByteCodeProposal(title, description string, oldContract sdk.AccAddress, NewContractAddr sdk.AccAddress) ManagerContractByteCodeProposal {
+func NewManageContractByteCodeProposal(title, description string, Contract sdk.AccAddress, SubstituteContract sdk.AccAddress) ManagerContractByteCodeProposal {
 	return ManagerContractByteCodeProposal{
-		Title:           title,
-		Description:     description,
-		OldContractAddr: oldContract,
-		NewContractAddr: NewContractAddr,
+		Title:              title,
+		Description:        description,
+		Contract:           Contract,
+		SubstituteContract: SubstituteContract,
 	}
 }
 
@@ -520,10 +520,10 @@ func (mp ManagerContractByteCodeProposal) String() string {
  Title:					%s
  Description:        	%s
  Type:                	%s
- OldContractAddr:          %s
- NewContractAddr:				%s
+ Contract:          %s
+ SubstituteContract:				%s
 `,
-			mp.Title, mp.Description, mp.ProposalType(), mp.OldContractAddr.String(), mp.NewContractAddr),
+			mp.Title, mp.Description, mp.ProposalType(), mp.Contract.String(), mp.SubstituteContract.String()),
 	)
 	return strings.TrimSpace(builder.String())
 }
