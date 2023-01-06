@@ -390,8 +390,8 @@ Where proposal.json contains:
 {
     "title":"update contract bytecode",
     "description":"update contract bytecode",
-    "old_contract_addr":"0x9a59ae3Fc0948717F94242fc170ac1d5dB3f0D5D",
-    "new_contract_addr":"0xFc0b06f1C1e82eFAdC0E5c226616B092D2cb97fF",
+    "contract":"0x9a59ae3Fc0948717F94242fc170ac1d5dB3f0D5D",
+    "substitute_contract":"0xFc0b06f1C1e82eFAdC0E5c226616B092D2cb97fF",
     "deposit":[
         {
             "denom":"%s",

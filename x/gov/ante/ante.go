@@ -11,12 +11,12 @@ import (
 )
 
 type AnteDecorator struct {
-	k  stakingkeeper.Keeper
+	sk stakingkeeper.Keeper
 	ak auth.AccountKeeper
 }
 
 func NewAnteDecorator(k stakingkeeper.Keeper, ak auth.AccountKeeper) AnteDecorator {
-	return AnteDecorator{k: k, ak: ak}
+	return AnteDecorator{sk: k, ak: ak}
 }
 
 func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
@@ -25,7 +25,7 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 	case types.MsgSubmitProposal:
 		switch proposalType := msg.Content.(type) {
 		case evmtypes.ManagerContractByteCodeProposal:
-			if !ad.k.IsValidator(ctx, msg.GetSigners()[0]) {
+			if !ad.sk.IsValidator(ctx, msg.GetSigners()[0]) {
 				return ctx, evmtypes.ErrCodeProposerMustBeValidator()
 			}
 
