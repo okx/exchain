@@ -21,7 +21,7 @@ func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContract
 	oldCode := k.EvmStateDb.GetCode(oldEthAddr)
 	oldAcc := k.EvmStateDb.GetAccount(oldEthAddr)
 	if oldAcc == nil {
-		return fmt.Errorf("%s is null", oldEthAddr.String())
+		return fmt.Errorf("unexcepted behavior: oldAcc %s  is null", oldEthAddr.String())
 	}
 	oldCodeHash := oldAcc.CodeHash
 
@@ -31,6 +31,9 @@ func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContract
 	k.EvmStateDb.Commit(false)
 
 	oldAccAfterUpdateCode := k.EvmStateDb.GetAccount(oldEthAddr)
+	if oldAccAfterUpdateCode == nil {
+		return fmt.Errorf("unexcepted behavior: oldAccAfterUpdateCode %s is null", oldEthAddr.String())
+	}
 
 	// log
 	k.logger.Info("updateContractByteCode", "oldCodeHash", hex.EncodeToString(oldCodeHash), "oldCodeSize", len(oldCode),
