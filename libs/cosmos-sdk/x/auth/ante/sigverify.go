@@ -3,6 +3,8 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
@@ -24,6 +26,8 @@ var (
 	_ SigVerifiableTx = (*types.StdTx)(nil) // assert StdTx implements SigVerifiableTx
 	_ SigVerifiableTx = (*types.IbcTx)(nil)
 )
+
+const animoPrefixLen = 5
 
 func init() {
 	// This decodes a valid hex string into a sepc256k1Pubkey for use in transaction simulation
@@ -77,8 +81,9 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			}
 			pk = simSecp256k1Pubkey
 		}
+
 		// Only make check if simulate=false
-		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
+		if !simulate && !bytes.Equal(pk.Address(), signers[i]) && !bytes.Equal(ethsecp256k1.PubKey(pk.Bytes()[animoPrefixLen:]).Address(), signers[i]) {
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
 				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 		}
