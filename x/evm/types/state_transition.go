@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"math/big"
 	"strings"
 
@@ -258,6 +259,13 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 				//if out of gas,then err is ErrOutOfGas, gasConsumed change to gasLimit for can not make line.295 panic that will lead to 'RevertToSnapshot' panic
 				gasConsumed = gasLimit
 			}
+		} else {
+			if gasConsumed > gasLimit {
+				gasConsumed = gasLimit
+				defer func() {
+					panic(types2.ErrorOutOfGas{"EVM execution consumption"})
+				}()
+			}
 		}
 		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasConsumed, nonce)
 	default:
@@ -290,6 +298,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 				err = vm.ErrOutOfGas
 				//if out of gas,then err is ErrOutOfGas, gasConsumed change to gasLimit for can not make line.295 panic that will lead to 'RevertToSnapshot' panic
 				gasConsumed = gasLimit
+			}
+		} else {
+			// For cover err != nil,but gasConsumed which is caculated by gufactor  >  gaslimit,we must be make gasConsumed = gasLimit and panic same as currentGasMeter.ConsumeGas. so we can not use height isolation
+			if gasConsumed > gasLimit {
+				gasConsumed = gasLimit
+				defer func() {
+					panic(types2.ErrorOutOfGas{"EVM execution consumption"})
+				}()
 			}
 		}
 
