@@ -14,6 +14,7 @@ func main() {
 	rootCmd.AddCommand(expired.RedisCommand())
 	rootCmd.AddCommand(expired.RedisV2Command())
 	rootCmd.AddCommand(expired.RedisV3Command())
+	rootCmd.AddCommand(expired.OutdatedCommand())
 
 	err := rootCmd.Execute()
 	if err != nil {

@@ -1,0 +1,12 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+block -> collector: parallel lrp/sync block
+collector -> "redis-server": claimRank\nclaimMintRewardAndShare\nclaimMintReward
+"redis-server" -> analyser: filter the expired \n8 days userAddr to \n**xen_expired.csv**
+analyser->"xen_expired.csv": analyser generate \n"xen_expired.csv"
+"xen_expired.csv" -> "xen_expired.csv": **checher** check the \n"xen_expired.csv" to \nexpired.csv\n by call userMints
+
+@enduml
