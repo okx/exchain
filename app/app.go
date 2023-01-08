@@ -977,7 +977,9 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 
-	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
+	isFastStorage := appstatus.IsFastStorageStrategy()
+	iavl.SetEnableFastStorage(isFastStorage)
+	viper.Set(iavl.FlagIavlEnableFastStorage, isFastStorage)
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 
