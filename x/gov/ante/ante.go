@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -32,26 +33,18 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 			// check operation contract
 			contract := ad.ak.GetAccount(ctx, proposalType.Contract)
 			contractAcc, ok := contract.(*ethermint.EthAccount)
-			if !ok {
-				return ctx, fmt.Errorf("contract: %s not EthAccount", proposalType.Contract)
-			}
-			if !contractAcc.IsContract() {
-				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(proposalType.Contract.String()))
+			if !ok || !contractAcc.IsContract() {
+				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.Contract).String()))
 			}
 
 			//check substitute contract
 			substitute := ad.ak.GetAccount(ctx, proposalType.SubstituteContract)
 			substituteAcc, ok := substitute.(*ethermint.EthAccount)
-			if !ok {
-				return ctx, fmt.Errorf("substitute contract:%s not EthAccount", proposalType.SubstituteContract)
-			}
-			if !substituteAcc.IsContract() {
-				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(proposalType.SubstituteContract.String()))
+			if !ok || !substituteAcc.IsContract() {
+				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.SubstituteContract).String()))
 			}
 		}
 
-	default:
-		return next(ctx, tx, simulate)
 	}
-	return ctx, nil
+	return next(ctx, tx, simulate)
 }

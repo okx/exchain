@@ -22,7 +22,7 @@ func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContract
 	preCode := k.EvmStateDb.GetCode(contract)
 	ContractAddr := k.EvmStateDb.GetAccount(contract)
 	if ContractAddr == nil {
-		return fmt.Errorf("unexcepted behavior: contract %s  is null", contract.String())
+		return types.ErrNotContracAddress(fmt.Errorf("%s", contract.String()))
 	}
 	preCodeHash := ContractAddr.CodeHash
 
@@ -38,6 +38,7 @@ func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContract
 	// update code
 	k.EvmStateDb.SetCode(contract, newCode)
 
+	// store init code
 	k.storeInitContractCode(ctx, p.Contract, preCode)
 
 	// commit evm state db
@@ -49,7 +50,7 @@ func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContract
 func (k *Keeper) AfterUpdateContractByteCode(ctx sdk.Context, contract, substituteContract ethcmn.Address, preCodeHash, preCode, newCode []byte) error {
 	contractAfterUpdateCode := k.EvmStateDb.GetAccount(contract)
 	if contractAfterUpdateCode == nil {
-		return fmt.Errorf("unexcepted behavior: contractAfterUpdateCode %s is null", contract.String())
+		return types.ErrNotContracAddress(fmt.Errorf("%s", contractAfterUpdateCode.String()))
 	}
 
 	// log
