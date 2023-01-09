@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	minHeight = 15405261
+	//minHeight = 15405261
+	minHeight = 0
 	maxHeight = 16359432
 )
 
