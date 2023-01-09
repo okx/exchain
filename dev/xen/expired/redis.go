@@ -111,6 +111,8 @@ func parseClaim(claim *rediscli.XenMint, key, value string) {
 	case "term":
 		term, _ := strconv.Atoi(value)
 		claim.Term = int64(term)
+	case "txsender":
+		claim.TxSender = value
 	case "btime":
 		utc, _ := strconv.Atoi(value)
 		tim := time.Unix(int64(utc), 0)

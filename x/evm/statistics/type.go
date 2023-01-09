@@ -7,6 +7,7 @@ type XenMint struct {
 	BlockTime time.Time
 	TxHash    string
 	TxSender  string
+	To        string
 	UserAddr  string
 	Term      int64
 	Rank      string
@@ -17,6 +18,7 @@ type XenClaimReward struct {
 	BlockTime    time.Time
 	TxHash       string
 	TxSender     string
+	To           string
 	UserAddr     string
 	RewardAmount string
 }

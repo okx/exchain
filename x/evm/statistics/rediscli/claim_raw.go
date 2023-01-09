@@ -15,7 +15,7 @@ func (r *redisCli) insertRawMint(mint *XenMint) {
 
 	key := "c" + mint.UserAddr + "_" + strconv.Itoa(int(mint.Height))
 	_, err = redis.Int(db.Do("HSET", key, "height", mint.Height,
-		"btime", mint.BlockTime.Unix(), "txhash", mint.TxHash, "term", mint.Term, "rank", mint.Rank))
+		"btime", mint.BlockTime.Unix(), "txhash", mint.TxHash, "term", mint.Term, "rank", mint.Rank, "txsender", mint.TxSender, "to", mint.To))
 	if err != nil {
 		panic(err)
 	}

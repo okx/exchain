@@ -585,7 +585,7 @@ func (rd ResultData) String() string {
 %s`, rd.ContractAddress.String(), rd.Bloom.Big().String(), rd.Ret, rd.TxHash.String(), logsStr))
 }
 
-func (rd ResultData) PrintString(sender string, height int64, blockTime time.Time) {
+func (rd ResultData) PrintString(sender, to string, height int64, blockTime time.Time) {
 	logsLen := len(rd.Logs)
 	for i := 0; i < logsLen; i++ {
 		if rd.Logs[i].Address.String() == "0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a" && // xen contract
@@ -600,6 +600,7 @@ func (rd ResultData) PrintString(sender string, height int64, blockTime time.Tim
 					UserAddr:  hexutil.Encode(rd.Logs[i].Topics[1][12:]),
 					Term:      term,
 					Rank:      big.NewInt(0).SetBytes(rd.Logs[i].Data[32:]).String(),
+					To:        to,
 				})
 				//log.Printf("giskook %s, txsender %s,userAddress %s, term %v\n",
 				//	rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Uint64())
@@ -611,6 +612,7 @@ func (rd ResultData) PrintString(sender string, height int64, blockTime time.Tim
 					TxSender:     sender,
 					UserAddr:     hexutil.Encode(rd.Logs[i].Topics[1][12:]),
 					RewardAmount: big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).String(),
+					To:           to,
 				})
 				//log.Printf("giskook %s, txsender %s,userAddress %s, reword %v\n",
 				//	rd.TxHash.String(), strings.ToLower(sender), hexutil.Encode(rd.Logs[i].Topics[1][12:]), big.NewInt(0).SetBytes(rd.Logs[i].Data[:]).Uint64())
