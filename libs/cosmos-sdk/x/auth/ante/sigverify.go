@@ -15,6 +15,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -81,13 +82,21 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 
 		// Only make check if simulate=false
 		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-			if secp256k1Pk, ok := pk.(*secp256k1.PubKeySecp256k1); !ok {
-				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
-			} else if !bytes.Equal(ethsecp256k1.PubKey(secp256k1Pk[:]).Address(), signers[i]) {
-				// in case that tx is created by CosmWasmJS with pubKey type of `secp256k1` and the signer address is derived by the pubKey of `ethsecp256k1` type
+			switch ppk := pk.(type) {
+			case *secp256k1.PubKeySecp256k1:
+				// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
+				// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
+				// Let it pass after Earth height.
+				if types2.HigherThanEarth(ctx.BlockHeight()) && bytes.Equal(ethsecp256k1.PubKey(ppk[:]).Address(), signers[i]) {
+					break
+				}
 				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
 					"pubKey does not match signer address %s derived by eth pubKey, with signer index: %d", signers[i], i)
+
+			default:
+				//old logic
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 			}
 		}
 
