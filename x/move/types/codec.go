@@ -7,6 +7,7 @@ import (
 // RegisterCodec registers concrete types on codec codec
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgPublishMove{}, "okexchain/move/MsgPublishMove", nil)
+	cdc.RegisterConcrete(MsgRunMove{}, "okexchain/move/MsgRunMove", nil)
 }
 
 // ModuleCdc generic sealed codec to be used throughout module

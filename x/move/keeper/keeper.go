@@ -18,30 +18,31 @@ type Keeper struct {
 	storeKey   sdk.StoreKey
 	cdc        *codec.Codec
 	paramSpace params.Subspace
+	store      movevm.KVStore
+	gasMeter   movevm.GasMeter
 }
 
 // NewKeeper creates a new move Keeper instance
 func NewKeeper(cdc *codec.Codec, key sdk.StoreKey, paramSpace params.Subspace) Keeper {
-
-	// ensure move module account is set
-	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
+
+	gasMeter := api.NewMockGasMeter(uint64(500_000_000_000))
 
 	return Keeper{
 		storeKey:   key,
 		cdc:        cdc,
 		paramSpace: paramSpace,
+		gasMeter:   gasMeter,
+		store:      api.NewLookup(gasMeter),
 	}
 }
 
-// Logger returns a module-specific logger.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", types.ShortUseByCli)
 }
 
-// SetWithdrawAddr sets a new address that will receive the rewards upon withdrawal
 func (k Keeper) PublishMove(ctx sdk.Context, delegatorAddr sdk.AccAddress, movePath string) error {
 
 	ctx.EventManager().EmitEvent(
@@ -53,10 +54,6 @@ func (k Keeper) PublishMove(ctx sdk.Context, delegatorAddr sdk.AccAddress, moveP
 
 	version, _ := movevm.Version()
 	fmt.Println("finished", version)
-
-	gasMeter := api.NewMockGasMeter(uint64(500_000_000_000))
-
-	store := api.NewLookup(gasMeter)
 
 	pathList := [...]string{
 		"/Users/oker/workspace/move/movevm/contracts/readme/build/readme/bytecode_modules/dependencies/MoveNursery/debug.mv",
@@ -80,10 +77,35 @@ func (k Keeper) PublishMove(ctx sdk.Context, delegatorAddr sdk.AccAddress, moveP
 		"/Users/oker/workspace/move/movevm/contracts/readme/build/readme/bytecode_modules/dependencies/MoveNursery/vault.mv",
 	}
 	for _, s := range pathList {
-		movevm.Publish(readModule(s), []byte("0x1"), []byte("1234567890"), gasMeter, store, nil, nil, 10000, false)
+		movevm.Publish(readModule(s), []byte("0x1"), []byte("1234567890"), k.gasMeter, k.store, nil, nil, 10000, false)
 	}
+
+	testByte := []byte("1234567890")
+	moduleBytes2 := readModule("/Users/oker/workspace/move/movevm/contracts/readme/build/readme/bytecode_modules/Test.mv")
+	movevm.Publish(moduleBytes2, []byte("0x2"), testByte, k.gasMeter, k.store, nil, nil, 10000, false)
+
+	moduleBytes3 := readModule("/Users/oker/workspace/move/movevm/contracts/readme/build/readme/bytecode_modules/Caller.mv")
+	movevm.Publish(moduleBytes3, []byte("0x3"), testByte, k.gasMeter, k.store, nil, nil, 10000, false)
 	logger := k.Logger(ctx)
+
 	logger.Info("Publish move contract ok.......")
+	return nil
+}
+
+func (k Keeper) RunMove(ctx sdk.Context, delegatorAddr sdk.AccAddress, movePath string) error {
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeRunMove,
+			sdk.NewAttribute(types.AttributeKeyPublishMove, movePath),
+		),
+	)
+
+	scriptBytes := readModule("/Users/oker/workspace/move/movevm/contracts/readme/build/readme/bytecode_scripts/test_script.mv")
+	movevm.Run(scriptBytes, []byte("0xF"), []byte("1234567890"), k.gasMeter, k.store, nil, nil, 10000, false)
+
+	logger := k.Logger(ctx)
+
+	logger.Info("Run move contract ok.......")
 	return nil
 }
 

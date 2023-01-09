@@ -37,8 +37,9 @@ var (
 )
 
 type (
-	Keeper                = keeper.Keeper
-	MsgSetWithdrawAddress = types.MsgPublishMove
+	Keeper         = keeper.Keeper
+	MsgPublishMove = types.MsgPublishMove
+	MsgRunMove     = types.MsgRunMove
 
 	GenesisState = types.GenesisState
 )

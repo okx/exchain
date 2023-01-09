@@ -29,6 +29,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 
 	distTxCmd.AddCommand(flags.PostCommands(
 		GetCmdPublishMove(cdc),
+		GetCmdRunMove(cdc),
 	)...)
 
 	return distTxCmd
@@ -49,6 +50,26 @@ func GetCmdPublishMove(cdc *codec.Codec) *cobra.Command {
 
 			delAddr := cliCtx.GetFromAddress()
 			msg := types.NewMsgPublishMove(delAddr, "movepath")
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
+
+func GetCmdRunMove(cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "run-move",
+		Short: "",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(""),
+		),
+		Args: cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			delAddr := cliCtx.GetFromAddress()
+			msg := types.NewMsgRunMove(delAddr, "movepath")
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

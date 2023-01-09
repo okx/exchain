@@ -14,6 +14,8 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case types.MsgPublishMove:
 			return handleMsgPublishMove(ctx, msg, k)
+		case types.MsgRunMove:
+			return handleMsgRunMove(ctx, msg, k)
 
 		default:
 			return nil, nil
@@ -21,9 +23,25 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	}
 }
 
-// These functions assume everything has been authenticated (ValidateBasic passed, and signatures checked)
 func handleMsgPublishMove(ctx sdk.Context, msg types.MsgPublishMove, k keeper.Keeper) (*sdk.Result, error) {
 	err := k.PublishMove(ctx, msg.DelegatorAddress, msg.MovePath)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
+		),
+	)
+
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+}
+
+func handleMsgRunMove(ctx sdk.Context, msg types.MsgRunMove, k keeper.Keeper) (*sdk.Result, error) {
+	err := k.RunMove(ctx, msg.DelegatorAddress, msg.MovePath)
 	if err != nil {
 		return nil, err
 	}
