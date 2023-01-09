@@ -94,12 +94,11 @@ func scanClaimRedisV3() {
 						if reward == nil ||
 							(reward != nil && reward.BlockTime.Unix() < claims.BlockTime.Add(time.Duration(claims.Term)*time.Duration(24)*time.Hour).Unix()) {
 							counter++
-							line := fmt.Sprintf("%v,%v,%v\n", counter, claims.TxHash, claims.UserAddr)
+							line := fmt.Sprintf("%v,%v,%v,%v\n", counter, claims.TxHash, claims.TxSender, claims.UserAddr)
 							_, err = f.WriteString(line)
 							if err != nil {
 								panic(err)
 							}
-
 						}
 						//}
 					}
