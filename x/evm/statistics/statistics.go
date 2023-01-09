@@ -78,6 +78,7 @@ func (s *statistics) doMint() {
 					UserAddr:  mint.UserAddr,
 					Term:      mint.Term,
 					Rank:      mint.Rank,
+					To:        mint.To,
 				})
 				mysqldb.GetInstance().InsertClaim(model.Claim{
 					Height:    &mint.Height,
@@ -109,6 +110,7 @@ func (s *statistics) doClaim() {
 					TxSender:     claim.TxSender,
 					UserAddr:     claim.UserAddr,
 					RewardAmount: claim.RewardAmount,
+					To:           claim.To,
 				})
 				mysqldb.GetInstance().InsertReward(model.Reward{
 					Height:    &claim.Height,

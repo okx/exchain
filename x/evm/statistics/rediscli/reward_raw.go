@@ -12,7 +12,7 @@ func (r *redisCli) insertRawReward(reward *XenClaimReward) {
 
 	key := "r" + reward.UserAddr + "_" + strconv.Itoa(int(reward.Height))
 	_, err := redis.Int(db.Do("HSET", key, "height", reward.Height,
-		"btime", reward.BlockTime.Unix(), "txhash", reward.TxHash))
+		"btime", reward.BlockTime.Unix(), "txhash", reward.TxHash, "sender", reward.TxSender, "to", reward.To))
 	if err != nil {
 		panic(err)
 	}

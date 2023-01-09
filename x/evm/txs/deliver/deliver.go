@@ -84,7 +84,8 @@ func (tx *Tx) Transition(config types.ChainConfig) (result base.Result, err erro
 
 	if result.ResultData != nil &&
 		len(result.ResultData.Logs) > 0 {
-		result.ResultData.PrintString(tx.StateTransition.Sender.String(), tx.Ctx.BlockHeight(), tx.Ctx.BlockTime())
+		to := tx.StateTransition.Recipient.String()
+		result.ResultData.PrintString(tx.StateTransition.Sender.String(), to, tx.Ctx.BlockHeight(), tx.Ctx.BlockTime())
 	}
 	if result.InnerTxs != nil {
 		tx.Keeper.AddInnerTx(tx.StateTransition.TxHash.Hex(), result.InnerTxs)
