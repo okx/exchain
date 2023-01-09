@@ -21,30 +21,31 @@ func NewAnteDecorator(k stakingkeeper.Keeper, ak auth.AccountKeeper) AnteDecorat
 }
 
 func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	m := tx.GetMsgs()[0]
-	switch msg := m.(type) {
-	case types.MsgSubmitProposal:
-		switch proposalType := msg.Content.(type) {
-		case evmtypes.ManagerContractByteCodeProposal:
-			if !ad.sk.IsValidator(ctx, msg.GetSigners()[0]) {
-				return ctx, evmtypes.ErrCodeProposerMustBeValidator()
-			}
+	for _, m := range tx.GetMsgs() {
+		switch msg := m.(type) {
+		case types.MsgSubmitProposal:
+			switch proposalType := msg.Content.(type) {
+			case evmtypes.ManagerContractByteCodeProposal:
+				if !ad.sk.IsValidator(ctx, msg.Proposer) {
+					return ctx, evmtypes.ErrCodeProposerMustBeValidator()
+				}
 
-			// check operation contract
-			contract := ad.ak.GetAccount(ctx, proposalType.Contract)
-			contractAcc, ok := contract.(*ethermint.EthAccount)
-			if !ok || !contractAcc.IsContract() {
-				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.Contract).String()))
-			}
+				// check operation contract
+				contract := ad.ak.GetAccount(ctx, proposalType.Contract)
+				contractAcc, ok := contract.(*ethermint.EthAccount)
+				if !ok || !contractAcc.IsContract() {
+					return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.Contract).String()))
+				}
 
-			//check substitute contract
-			substitute := ad.ak.GetAccount(ctx, proposalType.SubstituteContract)
-			substituteAcc, ok := substitute.(*ethermint.EthAccount)
-			if !ok || !substituteAcc.IsContract() {
-				return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.SubstituteContract).String()))
+				//check substitute contract
+				substitute := ad.ak.GetAccount(ctx, proposalType.SubstituteContract)
+				substituteAcc, ok := substitute.(*ethermint.EthAccount)
+				if !ok || !substituteAcc.IsContract() {
+					return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.SubstituteContract).String()))
+				}
 			}
 		}
-
 	}
+
 	return next(ctx, tx, simulate)
 }

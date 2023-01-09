@@ -20,17 +20,17 @@ func (k *Keeper) UpdateContractBytecode(ctx sdk.Context, p types.ManagerContract
 	revertContractByteCode := p.Contract.String() == p.SubstituteContract.String()
 
 	preCode := k.EvmStateDb.GetCode(contract)
-	ContractAddr := k.EvmStateDb.GetAccount(contract)
-	if ContractAddr == nil {
+	contractAcc := k.EvmStateDb.GetAccount(contract)
+	if contractAcc == nil {
 		return types.ErrNotContracAddress(fmt.Errorf("%s", contract.String()))
 	}
-	preCodeHash := ContractAddr.CodeHash
+	preCodeHash := contractAcc.CodeHash
 
 	var newCode []byte
 	if revertContractByteCode {
 		newCode = k.getInitContractCode(ctx, p.Contract)
 		if len(newCode) == 0 {
-			return nil
+			return types.ErrContractCodeNotBeenUpdated(contract.String())
 		}
 	} else {
 		newCode = k.EvmStateDb.GetCode(substituteContract)
@@ -78,14 +78,14 @@ func (k *Keeper) AfterUpdateContractByteCode(ctx sdk.Context, contract, substitu
 
 func (k *Keeper) storeInitContractCode(ctx sdk.Context, addr sdk.AccAddress, code []byte) {
 	store := k.paramSpace.CustomKVStore(ctx)
-	key := types.GetInitContractCode(addr)
-	if len(store.Get(key)) == 0 {
+	key := types.GetInitContractCodeKey(addr)
+	if !store.Has(key) {
 		store.Set(key, code)
 	}
 }
 
 func (k *Keeper) getInitContractCode(ctx sdk.Context, addr sdk.AccAddress) []byte {
 	store := k.paramSpace.CustomKVStore(ctx)
-	key := types.GetInitContractCode(addr)
+	key := types.GetInitContractCodeKey(addr)
 	return store.Get(key)
 }

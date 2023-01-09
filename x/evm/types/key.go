@@ -81,6 +81,6 @@ func GetSysContractAddressKey() []byte {
 	return append(KeyPrefixSysContractAddress, []byte(SysContractAddressKey)...)
 }
 
-func GetInitContractCode(contractAddr sdk.AccAddress) []byte {
+func GetInitContractCodeKey(contractAddr sdk.AccAddress) []byte {
 	return append(KeyPrefixContractCode, contractAddr...)
 }
