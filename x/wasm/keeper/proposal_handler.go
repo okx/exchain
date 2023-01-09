@@ -260,7 +260,7 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 	}
 
 	var config types.AccessConfig
-	if len(p.DistributorAddrs) == 0 {
+	if types.IsNobody(p.DistributorAddrs) {
 		config.Permission = types.AccessTypeNobody
 	} else if types.IsAllAddress(p.DistributorAddrs) {
 		config.Permission = types.AccessTypeEverybody
