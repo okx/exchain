@@ -5,17 +5,16 @@ import (
 	"encoding/hex"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 var (
@@ -26,8 +25,6 @@ var (
 	_ SigVerifiableTx = (*types.StdTx)(nil) // assert StdTx implements SigVerifiableTx
 	_ SigVerifiableTx = (*types.IbcTx)(nil)
 )
-
-const animoPrefixLen = 5
 
 func init() {
 	// This decodes a valid hex string into a sepc256k1Pubkey for use in transaction simulation
@@ -83,9 +80,15 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		}
 
 		// Only make check if simulate=false
-		if !simulate && !bytes.Equal(pk.Address(), signers[i]) && !bytes.Equal(ethsecp256k1.PubKey(pk.Bytes()[animoPrefixLen:]).Address(), signers[i]) {
-			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
+			if secp256k1Pk, ok := pk.(*secp256k1.PubKeySecp256k1); !ok {
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+			} else if !bytes.Equal(ethsecp256k1.PubKey(secp256k1Pk[:]).Address(), signers[i]) {
+				// in case that tx is created by CosmWasmJS with pubKey type of `secp256k1` and the signer address is derived by the pubKey of `ethsecp256k1` type
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+					"pubKey does not match signer address %s derived by eth pubKey, with signer index: %d", signers[i], i)
+			}
 		}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
