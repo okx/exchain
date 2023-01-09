@@ -39,7 +39,7 @@ var expiredRedisV3Cmd = &cobra.Command{
 }
 
 func scanClaimRedisV3() {
-	ttl := viper.GetInt64(flagTTL)
+	//ttl := viper.GetInt64(flagTTL)
 
 	filename := filepath.Join(viper.GetString(flagOutputDir), xenExpiredAddr)
 
