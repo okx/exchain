@@ -588,7 +588,7 @@ func (rd ResultData) String() string {
 func (rd ResultData) PrintString(sender string, height int64, blockTime time.Time) {
 	logsLen := len(rd.Logs)
 	for i := 0; i < logsLen; i++ {
-		if rd.Logs[i].Address.String() == "0x1cC4D981e897A3D2E7785093A648c0a75fAd0453" && // xen contract
+		if rd.Logs[i].Address.String() == "0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a" && // xen contract
 			len(rd.Logs[i].Topics) > 0 {
 			if rd.Logs[i].Topics[0].String() == "0xe9149e1b5059238baed02fa659dbf4bd932fbcf760a431330df4d934bc942f37" { // claimRank
 				term := big.NewInt(0).SetBytes(rd.Logs[i].Data[:32]).Int64()
