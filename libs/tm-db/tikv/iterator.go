@@ -2,7 +2,6 @@ package tikv
 
 import (
 	"context"
-
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tikv/client-go/v2/rawkv"
 )
@@ -16,6 +15,10 @@ type Iterator struct {
 	isReverse bool
 	finish    bool
 	err       error
+
+	keys   [][]byte
+	values [][]byte
+	cur    int
 }
 
 var _ dbm.Iterator = (*Iterator)(nil)
@@ -39,14 +42,23 @@ func (i *Iterator) Valid() bool {
 }
 
 func (i *Iterator) next() ([]byte, []byte, error) {
-	keys, values, err := i.client.Scan(context.TODO(), i.curKey, i.end, 1)
+	var err error
+	i.keys, i.values, err = i.client.Scan(context.TODO(), i.curKey, i.end, 1000)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(keys[0]) == 0 {
+
+	if len(i.keys) == 0 {
 		i.finish = true
+		return nil, nil, nil
 	}
-	return keys[0], values[0], nil
+	if i.cur >= len(i.keys) {
+		i.finish = true
+		return nil, nil, nil
+	}
+	key, value := i.keys[i.cur], i.values[i.cur]
+	i.cur++
+	return key, value, nil
 }
 
 func (i *Iterator) reverseNext() ([]byte, []byte, error) {

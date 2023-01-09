@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"time"
 
 	"github.com/spf13/viper"
@@ -90,7 +91,11 @@ func NewDB(name, dir string) (db dbm.DB, err error) {
 	if len(backend) == 0 {
 		backend = string(dbm.GoLevelDBBackend)
 	}
-	db = dbm.NewDB(name, dbm.BackendType(backend), dir)
+	if global.IsTiKv(dir) {
+		db = dbm.NewDB(name, dbm.TiKVBackend, dir)
+	} else {
+		db = dbm.NewDB(name, dbm.BackendType(backend), dir)
+	}
 	return
 }
 

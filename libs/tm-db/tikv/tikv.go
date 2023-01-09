@@ -2,8 +2,6 @@ package tikv
 
 import (
 	"context"
-	"log"
-
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/libs/tm-db/common"
 	"github.com/tikv/client-go/v2/rawkv"
@@ -35,7 +33,6 @@ type TiKV struct {
 var _ dbm.DB = (*TiKV)(nil)
 
 func (t *TiKV) Get(key []byte) ([]byte, error) {
-	log.Println("get from tikv")
 	key = dbm.NonNilBytes(key)
 
 	return t.client.Get(context.TODO(), key)
