@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/move"
 	"io"
 	"math/big"
 	"os"
@@ -143,6 +144,7 @@ var (
 		staking.AppModuleBasic{},
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
+		move.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler,
 			distr.CommunityPoolSpendProposalHandler,
@@ -196,6 +198,7 @@ var (
 	maccPerms = map[string][]string{
 		auth.FeeCollectorName:       nil,
 		distr.ModuleName:            nil,
+		move.ModuleName:             nil,
 		mint.ModuleName:             {supply.Minter},
 		staking.BondedPoolName:      {supply.Burner, supply.Staking},
 		staking.NotBondedPoolName:   {supply.Burner, supply.Staking},
@@ -245,6 +248,7 @@ type OKExChainApp struct {
 	SlashingKeeper       slashing.Keeper
 	MintKeeper           mint.Keeper
 	DistrKeeper          distr.Keeper
+	MoveKeeper           move.Keeper
 	GovKeeper            gov.Keeper
 	CrisisKeeper         crisis.Keeper
 	UpgradeKeeper        upgrade.Keeper
@@ -329,7 +333,7 @@ func NewOKExChainApp(
 
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
-		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
+		supply.StoreKey, mint.StoreKey, distr.StoreKey, move.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
@@ -362,6 +366,7 @@ func NewOKExChainApp(
 	app.subspaces[staking.ModuleName] = app.ParamsKeeper.Subspace(staking.DefaultParamspace)
 	app.subspaces[mint.ModuleName] = app.ParamsKeeper.Subspace(mint.DefaultParamspace)
 	app.subspaces[distr.ModuleName] = app.ParamsKeeper.Subspace(distr.DefaultParamspace)
+	app.subspaces[move.ModuleName] = app.ParamsKeeper.Subspace(move.DefaultParamspace)
 	app.subspaces[slashing.ModuleName] = app.ParamsKeeper.Subspace(slashing.DefaultParamspace)
 	app.subspaces[gov.ModuleName] = app.ParamsKeeper.Subspace(gov.DefaultParamspace)
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
@@ -408,6 +413,11 @@ func NewOKExChainApp(
 		codecProxy.GetCdc(), keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
 	)
+
+	app.MoveKeeper = move.NewKeeper(
+		codecProxy.GetCdc(), keys[move.StoreKey], app.subspaces[move.ModuleName],
+	)
+
 	app.SlashingKeeper = slashing.NewKeeper(
 		codecProxy.GetCdc(), keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
 	)
@@ -636,6 +646,7 @@ func NewOKExChainApp(
 		mint.NewAppModule(app.MintKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
+		move.NewAppModule(app.MoveKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
 		evm.NewAppModule(app.EvmKeeper, &app.AccountKeeper),
@@ -670,6 +681,7 @@ func NewOKExChainApp(
 		dex.ModuleName,
 		mint.ModuleName,
 		distr.ModuleName,
+		move.ModuleName,
 		slashing.ModuleName,
 		staking.ModuleName,
 		farm.ModuleName,
@@ -694,7 +706,7 @@ func NewOKExChainApp(
 	// properly initialized with tokens from genesis accounts.
 	app.mm.SetOrderInitGenesis(
 		capabilitytypes.ModuleName,
-		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
+		auth.ModuleName, distr.ModuleName, move.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
 		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
 		ibctransfertypes.ModuleName,
@@ -727,6 +739,7 @@ func NewOKExChainApp(
 		mint.NewAppModule(app.MintKeeper),
 		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
+		move.NewAppModule(app.MoveKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
 		ibc.NewAppModule(app.IBCKeeper),
