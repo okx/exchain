@@ -16,6 +16,7 @@ func main() {
 	rootCmd.AddCommand(expired.RedisV3Command())
 	rootCmd.AddCommand(expired.OutdatedCommand())
 	rootCmd.AddCommand(expired.AnalyzeToCommand())
+	rootCmd.AddCommand(expired.AnalyzeHeightCommand())
 
 	err := rootCmd.Execute()
 	if err != nil {
