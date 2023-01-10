@@ -230,8 +230,8 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			if err != nil {
 				return 0, err
 			}
-			// ignore empty tree
-			if len(versions) == 0{
+			// ignore not enabled store
+			if len(versions) == 0 {
 				continue
 			}
 			isFindIavlStoreParam = true
@@ -262,7 +262,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 	return 0, fmt.Errorf("not found any proper version")
 }
 
-//hasVersion means every storesParam in store has this version.
+// hasVersion means every storesParam in store has this version.
 func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	latestVersion := rs.GetLatestVersion()
 	for key, storeParams := range rs.storesParams {
@@ -299,7 +299,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	return true, nil
 }
 
-//loadSubStoreVersion loads specific version for sub kvstore by given key and storeParams.
+// loadSubStoreVersion loads specific version for sub kvstore by given key and storeParams.
 func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams storeParams, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (types.CommitKVStore, error) {
 
 	commitID := rs.getCommitID(infos, key.Name())
@@ -338,7 +338,7 @@ func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams 
 	return store, nil
 }
 
-//loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
+// loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
 func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (map[types.StoreKey]types.CommitKVStore, map[int64][]byte, error) {
 	lock := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
