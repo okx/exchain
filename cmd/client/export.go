@@ -234,12 +234,7 @@ func ImportEthKeyStoreCommand() *cobra.Command {
 				return err
 			}
 
-			passphrase, err := input.GetPassword("Enter passphrase to encrypt your key:", inBuf)
-			if err != nil {
-				return err
-			}
-
-			privkeyArmor, err := ethkeystore.ImportKeyStoreFile(decryptPassword, passphrase, file, keys.SigningAlgo(algo))
+			privkeyArmor, err := ethkeystore.ImportKeyStoreFile(decryptPassword, decryptPassword, file, keys.SigningAlgo(algo))
 			if err != nil {
 				return err
 			}
@@ -249,9 +244,9 @@ func ImportEthKeyStoreCommand() *cobra.Command {
 				return err
 			}
 
-			return kb.ImportPrivKey(accountName, privkeyArmor, passphrase)
+			return kb.ImportPrivKey(accountName, privkeyArmor, decryptPassword)
 		},
 	}
-	cmd.Flags().String(flagKeyAlgo, string(keys.Secp256k1), "Key signing algorithm to generate keys for")
+	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
 	return cmd
 }
