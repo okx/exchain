@@ -4,23 +4,23 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/spf13/viper"
+	"os"
 	"strings"
-
-	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-
+	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/gov"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -86,8 +86,15 @@ and optionally withdraw validator commission if the delegation address given is 
 Example:
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey 
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey --commission
+
+If this command is used without "--commission", and the address you want to withdraw rewards is both validator and delegator, 
+only the delegator's rewards can be withdrew. However, if the address you want to withdraw rewards is only the validator, 
+the validator commissions will be withdrew.
+Example:
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator)			# withdraw mykey's commission only
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey(validator&delegator)	# withdraw mykey's reward only
 `,
-				version.ClientName, version.ClientName,
+				version.ClientName, version.ClientName, version.ClientName, version.ClientName,
 			),
 		),
 		Args: cobra.ExactArgs(1),
@@ -102,18 +109,46 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 				return err
 			}
 
+			isVal := common.IsValidator(cliCtx, cdc, sdk.ValAddress(delAddr))
+			isDel := common.IsDelegator(cliCtx, cdc, delAddr)
+			needWarning := false
+
 			msgs := []sdk.Msg{}
-			if viper.GetBool(flagCommission) {
+			if viper.GetBool(flagCommission) || (isVal && !isDel) {
 				msgs = append(msgs, types.NewMsgWithdrawValidatorCommission(valAddr))
 			} else {
 				msgs = append(msgs, types.NewMsgWithdrawDelegatorReward(delAddr, valAddr))
+				if isVal && isDel {
+					needWarning = true
+				}
 			}
-
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)
+			result := transWrapError(common.NewWrapError(utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)), delAddr, valAddr)
+			if needWarning {
+				fmt.Fprintf(os.Stdout, "%s\n", fmt.Sprintf("\nFound address: \"%s\" is a validator, please add the `--commission` flag to the command line if you want to withdraw the commission, for example:\n"+
+					"%s ..... --commission.\n",
+					delAddr.String(), version.ClientName))
+			}
+			return result
 		},
 	}
 	cmd.Flags().Bool(flagCommission, false, "withdraw validator's commission")
 	return cmd
+}
+
+func transWrapError(wrapErr *common.WrapError, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+	if wrapErr == nil {
+		return nil
+	}
+
+	wrapErr.Trans(types.CodeEmptyDelegationDistInfo, fmt.Sprintf("found account %s is not a delegator, please check it first", delAddr.String()))
+	wrapErr.Trans(types.CodeNoValidatorCommission, fmt.Sprintf("found account %s is not a validator, please check it first", delAddr.String()))
+	wrapErr.Trans(types.CodeEmptyValidatorDistInfo, fmt.Sprintf("found validator address %s is not a validator, please check it first", valAddr.String()))
+	wrapErr.Trans(types.CodeEmptyDelegationVoteValidator, fmt.Sprintf("found validator address %s haven't been voted, please check it first", valAddr.String()))
+	if wrapErr.Changed {
+		return wrapErr
+	}
+
+	return wrapErr.RawError
 }
 
 // GetCmdCommunityPoolSpendProposal implements the command to submit a community-pool-spend proposal
