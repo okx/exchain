@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/hex"
 	"fmt"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/go-amino"
@@ -1739,10 +1740,100 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 }
 
 func (csdb *CommitStateDB) GetAccount(addr ethcmn.Address) *ethermint.EthAccount {
-
 	obj := csdb.getStateObject(addr)
 	if obj == nil {
 		return nil
 	}
 	return obj.account
+}
+
+func (csdb *CommitStateDB) UpdateContractBytecode(ctx sdk.Context, p ManagerContractByteCodeProposal) sdk.Error {
+	contract := ethcmn.BytesToAddress(p.Contract)
+	substituteContract := ethcmn.BytesToAddress(p.SubstituteContract)
+
+	revertContractByteCode := p.Contract.String() == p.SubstituteContract.String()
+
+	preCode := csdb.GetCode(contract)
+	contractAcc := csdb.GetAccount(contract)
+	if contractAcc == nil {
+		return ErrNotContracAddress(fmt.Errorf("%s", contract.String()))
+	}
+	preCodeHash := contractAcc.CodeHash
+
+	var newCode []byte
+	if revertContractByteCode {
+		newCode = csdb.getInitContractCode(ctx, p.Contract)
+		if len(newCode) == 0 {
+			return ErrContractCodeNotBeenUpdated(contract.String())
+		}
+	} else {
+		newCode = csdb.GetCode(substituteContract)
+	}
+
+	// update code
+	csdb.SetCode(contract, newCode)
+
+	// store init code
+	csdb.storeInitContractCode(ctx, p.Contract, preCode)
+
+	// commit state db
+	csdb.Commit(false)
+	return csdb.afterUpdateContractByteCode(ctx, contract, substituteContract, preCodeHash, preCode, newCode)
+}
+
+var (
+	EventTypeContractUpdateByProposal = "contract-update-by-proposal"
+)
+
+func (csdb *CommitStateDB) afterUpdateContractByteCode(ctx sdk.Context, contract, substituteContract ethcmn.Address, preCodeHash, preCode, newCode []byte) error {
+	contractAfterUpdateCode := csdb.GetAccount(contract)
+	if contractAfterUpdateCode == nil {
+		return ErrNotContracAddress(fmt.Errorf("%s", contractAfterUpdateCode.String()))
+	}
+
+	// log
+	ctx.Logger().Info("updateContractByteCode", "contract", contract, "preCodeHash", hex.EncodeToString(preCodeHash), "preCodeSize", len(preCode),
+		"codeHashAfterUpdateCode", hex.EncodeToString(contractAfterUpdateCode.CodeHash), "codeSizeAfterUpdateCode", len(newCode))
+	// emit event
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		EventTypeContractUpdateByProposal,
+		sdk.NewAttribute("contract", contract.String()),
+		sdk.NewAttribute("preCodeHash", hex.EncodeToString(preCodeHash)),
+		sdk.NewAttribute("preCodeSize", fmt.Sprintf("%d", len(preCode))),
+		sdk.NewAttribute("SubstituteContract", substituteContract.String()),
+		sdk.NewAttribute("codeHashAfterUpdateCode", hex.EncodeToString(contractAfterUpdateCode.CodeHash)),
+		sdk.NewAttribute("codeSizeAfterUpdateCode", fmt.Sprintf("%d", len(newCode))),
+	))
+	// update watcher
+	csdb.WithContext(ctx).IteratorCode(func(addr ethcmn.Address, c CacheCode) bool {
+		ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(ctx.BlockHeight()))
+		ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
+		ctx.GetWatcher().SaveAccount(contractAfterUpdateCode)
+		return true
+	})
+	return nil
+}
+
+func (csdb *CommitStateDB) storeInitContractCode(ctx sdk.Context, addr sdk.AccAddress, code []byte) {
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+	key := GetInitContractCodeKey(addr)
+	if !store.Has(key) {
+		store.Set(key, code)
+	}
+}
+
+func (csdb *CommitStateDB) getInitContractCode(ctx sdk.Context, addr sdk.AccAddress) []byte {
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+	key := GetInitContractCodeKey(addr)
+	return store.Get(key)
 }

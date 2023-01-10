@@ -35,7 +35,6 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		case types.ManagerContractByteCodeProposal:
 			return handleManageContractBytecodeProposal(ctx, k, content)
-
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -94,5 +93,6 @@ func handleManageSysContractAddressProposal(ctx sdk.Context, k *Keeper,
 }
 
 func handleManageContractBytecodeProposal(ctx sdk.Context, k *Keeper, p types.ManagerContractByteCodeProposal) error {
-	return k.UpdateContractBytecode(ctx, p)
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	return csdb.UpdateContractBytecode(ctx, p)
 }
