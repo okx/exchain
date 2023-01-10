@@ -117,5 +117,7 @@ func parseClaim(claim *rediscli.XenMint, key, value string) {
 		utc, _ := strconv.Atoi(value)
 		tim := time.Unix(int64(utc), 0)
 		claim.BlockTime = tim
+	case "to":
+		claim.To = value
 	}
 }

@@ -98,7 +98,6 @@ func scanClaimRedisV3() {
 								if err != nil {
 									panic(err)
 								}
-
 							}
 						}
 					}
