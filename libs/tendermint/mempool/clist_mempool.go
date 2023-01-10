@@ -358,7 +358,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
 				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
-			r.CheckTx.GasWanted = gasUsed
+			if gasUsed < r.CheckTx.GasWanted {
+				r.CheckTx.GasWanted = gasUsed
+			}
+
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
@@ -1391,7 +1394,10 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 		return
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
-	atomic.StoreInt64(&memTx.gasWanted, gas)
+	if gas < atomic.LoadInt64(&memTx.gasWanted) {
+		atomic.StoreInt64(&memTx.gasWanted, gas)
+	}
+
 	atomic.AddUint32(&memTx.isSim, 1)
 	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), gas)
 }
