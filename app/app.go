@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"sync"
 
@@ -30,20 +29,19 @@ import (
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 
-	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
+
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
 
 	"github.com/okex/exchain/app/utils/appstatus"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
-	"github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -215,8 +213,6 @@ var (
 		icatypes.ModuleName:         nil,
 	}
 
-	GlobalGp = &big.Int{}
-
 	onceLog sync.Once
 )
 
@@ -266,8 +262,6 @@ type OKExChainApp struct {
 
 	// simulation manager
 	sm *module.SimulationManager
-
-	gpo *gasprice.Oracle
 
 	configurator module.Configurator
 	// ibc
@@ -761,10 +755,6 @@ func NewOKExChainApp(
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
-	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
-	app.gpo = gasprice.NewOracle(gpoConfig)
-	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
-
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -819,13 +809,6 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		currentBlockGPsCopy := app.gpo.CurrentBlockGPs.Copy()
-		_ = app.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
-		GlobalGp = app.gpo.RecommendGP()
-		app.gpo.CurrentBlockGPs.Clear()
-	}
-
 	return app.mm.EndBlock(ctx, req)
 }
 
