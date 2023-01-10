@@ -1,6 +1,7 @@
 package params
 
 import (
+	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
@@ -21,14 +22,17 @@ type Keeper struct {
 	// the reference to the GovKeeper to insert waiting queue
 	gk      GovKeeper
 	signals []func()
+
+	storeKey *sdk.KVStoreKey
 }
 
 // NewKeeper creates a new instance of params keeper
 func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKey) (
 	k Keeper) {
 	k = Keeper{
-		Keeper:  sdkparams.NewKeeper(cdc, key, tkey),
-		signals: make([]func(), 0),
+		Keeper:   sdkparams.NewKeeper(cdc, key, tkey),
+		signals:  make([]func(), 0),
+		storeKey: key,
 	}
 	k.cdc = cdc
 	k.paramSpace = k.Subspace(DefaultParamspace).WithKeyTable(types.ParamKeyTable())
@@ -60,4 +64,43 @@ func (keeper Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
 	keeper.paramSpace.GetParamSet(ctx, &params)
 	return params
+}
+
+func (keeper *Keeper) IsUpgradeEffective(ctx sdk.Context, name string) bool {
+	_, err := keeper.GetEffectiveUpgradeInfo(ctx, name)
+	return err == nil
+}
+
+func (keeper *Keeper) GetEffectiveUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
+	exist, info, err := getUpgradeInfo(ctx, keeper, name)
+	if err != nil {
+		return types.UpgradeInfo{}, err
+	}
+	if !exist {
+		return types.UpgradeInfo{}, fmt.Errorf("upgrade '%s' is not exist", name)
+	}
+
+	if !isUpgradeEffective(ctx, info) {
+		keeper.Logger(ctx).Debug("upgrade is not effective", "name", name)
+		return types.UpgradeInfo{}, fmt.Errorf("upgrade '%s' is not effective", name)
+	}
+
+	keeper.Logger(ctx).Debug("upgrade is effective", "name", name)
+	return info, nil
+}
+
+func (keeper *Keeper) GetUpgradeInfo(ctx sdk.Context, name string) (bool, types.UpgradeInfo, error) {
+	exist, info, err := getUpgradeInfo(ctx, keeper, name)
+	if err != nil {
+		return false, types.UpgradeInfo{}, err
+	}
+	if !exist {
+		return false, types.UpgradeInfo{}, fmt.Errorf("upgrade '%s' is not exist", name)
+	}
+
+	return isUpgradeEffective(ctx, info), info, nil
+}
+
+func isUpgradeEffective(ctx sdk.Context, info types.UpgradeInfo) bool {
+	return uint64(ctx.BlockHeight()) >= info.EffectiveHeight
 }

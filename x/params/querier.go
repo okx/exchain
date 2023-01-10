@@ -16,6 +16,11 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		switch path[0] {
 		case types.QueryParams:
 			return queryParams(ctx, req, keeper)
+		case types.QueryUpgrade:
+			if len(path) != 2 {
+				keeper.Logger(ctx).Error("invalid query path", "path", path)
+			}
+			return queryUpgrade(ctx, path[1], keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown params query endpoint")
 		}
@@ -24,6 +29,19 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 
 func queryParams(ctx sdk.Context, _ abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, keeper.GetParams(ctx))
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, fmt.Sprintf("could not marshal result to JSON %s", err.Error()))
+	}
+	return bz, nil
+}
+
+func queryUpgrade(ctx sdk.Context, name string, keeper Keeper) ([]byte, sdk.Error) {
+	_, info, err := keeper.GetUpgradeInfo(ctx, name)
+	if err != nil {
+		return nil, sdk.ErrInternal(err.Error())
+	}
+
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, info)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, fmt.Sprintf("could not marshal result to JSON %s", err.Error()))
 	}

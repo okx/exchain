@@ -145,6 +145,7 @@ var (
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler,
+			paramsclient.UpgradeProposalHandler,
 			distr.CommunityPoolSpendProposalHandler,
 			distr.ChangeDistributionTypeProposalHandler,
 			distr.WithdrawRewardEnabledProposalHandler,
@@ -546,7 +547,8 @@ func NewOKExChainApp(
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.V2Keeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
 		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper)).
-		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals))
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals)).
+		AddRoute(params.UpgradeRouterKey, params.NewUpgradeProposalHandler(&app.ParamsKeeper))
 
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
@@ -556,7 +558,8 @@ func NewOKExChainApp(
 		AddRoute(mint.RouterKey, &app.MintKeeper).
 		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
 		AddRoute(feesplit.RouterKey, &app.FeeSplitKeeper).
-		AddRoute(distr.RouterKey, &app.DistrKeeper)
+		AddRoute(distr.RouterKey, &app.DistrKeeper).
+		AddRoute(params.UpgradeRouterKey, &app.ParamsKeeper)
 
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
