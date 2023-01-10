@@ -850,7 +850,10 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		atomic.AddUint32(&memTx.preciseOrOutdated, 1)
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
-		if maxGas > -1 && newTotalGas > maxGas {
+		if gasWanted >= maxGas {
+			mem.logger.Error("tx gas overflow", "txHash", hex.EncodeToString(key[:]), "gasWanted", gasWanted, "isSim", memTx.isSim)
+		}
+		if maxGas > -1 && newTotalGas > maxGas && len(txs) > 0 {
 			return txs
 		}
 		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
