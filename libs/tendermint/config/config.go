@@ -161,7 +161,7 @@ type BaseConfig struct { //nolint: maligned
 	// This should be set in viper so it can unmarshal into this struct
 	RootDir string `mapstructure:"home"`
 
-	RootDirOrig string
+	RootDirTiKV string
 
 	// TCP or UNIX socket address of the ABCI application,
 	// or the name of an ABCI application compiled in with the Tendermint binary
@@ -279,8 +279,7 @@ func (cfg BaseConfig) ChainID() string {
 
 // GenesisFile returns the full path to the genesis.json file
 func (cfg BaseConfig) GenesisFile() string {
-	return rootify(cfg.Genesis, cfg.RootDirOrig)
-	//return rootify(cfg.Genesis, cfg.RootDir)
+	return rootify(cfg.Genesis, cfg.RootDir)
 }
 
 // PrivValidatorKeyFile returns the full path to the priv_validator_key.json file

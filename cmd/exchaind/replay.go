@@ -100,8 +100,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			}
 
 			ts := time.Now()
-			ctx.Config.RootDirOrig = ctx.Config.RootDir
-			//ctx.Config.RootDir = "127.0.0.1:2379"
+			ctx.Config.RootDirTiKV = "127.0.0.1:2379"
 			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
@@ -205,8 +204,8 @@ func panicError(err error) {
 
 func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	rootDir := ctx.Config.RootDir
-	if global.IsTiKv(rootDir) {
-		db, err := sdk.NewTiKV(rootDir)
+	if global.IsTiKv(ctx.Config.RootDirTiKV) {
+		db, err := sdk.NewTiKV(ctx.Config.RootDirTiKV)
 		panicError(err)
 		app := newApp(ctx.Logger, db, nil)
 		clientCreator := proxy.NewLocalClientCreator(app)
