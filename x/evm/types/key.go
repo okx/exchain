@@ -32,7 +32,7 @@ var (
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
 	KeyPrefixSysContractAddress          = []byte{0x10}
-	KeyPrefixContractCode                = []byte{0x11}
+	KeyPrefixContractCodeHash            = []byte{0x11}
 
 	KeyPrefixEvmRootHash = []byte("evmRootHash")
 )
@@ -81,6 +81,6 @@ func GetSysContractAddressKey() []byte {
 	return append(KeyPrefixSysContractAddress, []byte(SysContractAddressKey)...)
 }
 
-func GetInitContractCodeKey(contractAddr sdk.AccAddress) []byte {
-	return append(KeyPrefixContractCode, contractAddr...)
+func GetInitContractCodeHashKey(contractAddr sdk.AccAddress) []byte {
+	return append(KeyPrefixContractCodeHash, contractAddr...)
 }

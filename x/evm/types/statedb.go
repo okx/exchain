@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	ethermint "github.com/okex/exchain/app/types"
@@ -1763,7 +1764,7 @@ func (csdb *CommitStateDB) UpdateContractBytecode(ctx sdk.Context, p ManageContr
 	var newCodeHash []byte
 	if revertContractByteCode {
 		newCodeHash = csdb.getInitContractCodeHash(p.Contract)
-		if len(newCodeHash) == 0 {
+		if len(newCodeHash) == 0 || bytes.Equal(preCodeHash, newCodeHash) {
 			return ErrContractCodeNotBeenUpdated(contract.String())
 		}
 	} else {
@@ -1822,7 +1823,7 @@ func (csdb *CommitStateDB) storeInitContractCodeHash(addr sdk.AccAddress, codeHa
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
-	key := GetInitContractCodeKey(addr)
+	key := GetInitContractCodeHashKey(addr)
 	if !store.Has(key) {
 		store.Set(key, codeHash)
 	}
@@ -1835,6 +1836,6 @@ func (csdb *CommitStateDB) getInitContractCodeHash(addr sdk.AccAddress) []byte {
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
-	key := GetInitContractCodeKey(addr)
+	key := GetInitContractCodeHashKey(addr)
 	return store.Get(key)
 }
