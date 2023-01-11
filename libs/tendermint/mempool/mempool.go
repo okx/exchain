@@ -121,6 +121,7 @@ type TxInfo struct {
 	checkType abci.CheckTxType
 
 	isGasPrecise bool
+	gasUsed      int64
 }
 
 //--------------------------------------------------------------------------------

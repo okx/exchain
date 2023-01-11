@@ -1007,7 +1007,7 @@ func (app *BaseApp) GetRealTxFromRawTx(rawTx tmtypes.Tx) abci.TxEssentials {
 	return nil
 }
 
-func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) (int64, bool) {
+func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx, gasLimit int64) (int64, bool) {
 	tx, err := app.txDecoder(rawTx)
 	if err != nil {
 		return -1, false
@@ -1028,12 +1028,20 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) (int64, bool) {
 		precise = false
 	}
 
+	var gasWanted int64
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return hgu.MovingAverageGas*int64(toDeployContractSize) + int64(1000), precise
+		gasWanted = hgu.MovingAverageGas*int64(toDeployContractSize) + int64(1000)
+	} else {
+		gasWanted = hgu.MovingAverageGas
 	}
 
-	return hgu.MovingAverageGas, precise
+	// hgu gas can not be greater than gasLimit
+	if gasWanted > gasLimit {
+		gasWanted = gasLimit
+	}
+
+	return gasWanted, precise
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
