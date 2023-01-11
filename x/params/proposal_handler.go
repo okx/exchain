@@ -71,36 +71,42 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChang
 func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, proposal types.UpgradeProposal) sdk.Error {
 	curHeight := uint64(ctx.BlockHeight())
 	confirmHeight := getUpgradeProposalConfirmHeight(curHeight, proposal)
+	effectiveHeight := confirmHeight + 1
 
 	if curHeight < confirmHeight {
 		k.gk.InsertWaitingProposalQueue(ctx, confirmHeight, proposalID)
-	}
-	return confirmUpgrade(ctx, k, proposal, confirmHeight+1)
-}
-
-func confirmUpgrade(ctx sdk.Context, k *Keeper, proposal types.UpgradeProposal, effectiveHeight uint64) sdk.Error {
-	key := []byte(proposal.Name)
-
-	store := getUpgradeStore(ctx, k)
-	if store.Has(key) {
-		k.Logger(ctx).Error("upgrade proposal name has been exist", "proposal name", proposal.Name)
-		return sdk.ErrInternal(fmt.Sprintf("upgrade proposal name '%s' has been exist", proposal.Name))
+		_ = storeWaitingUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight) // ignore error
+		return nil
 	}
 
-	proposal.UpgradeInfo.EffectiveHeight = effectiveHeight
-	data, err := json.Marshal(proposal.UpgradeInfo)
-	if err != nil {
-		k.Logger(ctx).Error("marshal upgrade proposal error", "upgrade info", proposal.UpgradeInfo, "error", err)
-		return sdk.ErrInternal(err.Error())
+	// proposal will be confirmed right now, check if ready.
+	cb, ready := k.QueryReadyForUpgrade(proposal.Name)
+	if !ready {
+		// if no module claims that has ready for this upgrade,
+		// that probably means program's version is too low.
+		// To avoid status machine broken, we panic.
+		errMsg := fmt.Sprintf("there's a upgrade proposal named '%s' has been take effective, "+
+			"and the upgrade is incompatible, but your binary seems not ready for this upgrade. "+
+			"To avoid state machine broken, the program is panic. "+
+			"Using the latest version binary and re-run it to avoid this panic.", proposal.Name)
+		k.Logger(ctx).Error(errMsg)
+		panic(errMsg)
 	}
-	store.Set(key, data)
+
+	if err := makeEffectiveUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight); err != nil {
+		return err
+	}
+
+	if cb != nil {
+		cb(proposal.UpgradeInfo)
+	}
 	return nil
 }
 
 func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.UpgradeProposal) uint64 {
 	// confirm height is the height proposal is confirmed.
 	// confirmed is not become effective. Becoming effective will happen at
-	// the next block of confirm block. see last argument of `confirmUpgrade` and `IsUpgradeEffective`
+	// the next block of confirm block. see `makeEffectiveUpgrade` and `IsUpgradeEffective`
 	confirmHeight := proposal.ExpectHeight - 1
 
 	if proposal.ExpectHeight == 0 {
@@ -115,6 +121,44 @@ func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.Upgrad
 	}
 
 	return confirmHeight
+}
+
+func storePreparingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo) sdk.Error {
+	info.Status = types.UpgradeStatusPreparing
+
+	return storeUpgrade(ctx, k, info, false)
+}
+
+func storeWaitingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) error {
+	info.EffectiveHeight = effectiveHeight
+	info.Status = types.UpgradeStatusWaitingEffective
+
+	return storeUpgrade(ctx, k, info, true)
+}
+
+func makeEffectiveUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) sdk.Error {
+	info.EffectiveHeight = effectiveHeight
+	info.Status = types.UpgradeStatusEffective
+
+	return storeUpgrade(ctx, k, info, true)
+}
+
+func storeUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, forceCover bool) sdk.Error {
+	key := []byte(info.Name)
+
+	store := getUpgradeStore(ctx, k)
+	if !forceCover && store.Has(key) {
+		k.Logger(ctx).Error("upgrade proposal name has been exist", "proposal name", info.Name)
+		return sdk.ErrInternal(fmt.Sprintf("upgrade proposal name '%s' has been exist", info.Name))
+	}
+
+	data, err := json.Marshal(info)
+	if err != nil {
+		k.Logger(ctx).Error("marshal upgrade proposal error", "upgrade info", info, "error", err)
+		return common.ErrMarshalJSONFailed(err.Error())
+	}
+	store.Set(key, data)
+	return nil
 }
 
 func getUpgradeStore(ctx sdk.Context, k *Keeper) sdk.KVStore {
@@ -226,9 +270,8 @@ func (keeper Keeper) checkSubmitUpgradeProposal(ctx sdk.Context, proposer sdk.Ac
 		}
 	}
 
-	// run simulation with cache context
-	cacheCtx, _ := ctx.CacheContext()
-	return confirmUpgrade(cacheCtx, &keeper, proposal, proposal.ExpectHeight)
+	// check success, store waiting upgrade
+	return storePreparingUpgrade(ctx, &keeper, proposal.UpgradeInfo)
 }
 
 func (keeper Keeper) proposalCommonCheck(ctx sdk.Context, checkIsValidator bool, proposer sdk.AccAddress, initialDeposit sdk.SysCoins) sdk.Error {

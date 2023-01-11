@@ -23,16 +23,19 @@ type Keeper struct {
 	gk      GovKeeper
 	signals []func()
 
-	storeKey *sdk.KVStoreKey
+	storeKey        *sdk.KVStoreKey
+	upgradeReadyMap map[string]func(types.UpgradeInfo)
 }
 
 // NewKeeper creates a new instance of params keeper
 func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKey) (
 	k Keeper) {
 	k = Keeper{
-		Keeper:   sdkparams.NewKeeper(cdc, key, tkey),
-		signals:  make([]func(), 0),
-		storeKey: key,
+		Keeper:  sdkparams.NewKeeper(cdc, key, tkey),
+		signals: make([]func(), 0),
+
+		storeKey:        key,
+		upgradeReadyMap: make(map[string]func(types.UpgradeInfo)),
 	}
 	k.cdc = cdc
 	k.paramSpace = k.Subspace(DefaultParamspace).WithKeyTable(types.ParamKeyTable())
@@ -64,6 +67,24 @@ func (keeper Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
 	keeper.paramSpace.GetParamSet(ctx, &params)
 	return params
+}
+
+// ClaimReadyForUpgrade tells Keeper that someone has get ready for the upgrade.
+// cb could be nil if there's no code to be execute when the upgrade is take effective.
+func (keeper *Keeper) ClaimReadyForUpgrade(ctx sdk.Context, name string, cb func(types.UpgradeInfo)) {
+	if keeper.IsUpgradeEffective(ctx, name) {
+		keeper.Logger(ctx).Info("upgrade has been effective, ready for it will do nothing", "upgrade name", name)
+	}
+
+	if _, ok := keeper.upgradeReadyMap[name]; ok {
+		keeper.Logger(ctx).Error("more than one guys ready for the same upgrade, the front one will be cover", "upgrade name", name)
+	}
+	keeper.upgradeReadyMap[name] = cb
+}
+
+func (keeper *Keeper) QueryReadyForUpgrade(name string) (func(types.UpgradeInfo), bool) {
+	cb, ok := keeper.upgradeReadyMap[name]
+	return cb, ok
 }
 
 func (keeper *Keeper) IsUpgradeEffective(ctx sdk.Context, name string) bool {
@@ -102,5 +123,5 @@ func (keeper *Keeper) GetUpgradeInfo(ctx sdk.Context, name string) (bool, types.
 }
 
 func isUpgradeEffective(ctx sdk.Context, info types.UpgradeInfo) bool {
-	return uint64(ctx.BlockHeight()) >= info.EffectiveHeight
+	return info.Status == types.UpgradeStatusEffective && uint64(ctx.BlockHeight()) >= info.EffectiveHeight
 }

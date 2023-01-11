@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+type UpgradeStatus uint32
+
 const (
 	ProposalTypeUpgrade = "oKCUpgrade"
 	UpgradeRouterKey    = "okcUpgrade"
@@ -17,6 +19,10 @@ const (
 	QueryUpgrade = "okcUpgrade"
 
 	maxNameLength = 140
+
+	UpgradeStatusPreparing        = 0
+	UpgradeStatusWaitingEffective = 1
+	UpgradeStatusEffective        = 2
 )
 
 // Assert ParameterChangeProposal implements govtypes.Content at compile-time
@@ -41,7 +47,8 @@ type UpgradeInfo struct {
 	Config       map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
 
 	// only used in store
-	EffectiveHeight uint64 `json:"effectiveHeight,omitempty" yaml:"effectiveHeight,omitempty"`
+	EffectiveHeight uint64        `json:"effectiveHeight,omitempty" yaml:"effectiveHeight,omitempty"`
+	Status          UpgradeStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 func NewUpgradeProposal(title, description, name string, expectHeight uint64, config map[string]string) UpgradeProposal {
