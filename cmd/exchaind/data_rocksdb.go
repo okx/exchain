@@ -80,6 +80,8 @@ func R2TiKV(name, fromDir string) {
 		values = append(values, v)
 		if len(k) > 100 {
 			tidb.(*tikv.TiKV).BatchSet(keys, values)
+			keys = keys[:0]
+			values = values[:0]
 		}
 
 		//tidb.Set(iter.Key(), iter.Value())
