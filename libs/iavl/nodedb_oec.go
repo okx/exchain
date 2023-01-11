@@ -87,8 +87,10 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	}
 
 	node.prePersisted = true
+	nkey := string(node.hash)
 	ndb.mtx.Lock()
-	ndb.prePersistNodeCache[string(node.hash)] = node
+	ndb.prePersistNodeCache[nkey] = node
+	ndb.cacheWithKey(nkey, node)
 	ndb.mtx.Unlock()
 }
 

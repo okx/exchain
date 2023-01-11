@@ -241,13 +241,13 @@ func (tree *MutableTree) commitSchedule() {
 			}
 		}
 
-		trc.Pin("cacheNode")
-		for k, node := range event.tpp {
-			if !node.persisted {
-				panic("unexpected logic")
-			}
-			tree.ndb.cacheWithKey(k, node)
-		}
+		//trc.Pin("cacheNode")
+		//for k, node := range event.tpp {
+		//	if !node.persisted {
+		//		panic("unexpected logic")
+		//	}
+		//	tree.ndb.cacheWithKey(k, node)
+		//}
 
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions, noBatch)
