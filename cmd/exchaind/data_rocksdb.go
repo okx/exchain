@@ -79,7 +79,10 @@ func R2TiKV(name, fromDir string) {
 		v := iter.Value()
 		values = append(values, v)
 		if len(k) > 100 {
-			tidb.(*tikv.TiKV).BatchSet(keys, values)
+			err = tidb.(*tikv.TiKV).BatchSet(keys, values)
+			if err != nil {
+				panic(err)
+			}
 			keys = keys[:0]
 			values = values[:0]
 		}
@@ -87,7 +90,10 @@ func R2TiKV(name, fromDir string) {
 		//tidb.Set(iter.Key(), iter.Value())
 		counter++
 	}
-	tidb.(*tikv.TiKV).BatchSet(keys, values)
+	err = tidb.(*tikv.TiKV).BatchSet(keys, values)
+	if err != nil {
+		panic(err)
+	}
 	log.Printf("convert %v done \n", counter)
 	iter.Close()
 
