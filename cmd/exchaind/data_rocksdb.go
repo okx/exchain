@@ -78,7 +78,7 @@ func R2TiKV(name, fromDir string) {
 		keys = append(keys, k)
 		v := iter.Value()
 		values = append(values, v)
-		if len(k) > 100 {
+		if len(keys) > 100 {
 			err = tidb.(*tikv.TiKV).BatchSet(keys, values)
 			if err != nil {
 				panic(err)
