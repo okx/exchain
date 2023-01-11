@@ -197,7 +197,7 @@ func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSub
 	case types.UpgradeProposal:
 		return keeper.checkSubmitUpgradeProposal(ctx, msg.Proposer, msg.InitialDeposit, proposal)
 	default:
-		return sdk.ErrInternal("unknown proposal type from prams module")
+		return common.ErrUnknownProposalType(DefaultCodespace, fmt.Sprintf("%T", proposal))
 	}
 
 }
