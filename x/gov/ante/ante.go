@@ -25,7 +25,7 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 		switch msg := m.(type) {
 		case types.MsgSubmitProposal:
 			switch proposalType := msg.Content.(type) {
-			case evmtypes.ManagerContractByteCodeProposal:
+			case evmtypes.ManageContractByteCodeProposal:
 				if !ad.sk.IsValidator(ctx, msg.Proposer) {
 					return ctx, evmtypes.ErrCodeProposerMustBeValidator()
 				}

@@ -33,7 +33,7 @@ func init() {
 	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageSysContractAddressProposal{}, "okexchain/evm/ManageSysContractAddressProposal")
-	govtypes.RegisterProposalTypeCodec(ManagerContractByteCodeProposal{}, "okexchain/evm/ManageContractBytecode")
+	govtypes.RegisterProposalTypeCodec(ManageContractByteCodeProposal{}, "okexchain/evm/ManageContractBytecode")
 }
 
 var (
@@ -41,7 +41,7 @@ var (
 	_ govtypes.Content = (*ManageContractBlockedListProposal)(nil)
 	_ govtypes.Content = (*ManageContractMethodBlockedListProposal)(nil)
 	_ govtypes.Content = (*ManageSysContractAddressProposal)(nil)
-	_ govtypes.Content = (*ManagerContractByteCodeProposal)(nil)
+	_ govtypes.Content = (*ManageContractByteCodeProposal)(nil)
 )
 
 // ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
@@ -458,15 +458,15 @@ func (mp ManageSysContractAddressProposal) String() string {
 	return strings.TrimSpace(builder.String())
 }
 
-type ManagerContractByteCodeProposal struct {
+type ManageContractByteCodeProposal struct {
 	Title              string         `json:"title" yaml:"title"`
 	Description        string         `json:"description" yaml:"description"`
 	Contract           sdk.AccAddress `json:"contract" yaml:"contract"`
 	SubstituteContract sdk.AccAddress `json:"substitute_contract" yaml:"substitute_contract"`
 }
 
-func NewManageContractByteCodeProposal(title, description string, Contract sdk.AccAddress, SubstituteContract sdk.AccAddress) ManagerContractByteCodeProposal {
-	return ManagerContractByteCodeProposal{
+func NewManageContractByteCodeProposal(title, description string, Contract sdk.AccAddress, SubstituteContract sdk.AccAddress) ManageContractByteCodeProposal {
+	return ManageContractByteCodeProposal{
 		Title:              title,
 		Description:        description,
 		Contract:           Contract,
@@ -474,23 +474,23 @@ func NewManageContractByteCodeProposal(title, description string, Contract sdk.A
 	}
 }
 
-func (mp ManagerContractByteCodeProposal) GetTitle() string {
+func (mp ManageContractByteCodeProposal) GetTitle() string {
 	return mp.Title
 }
 
-func (mp ManagerContractByteCodeProposal) GetDescription() string {
+func (mp ManageContractByteCodeProposal) GetDescription() string {
 	return mp.Description
 }
 
-func (mp ManagerContractByteCodeProposal) ProposalRoute() string {
+func (mp ManageContractByteCodeProposal) ProposalRoute() string {
 	return RouterKey
 }
 
-func (mp ManagerContractByteCodeProposal) ProposalType() string {
+func (mp ManageContractByteCodeProposal) ProposalType() string {
 	return proposalTypeManageContractByteCode
 }
 
-func (mp ManagerContractByteCodeProposal) ValidateBasic() sdk.Error {
+func (mp ManageContractByteCodeProposal) ValidateBasic() sdk.Error {
 
 	if len(strings.TrimSpace(mp.Title)) == 0 {
 		return govtypes.ErrInvalidProposalContent("title is required")
@@ -513,7 +513,7 @@ func (mp ManagerContractByteCodeProposal) ValidateBasic() sdk.Error {
 
 	return nil
 }
-func (mp ManagerContractByteCodeProposal) String() string {
+func (mp ManageContractByteCodeProposal) String() string {
 	var builder strings.Builder
 	builder.WriteString(
 		fmt.Sprintf(`ManageContractByteCodeProposal:

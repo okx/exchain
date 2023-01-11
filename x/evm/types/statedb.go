@@ -1747,7 +1747,7 @@ func (csdb *CommitStateDB) GetAccount(addr ethcmn.Address) *ethermint.EthAccount
 	return obj.account
 }
 
-func (csdb *CommitStateDB) UpdateContractBytecode(ctx sdk.Context, p ManagerContractByteCodeProposal) sdk.Error {
+func (csdb *CommitStateDB) UpdateContractBytecode(ctx sdk.Context, p ManageContractByteCodeProposal) sdk.Error {
 	contract := ethcmn.BytesToAddress(p.Contract)
 	substituteContract := ethcmn.BytesToAddress(p.SubstituteContract)
 
@@ -1760,21 +1760,22 @@ func (csdb *CommitStateDB) UpdateContractBytecode(ctx sdk.Context, p ManagerCont
 	}
 	preCodeHash := contractAcc.CodeHash
 
-	var newCode []byte
+	var newCodeHash []byte
 	if revertContractByteCode {
-		newCode = csdb.getInitContractCode(ctx, p.Contract)
-		if len(newCode) == 0 {
+		newCodeHash = csdb.getInitContractCodeHash(p.Contract)
+		if len(newCodeHash) == 0 {
 			return ErrContractCodeNotBeenUpdated(contract.String())
 		}
 	} else {
-		newCode = csdb.GetCode(substituteContract)
+		newCodeHash = csdb.GetCodeHash(substituteContract).Bytes()
 	}
 
+	newCode := csdb.GetCodeByHash(ethcmn.BytesToHash(newCodeHash))
 	// update code
 	csdb.SetCode(contract, newCode)
 
 	// store init code
-	csdb.storeInitContractCode(ctx, p.Contract, preCode)
+	csdb.storeInitContractCodeHash(p.Contract, preCodeHash)
 
 	// commit state db
 	csdb.Commit(false)
@@ -1814,7 +1815,7 @@ func (csdb *CommitStateDB) afterUpdateContractByteCode(ctx sdk.Context, contract
 	return nil
 }
 
-func (csdb *CommitStateDB) storeInitContractCode(ctx sdk.Context, addr sdk.AccAddress, code []byte) {
+func (csdb *CommitStateDB) storeInitContractCodeHash(addr sdk.AccAddress, codeHash []byte) {
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
@@ -1823,11 +1824,11 @@ func (csdb *CommitStateDB) storeInitContractCode(ctx sdk.Context, addr sdk.AccAd
 	}
 	key := GetInitContractCodeKey(addr)
 	if !store.Has(key) {
-		store.Set(key, code)
+		store.Set(key, codeHash)
 	}
 }
 
-func (csdb *CommitStateDB) getInitContractCode(ctx sdk.Context, addr sdk.AccAddress) []byte {
+func (csdb *CommitStateDB) getInitContractCodeHash(addr sdk.AccAddress) []byte {
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
