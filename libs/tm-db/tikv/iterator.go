@@ -7,14 +7,15 @@ import (
 )
 
 type Iterator struct {
-	client    *rawkv.Client
-	curKey    []byte
-	curValue  []byte
-	start     []byte
-	end       []byte
-	isReverse bool
-	finish    bool
-	err       error
+	client      *rawkv.Client
+	curKey      []byte
+	curKeyInner []byte
+	curValue    []byte
+	start       []byte
+	end         []byte
+	isReverse   bool
+	finish      bool
+	err         error
 
 	keys   [][]byte
 	values [][]byte
@@ -25,11 +26,12 @@ var _ dbm.Iterator = (*Iterator)(nil)
 
 func newIterator(start, end []byte, isReverse bool, client *rawkv.Client) *Iterator {
 	return &Iterator{
-		curKey:    start,
-		start:     start,
-		end:       end,
-		isReverse: isReverse,
-		client:    client,
+		curKey:      start,
+		curKeyInner: start,
+		start:       start,
+		end:         end,
+		isReverse:   isReverse,
+		client:      client,
 	}
 }
 
@@ -41,7 +43,7 @@ func (i *Iterator) Valid() bool {
 	return i.client != nil && i.err == nil && !i.finish
 }
 
-func (i *Iterator) next() ([]byte, []byte, error) {
+func (i *Iterator) _next() ([]byte, []byte, error) {
 	var err error
 	i.keys, i.values, err = i.client.Scan(context.TODO(), i.curKey, i.end, 1000)
 	if err != nil {
@@ -58,6 +60,29 @@ func (i *Iterator) next() ([]byte, []byte, error) {
 	}
 	key, value := i.keys[i.cur], i.values[i.cur]
 	i.cur++
+	return key, value, nil
+}
+
+func (i *Iterator) next() ([]byte, []byte, error) {
+	var err error
+	i.keys, i.values, err = i.client.Scan(context.TODO(), i.curKeyInner, i.end, 2)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(i.keys) == 0 || i.curKeyInner == nil {
+		i.finish = true
+		return nil, nil, nil
+	}
+	if len(i.keys) == 1 {
+		i.curKeyInner = nil
+	}
+	if len(i.keys) == 2 {
+		i.curKeyInner = make([]byte, len(i.keys[1]))
+		copy(i.curKeyInner, i.keys[1])
+	}
+
+	key, value := i.keys[0], i.values[0]
 	return key, value, nil
 }
 
