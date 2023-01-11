@@ -61,6 +61,10 @@ func (t *TiKV) Set(key []byte, value []byte) error {
 	return t.client.Put(context.TODO(), key, value)
 }
 
+func (t *TiKV) BatchSet(keys [][]byte, values [][]byte) error {
+	return t.client.BatchPut(context.TODO(), keys, values)
+}
+
 func (t *TiKV) SetSync(key []byte, value []byte) error {
 	return t.Set(key, value)
 }

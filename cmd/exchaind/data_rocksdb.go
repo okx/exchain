@@ -68,13 +68,24 @@ func R2TiKV(name, fromDir string) {
 	counter := 0
 	const commitGap = 50000
 
+	keys := make([][]byte, 0)
+	values := make([][]byte, 0)
 	for ; iter.Valid(); iter.Next() {
 		if counter%commitGap == 0 {
 			log.Printf("convert %v ...\n", counter)
 		}
-		tidb.Set(iter.Key(), iter.Value())
+		k := iter.Key()
+		keys = append(keys, k)
+		v := iter.Value()
+		values = append(values, v)
+		if len(k) > 100 {
+			tidb.(*tikv.TiKV).BatchSet(keys, values)
+		}
+
+		//tidb.Set(iter.Key(), iter.Value())
 		counter++
 	}
+	tidb.(*tikv.TiKV).BatchSet(keys, values)
 	log.Printf("convert %v done \n", counter)
 	iter.Close()
 
