@@ -175,11 +175,11 @@ func (store *Store) Write() {
 		cacheValue := store.dirty[key]
 		switch {
 		case cacheValue.deleted:
-			store.parent.Delete([]byte(key))
+			store.parent.Delete(amino.StrToBytes(key))
 		case cacheValue.value == nil:
 			// Skip, it already doesn't exist in parent.
 		default:
-			store.parent.Set([]byte(key), cacheValue.value)
+			store.parent.Set(amino.StrToBytes(key), cacheValue.value)
 		}
 	}
 
