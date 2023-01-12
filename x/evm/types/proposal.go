@@ -20,6 +20,7 @@ const (
 	proposalTypeManageContractMethodBlockedList = "ManageContractMethodBlockedList"
 	// proposalTypeManageSysContractAddress defines the type for a ManageSysContractAddress
 	proposalTypeManageSysContractAddress = "ManageSysContractAddress"
+	proposalTypeManageContractByteCode   = "ManageContractByteCode"
 )
 
 func init() {
@@ -27,10 +28,12 @@ func init() {
 	govtypes.RegisterProposalType(proposalTypeManageContractBlockedList)
 	govtypes.RegisterProposalType(proposalTypeManageContractMethodBlockedList)
 	govtypes.RegisterProposalType(proposalTypeManageSysContractAddress)
+	govtypes.RegisterProposalType(proposalTypeManageContractByteCode)
 	govtypes.RegisterProposalTypeCodec(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageSysContractAddressProposal{}, "okexchain/evm/ManageSysContractAddressProposal")
+	govtypes.RegisterProposalTypeCodec(ManageContractByteCodeProposal{}, "okexchain/evm/ManageContractBytecode")
 }
 
 var (
@@ -38,6 +41,7 @@ var (
 	_ govtypes.Content = (*ManageContractBlockedListProposal)(nil)
 	_ govtypes.Content = (*ManageContractMethodBlockedListProposal)(nil)
 	_ govtypes.Content = (*ManageSysContractAddressProposal)(nil)
+	_ govtypes.Content = (*ManageContractByteCodeProposal)(nil)
 )
 
 // ManageContractDeploymentWhitelistProposal - structure for the proposal to add or delete deployer addresses from whitelist
@@ -450,6 +454,76 @@ func (mp ManageSysContractAddressProposal) String() string {
  IsAdded:				%t
 `,
 			mp.Title, mp.Description, mp.ProposalType(), mp.ContractAddr.String(), mp.IsAdded),
+	)
+	return strings.TrimSpace(builder.String())
+}
+
+type ManageContractByteCodeProposal struct {
+	Title              string         `json:"title" yaml:"title"`
+	Description        string         `json:"description" yaml:"description"`
+	Contract           sdk.AccAddress `json:"contract" yaml:"contract"`
+	SubstituteContract sdk.AccAddress `json:"substitute_contract" yaml:"substitute_contract"`
+}
+
+func NewManageContractByteCodeProposal(title, description string, Contract sdk.AccAddress, SubstituteContract sdk.AccAddress) ManageContractByteCodeProposal {
+	return ManageContractByteCodeProposal{
+		Title:              title,
+		Description:        description,
+		Contract:           Contract,
+		SubstituteContract: SubstituteContract,
+	}
+}
+
+func (mp ManageContractByteCodeProposal) GetTitle() string {
+	return mp.Title
+}
+
+func (mp ManageContractByteCodeProposal) GetDescription() string {
+	return mp.Description
+}
+
+func (mp ManageContractByteCodeProposal) ProposalRoute() string {
+	return RouterKey
+}
+
+func (mp ManageContractByteCodeProposal) ProposalType() string {
+	return proposalTypeManageContractByteCode
+}
+
+func (mp ManageContractByteCodeProposal) ValidateBasic() sdk.Error {
+
+	if len(strings.TrimSpace(mp.Title)) == 0 {
+		return govtypes.ErrInvalidProposalContent("title is required")
+	}
+	if len(mp.Title) > govtypes.MaxTitleLength {
+		return govtypes.ErrInvalidProposalContent("title length is longer than the maximum title length")
+	}
+
+	if len(mp.Description) == 0 {
+		return govtypes.ErrInvalidProposalContent("description is required")
+	}
+
+	if len(mp.Description) > govtypes.MaxDescriptionLength {
+		return govtypes.ErrInvalidProposalContent("description length is longer than the maximum description length")
+	}
+
+	if mp.ProposalType() != proposalTypeManageContractByteCode {
+		return govtypes.ErrInvalidProposalType(mp.ProposalType())
+	}
+
+	return nil
+}
+func (mp ManageContractByteCodeProposal) String() string {
+	var builder strings.Builder
+	builder.WriteString(
+		fmt.Sprintf(`ManageContractByteCodeProposal:
+ Title:					%s
+ Description:        	%s
+ Type:                	%s
+ Contract:          %s
+ SubstituteContract:				%s
+`,
+			mp.Title, mp.Description, mp.ProposalType(), mp.Contract.String(), mp.SubstituteContract.String()),
 	)
 	return strings.TrimSpace(builder.String())
 }

@@ -71,7 +71,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 	}
 
 	cs.initNewHeight()
-	cs.trc.Pin("%s-%d-%d", "Commit", cs.Round, commitRound)
+	cs.trc.Pin("%s-%d", "Commit", cs.Round)
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 
@@ -237,7 +237,7 @@ func (cs *State) finalizeCommit(height int64) {
 	var err error
 	var retainHeight int64
 
-	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
+	cs.trc.Pin("%s", trace.ApplyBlock)
 
 	if iavl.EnableAsyncCommit {
 		cs.handleCommitGapOffset(height)
@@ -263,6 +263,8 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	fail.Fail() // XXX
+
+	cs.trc.Pin("%s", trace.UpdateState)
 
 	// Prune old heights, if requested by ABCI app.
 	if retainHeight > 0 {
@@ -294,7 +296,8 @@ func (cs *State) finalizeCommit(height int64) {
 		cs.blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), false)
 	}
 
-	cs.trc.Pin("Waiting")
+	cs.trc.Pin("%s", trace.Waiting)
+
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
