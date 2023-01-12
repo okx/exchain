@@ -18,6 +18,7 @@ const (
 	HistoryGasUsedDBName = "hgu"
 
 	FlagGasUsedFactor = "gu_factor"
+	preciseBlockNum   = 20
 )
 
 var (
@@ -123,6 +124,7 @@ func (h *HistoryGasUsedRecordDB) flushHgu(gks ...gasKey) {
 			hgu.MaxGas = int64(regressionFactor*float64(hgu.MovingAverageGas) + (1.0-regressionFactor)*float64(hgu.MaxGas))
 			// MinGas = 0.01 * MovingAverageGas + 0.99 * oldMinGas
 			hgu.MinGas = int64(regressionFactor*float64(hgu.MovingAverageGas) + (1.0-regressionFactor)*float64(hgu.MinGas))
+			hgu.BlockNum++
 			if gk.gas > hgu.MaxGas {
 				hgu.MaxGas = gk.gas
 			} else if gk.gas < hgu.MinGas {
