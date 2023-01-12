@@ -30,4 +30,8 @@ var (
 		cli.GetCmdManageContractMethodGuFactorProposal,
 		rest.ManageContractMethodBlockedListProposalRESTHandler,
 	)
+
+	ManageContractByteCodeProposalHandler = govcli.NewProposalHandler(
+		cli.GetCmdManageContractByteCodeProposal,
+		rest.ManageContractBytecodeProposalRESTHandler)
 )
