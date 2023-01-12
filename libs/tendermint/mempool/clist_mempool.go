@@ -1006,7 +1006,7 @@ func (mem *CListMempool) Update(
 		}
 
 		if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
-			// Collect gas price and gas used of valid tx for gas price recommendation
+			// Collect gas price and gas used of txs in current block for gas price recommendation
 			mem.gpo.CurrentBlockGPs.Update(gasPricePerTx, uint64(gasUsedPerTx))
 		}
 
