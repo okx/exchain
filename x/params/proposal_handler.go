@@ -1,12 +1,10 @@
 package params
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
@@ -133,60 +131,21 @@ func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.Upgrad
 func storePreparingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo) sdk.Error {
 	info.Status = types.UpgradeStatusPreparing
 
-	return storeUpgrade(ctx, k, info, false)
+	return k.writeUpgradeInfo(ctx, info, false)
 }
 
 func storeWaitingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) error {
 	info.EffectiveHeight = effectiveHeight
 	info.Status = types.UpgradeStatusWaitingEffective
 
-	return storeUpgrade(ctx, k, info, true)
+	return k.writeUpgradeInfo(ctx, info, true)
 }
 
 func makeEffectiveUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) sdk.Error {
 	info.EffectiveHeight = effectiveHeight
 	info.Status = types.UpgradeStatusEffective
 
-	return storeUpgrade(ctx, k, info, true)
-}
-
-func storeUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, forceCover bool) sdk.Error {
-	key := []byte(info.Name)
-
-	store := getUpgradeStore(ctx, k)
-	if !forceCover && store.Has(key) {
-		k.Logger(ctx).Error("upgrade proposal name has been exist", "proposal name", info.Name)
-		return sdk.ErrInternal(fmt.Sprintf("upgrade proposal name '%s' has been exist", info.Name))
-	}
-
-	data, err := json.Marshal(info)
-	if err != nil {
-		k.Logger(ctx).Error("marshal upgrade proposal error", "upgrade info", info, "error", err)
-		return common.ErrMarshalJSONFailed(err.Error())
-	}
-	store.Set(key, data)
-	return nil
-}
-
-func getUpgradeStore(ctx sdk.Context, k *Keeper) sdk.KVStore {
-	return prefix.NewStore(ctx.KVStore(k.storeKey), []byte("upgrade"))
-}
-
-func getUpgradeInfo(ctx sdk.Context, k *Keeper, name string) (bool, types.UpgradeInfo, error) {
-	store := getUpgradeStore(ctx, k)
-	data := store.Get([]byte(name))
-	if len(data) == 0 {
-		k.Logger(ctx).Info("upgrade not exist", "name", name)
-		return false, types.UpgradeInfo{}, nil
-	}
-
-	var info types.UpgradeInfo
-	if err := json.Unmarshal(data, &info); err != nil {
-		k.Logger(ctx).Error("unmarshal upgrade proposal error", "error", err, "name", name, "data", data)
-		return false, info, err
-	}
-
-	return true, info, nil
+	return k.writeUpgradeInfo(ctx, info, true)
 }
 
 func (k *Keeper) RegisterSignal(handler func()) {

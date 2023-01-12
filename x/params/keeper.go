@@ -1,10 +1,14 @@
 package params
 
 import (
+	"encoding/json"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/x/common"
 
 	"github.com/okex/exchain/x/params/types"
 )
@@ -23,8 +27,9 @@ type Keeper struct {
 	gk      GovKeeper
 	signals []func()
 
-	storeKey        *sdk.KVStoreKey
-	upgradeReadyMap map[string]func(types.UpgradeInfo)
+	storeKey         *sdk.KVStoreKey
+	upgradeReadyMap  map[string]func(types.UpgradeInfo)
+	upgradeInfoCache map[string]types.UpgradeInfo
 }
 
 // NewKeeper creates a new instance of params keeper
@@ -34,8 +39,9 @@ func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKe
 		Keeper:  sdkparams.NewKeeper(cdc, key, tkey),
 		signals: make([]func(), 0),
 
-		storeKey:        key,
-		upgradeReadyMap: make(map[string]func(types.UpgradeInfo)),
+		storeKey:         key,
+		upgradeReadyMap:  make(map[string]func(types.UpgradeInfo)),
+		upgradeInfoCache: make(map[string]types.UpgradeInfo),
 	}
 	k.cdc = cdc
 	k.paramSpace = k.Subspace(DefaultParamspace).WithKeyTable(types.ParamKeyTable())
@@ -93,12 +99,9 @@ func (keeper *Keeper) IsUpgradeEffective(ctx sdk.Context, name string) bool {
 }
 
 func (keeper *Keeper) GetEffectiveUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
-	exist, info, err := getUpgradeInfo(ctx, keeper, name)
+	info, err := keeper.readUpgradeInfo(ctx, name)
 	if err != nil {
 		return types.UpgradeInfo{}, err
-	}
-	if !exist {
-		return types.UpgradeInfo{}, fmt.Errorf("upgrade '%s' is not exist", name)
 	}
 
 	if !isUpgradeEffective(ctx, info) {
@@ -110,16 +113,79 @@ func (keeper *Keeper) GetEffectiveUpgradeInfo(ctx sdk.Context, name string) (typ
 	return info, nil
 }
 
-func (keeper *Keeper) GetUpgradeInfo(ctx sdk.Context, name string) (bool, types.UpgradeInfo, error) {
-	exist, info, err := getUpgradeInfo(ctx, keeper, name)
-	if err != nil {
-		return false, types.UpgradeInfo{}, err
-	}
-	if !exist {
-		return false, types.UpgradeInfo{}, fmt.Errorf("upgrade '%s' is not exist", name)
+func (keeper *Keeper) readUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
+	info, exist := keeper.readUpgradeInfoFromCache(name)
+	if exist {
+		return info, nil
 	}
 
-	return isUpgradeEffective(ctx, info), info, nil
+	info, err := keeper.readUpgradeInfoFromStore(ctx, name)
+	if err != nil {
+		return info, err
+	}
+
+	keeper.writeUpgradeInfoToCache(info)
+	return info, nil
+}
+
+func (keeper *Keeper) writeUpgradeInfo(ctx sdk.Context, info types.UpgradeInfo, forceCover bool) sdk.Error {
+	if err := keeper.writeUpgradeInfoToStore(ctx, info, forceCover); err != nil {
+		return err
+	}
+
+	keeper.writeUpgradeInfoToCache(info)
+	return nil
+}
+
+func (keeper *Keeper) readUpgradeInfoFromStore(ctx sdk.Context, name string) (types.UpgradeInfo, sdk.Error) {
+	store := keeper.getUpgradeStore(ctx)
+
+	data := store.Get([]byte(name))
+	if len(data) == 0 {
+		err := fmt.Errorf("upgrade '%s' is not exist", name)
+		keeper.Logger(ctx).Info(err.Error())
+		return types.UpgradeInfo{}, err
+	}
+
+	var info types.UpgradeInfo
+	if err := json.Unmarshal(data, &info); err != nil {
+		keeper.Logger(ctx).Error("unmarshal upgrade proposal error", "error", err, "name", name, "data", data)
+		return info, err
+	}
+
+	return info, nil
+}
+
+func (keeper *Keeper) writeUpgradeInfoToStore(ctx sdk.Context, info types.UpgradeInfo, forceCover bool) sdk.Error {
+	key := []byte(info.Name)
+
+	store := keeper.getUpgradeStore(ctx)
+	if !forceCover && store.Has(key) {
+		keeper.Logger(ctx).Error("upgrade proposal name has been exist", "proposal name", info.Name)
+		return sdk.ErrInternal(fmt.Sprintf("upgrade proposal name '%s' has been exist", info.Name))
+	}
+
+	data, err := json.Marshal(info)
+	if err != nil {
+		keeper.Logger(ctx).Error("marshal upgrade proposal error", "upgrade info", info, "error", err)
+		return common.ErrMarshalJSONFailed(err.Error())
+	}
+	store.Set(key, data)
+
+	return nil
+}
+
+func (keeper *Keeper) getUpgradeStore(ctx sdk.Context) sdk.KVStore {
+	return prefix.NewStore(ctx.KVStore(keeper.storeKey), []byte("upgrade"))
+}
+
+func (keeper *Keeper) readUpgradeInfoFromCache(name string) (types.UpgradeInfo, bool) {
+	info, ok := keeper.upgradeInfoCache[name]
+	return info, ok
+}
+
+func (keeper *Keeper) writeUpgradeInfoToCache(info types.UpgradeInfo) {
+	keeper.upgradeInfoCache[info.Name] = info
 }
 
 func isUpgradeEffective(ctx sdk.Context, info types.UpgradeInfo) bool {

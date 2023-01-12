@@ -36,7 +36,7 @@ func queryParams(ctx sdk.Context, _ abci.RequestQuery, keeper Keeper) ([]byte, s
 }
 
 func queryUpgrade(ctx sdk.Context, name string, keeper Keeper) ([]byte, sdk.Error) {
-	_, info, err := keeper.GetUpgradeInfo(ctx, name)
+	info, err := keeper.readUpgradeInfo(ctx, name)
 	if err != nil {
 		return nil, sdk.ErrInternal(err.Error())
 	}
