@@ -216,7 +216,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		trace.GetElapsedInfo().AddInfo(trace.Height, strconv.FormatInt(block.Height, 10))
 		trace.GetElapsedInfo().AddInfo(trace.Tx, strconv.Itoa(len(block.Data.Txs)))
 		trace.GetElapsedInfo().AddInfo(trace.BlockSize, strconv.Itoa(block.FastSize()))
-		trace.GetElapsedInfo().AddInfo(trace.RunTx, trc.Format())
+		trace.GetElapsedInfo().AddInfo(trace.ApplyBlock, trc.Format())
 		trace.GetElapsedInfo().AddInfo(trace.Workload, trace.GetApplyBlockWorkloadSttistic().Format())
 		trace.GetElapsedInfo().SetElapsedTime(trc.GetElapsedTime())
 
@@ -294,6 +294,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	fail.Fail() // XXX
 
+	trc.Pin("SaveState")
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
@@ -311,6 +312,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		}
 	}
 
+	if dc.uploadDelta || dc.downloadDelta {
+		trc.Pin("hdDelta")
+	}
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
@@ -417,7 +421,7 @@ func (blockExec *BlockExecutor) commit(
 		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
-	//trc.Pin(trace.MempoolUpdate)
+	trc.Pin("mpUpdate")
 	// Update mempool.
 	err = blockExec.mempool.Update(
 		block.Height,
