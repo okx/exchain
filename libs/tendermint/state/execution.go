@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	stdlog "log"
 	"strconv"
 	"time"
 
@@ -250,6 +251,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Save the results before we commit.
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
+	stdlog.Printf("---giskook test web lrp %v\n", block.Height)
 
 	fail.Fail() // XXX
 	endTime := time.Now().UnixNano()
