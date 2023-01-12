@@ -87,14 +87,26 @@ func (i *Iterator) next() ([]byte, []byte, error) {
 }
 
 func (i *Iterator) reverseNext() ([]byte, []byte, error) {
-	keys, values, err := i.client.ReverseScan(context.TODO(), i.curKey, i.end, 1)
+	var err error
+	i.keys, i.values, err = i.client.ReverseScan(context.TODO(), i.curKey, i.end, 2)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(keys[0]) == 0 {
+
+	if len(i.keys) == 0 || i.curKeyInner == nil {
 		i.finish = true
+		return nil, nil, nil
 	}
-	return keys[0], values[0], nil
+	if len(i.keys) == 1 {
+		i.curKeyInner = nil
+	}
+	if len(i.keys) == 2 {
+		i.curKeyInner = make([]byte, len(i.keys[1]))
+		copy(i.curKeyInner, i.keys[1])
+	}
+
+	key, value := i.keys[0], i.values[0]
+	return key, value, nil
 }
 
 func (i *Iterator) Next() {
