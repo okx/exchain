@@ -2,13 +2,13 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/config"
 	"io"
 	"log"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/utils/appstatus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
