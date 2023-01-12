@@ -316,22 +316,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
-<<<<<<< HEAD
-=======
-	// Events are fired after everything else.
-	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	if !blockExec.isNullIndexer {
-		blockExec.eventsChan <- event{
-			block:   block,
-			abciRsp: abciResponses,
-			vals:    validatorUpdates,
-		}
-	}
-
-	if dc.uploadDelta || dc.downloadDelta {
-		trc.Pin("hdDelta")
-	}
->>>>>>> dev
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
