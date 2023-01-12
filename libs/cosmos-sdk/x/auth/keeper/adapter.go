@@ -2,13 +2,14 @@ package keeper
 
 import (
 	"context"
+
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	internaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/internal"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	internaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/typesadapter"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

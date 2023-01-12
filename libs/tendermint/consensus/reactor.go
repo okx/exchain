@@ -390,7 +390,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			// or prMsg.height != prMsg.proposal.Height
 			if msg.Height <= conR.hasViewChanged ||
 				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
-				msg.Height <= height ||
+				msg.Height < height || (msg.Height == height && conR.conS.Step != cstypes.RoundStepNewHeight) ||
 				msg.Height != msg.Proposal.Height {
 				return
 			}
@@ -1766,7 +1766,7 @@ func (m *NewRoundStepMessage) String() string {
 //-------------------------------------
 
 // NewValidBlockMessage is sent when a validator observes a valid block B in some round r,
-//i.e., there is a Proposal for block B and 2/3+ prevotes for the block B in the round r.
+// i.e., there is a Proposal for block B and 2/3+ prevotes for the block B in the round r.
 // In case the block is also committed, then IsCommit flag is set to true.
 type NewValidBlockMessage struct {
 	Height           int64

@@ -222,6 +222,10 @@ func (tree *MutableTree) Get(key []byte) []byte {
 	if tree.root == nil {
 		return nil
 	}
+	if getForceReadIavl() {
+		_, value := tree.ImmutableTree.GetWithIndex(key)
+		return value
+	}
 
 	if value, ok := tree.fastGetFromChanges(key); ok {
 		return value
@@ -615,6 +619,10 @@ func (tree *MutableTree) IsUpgradeable() bool {
 // from latest tree.
 // nolint: unparam
 func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) {
+	if getIgnoreAutoUpgrade() {
+		return false, nil
+	}
+
 	if !GetEnableFastStorage() {
 		return false, nil
 	}
@@ -660,12 +668,6 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		tree.ndb.storageVersion = defaultStorageVersionValue
 		return false, err
 	}
-
-	tree.log(IavlInfo, "Compacting IAVL...")
-	if err := tree.ndb.db.Compact(); err != nil {
-		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
-	}
-	tree.log(IavlInfo, "Compacting IAVL done")
 
 	return true, nil
 }
@@ -757,7 +759,7 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 ) {
 	if tree.VersionExists(version) {
 		isFastCacheEnabled := tree.IsFastCacheEnabled()
-		if isFastCacheEnabled {
+		if isFastCacheEnabled && !getForceReadIavl() {
 			fastNode, _ := tree.ndb.GetFastNode(key)
 			if fastNode == nil && version == tree.ndb.getLatestMemoryVersion() {
 				return -1, nil

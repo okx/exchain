@@ -184,7 +184,7 @@ func (b ProtobufViewMsg) GetSigners() []sdk.AccAddress {
 func FromProtobufTx(cdc *codec.CodecProxy, tx *IbcTx) (*StdTx, error) {
 	msgs := make([]sdk.Msg, 0)
 	for _, msg := range tx.GetMsgs() {
-		m := (interface{})(msg).(sdk.MsgProtoAdapter)
+		m := (interface{})(msg).(sdk.MsgAdapter)
 		data, err := cdc.GetProtocMarshal().MarshalJSON(m)
 		if nil != err {
 			return nil, err
