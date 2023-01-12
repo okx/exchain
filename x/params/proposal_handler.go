@@ -3,7 +3,6 @@ package params
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/params/types"
 	"math"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/x/common"
 	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/params/types"
 )
 
 // NewParamChangeProposalHandler returns the rollback function of the param proposal handler
@@ -70,7 +70,10 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChang
 
 func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, proposal types.UpgradeProposal) sdk.Error {
 	curHeight := uint64(ctx.BlockHeight())
-	confirmHeight := getUpgradeProposalConfirmHeight(curHeight, proposal)
+	confirmHeight, err := getUpgradeProposalConfirmHeight(curHeight, proposal)
+	if err != nil {
+		return err
+	}
 	effectiveHeight := confirmHeight + 1
 
 	if curHeight < confirmHeight {
@@ -103,24 +106,28 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 	return nil
 }
 
-func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.UpgradeProposal) uint64 {
+func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.UpgradeProposal) (uint64, sdk.Error) {
+	if proposal.ExpectHeight <= currentHeight {
+		// if it's too late to make the proposal become effective at the height which we expected,
+		// refuse to effective this proposal
+		return 0, sdkerrors.New(DefaultCodespace, types.BaseParamsError,
+			fmt.Sprintf("current height '%d' has exceed "+
+				"the expect height '%d' of upgrade proposal '%s'",
+				currentHeight, proposal.ExpectHeight, proposal.Name))
+	}
+
 	// confirm height is the height proposal is confirmed.
 	// confirmed is not become effective. Becoming effective will happen at
 	// the next block of confirm block. see `makeEffectiveUpgrade` and `IsUpgradeEffective`
 	confirmHeight := proposal.ExpectHeight - 1
-
 	if proposal.ExpectHeight == 0 {
 		// if height is not specified, this upgrade will become effective
 		// at the next block of the block which the proposal is passed
 		// (i.e. become effective at next block).
 		confirmHeight = currentHeight
-	} else if proposal.ExpectHeight <= currentHeight {
-		// if it's too late to make the proposal become effective at the height
-		// which we expected, make the proposal take effect at next block.
-		confirmHeight = currentHeight
 	}
 
-	return confirmHeight
+	return confirmHeight, nil
 }
 
 func storePreparingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo) sdk.Error {
@@ -250,8 +257,14 @@ func (keeper Keeper) checkSubmitParamsChangeProposal(ctx sdk.Context, proposer s
 	if err := keeper.proposalCommonCheck(ctx, true, proposer, initialDeposit); err != nil {
 		return err
 	}
-	if err := keeper.checkValidEffectiveHeight(ctx, paramsChangeProposal.Height); err != nil {
-		return err
+
+	curHeight := uint64(ctx.BlockHeight())
+	maxHeight := keeper.GetParams(ctx).MaxBlockHeight
+	if maxHeight == 0 {
+		maxHeight = math.MaxInt64 - paramsChangeProposal.Height
+	}
+	if paramsChangeProposal.Height < curHeight || paramsChangeProposal.Height > curHeight+maxHeight {
+		return govtypes.ErrInvalidHeight(paramsChangeProposal.Height, curHeight, maxHeight)
 	}
 
 	// run simulation with cache context
@@ -265,7 +278,7 @@ func (keeper Keeper) checkSubmitUpgradeProposal(ctx sdk.Context, proposer sdk.Ac
 	}
 
 	if proposal.ExpectHeight != 0 {
-		if err := keeper.checkValidEffectiveHeight(ctx, proposal.ExpectHeight); err != nil {
+		if err := keeper.checkNotZeroValidEffectiveHeight(ctx, proposal.ExpectHeight); err != nil {
 			return err
 		}
 	}
@@ -292,10 +305,10 @@ func (keeper Keeper) proposalCommonCheck(ctx sdk.Context, checkIsValidator bool,
 	return nil
 }
 
-// a valid effective height must be:
+// a not zero valid effective height must be:
 //  1. bigger than current height
 //  2. not too far away from current height
-func (keeper Keeper) checkValidEffectiveHeight(ctx sdk.Context, effectiveHeight uint64) sdk.Error {
+func (keeper Keeper) checkNotZeroValidEffectiveHeight(ctx sdk.Context, effectiveHeight uint64) sdk.Error {
 	curHeight := uint64(ctx.BlockHeight())
 
 	maxHeight := keeper.GetParams(ctx).MaxBlockHeight
@@ -303,7 +316,7 @@ func (keeper Keeper) checkValidEffectiveHeight(ctx sdk.Context, effectiveHeight 
 		maxHeight = math.MaxInt64 - effectiveHeight
 	}
 
-	if effectiveHeight < curHeight || effectiveHeight-curHeight > maxHeight {
+	if effectiveHeight <= curHeight || effectiveHeight-curHeight > maxHeight {
 		return govtypes.ErrInvalidHeight(effectiveHeight, curHeight, maxHeight)
 	}
 	return nil
@@ -311,8 +324,26 @@ func (keeper Keeper) checkValidEffectiveHeight(ctx sdk.Context, effectiveHeight 
 
 // nolint
 func (keeper Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govtypes.Proposal) {}
+
 func (keeper Keeper) VoteHandler(ctx sdk.Context, proposal govtypes.Proposal, vote govtypes.Vote) (string, sdk.Error) {
+	switch content := proposal.Content.(type) {
+	case types.UpgradeProposal:
+		return handleUpgradeVote(ctx, proposal.ProposalID, content, vote)
+	}
 	return "", nil
 }
 func (keeper Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal govtypes.Proposal) {}
 func (keeper Keeper) RejectedHandler(ctx sdk.Context, content govtypes.Content)            {}
+
+func handleUpgradeVote(ctx sdk.Context, proposalID uint64, proposal types.UpgradeProposal, vote govtypes.Vote) (string, sdk.Error) {
+	curHeight := uint64(ctx.BlockHeight())
+
+	if proposal.ExpectHeight != 0 && proposal.ExpectHeight <= curHeight {
+		return "", sdkerrors.New(DefaultCodespace, types.BaseParamsError,
+			fmt.Sprintf("can not vote： current height '%d' has exceed "+
+				"the expect height '%d' of upgrade proposal '%s'(proposal id '%d')",
+				curHeight, proposal.ExpectHeight, proposal.Name, proposalID))
+	}
+
+	return "", nil
+}
