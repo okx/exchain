@@ -1272,3 +1272,7 @@ func (tree *MutableTree) GetUpgradeVersion() int64 {
 func (tree *MutableTree) hasNewNode() bool {
 	return len(tree.savedNodes) > 0
 }
+
+func (tree *MutableTree) GetLatestVersion() int64 {
+	return tree.ndb.getLatestVersion()
+}

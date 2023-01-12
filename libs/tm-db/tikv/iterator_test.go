@@ -62,6 +62,7 @@ func TestLoadVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log(tree.GetLatestVersion())
 	_, err = tree.LoadVersion(0)
 	if err != nil {
 		t.Fatal(err)

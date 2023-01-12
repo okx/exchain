@@ -87,6 +87,7 @@ func (t *TiKV) Iterator(start, end []byte) (dbm.Iterator, error) {
 
 func (t *TiKV) ReverseIterator(start, end []byte) (dbm.Iterator, error) {
 	rIterator := newIterator(start, end, true, t.client)
+	rIterator.Next()
 	return rIterator, nil
 }
 

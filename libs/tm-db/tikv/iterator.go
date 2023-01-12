@@ -25,6 +25,16 @@ type Iterator struct {
 var _ dbm.Iterator = (*Iterator)(nil)
 
 func newIterator(start, end []byte, isReverse bool, client *rawkv.Client) *Iterator {
+	if isReverse {
+		return &Iterator{
+			curKey:      end,
+			curKeyInner: end,
+			start:       end,
+			end:         start,
+			isReverse:   isReverse,
+			client:      client,
+		}
+	}
 	return &Iterator{
 		curKey:      start,
 		curKeyInner: start,
