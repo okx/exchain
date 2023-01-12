@@ -98,7 +98,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	cs.stateMtx.RLock()
 	cs.updateRoundStep(round, cstypes.RoundStepPropose)
 	newProposer := ""
-	if cs.vcHeight[height] != "" {
+	if cs.vcHeight[height] != "" && cs.Round == 0 {
 		newProposer = "-avc-" + cs.vcHeight[height][:6]
 	}
 	cs.stateMtx.RUnlock()

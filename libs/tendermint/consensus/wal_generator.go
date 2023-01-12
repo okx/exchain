@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"io"
 	"path/filepath"
 	"testing"
@@ -171,6 +172,7 @@ func newByteBufferWAL(logger log.Logger, enc *WALEncoder, nBlocks int64, signalS
 // reached, in which case it will signal the caller via signalWhenStopsTo and
 // skip writing.
 func (w *byteBufferWAL) Write(m WALMessage) error {
+	t0 := tmtime.Now()
 	if w.stopped {
 		w.logger.Debug("WAL already stopped. Not writing message", "msg", m)
 		return nil
@@ -190,6 +192,9 @@ func (w *byteBufferWAL) Write(m WALMessage) error {
 	err := w.enc.Encode(&TimedWALMessage{fixedTime, m})
 	if err != nil {
 		panic(fmt.Sprintf("failed to encode the msg %v", m))
+	}
+	if t := tmtime.Now().Sub(t0); t > walAlertTime {
+		w.logger.Error("WAL Write Message", "time", t, "msg", m)
 	}
 
 	return nil
