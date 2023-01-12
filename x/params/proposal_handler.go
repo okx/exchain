@@ -175,7 +175,7 @@ func (keeper Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govtyp
 func (keeper Keeper) VoteHandler(ctx sdk.Context, proposal govtypes.Proposal, vote govtypes.Vote) (string, sdk.Error) {
 	switch content := proposal.Content.(type) {
 	case types.UpgradeProposal:
-		return handleUpgradeVote(ctx, proposal.ProposalID, content, vote)
+		return checkUpgradeVote(ctx, proposal.ProposalID, content, vote)
 	}
 	return "", nil
 }

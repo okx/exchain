@@ -37,7 +37,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 	}
 
 	// proposal will be confirmed right now, check if ready.
-	cb, ready := k.QueryReadyForUpgrade(proposal.Name)
+	cb, ready := k.queryReadyForUpgrade(proposal.Name)
 	if !ready {
 		// if no module claims that has ready for this upgrade,
 		// that probably means program's version is too low.
@@ -50,7 +50,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		panic(errMsg)
 	}
 
-	if err := makeEffectiveUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight); err != nil {
+	if err := storeEffectiveUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight); err != nil {
 		return err
 	}
 
@@ -61,18 +61,9 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 }
 
 func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.UpgradeProposal) (uint64, sdk.Error) {
-	if proposal.ExpectHeight <= currentHeight {
-		// if it's too late to make the proposal become effective at the height which we expected,
-		// refuse to effective this proposal
-		return 0, sdkerrors.New(DefaultCodespace, types.BaseParamsError,
-			fmt.Sprintf("current height '%d' has exceed "+
-				"the expect height '%d' of upgrade proposal '%s'",
-				currentHeight, proposal.ExpectHeight, proposal.Name))
-	}
-
 	// confirm height is the height proposal is confirmed.
 	// confirmed is not become effective. Becoming effective will happen at
-	// the next block of confirm block. see `makeEffectiveUpgrade` and `IsUpgradeEffective`
+	// the next block of confirm block. see `storeEffectiveUpgrade` and `IsUpgradeEffective`
 	confirmHeight := proposal.ExpectHeight - 1
 	if proposal.ExpectHeight == 0 {
 		// if height is not specified, this upgrade will become effective
@@ -81,6 +72,14 @@ func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.Upgrad
 		confirmHeight = currentHeight
 	}
 
+	if confirmHeight < currentHeight {
+		// if it's too late to make the proposal become effective at the height which we expected,
+		// refuse to effective this proposal
+		return 0, sdkerrors.New(DefaultCodespace, types.BaseParamsError,
+			fmt.Sprintf("current height '%d' has exceed "+
+				"the expect height '%d' of upgrade proposal '%s'",
+				currentHeight, proposal.ExpectHeight, proposal.Name))
+	}
 	return confirmHeight, nil
 }
 
@@ -97,7 +96,7 @@ func storeWaitingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, eff
 	return k.writeUpgradeInfo(ctx, info, true)
 }
 
-func makeEffectiveUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) sdk.Error {
+func storeEffectiveUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) sdk.Error {
 	info.EffectiveHeight = effectiveHeight
 	info.Status = types.UpgradeStatusEffective
 
@@ -125,7 +124,7 @@ func checkUpgradeValidEffectiveHeight(ctx sdk.Context, k *Keeper, effectiveHeigh
 	return nil
 }
 
-func handleUpgradeVote(ctx sdk.Context, proposalID uint64, proposal types.UpgradeProposal, _ govtypes.Vote) (string, sdk.Error) {
+func checkUpgradeVote(ctx sdk.Context, proposalID uint64, proposal types.UpgradeProposal, _ govtypes.Vote) (string, sdk.Error) {
 	curHeight := uint64(ctx.BlockHeight())
 
 	if proposal.ExpectHeight != 0 && proposal.ExpectHeight <= curHeight {

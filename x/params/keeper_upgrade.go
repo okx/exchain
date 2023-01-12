@@ -23,7 +23,7 @@ func (keeper *Keeper) ClaimReadyForUpgrade(ctx sdk.Context, name string, cb func
 	keeper.upgradeReadyMap[name] = cb
 }
 
-func (keeper *Keeper) QueryReadyForUpgrade(name string) (func(types.UpgradeInfo), bool) {
+func (keeper *Keeper) queryReadyForUpgrade(name string) (func(types.UpgradeInfo), bool) {
 	cb, ok := keeper.upgradeReadyMap[name]
 	return cb, ok
 }
