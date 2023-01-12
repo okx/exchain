@@ -20,12 +20,13 @@ var (
 )
 
 const (
-	bankMsgSend = "/cosmos.bank.v1beta1.MsgSend"
+	bankMsgSend    = "/cosmos.bank.v1beta1.MsgSend"
+	ibcMsgTransfer = "/ibc.applications.transfer.v1.MsgTransfer"
 )
 
 var (
 	DefaultAllowMessages []string = []string{
-		bankMsgSend,
+		bankMsgSend, ibcMsgTransfer,
 	}
 )
 

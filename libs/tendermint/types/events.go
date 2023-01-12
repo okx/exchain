@@ -103,6 +103,7 @@ type EventDataNewBlockHeader struct {
 // All txs fire EventDataTx
 type EventDataTx struct {
 	TxResult
+	Nonce uint64
 }
 
 type EventDataTxs struct {
