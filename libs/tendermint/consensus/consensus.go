@@ -244,7 +244,6 @@ func NewState(
 func (cs *State) SetLogger(l log.Logger) {
 	cs.BaseService.Logger = l
 	cs.timeoutTicker.SetLogger(l)
-	cs.blockCtx.SetLogger(l)
 }
 
 // SetEventBus sets event bus.

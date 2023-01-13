@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"strings"
 
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -161,6 +162,11 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
+		blockBytes, err := block.Marshal()
+		if err != nil {
+			return
+		}
+		cs.blockCtx.deltaBroker.SetBlock(block.Height, cs.Round, blockBytes)
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -353,6 +359,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.trc.Pin("lastPart")
 		cs.bt.onRecvBlock(height)
 		cs.bt.totalParts = cs.ProposalBlockParts.Total()
+		cs.Logger.Error("GetBlockP2P", "height", cs.ProposalBlock.Height, "time", tmtime.Now())
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock)
 		}

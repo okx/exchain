@@ -115,6 +115,7 @@ func (conR *Reactor) OnStart() error {
 	}
 
 	go conR.updateRoundStateRoutine()
+	go conR.getBlockRoutine()
 
 	return nil
 }
@@ -306,8 +307,6 @@ func (conR *Reactor) AddPeer(peer p2p.Peer) {
 	go conR.gossipVotesRoutine(peer, peerState)
 	//	go conR.gossipVCRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
-
-	go conR.getBlockRoutine()
 
 	// Send our state to peer.
 	// If we're fast_syncing, broadcast a RoundStepMessage later upon SwitchToConsensus().
@@ -1104,15 +1103,15 @@ OUTER_LOOP:
 func (conR *Reactor) getBlockRoutine() {
 	ctx := conR.conS.blockCtx
 	var hasHeight int64 = 0
-	block := &types.Block{}
 	for {
 		rs := conR.getRoundState()
 		if hasHeight < rs.Height {
 			if blockBytes, _ := ctx.deltaBroker.GetBlock(rs.Height, rs.Round); blockBytes != nil {
+				hasHeight = rs.Height
+				block := &types.Block{}
 				if err := block.Unmarshal(blockBytes); err == nil {
 					conR.conS.peerMsgQueue <- msgInfo{&BlockMessage{Height: rs.Height, Round: rs.Round, Block: block}, ""}
 				}
-				hasHeight = rs.Height
 			}
 		}
 

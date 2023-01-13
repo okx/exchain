@@ -6,6 +6,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
+	"os"
 	"time"
 )
 
@@ -18,12 +19,9 @@ type BlockContext struct {
 func newBlockContext() *BlockContext {
 	bc := &BlockContext{
 		enableBlockRedis: types.DownloadDelta,
+		logger:           log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "consensus"),
 	}
 	return bc
-}
-
-func (bc *BlockContext) SetLogger(l log.Logger) {
-	bc.logger = l
 }
 
 func (bc *BlockContext) init() {
