@@ -113,7 +113,7 @@ loop:
 		um := ReadContract(client, common.HexToAddress(XenContractAddr), "userMints", common.HexToAddress(eu.UserAddr[2:]))
 
 		if um.UserAddr.String() != "0x0000000000000000000000000000000000000000" && time.Now().Unix()-um.MaturityTs > 8*24*60*60 {
-			fmt.Printf("%v,%v,%v\n", eu.LineNum, eu.TxHash, eu.UserAddr)
+			fmt.Printf("%v,%v,%v,%v\n", eu.LineNum, eu.TxHash, eu.Sender, eu.UserAddr)
 		}
 		time.Sleep(time.Duration(50) * time.Millisecond)
 		//	if time.Now().Unix()-um.MaturityTs < 7*24*60*60 {
