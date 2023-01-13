@@ -165,6 +165,8 @@ type State struct {
 
 	preBlockTaskChan chan *preBlockTask
 	taskResultChan   chan *preBlockTaskRes
+
+	blockCtx *BlockContext
 }
 
 // preBlockSignal
@@ -208,7 +210,9 @@ func NewState(
 		vcHeight:         make(map[int64]string),
 		taskResultChan:   make(chan *preBlockTaskRes, 1),
 		preBlockTaskChan: make(chan *preBlockTask, 1),
+		blockCtx:         newBlockContext(),
 	}
+	cs.blockCtx.init()
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
@@ -240,6 +244,7 @@ func NewState(
 func (cs *State) SetLogger(l log.Logger) {
 	cs.BaseService.Logger = l
 	cs.timeoutTicker.SetLogger(l)
+	cs.blockCtx.SetLogger(l)
 }
 
 // SetEventBus sets event bus.

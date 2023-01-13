@@ -307,6 +307,8 @@ func (conR *Reactor) AddPeer(peer p2p.Peer) {
 	//	go conR.gossipVCRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
 
+	go conR.getBlockRoutine()
+
 	// Send our state to peer.
 	// If we're fast_syncing, broadcast a RoundStepMessage later upon SwitchToConsensus().
 	if !conR.FastSync() {
@@ -1099,6 +1101,25 @@ OUTER_LOOP:
 	}
 }
 
+func (conR *Reactor) getBlockRoutine() {
+	ctx := conR.conS.blockCtx
+	var hasHeight int64 = 0
+	block := &types.Block{}
+	for {
+		rs := conR.getRoundState()
+		if hasHeight < rs.Height {
+			if blockBytes, _ := ctx.deltaBroker.GetBlock(rs.Height, rs.Round); blockBytes != nil {
+				if err := block.Unmarshal(blockBytes); err == nil {
+					conR.conS.peerMsgQueue <- msgInfo{&BlockMessage{Height: rs.Height, Round: rs.Round, Block: block}, ""}
+				}
+				hasHeight = rs.Height
+			}
+		}
+
+		time.Sleep(conR.conS.config.PeerGossipSleepDuration)
+	}
+}
+
 func (conR *Reactor) peerStatsRoutine() {
 	conR.resetSwitchToFastSyncTimer()
 
@@ -1712,6 +1733,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
 	cdc.RegisterConcrete(&ProposeResponseMessage{}, "tendermint/ProposeResponseMessage", nil)
 	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
+	cdc.RegisterConcrete(&BlockMessage{}, "tendermint/Block", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1881,6 +1903,34 @@ func (m *BlockPartMessage) ValidateBasic() error {
 // String returns a string representation.
 func (m *BlockPartMessage) String() string {
 	return fmt.Sprintf("[BlockPart H:%v R:%v P:%v]", m.Height, m.Round, m.Part)
+}
+
+//-------------------------------------
+
+// BlockMessage is a whole block
+type BlockMessage struct {
+	Height int64
+	Round  int
+	Block  *types.Block
+}
+
+// ValidateBasic performs basic validation.
+func (m *BlockMessage) ValidateBasic() error {
+	if m.Height < 0 {
+		return errors.New("negative Height")
+	}
+	if m.Round < 0 {
+		return errors.New("negative Round")
+	}
+	if err := m.Block.ValidateBasic(); err != nil {
+		return fmt.Errorf("wrong Block: %v", err)
+	}
+	return nil
+}
+
+// String returns a string representation.
+func (m *BlockMessage) String() string {
+	return fmt.Sprintf("[Block H:%v R:%v B:%v]", m.Height, m.Round, m.Block)
 }
 
 //-------------------------------------

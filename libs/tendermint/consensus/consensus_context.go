@@ -1,0 +1,42 @@
+package consensus
+
+import (
+	"github.com/okex/exchain/libs/tendermint/delta"
+	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
+	"time"
+)
+
+type BlockContext struct {
+	deltaBroker      delta.DeltaBroker
+	enableBlockRedis bool
+	logger           log.Logger
+}
+
+func newBlockContext() *BlockContext {
+	bc := &BlockContext{
+		enableBlockRedis: types.DownloadDelta,
+	}
+	return bc
+}
+
+func (bc *BlockContext) SetLogger(l log.Logger) {
+	bc.logger = l
+}
+
+func (bc *BlockContext) init() {
+	// todo use flag
+	if true {
+		url := viper.GetString(types.FlagRedisUrl)
+		auth := viper.GetString(types.FlagRedisAuth)
+		expire := time.Duration(viper.GetInt(types.FlagRedisExpire)) * time.Second
+		dbNum := viper.GetInt(types.FlagRedisDB)
+		if dbNum < 0 || dbNum > 15 {
+			panic("redis-db only support 0~15")
+		}
+		bc.deltaBroker = redis_cgi.NewRedisClient(url, auth, expire, dbNum, bc.logger)
+		bc.logger.Info("Init redis broker", "url", url)
+	}
+}
