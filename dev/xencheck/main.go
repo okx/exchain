@@ -159,7 +159,7 @@ func ReadContract(client *ethclient.Client, contractAddr common.Address, name st
 
 func getExpiredUser(line string) ExpiredUser {
 	eu := strings.Split(line, ",")
-	if len(eu) != 3 {
+	if len(eu) != 4 {
 		panic(fmt.Sprintf("error format %v\n", line))
 	}
 
