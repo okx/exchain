@@ -63,6 +63,7 @@ type UserMints struct {
 type ExpiredUser struct {
 	LineNum  string
 	TxHash   string
+	Sender   string
 	UserAddr string
 }
 
@@ -165,6 +166,7 @@ func getExpiredUser(line string) ExpiredUser {
 	return ExpiredUser{
 		LineNum:  eu[0],
 		TxHash:   eu[1],
-		UserAddr: eu[2],
+		Sender:   eu[2],
+		UserAddr: eu[3],
 	}
 }
