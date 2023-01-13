@@ -2,6 +2,9 @@ package params
 
 import (
 	"fmt"
+	"math"
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -12,9 +15,79 @@ import (
 	"github.com/okex/exchain/x/params/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"math"
-	"testing"
 )
+
+type waitPair struct {
+	height     uint64
+	proposalID uint64
+}
+type mockGovKeeper struct {
+	waitQueue []waitPair
+	proposals map[uint64]*govtypes.Proposal
+
+	handler govtypes.Handler
+}
+
+func newMockGovKeeper() *mockGovKeeper {
+	return &mockGovKeeper{
+		handler:   nil,
+		proposals: make(map[uint64]*govtypes.Proposal),
+	}
+}
+
+func (gk *mockGovKeeper) SetHandler(handler govtypes.Handler) {
+	gk.handler = handler
+}
+
+func (gk *mockGovKeeper) SetProposal(proposal *govtypes.Proposal) {
+	gk.proposals[proposal.ProposalID] = proposal
+}
+
+func (gk *mockGovKeeper) HitHeight(ctx sdk.Context, curHeight uint64, t *testing.T) sdk.Error {
+	var called []waitPair
+	defer func() {
+		for _, pair := range called {
+			gk.RemoveFromWaitingProposalQueue(ctx, pair.height, pair.proposalID)
+		}
+	}()
+
+	for _, pair := range gk.waitQueue {
+		if pair.height == curHeight {
+			proposal, ok := gk.proposals[pair.proposalID]
+			if !ok {
+				t.Fatalf("there's no proposal '%d' in mockGovKeeper", pair.proposalID)
+			}
+			called = append(called, pair)
+
+			if err := gk.handler(ctx, proposal); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(called) == 0 {
+		t.Fatalf("there's no proposal at height %d waiting to be handed", curHeight)
+	}
+	return nil
+}
+
+func (gk *mockGovKeeper) InsertWaitingProposalQueue(_ sdk.Context, blockHeight, proposalID uint64) {
+	gk.waitQueue = append(gk.waitQueue, waitPair{height: blockHeight, proposalID: proposalID})
+}
+
+func (gk *mockGovKeeper) RemoveFromWaitingProposalQueue(_ sdk.Context, blockHeight, proposalID uint64) {
+	delIndex := -1
+	for i, pair := range gk.waitQueue {
+		if pair.height == blockHeight && pair.proposalID == proposalID {
+			delIndex = i
+			break
+		}
+	}
+	if delIndex < 0 {
+		return
+	}
+	gk.waitQueue = append(gk.waitQueue[:delIndex], gk.waitQueue[delIndex+1:]...)
+}
 
 func TestUpgradeProposalConfirmHeight(t *testing.T) {
 	tests := []struct {
@@ -45,8 +118,9 @@ func TestUpgradeProposalConfirmHeight(t *testing.T) {
 
 type UpgradeInfoStoreSuite struct {
 	suite.Suite
-	ms     storetypes.CommitMultiStore
-	keeper Keeper
+	ms        storetypes.CommitMultiStore
+	keeper    Keeper
+	govKeeper *mockGovKeeper
 }
 
 func TestUpgradeInfoStore(t *testing.T) {
@@ -61,11 +135,13 @@ func (suite *UpgradeInfoStoreSuite) SetupTest() {
 	suite.ms = store.NewCommitMultiStore(tmdb.NewMemDB())
 	suite.ms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 	suite.ms.MountStoreWithDB(tstoreKey, sdk.StoreTypeTransient, db)
-
 	err := suite.ms.LoadLatestVersion()
 	suite.NoError(err)
 
 	suite.keeper = NewKeeper(ModuleCdc, storeKey, tstoreKey)
+
+	suite.govKeeper = newMockGovKeeper()
+	suite.keeper.SetGovKeeper(suite.govKeeper)
 }
 
 func (suite *UpgradeInfoStoreSuite) Context(height int64) sdk.Context {
@@ -175,5 +251,103 @@ func (suite *UpgradeInfoStoreSuite) TestCheckUpgradeVote() {
 		} else {
 			suite.NoError(err)
 		}
+	}
+}
+
+func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
+	tests := []struct {
+		expectHeight          uint64
+		currentHeight         uint64
+		claimReady            bool
+		expectPanic           bool
+		expect1stExecuteError bool
+		expectHitError        bool
+	}{
+		{ // expect height is not zero but less than current height
+			expectHeight: 10, currentHeight: 10, claimReady: false, expectPanic: false, expect1stExecuteError: true,
+		},
+		{ // expect height is not zero but only greater than current height 1; and not claim ready
+			expectHeight: 11, currentHeight: 10, claimReady: false, expectPanic: true,
+		},
+		{ // expect height is not zero and greater than current height; but not claim ready
+			expectHeight: 12, currentHeight: 10, claimReady: false, expectPanic: true, expect1stExecuteError: false,
+		},
+		{ // everything's ok: expect height is not zero and greater than current height; and claim ready
+			expectHeight: 12, currentHeight: 10, claimReady: true, expectPanic: false, expect1stExecuteError: false, expectHitError: false,
+		},
+		{ // everything's ok: expect height is zero and claim ready
+			expectHeight: 0, currentHeight: 10, claimReady: true, expectPanic: false, expect1stExecuteError: false, expectHitError: false,
+		},
+	}
+
+	handler := NewUpgradeProposalHandler(&suite.keeper)
+	suite.govKeeper.SetHandler(handler)
+
+	for i, tt := range tests {
+		ctx := suite.Context(int64(tt.currentHeight))
+		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("name-%d", i), tt.expectHeight, nil)
+		proposal := &govtypes.Proposal{Content: upgradeProposal, ProposalID: uint64(i)}
+		suite.govKeeper.SetProposal(proposal)
+
+		confirmHeight := tt.expectHeight - 1
+		if tt.expectHeight == 0 {
+			confirmHeight = tt.currentHeight
+		}
+		effectiveHeight := confirmHeight + 1
+
+		cbCount := 0
+		cbName := ""
+		if tt.claimReady {
+			suite.keeper.ClaimReadyForUpgrade(ctx, upgradeProposal.Name, func(info types.UpgradeInfo) {
+				cbName = info.Name
+				cbCount += 1
+			})
+		}
+
+		if tt.expectPanic && confirmHeight == tt.currentHeight {
+			suite.Panics(func() { _ = handler(ctx, proposal) })
+			continue
+		}
+
+		// execute proposal
+		err := handler(ctx, proposal)
+		if tt.expect1stExecuteError {
+			suite.Error(err)
+			continue
+		}
+
+		suite.GreaterOrEqual(confirmHeight, tt.currentHeight)
+		if confirmHeight != tt.currentHeight {
+			// proposal is inserted to gov waiting queue, execute it
+			expectInfo := upgradeProposal.UpgradeInfo
+			expectInfo.EffectiveHeight = effectiveHeight
+			expectInfo.Status = types.UpgradeStatusWaitingEffective
+			info, err := suite.keeper.readUpgradeInfo(ctx, upgradeProposal.Name)
+			suite.NoError(err)
+			suite.Equal(expectInfo, info)
+
+			ctx := suite.Context(int64(confirmHeight))
+			if tt.expectPanic {
+				suite.Panics(func() { _ = suite.govKeeper.HitHeight(ctx, confirmHeight, suite.T()) })
+				continue
+			}
+			err = suite.govKeeper.HitHeight(ctx, confirmHeight, suite.T())
+			if tt.expectHitError {
+				suite.Error(err)
+				continue
+			}
+			suite.NoError(err)
+		}
+
+		// now proposal must be executed
+		expectInfo := upgradeProposal.UpgradeInfo
+		expectInfo.EffectiveHeight = effectiveHeight
+		expectInfo.Status = types.UpgradeStatusEffective
+		info, err := suite.keeper.readUpgradeInfo(ctx, upgradeProposal.Name)
+		suite.NoError(err)
+		suite.Equal(expectInfo, info)
+
+		suite.Equal(upgradeProposal.Name, cbName)
+		suite.Equal(1, cbCount)
 	}
 }
