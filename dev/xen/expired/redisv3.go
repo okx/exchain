@@ -89,7 +89,7 @@ func scanClaimRedisV3() {
 					if unRewardKey != "" {
 						claims := getLatestClaim(unRewardKey, useraddr[1:])
 						if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
-							reward := getLatestReward(claims.UserAddr[1:])
+							reward := getLatestReward(claims.UserAddr)
 							if reward == nil ||
 								(reward != nil && reward.BlockTime.Unix() < claims.BlockTime.Add(time.Duration(claims.Term)*time.Duration(24)*time.Hour).Unix()) {
 								counter++
