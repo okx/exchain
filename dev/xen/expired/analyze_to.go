@@ -15,8 +15,8 @@ import (
 
 const (
 	analyzeOutputFile   = "./analyze_to.csv"
-	flagRedisAddrTo     = "--redis_addr_to"
-	flagRedisPassWordTo = "--redis_auth_to"
+	flagRedisAddrTo     = "redis_addr_to"
+	flagRedisPassWordTo = "redis_auth_to"
 )
 
 func init() {
