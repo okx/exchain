@@ -171,6 +171,7 @@ func getLatestReward(userAddr string) *rediscli.XenClaimReward {
 	}
 	latestRewardKey := "r" + userAddr + "_" + v[0]
 
+	db.Do("SELECT", 1)
 	content, err := redis.StringMap(db.Do("HGETALL", latestRewardKey))
 	if err != nil {
 		panic(err)
