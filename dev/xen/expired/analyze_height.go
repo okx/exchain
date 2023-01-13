@@ -15,13 +15,15 @@ import (
 
 const (
 	analyzeHeightOutputFile = "./analyze_height.csv"
+	flagRedisAddrHeight     = "redis_addr_height"
+	flagRedisPassWordHeight = "redis_auth_height"
 )
 
 func init() {
-	analyzeHeightCmd.Flags().String(flagRedisAddr, ":6379", "redis addr")
-	analyzeHeightCmd.Flags().String(flagRedisPassWord, "", "redis password")
-	viper.BindPFlag(flagRedisAddr, analyzeHeightCmd.Flags().Lookup(flagRedisAddr))
-	viper.BindPFlag(flagRedisPassWord, analyzeHeightCmd.Flags().Lookup(flagRedisPassWord))
+	analyzeHeightCmd.Flags().String(flagRedisAddrHeight, ":6379", "redis addr")
+	analyzeHeightCmd.Flags().String(flagRedisPassWordHeight, "", "redis password")
+	viper.BindPFlag(flagRedisAddrHeight, analyzeHeightCmd.Flags().Lookup(flagRedisAddrHeight))
+	viper.BindPFlag(flagRedisPassWordHeight, analyzeHeightCmd.Flags().Lookup(flagRedisPassWordHeight))
 }
 
 func AnalyzeHeightCommand() *cobra.Command {
@@ -47,8 +49,8 @@ func scanClaimHeight() {
 
 	defer f.Close()
 
-	global.RedisAddr = viper.GetString(flagRedisAddr)
-	global.RedisPassword = viper.GetString(flagRedisPassWord)
+	global.RedisAddr = viper.GetString(flagRedisAddrHeight)
+	global.RedisPassword = viper.GetString(flagRedisPassWordHeight)
 	rediscli.GetInstance().Init()
 	pool := rediscli.GetInstance().GetClientPool()
 	db := pool.Get()
@@ -87,9 +89,9 @@ func scanClaimHeight() {
 					ret[claims.Height]++
 				}
 			}
-			printHeightStatistics(ret, f)
 
 			if curse == 0 {
+				printHeightStatistics(ret, f)
 				return
 			}
 		}
