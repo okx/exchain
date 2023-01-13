@@ -91,6 +91,7 @@ func scanClaimTo() {
 			}
 
 			if curse == 0 {
+				printStatistics(ret, f)
 				return
 			}
 		}
