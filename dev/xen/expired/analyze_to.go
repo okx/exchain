@@ -89,13 +89,13 @@ func scanClaimTo() {
 					ret[claims.To]++
 				}
 			}
-			printStatistics(ret, f)
 
 			if curse == 0 {
 				return
 			}
 		}
 	}
+	printStatistics(ret, f)
 }
 
 func getClaim(key string) *rediscli.XenMint {
