@@ -14,14 +14,16 @@ import (
 )
 
 const (
-	analyzeOutputFile = "./analyze_to.csv"
+	analyzeOutputFile   = "./analyze_to.csv"
+	flagRedisAddrTo     = "--redis_addr_to"
+	flagRedisPassWordTo = "--redis_auth_to"
 )
 
 func init() {
-	analyzeToCmd.Flags().String(flagRedisAddr, ":6379", "redis addr")
-	analyzeToCmd.Flags().String(flagRedisPassWord, "", "redis password")
-	viper.BindPFlag(flagRedisAddr, analyzeToCmd.Flags().Lookup(flagRedisAddr))
-	viper.BindPFlag(flagRedisPassWord, analyzeToCmd.Flags().Lookup(flagRedisPassWord))
+	analyzeToCmd.Flags().String(flagRedisAddrTo, ":6379", "redis addr")
+	analyzeToCmd.Flags().String(flagRedisPassWordTo, "", "redis password")
+	viper.BindPFlag(flagRedisAddrTo, analyzeToCmd.Flags().Lookup(flagRedisAddrTo))
+	viper.BindPFlag(flagRedisPassWordTo, analyzeToCmd.Flags().Lookup(flagRedisPassWordTo))
 }
 
 func AnalyzeToCommand() *cobra.Command {
@@ -47,8 +49,8 @@ func scanClaimTo() {
 
 	defer f.Close()
 
-	global.RedisAddr = viper.GetString(flagRedisAddr)
-	global.RedisPassword = viper.GetString(flagRedisPassWord)
+	global.RedisAddr = viper.GetString(flagRedisAddrTo)
+	global.RedisPassword = viper.GetString(flagRedisPassWordTo)
 	rediscli.GetInstance().Init()
 	pool := rediscli.GetInstance().GetClientPool()
 	db := pool.Get()
