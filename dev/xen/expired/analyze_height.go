@@ -104,7 +104,7 @@ func printHeightStatistics(toStatistics map[int64]int, f *os.File) {
 		sortedTo = append(sortedTo, k)
 	}
 	sort.Slice(sortedTo, func(i, j int) bool {
-		return toStatistics[sortedTo[i]] < toStatistics[sortedTo[j]]
+		return sortedTo[i] < sortedTo[j]
 	})
 
 	total := 0
