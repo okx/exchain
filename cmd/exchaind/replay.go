@@ -101,6 +101,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 
 			ts := time.Now()
 			ctx.Config.RootDirTiKV = "127.0.0.1:2379"
+			log.Println("-----gikook----- tikv")
 			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
