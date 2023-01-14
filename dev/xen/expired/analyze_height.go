@@ -113,7 +113,7 @@ func getMints(ret map[int64]int, heightBlockTime map[int64]int64) {
 			}
 
 			if curse == 0 {
-				return ret, heightBlockTime
+				return
 			}
 		}
 	}
@@ -159,7 +159,7 @@ func getClaims(ret map[int64]int, heightBlockTime map[int64]int64) {
 			}
 
 			if curse == 0 {
-				return ret, heightBlockTime
+				return
 			}
 		}
 	}
