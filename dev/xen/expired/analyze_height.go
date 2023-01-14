@@ -63,18 +63,18 @@ func scanClaimHeight() {
 
 	go func() {
 		defer wg.Done()
-		ret, heightBlockTime = getMints()
+		getMints(ret, heightBlockTime)
 	}()
 	go func() {
 		defer wg.Done()
-		claimsRet, claimsHeightBlockTime = getClaims()
+		getClaims(claimsRet, claimsHeightBlockTime)
 	}()
 	wg.Wait()
 
 	printHeightStatistics(ret, heightBlockTime, claimsRet, claimsHeightBlockTime, f)
 }
 
-func getMints() (ret map[int64]int, heightBlockTime map[int64]int64) {
+func getMints(ret map[int64]int, heightBlockTime map[int64]int64) {
 	pool := rediscli.GetInstance().GetClientPool()
 	db := pool.Get()
 	defer db.Close()
@@ -119,7 +119,7 @@ func getMints() (ret map[int64]int, heightBlockTime map[int64]int64) {
 	}
 }
 
-func getClaims() (ret map[int64]int, heightBlockTime map[int64]int64) {
+func getClaims(ret map[int64]int, heightBlockTime map[int64]int64) {
 	pool := rediscli.GetInstance().GetClientPool()
 	db := pool.Get()
 	defer db.Close()
