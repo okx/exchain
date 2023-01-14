@@ -99,6 +99,29 @@ func scanClaimTo() {
 	printStatistics(ret, f)
 }
 
+func getReward(key string) *rediscli.XenClaimReward {
+	pool := rediscli.GetInstance().GetClientPool()
+	db := pool.Get()
+	defer db.Close()
+	_, err := db.Do("SELECT", 1)
+	if err != nil {
+		panic(err)
+	}
+	var ret rediscli.XenClaimReward
+
+	content, err := redis.StringMap(db.Do("HGETALL", key))
+	if err != nil || len(content) == 0 {
+		panic(fmt.Sprintf("%v map %v error %v", key, len(content), err))
+	}
+	for key, value := range content {
+		parseReward(&ret, key, value)
+	}
+	tmp := strings.Split(key, "_")
+	ret.UserAddr = tmp[0][1:]
+
+	return &ret
+}
+
 func getClaim(key string) *rediscli.XenMint {
 	pool := rediscli.GetInstance().GetClientPool()
 	db := pool.Get()
