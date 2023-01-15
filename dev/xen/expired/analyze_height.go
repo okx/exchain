@@ -109,6 +109,7 @@ func getMints(ret map[int64]int, heightBlockTime map[int64]int64) {
 				if strings.Contains(useraddr, "0x") {
 					claims := getClaim(useraddr)
 					ret[claims.Height]++
+					heightBlockTime[claims.Height] = claims.BlockTime.UnixNano()
 				}
 			}
 
