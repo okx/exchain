@@ -2,12 +2,11 @@ package types
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"strings"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkgovtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
-
-	"strings"
 )
 
 type UpgradeStatus uint32

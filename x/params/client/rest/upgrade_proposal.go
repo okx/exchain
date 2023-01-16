@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"github.com/okex/exchain/x/params/types"
 	"net/http"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -10,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/x/gov"
 	govrest "github.com/okex/exchain/x/gov/client/rest"
+	"github.com/okex/exchain/x/params/types"
 )
 
 // UpgradeProposalReq defines a upgrade proposal request body

@@ -2,6 +2,8 @@ package params
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -16,7 +18,6 @@ import (
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params/types"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type mockStakingKeeper struct {
