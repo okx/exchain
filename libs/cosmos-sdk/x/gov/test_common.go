@@ -80,7 +80,7 @@ func getMockApp(
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		staking.BondedPoolName:    {supply.Burner, supply.Staking},
 	}
-	supplyKeeper := supply.NewKeeper(mApp.Cdc.GetCdc(), keySupply, mApp.AccountKeeper, bk, maccPerms)
+	supplyKeeper := supply.NewKeeper(mApp.Cdc.GetCdc(), keySupply, mApp.AccountKeeper, bank.NewBankKeeperAdapter(bk), maccPerms)
 	sk := staking.NewKeeper(
 		mApp.Cdc.GetCdc(), keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace),
 	)

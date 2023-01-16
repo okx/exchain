@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -79,7 +80,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 		auth.FeeCollectorName: nil,
 		types.ModuleName:      {supply.Minter, supply.Burner},
 	}
-	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc.GetCdc(), mockDexApp.keySupply, mockDexApp.AccountKeeper, mockDexApp.bankKeeper, maccPerms)
+	mockDexApp.supplyKeeper = supply.NewKeeper(mockDexApp.Cdc.GetCdc(), mockDexApp.keySupply, mockDexApp.AccountKeeper, bank.NewBankKeeperAdapter(mockDexApp.bankKeeper), maccPerms)
 	mockDexApp.tokenKeeper = NewKeeper(
 		mockDexApp.bankKeeper,
 		mockDexApp.ParamsKeeper.Subspace(DefaultParamspace),
@@ -161,7 +162,7 @@ func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keep
 		mockDexApp.Cdc.GetCdc(),
 		mockDexApp.keySupply,
 		mockDexApp.AccountKeeper,
-		mockDexApp.bankKeeper,
+		bank.NewBankKeeperAdapter(mockDexApp.bankKeeper),
 		maccPerms)
 
 	mockDexApp.tokenKeeper = NewKeeper(
@@ -419,6 +420,54 @@ ok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-bok-b
 	TokenChown = append(TokenChown, createTokenMsg(t, app, ctx, testAccounts[0], tokenChownMsg))
 
 	ctx = mockApplyBlock(t, app, TokenChown, 4)
+}
+
+func TestHandleMsgTokenIssueFails(t *testing.T) {
+	var TokenIssue []*auth.StdTx
+	genAccs, testAccounts := CreateGenAccounts(1,
+		sdk.SysCoins{
+			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(30000)),
+		},
+	)
+	app, keeper, _ := getMockDexAppEx(t, 0)
+	mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
+
+	//build context
+	ctx := mockApplyBlock(t, app, TokenIssue, 3)
+	cases := []struct {
+		info     string
+		msg      types.MsgTokenIssue
+		expected string
+		panic    bool
+	}{
+		{
+			"Error Get Decimal From Decimal String",
+			types.NewMsgTokenIssue("", common.NativeToken, common.NativeToken, "okcoin", "", testAccounts[0].baseAccount.Address, true),
+			"create a decimal from an input decimal string failed: create a decimal from an input decimal string failed: decimal string cannot be empty",
+			false,
+		},
+		{
+			"Error Invalid Coins",
+			types.NewMsgTokenIssue("", common.NativeToken, "a.b", "okcoin", "9999", testAccounts[0].baseAccount.Address, true),
+			"invalid coins: invalid coins: a.b",
+			false,
+		},
+		{
+			"Error Mint Coins Failed",
+			types.NewMsgTokenIssue("", common.NativeToken, common.NativeToken, "okcoin", "9999", testAccounts[0].baseAccount.Address, true),
+			"not have permission to mint should panic",
+			true,
+		},
+	}
+	for _, tc := range cases {
+
+		if tc.panic {
+			require.Panics(t, func() { handleMsgTokenIssue(ctx, keeper, tc.msg, nil) })
+		} else {
+			_, err := handleMsgTokenIssue(ctx, keeper, tc.msg, nil)
+			require.Equal(t, err.Error(), tc.expected)
+		}
+	}
 }
 
 func TestUpdateUserTokenRelationship(t *testing.T) {
@@ -1143,4 +1192,57 @@ func TestHandleTransferOwnership(t *testing.T) {
 	token := keeper.GetTokenInfo(ctx, tokenName)
 	require.True(t, token.Owner.Equals(common.BlackHoleAddress()))
 
+}
+
+func TestWalletTokenTransfer(t *testing.T) {
+	app, keeper, addrs := getMockDexApp(t, 2)
+	//tokenTransferMsg :=
+	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+	ctx := app.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(3)
+	app.BaseApp.NewContext(false, abci.Header{}).WithBlockTime(ctx.BlockTime().Add(types.DefaultOwnershipConfirmWindow * 2))
+
+	tests := []struct {
+		info     string
+		ctx      sdk.Context
+		msg      sdk.Msg
+		expected func()
+		pass     bool
+	}{
+		{
+			"succ with transfer and balance equal",
+			ctx,
+			&bank.MsgSendAdapter{
+				FromAddress: addrs[0].String(),
+				ToAddress:   addrs[1].String(),
+				Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(big.NewInt(1000000000000000000)))},
+			},
+			func() {
+				require.Equal(t, app.AccountKeeper.GetAccount(ctx, addrs[0]).GetCoins().AmountOf(common.NativeToken).String(), "99999.000000000000000000")
+				require.Equal(t, app.AccountKeeper.GetAccount(ctx, addrs[1]).GetCoins().AmountOf(common.NativeToken).String(), "100001.000000000000000000")
+			},
+			true,
+		},
+		{
+			"failure insufficient funds",
+			ctx,
+			&bank.MsgSendAdapter{
+				FromAddress: addrs[0].String(),
+				ToAddress:   addrs[1].String(),
+				Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(new(big.Int).Mul(big.NewInt(1000000000000000000), big.NewInt(100000))))},
+			},
+			func() {
+			},
+			false,
+		},
+	}
+	handler := NewTokenHandler(keeper, version.ProtocolVersionV0)
+	for _, tc := range tests {
+		_, err := handler(ctx, tc.msg)
+		tc.expected()
+		if tc.pass {
+			require.NoError(t, err)
+		} else {
+			require.Error(t, err)
+		}
+	}
 }

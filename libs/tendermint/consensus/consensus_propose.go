@@ -94,17 +94,20 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
+
+	cs.stateMtx.RLock()
+	cs.updateRoundStep(round, cstypes.RoundStepPropose)
 	newProposer := ""
-	if cs.vcHeight[height] != "" {
+	if cs.vcHeight[height] != "" && cs.Round == 0 {
 		newProposer = "-avc-" + cs.vcHeight[height][:6]
 	}
+	cs.stateMtx.RUnlock()
 	cs.trc.Pin("enterPropose-%d-%s-%s%s", round, isBlockProducer, bpAddr, newProposer)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 	defer func() {
 		// Done enterPropose:
-		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
 
 		// If we have the whole proposal + POL, then goto Prevote now.
@@ -124,7 +127,7 @@ func (cs *State) enterPropose(height int64, round int) {
 			bpAddr,
 			"privValidator",
 			cs.privValidator)
-		if cs.vcHeight[height] == "" || cs.Round != 0 {
+		if newProposer == "" || cs.Round != 0 {
 			cs.decideProposal(height, round)
 		}
 	} else {
@@ -238,27 +241,27 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 
 //-----------------------------------------------------------------------------
 
-func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
+func (cs *State) defaultSetProposal(proposal *types.Proposal) (bool, error) {
 	// Already have one
 	// TODO: possibly catch double proposals
 	if cs.Proposal != nil {
-		return nil
+		return false, nil
 	}
 
 	// Does not apply
 	if proposal.Height != cs.Height || proposal.Round != cs.Round {
-		return nil
+		return false, nil
 	}
 
 	// Verify POLRound, which must be -1 or in range [0, proposal.Round).
 	if proposal.POLRound < -1 ||
 		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round) {
-		return ErrInvalidProposalPOLRound
+		return false, ErrInvalidProposalPOLRound
 	}
 
 	// Verify signature
 	if !cs.Validators.GetProposer().PubKey.VerifyBytes(proposal.SignBytes(cs.state.ChainID), proposal.Signature) {
-		return ErrInvalidProposalSignature
+		return false, ErrInvalidProposalSignature
 	}
 
 	cs.Proposal = proposal
@@ -271,7 +274,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
 	cs.trc.Pin("recvProposal")
-	return nil
+	return true, nil
 }
 
 func (cs *State) unmarshalBlock() error {

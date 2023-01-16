@@ -31,7 +31,6 @@ const (
 	FlagRateLimitAPI          = "rpc.rate-limit-api"
 	FlagRateLimitCount        = "rpc.rate-limit-count"
 	FlagRateLimitBurst        = "rpc.rate-limit-burst"
-	FlagEnableMonitor         = "rpc.enable-monitor"
 	FlagDisableAPI            = "rpc.disable-api"
 	FlagKafkaAddr             = "pendingtx.kafka-addr"
 	FlagKafkaTopic            = "pendingtx.kafka-topic"
@@ -43,12 +42,6 @@ const (
 	FlagRestNacosUrls         = "rest.nacos_urls"
 	FlagRestNacosNamespaceId  = "rest.nacos_namespace_id"
 	FlagExternalListenAddr    = "rest.external_laddr"
-
-	MetricsNamespace = "x"
-	// MetricsSubsystem is a subsystem shared by all metrics exposed by this package.
-	MetricsSubsystem = "rpc"
-
-	MetricsFieldName = "Metrics"
 )
 
 // RegisterRoutes creates a new server and registers the `/rpc` endpoint.

@@ -13,6 +13,9 @@ import (
 const (
 	// MaxBlockSizeBytes is the maximum permitted size of the blocks.
 	MaxBlockSizeBytes = 104857600 // 100MB
+
+	// TimeoutCommit is set for the stable of blockTime
+	TimeoutCommit = 3800 // 3.8s
 )
 
 var (

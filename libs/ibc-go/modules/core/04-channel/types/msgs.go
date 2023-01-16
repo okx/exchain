@@ -28,6 +28,20 @@ func NewMsgChannelOpenInit(
 	}
 }
 
+// nolint:interfacer
+func NewMsgChannelOpenInitV4(
+	portID, version string, channelOrder Order, connectionHops []string,
+	counterpartyPortID string, signer string,
+) *MsgChannelOpenInit {
+	counterparty := NewCounterparty(counterpartyPortID, "")
+	channel := NewChannel(INIT, channelOrder, counterparty, connectionHops, version)
+	return &MsgChannelOpenInit{
+		PortId:  portID,
+		Channel: channel,
+		Signer:  signer,
+	}
+}
+
 // Route implements sdk.Msg
 func (msg MsgChannelOpenInit) Route() string {
 	return host.RouterKey

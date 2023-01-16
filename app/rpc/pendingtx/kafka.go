@@ -2,8 +2,8 @@ package pendingtx
 
 import (
 	"context"
+	"encoding/json"
 
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -18,19 +18,39 @@ func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 		Writer: kafka.NewWriter(kafka.WriterConfig{
 			Brokers:  addrs,
 			Topic:    topic,
-			Balancer: &kafka.LeastBytes{},
+			Balancer: &kafka.Hash{},
 			Async:    true,
 		}),
 	}
 }
 
-func (kc *KafkaClient) Send(hash []byte, tx *watcher.Transaction) error {
-	kafkaMsg := KafkaMsg{
+func (kc *KafkaClient) SendPending(hash []byte, tx *PendingTx) error {
+	kafkaMsg := PendingMsg{
 		Topic: kc.Topic,
 		Data:  tx,
 	}
 
-	msg, err := kafkaMsg.MarshalJSON()
+	msg, err := json.Marshal(kafkaMsg)
+	if err != nil {
+		return err
+	}
+
+	// Automatic retries and reconnections on errors.
+	return kc.WriteMessages(context.Background(),
+		kafka.Message{
+			Key:   hash,
+			Value: msg,
+		},
+	)
+}
+
+func (kc *KafkaClient) SendRmPending(hash []byte, tx *RmPendingTx) error {
+	kafkaMsg := RmPendingMsg{
+		Topic: kc.Topic,
+		Data:  tx,
+	}
+
+	msg, err := json.Marshal(kafkaMsg)
 	if err != nil {
 		return err
 	}

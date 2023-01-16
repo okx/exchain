@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -73,6 +76,7 @@ type Backend interface {
 	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
 	// Block returns the block at the given block number, block data is readonly
 	Block(height *int64) (*coretypes.ResultBlock, error)
+	PruneEverything() bool
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -92,6 +96,7 @@ type EthermintBackend struct {
 	logsLimit         int
 	logsTimeout       int // timeout second
 	blockCache        *lru.Cache
+	pruneEverything   bool
 }
 
 // New creates a new EthermintBackend instance
@@ -109,9 +114,14 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		backendCache:      NewLruCache(),
 		logsLimit:         viper.GetInt(FlagLogsLimit),
 		logsTimeout:       viper.GetInt(FlagLogsTimeout),
+		pruneEverything:   viper.GetString(server.FlagPruning) == types.PruningOptionEverything,
 	}
 	b.blockCache, _ = lru.New(blockCacheSize)
 	return b
+}
+
+func (b *EthermintBackend) PruneEverything() bool {
+	return b.pruneEverything
 }
 
 func (b *EthermintBackend) LogsLimit() int {
@@ -294,14 +304,14 @@ func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error)
 
 	transactions := make([]*watcher.Transaction, 0, len(pendingTxs.Txs))
 	for _, tx := range pendingTxs.Txs {
-		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
+		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx, lastHeight)
 		if err != nil {
 			// ignore non Ethermint EVM transactions
 			continue
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(lastHeight)), common.Hash{}, 0, 0)
+		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(ethTx.Hash), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -347,14 +357,14 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 	}
 	transactions := make([]*watcher.Transaction, 0, len(result.Txs))
 	for _, tx := range result.Txs {
-		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
+		ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx, lastHeight)
 		if err != nil {
 			// ignore non Ethermint EVM transactions
 			continue
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(lastHeight)), common.Hash{}, 0, 0)
+		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(ethTx.Hash), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -384,12 +394,12 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*watch
 	if err != nil {
 		return nil, err
 	}
-	ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, pendingTx)
+	ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, pendingTx, lastHeight)
 	if err != nil {
 		// ignore non Ethermint EVM transactions
 		return nil, err
 	}
-	rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(lastHeight)), common.Hash{}, 0, 0)
+	rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(ethTx.Hash), common.Hash{}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -422,13 +432,12 @@ func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *watcher.T
 
 	blockHash := common.BytesToHash(block.Block.Hash())
 
-	ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, txRes.Tx)
+	ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, txRes.Tx, txRes.Height)
 	if err != nil {
 		return nil, err
 	}
 
-	height := uint64(txRes.Height)
-	tx, err = watcher.NewTransaction(ethTx, common.BytesToHash(txRes.Tx.Hash(txRes.Height)), blockHash, height, uint64(txRes.Index))
+	tx, err = watcher.NewTransaction(ethTx, common.BytesToHash(ethTx.Hash), blockHash, uint64(txRes.Height), uint64(txRes.Index))
 	if err != nil {
 		return nil, err
 	}
@@ -442,8 +451,11 @@ func (b *EthermintBackend) GetLogs(height int64) ([][]*ethtypes.Log, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// return empty directly when block was produced during stress testing.
 	var blockLogs = [][]*ethtypes.Log{}
+	if b.logsLimit > 0 && len(block.Block.Txs) > b.logsLimit {
+		return blockLogs, nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(b.logsTimeout)*time.Second)
 	defer cancel()
 	for _, tx := range block.Block.Txs {

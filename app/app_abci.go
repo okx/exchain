@@ -5,10 +5,8 @@ import (
 	"time"
 
 	appconfig "github.com/okex/exchain/app/config"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/wasm/watcher"
 )
 
@@ -25,14 +23,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	resp := app.BaseApp.DeliverTx(req)
 
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, err := evm.TxDecoder(app.marshal)(req.Tx)
-		if err == nil {
-			//optimize get tx gas price can not get value from verifySign method
-			app.gpo.CurrentBlockGPs.Update(tx.GetGasPrice(), uint64(resp.GasUsed))
-		}
-	}
-
 	return resp
 }
 
@@ -44,18 +34,6 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 	trace.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)
 	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
-
-	var err error
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		tx, _ := req.(sdk.Tx)
-		if tx == nil {
-			tx, err = evm.TxDecoder(app.Codec())(req.GetRaw())
-		}
-		if err == nil {
-			//optimize get tx gas price can not get value from verifySign method
-			app.gpo.CurrentBlockGPs.Update(tx.GetGasPrice(), uint64(resp.GasUsed))
-		}
-	}
 
 	return resp
 }

@@ -40,6 +40,14 @@ type Account interface {
 	String() string
 }
 
+type ModuleAccount interface {
+	Account
+
+	GetName() string
+	GetPermissions() []string
+	HasPermission(string) bool
+}
+
 type storageWithCache struct {
 	value []byte
 	dirty bool
@@ -234,6 +242,17 @@ func (c *Cache) writeStorage(updateDirty bool) {
 		}
 	}
 	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
+}
+
+func (c *Cache) Clear() {
+	if c == nil {
+		return
+	}
+
+	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
+	c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
+	c.accMap = make(map[ethcmn.Address]*accountWithCache)
+	c.useCache = false
 }
 
 func (c *Cache) setAcc(addr ethcmn.Address, v *accountWithCache) {

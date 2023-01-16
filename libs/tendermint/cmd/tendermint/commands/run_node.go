@@ -116,10 +116,25 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.MaxTxNumPerBlock,
 		"Maximum number of transactions in a block",
 	)
+	cmd.Flags().Bool(
+		"mempool.enable_delete_min_gp_tx",
+		config.Mempool.EnableDeleteMinGPTx,
+		"Enable delete the minimum gas price tx from mempool when mempool is full",
+	)
 	cmd.Flags().Int64(
 		"mempool.max_gas_used_per_block",
 		config.Mempool.MaxGasUsedPerBlock,
 		"Maximum gas used of transactions in a block",
+	)
+	cmd.Flags().Bool(
+		"mempool.enable-pgu",
+		false,
+		"enable precise gas used",
+	)
+	cmd.Flags().Float64(
+		"mempool.pgu-adjustment",
+		1,
+		"adjustment for pgu, such as 0.9 or 1.1",
 	)
 	cmd.Flags().Bool(
 		"mempool.sort_tx_by_gp",
@@ -156,6 +171,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.PendingPoolMaxTxPerAddress,
 		"Maximum number of transactions per address in the pending pool",
 	)
+	cmd.Flags().Bool(
+		"mempool.pending_remove_event",
+		config.Mempool.PendingRemoveEvent,
+		"Push event when remove a pending tx",
+	)
 
 	cmd.Flags().String(
 		"mempool.node_key_whitelist",
@@ -174,7 +194,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		false,
 		"Calculate tx type count and time in function checkTx per block",
 	)
-
+	cmd.Flags().String(
+		"tx_index.indexer",
+		config.TxIndex.Indexer,
+		"indexer to use for transactions, options: null, kv",
+	)
 	cmd.Flags().String(
 		"local_perf",
 		"",
@@ -190,6 +214,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"db_dir",
 		config.DBPath,
 		"Database directory")
+
+	cmd.Flags().String(
+		"grpc.address",
+		config.GRPC.Address,
+		"grpc server address")
 
 	addMoreFlags(cmd)
 }

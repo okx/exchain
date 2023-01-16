@@ -21,7 +21,9 @@ func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *c
 	queryCmd.AddCommand(
 		GetCmdQueryClientStates(cdc, reg),
 		GetCmdQueryClientState(cdc, reg),
+		GetCmdQueryClientStatus(cdc, reg),
 		GetCmdQueryConsensusStates(cdc, reg),
+		GetCmdQueryConsensusStateHeights(cdc, reg),
 		GetCmdQueryConsensusState(cdc, reg),
 		GetCmdQueryHeader(cdc, reg),
 		GetCmdSelfConsensusState(cdc, reg),

@@ -97,7 +97,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 		}
 	}
 
-	tx, err := evmtypes.TxDecoder(cliCtx.CodecProy)(resTx.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
+	tx, err := evmtypes.TxDecoder(cliCtx.CodecProy)(resTx.Tx, resTx.Height)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
@@ -210,6 +210,11 @@ func ManageContractBlockedListProposalRESTHandler(context.CLIContext) govRest.Pr
 
 // ManageContractMethodBlockedListProposalRESTHandler defines evm proposal handler
 func ManageContractMethodBlockedListProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
+
+// ManageContractBytecodeProposalRESTHandler defines evm proposal handler
+func ManageContractBytecodeProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }
 

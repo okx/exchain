@@ -155,7 +155,7 @@ func ServeCommand(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, regist
 			rs := NewRestServer(cdc, interfaceReg, nil)
 
 			registerRoutesFn(rs)
-			rs.registerSwaggerUI()
+			//rs.registerSwaggerUI()
 
 			// Start the rest server and return error if one exists
 			err = rs.Start(
@@ -177,7 +177,7 @@ func StartRestServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, reg
 	rs := NewRestServer(cdc, interfaceReg, tmNode)
 
 	registerRoutesFn(rs)
-	rs.registerSwaggerUI()
+	//rs.registerSwaggerUI() 
 	rs.log.Info("start rest server")
 	// Start the rest server and return error if one exists
 	return rs.Start(
