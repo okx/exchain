@@ -350,15 +350,12 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 					return err
 				}
 				txInfo.isGasPrecise = true
-				txInfo.gasUsed = gasUsed
 			} else if err = updatePGU(tx.Hash(mem.Height()), gasUsed); err != nil {
 				mem.logger.Error("updatePGU", "txHash", hex.EncodeToString(tx.Hash(mem.Height())), "hguGas", gasUsed, "error", err)
 			}
+			txInfo.gasUsed = gasUsed
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
 				hex.EncodeToString(txHash), r.CheckTx.GasWanted, gasUsed))
-			if gasUsed < r.CheckTx.GasWanted {
-				r.CheckTx.GasWanted = gasUsed
-			}
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
