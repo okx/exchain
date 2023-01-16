@@ -156,6 +156,14 @@ func (r *RedisClient) getMostRecentHeight() (mrh int64) {
 	return
 }
 
+func (r *RedisClient) Pub(msg []byte) {
+	r.rdb.Publish(context.Background(), "block", msg)
+}
+
+func (r *RedisClient) SubChannel() *redis.PubSub {
+	return r.rdb.Subscribe(context.Background(), "block")
+}
+
 func genBlockKey(height int64, round int) string {
 	return fmt.Sprintf("BH-%d:%d", height, round)
 }

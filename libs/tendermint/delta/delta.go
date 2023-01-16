@@ -1,5 +1,7 @@
 package delta
 
+import "github.com/go-redis/redis/v8"
+
 type DeltaBroker interface {
 	GetLocker() bool
 	ReleaseLocker()
@@ -10,4 +12,6 @@ type DeltaBroker interface {
 	GetBlock(height int64, round int) ([]byte, error)
 	SetBlockParts(height int64, round int, bytes []byte) error
 	GetBlockParts(height int64, round int) ([]byte, error)
+	Pub(msg []byte)
+	SubChannel() *redis.PubSub
 }

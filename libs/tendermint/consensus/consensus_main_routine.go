@@ -112,11 +112,13 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
 		return
 	}
-	blockBytes, err := res.block.Marshal()
-	if err != nil {
-		return
-	}
-	cs.blockCtx.deltaBroker.SetBlock(res.block.Height, cs.Round, blockBytes)
+	//blockBytes, err := res.block.Marshal()
+	//if err != nil {
+	//	return
+	//}
+	//cs.blockCtx.deltaBroker.SetBlock(res.block.Height, cs.Round, blockBytes)
+	pi := ProposalBlockMessage{proposal, res.block}
+	cs.blockCtx.deltaBroker.Pub(pi.Marshal())
 	cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 	for i := 0; i < res.blockParts.Total(); i++ {
 		part := res.blockParts.GetPart(i)
@@ -169,8 +171,8 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		if added, err = cs.setProposal(msg.Proposal); added {
 			cs.handleAVCProposal(msg.Proposal)
 		}
-	case *BlockMessage:
-		cs.Logger.Error("GetBlockRedis", "height", msg.Height, "time", tmtime.Now())
+	case *ProposalBlockMessage:
+		cs.Logger.Error("GetBlockRedis", "height", msg.Proposal.Height, "time", tmtime.Now())
 	case *BlockPartMessage:
 		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
 		if cs.HasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {

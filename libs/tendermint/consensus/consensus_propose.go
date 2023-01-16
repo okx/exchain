@@ -162,11 +162,11 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
-		blockBytes, err := block.Marshal()
-		if err != nil {
-			return
-		}
-		cs.blockCtx.deltaBroker.SetBlock(block.Height, cs.Round, blockBytes)
+		//blockBytes, err := block.Marshal()
+		//if err != nil {
+		//	return
+		//}
+		//cs.blockCtx.deltaBroker.SetBlock(block.Height, cs.Round, blockBytes)
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,
@@ -178,6 +178,8 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
 	proposal.HasVC = cs.HasVC
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
+		pi := ProposalBlockMessage{proposal, block}
+		cs.blockCtx.deltaBroker.Pub(pi.Marshal())
 
 		// send proposal and block parts on internal msg queue
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})

@@ -1102,21 +1102,33 @@ OUTER_LOOP:
 
 func (conR *Reactor) getBlockRoutine() {
 	ctx := conR.conS.blockCtx
-	var hasHeight int64 = 0
-	for {
-		rs := conR.getRoundState()
-		if hasHeight < rs.Height {
-			if blockBytes, _ := ctx.deltaBroker.GetBlock(rs.Height, rs.Round); blockBytes != nil {
-				hasHeight = rs.Height
-				block := &types.Block{}
-				if err := block.Unmarshal(blockBytes); err == nil {
-					conR.conS.peerMsgQueue <- msgInfo{&BlockMessage{Height: rs.Height, Round: rs.Round, Block: block}, ""}
-				}
-			}
+	subChan := ctx.deltaBroker.SubChannel().Channel()
+	for msg := range subChan {
+		//block := &types.Block{}
+		//if err := block.Unmarshal([]byte(msg.Payload)); err == nil {
+		//	conR.conS.peerMsgQueue <- msgInfo{&BlockMessage{Height: rs.Height, Round: rs.Round, Block: block}, ""}
+		//}
+		pbm := &ProposalBlockMessage{}
+		if err := pbm.Unmarshal([]byte(msg.Payload)); err == nil {
+			conR.Logger.Error("sub-test===success===:", "chan", msg.Channel, "height", pbm.Proposal.Height)
+			conR.conS.peerMsgQueue <- msgInfo{pbm, ""}
 		}
-
-		time.Sleep(conR.conS.config.PeerGossipSleepDuration)
 	}
+	//var hasHeight int64 = 0
+	//for {
+	//	rs := conR.getRoundState()
+	//	if hasHeight < rs.Height {
+	//		if blockBytes, _ := ctx.deltaBroker.GetBlock(rs.Height, rs.Round); blockBytes != nil {
+	//			hasHeight = rs.Height
+	//			block := &types.Block{}
+	//			if err := block.Unmarshal(blockBytes); err == nil {
+	//				conR.conS.peerMsgQueue <- msgInfo{&BlockMessage{Height: rs.Height, Round: rs.Round, Block: block}, ""}
+	//			}
+	//		}
+	//	}
+	//
+	//	time.Sleep(conR.conS.config.PeerGossipSleepDuration)
+	//}
 }
 
 func (conR *Reactor) peerStatsRoutine() {
@@ -1732,7 +1744,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
 	cdc.RegisterConcrete(&ProposeResponseMessage{}, "tendermint/ProposeResponseMessage", nil)
 	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
-	cdc.RegisterConcrete(&BlockMessage{}, "tendermint/Block", nil)
+	cdc.RegisterConcrete(&ProposalBlockMessage{}, "tendermint/Block", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1907,18 +1919,17 @@ func (m *BlockPartMessage) String() string {
 //-------------------------------------
 
 // BlockMessage is a whole block
-type BlockMessage struct {
-	Height int64
-	Round  int
-	Block  *types.Block
+type ProposalBlockMessage struct {
+	Proposal *types.Proposal
+	Block    *types.Block
 }
 
 // ValidateBasic performs basic validation.
-func (m *BlockMessage) ValidateBasic() error {
-	if m.Height < 0 {
+func (m *ProposalBlockMessage) ValidateBasic() error {
+	if m.Proposal.Height < 0 {
 		return errors.New("negative Height")
 	}
-	if m.Round < 0 {
+	if m.Proposal.Round < 0 {
 		return errors.New("negative Round")
 	}
 	if err := m.Block.ValidateBasic(); err != nil {
@@ -1928,8 +1939,16 @@ func (m *BlockMessage) ValidateBasic() error {
 }
 
 // String returns a string representation.
-func (m *BlockMessage) String() string {
-	return fmt.Sprintf("[Block H:%v R:%v B:%v]", m.Height, m.Round, m.Block)
+func (m *ProposalBlockMessage) String() string {
+	return fmt.Sprintf("[Block H:%v R:%v B:%v]", m.Proposal.Height, m.Proposal.Round, m.Block)
+}
+
+func (m *ProposalBlockMessage) Marshal() []byte {
+	return cdc.MustMarshalBinaryBare(m)
+}
+
+func (m *ProposalBlockMessage) Unmarshal(bs []byte) error {
+	return cdc.UnmarshalBinaryBare(bs, m)
 }
 
 //-------------------------------------
