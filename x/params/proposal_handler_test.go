@@ -113,6 +113,7 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 		expectHeight        uint64
 		currentHeight       int64
 		maxBlockHeight      uint64
+		nameHasExist        bool
 		expectError         bool
 	}{
 		{ // proposer is not a validator
@@ -169,8 +170,7 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 			maxBlockHeight:      10,
 			expectError:         true,
 		},
-		// expectHeight is 0
-		{
+		{ // expectHeight is 0
 			proposer:            sdk.AccAddress(suite.validatorPriv.PubKey().Address()),
 			proposerCoins:       minDeposit.MulDec(sdk.NewDecWithPrec(3, 0)),
 			proposalInitDeposit: minDeposit.MulDec(sdk.NewDecWithPrec(2, 0)),
@@ -179,8 +179,18 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 			maxBlockHeight:      10,
 			expectError:         false,
 		},
-		// expectHeight is not zero and every thing is ok
-		{
+		{ // expectHeight is not zero but name has been exist
+			proposer:            sdk.AccAddress(suite.validatorPriv.PubKey().Address()),
+			proposerCoins:       minDeposit.MulDec(sdk.NewDecWithPrec(3, 0)),
+			proposalInitDeposit: minDeposit.MulDec(sdk.NewDecWithPrec(2, 0)),
+			expectHeight:        12,
+			currentHeight:       11,
+			maxBlockHeight:      10,
+			nameHasExist:        true,
+			expectError:         true,
+		},
+
+		{ // expectHeight is not zero and every thing is ok
 			proposer:            sdk.AccAddress(suite.validatorPriv.PubKey().Address()),
 			proposerCoins:       minDeposit.MulDec(sdk.NewDecWithPrec(3, 0)),
 			proposalInitDeposit: minDeposit.MulDec(sdk.NewDecWithPrec(2, 0)),
@@ -202,6 +212,9 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 
 		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("upgrade-name-%d", i), tt.expectHeight, nil)
 		msg := govtypes.NewMsgSubmitProposal(upgradeProposal, tt.proposalInitDeposit, tt.proposer)
+		if tt.nameHasExist {
+			suite.NoError(suite.paramsKeeper.writeUpgradeInfoToStore(ctx, upgradeProposal.UpgradeInfo, false))
+		}
 
 		err = suite.paramsKeeper.CheckMsgSubmitProposal(ctx, msg)
 		if tt.expectError {
@@ -210,11 +223,10 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 		}
 
 		suite.NoError(err)
-		expectInfo := upgradeProposal.UpgradeInfo
-		expectInfo.Status = types.UpgradeStatusPreparing
-		info, err := suite.paramsKeeper.readUpgradeInfo(ctx, expectInfo.Name)
-		suite.NoError(err)
-		suite.Equal(expectInfo, info)
+		if !tt.nameHasExist {
+			_, err := suite.paramsKeeper.readUpgradeInfo(ctx, upgradeProposal.Name)
+			suite.Error(err)
+		}
 	}
 
 }
@@ -245,4 +257,26 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeVote() {
 			suite.NoError(err)
 		}
 	}
+}
+
+func (suite *ProposalHandlerSuite) TestAfterSubmitProposalHandler() {
+	ctx := suite.Context(10)
+	expectInfo := types.UpgradeInfo{
+		Name:            "name1",
+		EffectiveHeight: 111,
+		Status:          types.UpgradeStatusEffective,
+	}
+	proposal := govtypes.Proposal{
+		Content: types.UpgradeProposal{
+			UpgradeInfo: expectInfo,
+		},
+		ProposalID: 1,
+	}
+
+	suite.paramsKeeper.AfterSubmitProposalHandler(ctx, proposal)
+
+	expectInfo.Status = types.UpgradeStatusPreparing
+	info, err := suite.paramsKeeper.readUpgradeInfo(ctx, expectInfo.Name)
+	suite.NoError(err)
+	suite.Equal(expectInfo, info)
 }

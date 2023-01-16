@@ -147,8 +147,12 @@ func (keeper Keeper) checkSubmitUpgradeProposal(ctx sdk.Context, proposer sdk.Ac
 		return err
 	}
 
-	// check success, store waiting upgrade
-	return storePreparingUpgrade(ctx, &keeper, proposal.UpgradeInfo)
+	// NOTE: this check could be error when concurrency execute
+	if keeper.isUpgradeExist(ctx, proposal.Name) {
+		keeper.Logger(ctx).Error("upgrade has been exist", "name", proposal.Name)
+		return sdk.ErrInternal(fmt.Sprintf("upgrade proposal name '%s' has been exist", proposal.Name))
+	}
+	return nil
 }
 
 func (keeper Keeper) proposalCommonCheck(ctx sdk.Context, checkIsValidator bool, proposer sdk.AccAddress, initialDeposit sdk.SysCoins) sdk.Error {
@@ -170,7 +174,16 @@ func (keeper Keeper) proposalCommonCheck(ctx sdk.Context, checkIsValidator bool,
 }
 
 // nolint
-func (keeper Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govtypes.Proposal) {}
+func (keeper Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govtypes.Proposal) {
+	switch content := proposal.Content.(type) {
+	case types.UpgradeProposal:
+		// must be no error in the normal situation, for the error comes from upgrade name has been exist,
+		// which has checked in CheckMsgSubmitProposal.
+		// But it may be error in concurrency execute.
+		_ = storePreparingUpgrade(ctx, &keeper, content.UpgradeInfo)
+
+	}
+}
 
 func (keeper Keeper) VoteHandler(ctx sdk.Context, proposal govtypes.Proposal, vote govtypes.Vote) (string, sdk.Error) {
 	switch content := proposal.Content.(type) {

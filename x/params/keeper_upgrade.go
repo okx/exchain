@@ -1,12 +1,10 @@
 package params
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/params/types"
 )
 
@@ -76,10 +74,7 @@ func (keeper Keeper) iterateAllUpgradeInfo(ctx sdk.Context, cb func(info types.U
 		data := iterator.Value()
 
 		var info types.UpgradeInfo
-		if err := json.Unmarshal(data, &info); err != nil {
-			keeper.Logger(ctx).Error("iterator upgrade: unmarshal upgrade info error", "error", err, "data", data)
-			return common.ErrUnMarshalJSONFailed(err.Error())
-		}
+		keeper.cdc.MustUnmarshalJSON(data, &info)
 
 		if stop := cb(info); stop {
 			break
@@ -109,12 +104,13 @@ func (keeper *Keeper) readUpgradeInfoFromStore(ctx sdk.Context, name string) (ty
 	}
 
 	var info types.UpgradeInfo
-	if err := json.Unmarshal(data, &info); err != nil {
-		keeper.Logger(ctx).Error("unmarshal upgrade proposal error", "error", err, "name", name, "data", data)
-		return info, err
-	}
-
+	keeper.cdc.MustUnmarshalJSON(data, &info)
 	return info, nil
+}
+
+func (keeper *Keeper) isUpgradeExist(ctx sdk.Context, name string) bool {
+	store := keeper.getUpgradeStore(ctx)
+	return store.Has([]byte(name))
 }
 
 func (keeper *Keeper) writeUpgradeInfoToStore(ctx sdk.Context, info types.UpgradeInfo, forceCover bool) sdk.Error {
@@ -126,11 +122,7 @@ func (keeper *Keeper) writeUpgradeInfoToStore(ctx sdk.Context, info types.Upgrad
 		return sdk.ErrInternal(fmt.Sprintf("upgrade proposal name '%s' has been exist", info.Name))
 	}
 
-	data, err := json.Marshal(info)
-	if err != nil {
-		keeper.Logger(ctx).Error("marshal upgrade proposal error", "upgrade info", info, "error", err)
-		return common.ErrMarshalJSONFailed(err.Error())
-	}
+	data := keeper.cdc.MustMarshalJSON(info)
 	store.Set(key, data)
 
 	return nil
