@@ -36,12 +36,26 @@ func queryParams(ctx sdk.Context, _ abci.RequestQuery, keeper Keeper) ([]byte, s
 }
 
 func queryUpgrade(ctx sdk.Context, name string, keeper Keeper) ([]byte, sdk.Error) {
-	info, err := keeper.readUpgradeInfo(ctx, name)
-	if err != nil {
-		return nil, sdk.ErrInternal(err.Error())
+	infos := make([]types.UpgradeInfo, 0)
+
+	if len(name) == 0 {
+		// query all upgrade info
+		err := keeper.iterateAllUpgradeInfo(ctx, func(info types.UpgradeInfo) (stop bool) {
+			infos = append(infos, info)
+			return false
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		info, err := keeper.readUpgradeInfo(ctx, name)
+		if err != nil {
+			return nil, sdk.ErrInternal(err.Error())
+		}
+		infos = append(infos, info)
 	}
 
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, info)
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, infos)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, fmt.Sprintf("could not marshal result to JSON %s", err.Error()))
 	}

@@ -13,23 +13,36 @@ import (
 func GetCmdQueryUpgrade(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "upgrade [name]",
-		Args:  cobra.ExactArgs(1),
-		Short: "Query parameters of a upgrade",
-		Long: strings.TrimSpace(`Query parameters of upgrade:
+		Args:  cobra.MinimumNArgs(0),
+		Short: "Query info of upgrade",
+		Long: strings.TrimSpace(`Query info of a upgrade, query all upgrade if 'name' is omitted:
 
-$ exchaincli query params upgrade <upgrade-name>
+$ exchaincli query params upgrade <name>
 `),
 		RunE: func(_ *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			route := fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QueryUpgrade, args[0])
+			upgradeName := ""
+			if len(args) > 0 {
+				upgradeName = args[0]
+			}
+
+			route := fmt.Sprintf("custom/%s/%s/%s", queryRoute, types.QueryUpgrade, upgradeName)
 			bz, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
 			}
 
-			var infos types.UpgradeInfo
+			var infos []types.UpgradeInfo
 			cdc.MustUnmarshalJSON(bz, &infos)
+
+			if len(upgradeName) != 0 {
+				return cliCtx.PrintOutput(infos[0])
+			}
+
+			if len(infos) == 0 {
+				return cliCtx.PrintOutput("there's no upgrade")
+			}
 			return cliCtx.PrintOutput(infos)
 		},
 	}
