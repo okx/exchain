@@ -148,7 +148,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 	)
 	cmd.Flags().Bool(
 		"mempool.pgu-persist",
-		true,
+		false,
 		"persist the gas estimated by pgu")
 	cmd.Flags().Bool(
 		"mempool.sort_tx_by_gp",
