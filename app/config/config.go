@@ -122,6 +122,8 @@ type OecConfig struct {
 
 	//
 	commitGapOffset int64
+
+	enableRemainWaiting bool
 }
 
 const (
@@ -1074,4 +1076,12 @@ func (c *OecConfig) GetIavlAcNoBatch() bool {
 
 func (c *OecConfig) SetIavlAcNoBatch(value bool) {
 	c.iavlAcNoBatch = value
+}
+
+func (c *OecConfig) SetRemainWaiting(value bool) {
+	c.enableRemainWaiting = value
+}
+
+func (c *OecConfig) GetRemainWaiting() bool {
+	return c.enableRemainWaiting
 }
