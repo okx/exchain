@@ -220,3 +220,31 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 	}
 
 }
+
+func (suite *ProposalHandlerSuite) TestCheckUpgradeVote() {
+	tests := []struct {
+		expectHeight  uint64
+		currentHeight int64
+		expectError   bool
+	}{
+		{0, 10, false},
+		{0, 1111, false},
+		{10, 11, true},
+		{10, 10, true},
+		{10, 9, false},
+	}
+
+	for i, tt := range tests {
+		ctx := suite.Context(tt.currentHeight)
+		content := types.UpgradeProposal{UpgradeInfo: types.UpgradeInfo{ExpectHeight: tt.expectHeight}}
+		proposal := govtypes.Proposal{Content: content, ProposalID: uint64(i)}
+		vote := govtypes.Vote{}
+
+		_, err := suite.paramsKeeper.VoteHandler(ctx, proposal, vote)
+		if tt.expectError {
+			suite.Error(err)
+		} else {
+			suite.NoError(err)
+		}
+	}
+}

@@ -23,11 +23,6 @@ func (keeper *Keeper) ClaimReadyForUpgrade(ctx sdk.Context, name string, cb func
 	keeper.upgradeReadyMap[name] = cb
 }
 
-func (keeper *Keeper) queryReadyForUpgrade(name string) (func(types.UpgradeInfo), bool) {
-	cb, ok := keeper.upgradeReadyMap[name]
-	return cb, ok
-}
-
 func (keeper *Keeper) IsUpgradeEffective(ctx sdk.Context, name string) bool {
 	_, err := keeper.GetEffectiveUpgradeInfo(ctx, name)
 	return err == nil
@@ -46,6 +41,11 @@ func (keeper *Keeper) GetEffectiveUpgradeInfo(ctx sdk.Context, name string) (typ
 
 	keeper.Logger(ctx).Debug("upgrade is effective", "name", name)
 	return info, nil
+}
+
+func (keeper *Keeper) queryReadyForUpgrade(name string) (func(types.UpgradeInfo), bool) {
+	cb, ok := keeper.upgradeReadyMap[name]
+	return cb, ok
 }
 
 func (keeper *Keeper) readUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
