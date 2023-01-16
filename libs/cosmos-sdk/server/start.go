@@ -358,5 +358,5 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	consensus.SetActiveVC(viper.GetBool(FlagActiveViewChange))
 
 	tmtypes.EnableEventBlockTime = viper.GetBool(FlagEventBlockTime)
-	tmtypes.RemainWaiting = viper.GetBool(FlagRemainWaiting)
+	tmtypes.EnableRemainWaiting = viper.GetBool(FlagRemainWaiting)
 }

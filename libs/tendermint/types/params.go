@@ -25,7 +25,7 @@ var (
 	// MaxBlockPartsCount is the maximum number of block parts.
 	MaxBlockPartsCount = (MaxBlockSizeBytes / BlockPartSizeBytes) + 1
 
-	RemainWaiting = false
+	EnableRemainWaiting = false
 )
 
 // ConsensusParams contains consensus critical parameters that determine the

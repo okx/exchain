@@ -292,7 +292,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
-	if types.RemainWaiting && sleepDuration > 0 {
+	if types.EnableRemainWaiting && sleepDuration > 0 {
 		if sleepDuration > cs.remainWaiting {
 			sleepDuration = sleepDuration - cs.remainWaiting
 			cs.remainWaiting = 0
