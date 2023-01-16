@@ -2,8 +2,8 @@ package pendingtx
 
 import (
 	"context"
+	"encoding/json"
 
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -24,13 +24,13 @@ func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 	}
 }
 
-func (kc *KafkaClient) SendPending(hash []byte, tx *watcher.Transaction) error {
+func (kc *KafkaClient) SendPending(hash []byte, tx *PendingTx) error {
 	kafkaMsg := PendingMsg{
 		Topic: kc.Topic,
 		Data:  tx,
 	}
 
-	msg, err := kafkaMsg.MarshalJSON()
+	msg, err := json.Marshal(kafkaMsg)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (kc *KafkaClient) SendRmPending(hash []byte, tx *RmPendingTx) error {
 		Data:  tx,
 	}
 
-	msg, err := kafkaMsg.MarshalJSON()
+	msg, err := json.Marshal(kafkaMsg)
 	if err != nil {
 		return err
 	}

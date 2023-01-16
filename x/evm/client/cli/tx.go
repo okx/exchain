@@ -371,3 +371,61 @@ Where proposal.json contains:
 		},
 	}
 }
+
+// GetCmdManageContractByteCodeProposal implements a command handler for submitting a manage contract bytecode proposal transaction
+func GetCmdManageContractByteCodeProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return &cobra.Command{
+		Use:   "update-contract-bytecode [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit an update contract bytecode proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit an update contract bytecode proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal update-contract-bytecode <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+    "title":"update contract bytecode",
+    "description":"update contract bytecode",
+    "contract":"0x9a59ae3Fc0948717F94242fc170ac1d5dB3f0D5D",
+    "substitute_contract":"0xFc0b06f1C1e82eFAdC0E5c226616B092D2cb97fF",
+    "deposit":[
+        {
+            "denom":"%s",
+            "amount":"100.000000000000000000"
+        }
+    ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := evmutils.ParseManageContractBytecodeProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewManageContractByteCodeProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.Contract,
+				proposal.SubstituteContract,
+			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}

@@ -77,7 +77,7 @@ type Cache struct {
 }
 
 func initCacheParam() {
-	UseCache = false
+	UseCache = viper.GetBool(FlagMultiCache)
 
 	if data := viper.GetInt(MaxAccInMultiCache); data != 0 {
 		maxAccInMap = data
@@ -242,6 +242,17 @@ func (c *Cache) writeStorage(updateDirty bool) {
 		}
 	}
 	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
+}
+
+func (c *Cache) Clear() {
+	if c == nil {
+		return
+	}
+
+	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
+	c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
+	c.accMap = make(map[ethcmn.Address]*accountWithCache)
+	c.useCache = false
 }
 
 func (c *Cache) setAcc(addr ethcmn.Address, v *accountWithCache) {
