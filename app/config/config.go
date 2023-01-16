@@ -660,6 +660,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetCommitGapOffset(r)
+	case server.FlagRemainWaiting:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetRemainWaiting(r)
 	}
 
 }
