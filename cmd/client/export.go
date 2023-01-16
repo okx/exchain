@@ -19,6 +19,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+const flagIsFromWeb3Wallet = "isFromWeb3Wallet"
+
 // UnsafeExportEthKeyCommand exports a key with the given name as a private key in hex format.
 func UnsafeExportEthKeyCommand() *cobra.Command {
 	return &cobra.Command{
@@ -184,7 +186,7 @@ func ImportEthKeyStoreCommand() *cobra.Command {
 				return err
 			}
 
-			privkeyArmor, err := ethkeystore.ImportKeyStoreFile(decryptPassword, decryptPassword, file, keys.SigningAlgo(algo))
+			privkeyArmor, err := ethkeystore.ImportKeyStoreFile(decryptPassword, decryptPassword, file, keys.SigningAlgo(algo), viper.GetBool(flagIsFromWeb3Wallet))
 			if err != nil {
 				return err
 			}
@@ -198,5 +200,6 @@ func ImportEthKeyStoreCommand() *cobra.Command {
 		},
 	}
 	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
+	cmd.Flags().Bool(flagIsFromWeb3Wallet, false, "weather source of keystore is web3 wallet")
 	return cmd
 }
