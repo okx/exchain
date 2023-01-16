@@ -10,6 +10,10 @@ import (
 	"github.com/okex/exchain/x/params/types"
 )
 
+var (
+	upgradeInfoPreifx = []byte("upgrade")
+)
+
 // ClaimReadyForUpgrade tells Keeper that someone has get ready for the upgrade.
 // cb could be nil if there's no code to be execute when the upgrade is take effective.
 func (keeper *Keeper) ClaimReadyForUpgrade(ctx sdk.Context, name string, cb func(types.UpgradeInfo)) {
@@ -63,6 +67,28 @@ func (keeper *Keeper) readUpgradeInfo(ctx sdk.Context, name string) (types.Upgra
 	return info, nil
 }
 
+func (keeper Keeper) iterateAllUpgradeInfo(ctx sdk.Context, cb func(info types.UpgradeInfo) (stop bool)) sdk.Error {
+	store := keeper.getUpgradeStore(ctx)
+	iterator := store.Iterator(nil, nil)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		data := iterator.Value()
+
+		var info types.UpgradeInfo
+		if err := json.Unmarshal(data, &info); err != nil {
+			keeper.Logger(ctx).Error("iterator upgrade: unmarshal upgrade info error", "error", err, "data", data)
+			return common.ErrUnMarshalJSONFailed(err.Error())
+		}
+
+		if stop := cb(info); stop {
+			break
+		}
+	}
+
+	return nil
+}
+
 func (keeper *Keeper) writeUpgradeInfo(ctx sdk.Context, info types.UpgradeInfo, forceCover bool) sdk.Error {
 	if err := keeper.writeUpgradeInfoToStore(ctx, info, forceCover); err != nil {
 		return err
@@ -111,7 +137,7 @@ func (keeper *Keeper) writeUpgradeInfoToStore(ctx sdk.Context, info types.Upgrad
 }
 
 func (keeper *Keeper) getUpgradeStore(ctx sdk.Context) sdk.KVStore {
-	return prefix.NewStore(ctx.KVStore(keeper.storeKey), []byte("upgrade"))
+	return prefix.NewStore(ctx.KVStore(keeper.storeKey), upgradeInfoPreifx)
 }
 
 func (keeper *Keeper) readUpgradeInfoFromCache(name string) (types.UpgradeInfo, bool) {
