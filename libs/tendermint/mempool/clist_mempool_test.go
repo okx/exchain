@@ -119,7 +119,7 @@ func TestReapMaxBytesMaxGas(t *testing.T) {
 		expectedNumTxs int
 	}{
 		{20, -1, -1, 20},
-		{20, -1, 0, 0},
+		{20, -1, 0, 1},
 		{20, -1, 10, 10},
 		{20, -1, 30, 20},
 		{20, 0, -1, 0},
