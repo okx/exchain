@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"strconv"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
 )

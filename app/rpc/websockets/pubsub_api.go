@@ -55,6 +55,7 @@ func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, err
 		if len(params) > 1 {
 			p = params[1]
 		}
+
 		return api.subscribeLogs(conn, p)
 	case "newPendingTransactions":
 		var isDetail, ok bool
