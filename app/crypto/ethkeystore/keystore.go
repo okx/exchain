@@ -92,18 +92,15 @@ func ExportKeyStoreFile(privateKeyECDSA *ecdsa.PrivateKey, encryptPassword, file
 }
 
 // ImportKeyStoreFile Export Key to  keystore file
-func ImportKeyStoreFile(decryptPassword, password, fileName string, keytype keys.SigningAlgo, isFromWeb3Wallet bool) (privKetArmor string, err error) {
+func ImportKeyStoreFile(decryptPassword, password, fileName string, keytype keys.SigningAlgo) (privKetArmor string, err error) {
 	filejson, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return "", err
 	}
+
 	var decrytKey *keystore.Key
-	if !isFromWeb3Wallet {
-		decrytKey, err = keystore.DecryptKey(filejson, decryptPassword)
-		if err != nil {
-			return "", fmt.Errorf("failed to encrypt key: %s", err.Error())
-		}
-	} else {
+	decrytKey, err = keystore.DecryptKey(filejson, decryptPassword)
+	if err != nil {
 		decrytKey, err = DecryptKeyForWeb3(filejson, decryptPassword)
 		if err != nil {
 			return "", fmt.Errorf("failed to encrypt key: %s", err.Error())
