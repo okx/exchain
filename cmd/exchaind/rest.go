@@ -23,7 +23,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okex/exchain/libs/cosmos-sdk/x/bank/client/rest"
-	mintreset "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -80,7 +79,6 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
 	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
-	mintreset.RegisterRoutes(rs.CliCtx, v1Router)
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -102,7 +100,6 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 		},
 	)
 	mintrest.RegisterRoutes(rs.CliCtx, v1Router)
-
 }
 
 func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
