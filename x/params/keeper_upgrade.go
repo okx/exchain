@@ -14,6 +14,8 @@ var (
 
 // ClaimReadyForUpgrade tells Keeper that someone has get ready for the upgrade.
 // cb could be nil if there's no code to be execute when the upgrade is take effective.
+// NOTE: for the same name, if this method is called more than once time, the callback of
+// latest call will cover all of previous ones.
 func (keeper *Keeper) ClaimReadyForUpgrade(name string, cb func(types.UpgradeInfo)) {
 	if _, ok := keeper.upgradeReadyMap[name]; ok {
 		keeper.logger.Error("more than one guys ready for the same upgrade, the front one will be cover", "upgrade name", name)

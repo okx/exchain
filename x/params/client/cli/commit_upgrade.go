@@ -54,8 +54,7 @@ The proposal details must be supplied via a JSON file. proposal name is unique, 
 proposal's name has been exist, proposal will not be commit successful.
 
 Besides set upgrade's' take effect height, you can also set others config in 'config' field,
-with a map type with key and value are all string. You can also omit it if you don't care
-about it.
+which must be a string. You can also omit it if you don't care about it.
 
 IMPORTANT: Only validators or delagators can submit a upgrade proposal. 
 
@@ -74,11 +73,8 @@ Where proposal.json contains:
     }
   ],
   "name": "YourUpgradeName",
-  "height": "1000",
-  "config": {
-    "config1": "value1",
-    "config2": "value2"
-  }
+  "expectHeight": "1000",
+  "config": "your config string or empty"
 }
 `,
 				version.ClientName, sdk.DefaultBondDenom,

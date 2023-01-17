@@ -21,9 +21,9 @@ type UpgradeProposalReq struct {
 	Description string       `json:"description" yaml:"description"`
 	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
 
-	Name   string `json:"name" yaml:"name"`
-	Height uint64 `json:"height" yaml:"height"`
-	Config string `json:"config,omitempty" yaml:"config,omitempty"`
+	Name         string `json:"name" yaml:"name"`
+	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
+	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 func ProposalUpgradeRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
@@ -45,7 +45,7 @@ func postUpgradeProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		content := types.NewUpgradeProposal(req.Title, req.Description, req.Name, req.Height, req.Config)
+		content := types.NewUpgradeProposal(req.Title, req.Description, req.Name, req.ExpectHeight, req.Config)
 
 		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
 		if err := msg.ValidateBasic(); err != nil {
