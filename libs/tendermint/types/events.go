@@ -103,6 +103,7 @@ type EventDataNewBlockHeader struct {
 // All txs fire EventDataTx
 type EventDataTx struct {
 	TxResult
+	Nonce uint64
 }
 
 type EventDataTxs struct {
@@ -120,9 +121,10 @@ type EventDataRmPendingTx struct {
 
 // latest blockTime
 type EventDataBlockTime struct {
-	Height       int64
-	BlockTime    int64
-	NextProposer Address
+	Height    int64
+	TimeNow   int64
+	TxNum     int
+	Available bool
 }
 
 // NOTE: This goes into the replay WAL

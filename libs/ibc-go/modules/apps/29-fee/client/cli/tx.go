@@ -36,7 +36,7 @@ func NewRegisterPayeeCmd(codecProxy *codec.CodecProxy, reg interfacetypes.Interf
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(codecProxy.GetCdc()))
-			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
+			clientCtx := context.NewCLIContext().WithProxy(codecProxy).WithInterfaceRegistry(reg)
 
 			msg := types.NewMsgRegisterPayee(args[0], args[1], args[2], args[3])
 
@@ -60,7 +60,7 @@ func NewRegisterCounterpartyPayeeCmd(codecProxy *codec.CodecProxy, reg interface
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(codecProxy.GetCdc()))
-			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
+			clientCtx := context.NewCLIContext().WithProxy(codecProxy).WithInterfaceRegistry(reg)
 
 			msg := types.NewMsgRegisterCounterpartyPayee(args[0], args[1], args[2], args[3])
 
@@ -84,7 +84,7 @@ func NewPayPacketFeeAsyncTxCmd(codecProxy *codec.CodecProxy, reg interfacetypes.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(codecProxy.GetCdc()))
-			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
+			clientCtx := context.NewCLIContext().WithProxy(codecProxy).WithInterfaceRegistry(reg)
 
 			// NOTE: specifying non-nil relayers is currently unsupported
 			var relayers []string
