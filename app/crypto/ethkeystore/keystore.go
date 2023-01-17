@@ -14,7 +14,11 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 // CreateKeystoreByTmKey  create a eth keystore by accountname from keybase
@@ -48,6 +52,24 @@ func EncodeTmKeyToEthKey(privKey tmcrypto.PrivKey) (*ecdsa.PrivateKey, error) {
 	return emintKey.ToECDSA(), nil
 }
 
+// EncodeTmKeyToEthKey  transfer tendermint key  to a ethereum key
+func EncodeECDSAKeyToTmKey(privateKeyECDSA *ecdsa.PrivateKey, keytype keys.SigningAlgo) (tmcrypto.PrivKey, error) {
+	// Converts key to Ethermint secp256 implementation
+	ethkey := ethcrypto.FromECDSA(privateKeyECDSA)
+	switch keytype {
+	case hd.EthSecp256k1:
+		key := ethsecp256k1.PrivKey(ethkey)
+		return &key, nil
+	case keys.Secp256k1:
+		secpPk := &secp256k1.PrivKeySecp256k1{}
+		copy(secpPk[:], ethkey)
+		return secpPk, nil
+	default:
+		return nil, fmt.Errorf("unknown private key type %s", keytype)
+	}
+
+}
+
 // ExportKeyStoreFile Export Key to  keystore file
 func ExportKeyStoreFile(privateKeyECDSA *ecdsa.PrivateKey, encryptPassword, fileName string) error {
 	//new keystore key
@@ -67,6 +89,29 @@ func ExportKeyStoreFile(privateKeyECDSA *ecdsa.PrivateKey, encryptPassword, file
 		return fmt.Errorf("failed to write keystore: %s", err.Error())
 	}
 	return nil
+}
+
+// ImportKeyStoreFile Export Key to  keystore file
+func ImportKeyStoreFile(decryptPassword, password, fileName string, keytype keys.SigningAlgo) (privKetArmor string, err error) {
+	filejson, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return "", err
+	}
+
+	var decrytKey *keystore.Key
+	decrytKey, err = keystore.DecryptKey(filejson, decryptPassword)
+	if err != nil {
+		decrytKey, err = DecryptKeyForWeb3(filejson, decryptPassword)
+		if err != nil {
+			return "", fmt.Errorf("failed to encrypt key: %s", err.Error())
+		}
+	}
+
+	privkey, err := EncodeECDSAKeyToTmKey(decrytKey.PrivateKey, keytype)
+
+	armor := mintkey.EncryptArmorPrivKey(privkey, password, string(keytype))
+
+	return armor, nil
 }
 
 // newEthKeyFromECDSA new eth.keystore Key
