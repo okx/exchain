@@ -50,12 +50,13 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		panic(errMsg)
 	}
 
-	if err := storeEffectiveUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight); err != nil {
+	storedInfo, err := storeEffectiveUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight)
+	if err != nil {
 		return err
 	}
 
 	if cb != nil {
-		cb(proposal.UpgradeInfo)
+		cb(storedInfo)
 	}
 	return nil
 }
@@ -96,11 +97,11 @@ func storeWaitingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, eff
 	return k.writeUpgradeInfo(ctx, info, true)
 }
 
-func storeEffectiveUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) sdk.Error {
+func storeEffectiveUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) (types.UpgradeInfo, sdk.Error) {
 	info.EffectiveHeight = effectiveHeight
 	info.Status = types.UpgradeStatusEffective
 
-	return k.writeUpgradeInfo(ctx, info, true)
+	return info, k.writeUpgradeInfo(ctx, info, true)
 }
 
 // a upgrade valid effective height must be:

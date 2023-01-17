@@ -167,7 +167,10 @@ func (suite *UpgradeInfoStoreSuite) TestStoreUpgrade() {
 			types.UpgradeStatusWaitingEffective,
 		},
 		{
-			storeEffectiveUpgrade,
+			func(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, h uint64) sdk.Error {
+				_, err := storeEffectiveUpgrade(ctx, k, info, h)
+				return err
+			},
 			22,
 			types.UpgradeStatusEffective,
 		},
@@ -197,6 +200,24 @@ func (suite *UpgradeInfoStoreSuite) TestStoreUpgrade() {
 		expectInfo.Status = tt.expectStatus
 		suite.Equal(expectInfo, info)
 	}
+}
+
+func (suite *UpgradeInfoStoreSuite) TestStoreEffectiveUpgrade() {
+	const effectiveHeight = 111
+
+	ctx := suite.Context(10)
+	expectInfo := types.UpgradeInfo{
+		Name:            "abc",
+		ExpectHeight:    20,
+		EffectiveHeight: 22,
+		Status:          types.UpgradeStatusPreparing,
+	}
+
+	info, err := storeEffectiveUpgrade(ctx, &suite.keeper, expectInfo, effectiveHeight)
+	suite.NoError(err)
+	expectInfo.EffectiveHeight = effectiveHeight
+	expectInfo.Status = types.UpgradeStatusEffective
+	suite.Equal(expectInfo, info)
 }
 
 func (suite *UpgradeInfoStoreSuite) TestCheckUpgradeValidEffectiveHeight() {
