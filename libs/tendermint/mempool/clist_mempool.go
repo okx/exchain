@@ -268,7 +268,9 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 
 // It blocks if we're waiting on Update() or Reap().
 // cb: A callback from the CheckTx command.
-//     It gets called from another goroutine.
+//
+//	It gets called from another goroutine.
+//
 // CONTRACT: Either cb will get called, or err returned.
 //
 // Safe for concurrent use by multiple goroutines.
@@ -353,7 +355,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
 				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
-			r.CheckTx.GasWanted = gasUsed
+			if gasUsed < r.CheckTx.GasWanted {
+				r.CheckTx.GasWanted = gasUsed
+			}
+
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
@@ -431,7 +436,7 @@ func (mem *CListMempool) reqResCb(
 }
 
 // Called from:
-//  - resCbFirstTime (lock not held) if tx is valid
+//   - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
@@ -446,17 +451,20 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
 	mem.metrics.TxSizeBytes.Observe(float64(len(memTx.tx)))
-	mem.eventBus.PublishEventPendingTx(types.EventDataTx{TxResult: types.TxResult{
-		Height: memTx.height,
-		Tx:     memTx.tx,
-	}})
+	mem.eventBus.PublishEventPendingTx(types.EventDataTx{
+		TxResult: types.TxResult{
+			Height: memTx.height,
+			Tx:     memTx.tx,
+		},
+		Nonce: memTx.senderNonce,
+	})
 
 	return nil
 }
 
 // Called from:
-//  - Update (lock held) if tx was committed
-// 	- resCbRecheck (lock not held) if tx was invalidated
+//   - Update (lock held) if tx was committed
+//   - resCbRecheck (lock not held) if tx was invalidated
 func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	mem.txs.Remove(elem)
 	tx := elem.Value.(*mempoolTx).tx
@@ -841,7 +849,10 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// must be non-negative, it follows that this won't overflow.
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
-		if maxGas > -1 && newTotalGas > maxGas {
+		if gasWanted >= maxGas {
+			mem.logger.Error("tx gas overflow", "txHash", hex.EncodeToString(key[:]), "gasWanted", gasWanted, "isSim", memTx.isSim)
+		}
+		if maxGas > -1 && newTotalGas > maxGas && len(txs) > 0 {
 			return txs
 		}
 		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
@@ -1278,7 +1289,7 @@ func (nopTxCache) PushKey(key [32]byte) bool { return true }
 func (nopTxCache) Remove(types.Tx)           {}
 func (nopTxCache) RemoveKey(key [32]byte)    {}
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
@@ -1308,7 +1319,7 @@ func txID(tx []byte, height int64) string {
 	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash(height))
 }
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 type ExTxInfo struct {
 	Sender      string   `json:"sender"`
 	SenderNonce uint64   `json:"sender_nonce"`
@@ -1379,7 +1390,9 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
 	atomic.StoreInt64(&memTx.gasWanted, gas)
-	atomic.AddUint32(&memTx.isSim, 1)
+	if gas < atomic.LoadInt64(&memTx.gasWanted) {
+		atomic.StoreInt64(&memTx.gasWanted, gas)
+	}
 	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), gas)
 }
 
