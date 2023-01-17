@@ -41,16 +41,16 @@ type UpgradeProposal struct {
 }
 
 type UpgradeInfo struct {
-	Name         string            `json:"name" yaml:"name"`
-	ExpectHeight uint64            `json:"expectHeight" yaml:"expectHeight"`
-	Config       map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+	Name         string `json:"name" yaml:"name"`
+	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
+	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 
 	// only used in store
 	EffectiveHeight uint64        `json:"effectiveHeight,omitempty" yaml:"effectiveHeight,omitempty"`
 	Status          UpgradeStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
-func NewUpgradeProposal(title, description, name string, expectHeight uint64, config map[string]string) UpgradeProposal {
+func NewUpgradeProposal(title, description, name string, expectHeight uint64, config string) UpgradeProposal {
 	return UpgradeProposal{
 		Title:       title,
 		Description: description,

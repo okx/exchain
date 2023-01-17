@@ -104,7 +104,7 @@ func TestUpgradeProposalConfirmHeight(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		proposal := types.NewUpgradeProposal("", "", "aa", tt.proposalExpectHeight, nil)
+		proposal := types.NewUpgradeProposal("", "", "aa", tt.proposalExpectHeight, "")
 		confirmHeight, err := getUpgradeProposalConfirmHeight(tt.currentHeight, proposal)
 		if tt.expectError {
 			assert.Error(t, err)
@@ -183,7 +183,7 @@ func (suite *UpgradeInfoStoreSuite) TestStoreUpgrade() {
 		expectInfo := types.UpgradeInfo{
 			Name:            upgradeName,
 			ExpectHeight:    111,
-			Config:          nil,
+			Config:          "",
 			EffectiveHeight: math.MaxUint64,
 			Status:          math.MaxUint32,
 		}
@@ -306,7 +306,7 @@ func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
 
 	for i, tt := range tests {
 		ctx := suite.Context(int64(tt.currentHeight))
-		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("name-%d", i), tt.expectHeight, nil)
+		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("name-%d", i), tt.expectHeight, "")
 		proposal := &govtypes.Proposal{Content: upgradeProposal, ProposalID: uint64(i)}
 		suite.govKeeper.SetProposal(proposal)
 

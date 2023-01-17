@@ -23,9 +23,9 @@ type UpgradeProposalJSON struct {
 	Description string       `json:"description" yaml:"description"`
 	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
 
-	Name         string            `json:"name" yaml:"name"`
-	ExpectHeight uint64            `json:"expectHeight" yaml:"expectHeight"`
-	Config       map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+	Name         string `json:"name" yaml:"name"`
+	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
+	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 func ParseUpgradeProposalJSON(cdc *codec.Codec, proposalFile string) (UpgradeProposalJSON, error) {

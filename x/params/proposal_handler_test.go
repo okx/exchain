@@ -210,7 +210,7 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 		param.MinDeposit = minDeposit
 		suite.paramsKeeper.SetParams(ctx, param)
 
-		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("upgrade-name-%d", i), tt.expectHeight, nil)
+		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("upgrade-name-%d", i), tt.expectHeight, "")
 		msg := govtypes.NewMsgSubmitProposal(upgradeProposal, tt.proposalInitDeposit, tt.proposer)
 		if tt.nameHasExist {
 			suite.NoError(suite.paramsKeeper.writeUpgradeInfoToStore(ctx, upgradeProposal.UpgradeInfo, false))

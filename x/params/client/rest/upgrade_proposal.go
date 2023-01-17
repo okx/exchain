@@ -21,9 +21,9 @@ type UpgradeProposalReq struct {
 	Description string       `json:"description" yaml:"description"`
 	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
 
-	Name   string            `json:"name" yaml:"name"`
-	Height uint64            `json:"height" yaml:"height"`
-	Config map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+	Name   string `json:"name" yaml:"name"`
+	Height uint64 `json:"height" yaml:"height"`
+	Config string `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 func ProposalUpgradeRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
