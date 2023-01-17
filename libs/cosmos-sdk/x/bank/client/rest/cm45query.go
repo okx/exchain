@@ -11,8 +11,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
 )
 
-// query accountREST Handler
-func QueryBalancesRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+func CM45QueryBalancesRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		vars := mux.Vars(r)
@@ -42,14 +41,11 @@ func QueryBalancesRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
+		var coins sdk.Coins
+		cliCtx.Codec.MustUnmarshalJSON(res, &coins)
+		wrappedCoins := types.NewWrappedBalances(coins)
 		cliCtx = cliCtx.WithHeight(height)
 
-		// the query will return empty if there is no data for this account
-		if len(res) == 0 {
-			rest.PostProcessResponse(w, cliCtx, sdk.Coins{})
-			return
-		}
-
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedCoins)
 	}
 }
