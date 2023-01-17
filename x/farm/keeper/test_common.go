@@ -142,7 +142,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	codec.RegisterCrypto(cdc)
 
 	// 1.1 init param keeper
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams, ctx.Logger())
 
 	// 1.2 init account keeper
 	ak := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)

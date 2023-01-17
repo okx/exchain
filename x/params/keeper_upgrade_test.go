@@ -32,7 +32,7 @@ func (suite *UpgradeKeeperSuite) SetupTest() {
 	err := suite.ms.LoadLatestVersion()
 	suite.NoError(err)
 
-	suite.paramsKeeper = NewKeeper(ModuleCdc, storeKey, tstoreKey)
+	suite.paramsKeeper = NewKeeper(ModuleCdc, storeKey, tstoreKey, log.NewNopLogger())
 }
 
 func (suite *UpgradeKeeperSuite) Context(height int64) sdk.Context {
@@ -70,7 +70,7 @@ func (suite *UpgradeKeeperSuite) TestUpgradeClaim() {
 			suite.NoError(suite.paramsKeeper.writeUpgradeInfo(ctx, info, false))
 		}
 		if tt.isClaim {
-			suite.paramsKeeper.ClaimReadyForUpgrade(ctx, tt.name, tt.cb)
+			suite.paramsKeeper.ClaimReadyForUpgrade(tt.name, tt.cb)
 		}
 
 		cb, exist := suite.paramsKeeper.queryReadyForUpgrade(tt.name)

@@ -273,6 +273,7 @@ func createTestInput(
 		legacyAmino,
 		keys[paramstypes.StoreKey],
 		tkeys[paramstypes.TStoreKey],
+		ctx.Logger(),
 	)
 	for _, m := range []string{authtypes.ModuleName,
 		bank.ModuleName,

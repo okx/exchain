@@ -1,9 +1,12 @@
 package params
 
 import (
+	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/params/types"
 )
 
@@ -21,17 +24,21 @@ type Keeper struct {
 	gk      GovKeeper
 	signals []func()
 
+	logger log.Logger
+
 	storeKey         *sdk.KVStoreKey
 	upgradeReadyMap  map[string]func(types.UpgradeInfo)
 	upgradeInfoCache map[string]types.UpgradeInfo
 }
 
 // NewKeeper creates a new instance of params keeper
-func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKey) (
+func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKey, logger log.Logger) (
 	k Keeper) {
 	k = Keeper{
 		Keeper:  sdkparams.NewKeeper(cdc, key, tkey),
 		signals: make([]func(), 0),
+
+		logger: logger.With("module", fmt.Sprintf("x/%s", ModuleName)),
 
 		storeKey:         key,
 		upgradeReadyMap:  make(map[string]func(types.UpgradeInfo)),

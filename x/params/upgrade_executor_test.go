@@ -138,7 +138,7 @@ func (suite *UpgradeInfoStoreSuite) SetupTest() {
 	err := suite.ms.LoadLatestVersion()
 	suite.NoError(err)
 
-	suite.keeper = NewKeeper(ModuleCdc, storeKey, tstoreKey)
+	suite.keeper = NewKeeper(ModuleCdc, storeKey, tstoreKey, log.NewNopLogger())
 
 	suite.govKeeper = newMockGovKeeper()
 	suite.keeper.SetGovKeeper(suite.govKeeper)
@@ -298,7 +298,7 @@ func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
 		cbCount := 0
 		cbName := ""
 		if tt.claimReady {
-			suite.keeper.ClaimReadyForUpgrade(ctx, upgradeProposal.Name, func(info types.UpgradeInfo) {
+			suite.keeper.ClaimReadyForUpgrade(upgradeProposal.Name, func(info types.UpgradeInfo) {
 				cbName = info.Name
 				cbCount += 1
 			})

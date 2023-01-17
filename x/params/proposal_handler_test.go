@@ -77,7 +77,7 @@ func (suite *ProposalHandlerSuite) SetupTest() {
 
 	cdc := makeTestCodec()
 
-	suite.paramsKeeper = NewKeeper(cdc, storeKey, tstoreKey)
+	suite.paramsKeeper = NewKeeper(cdc, storeKey, tstoreKey, log.NewNopLogger())
 
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,

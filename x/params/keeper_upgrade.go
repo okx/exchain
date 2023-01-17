@@ -14,13 +14,9 @@ var (
 
 // ClaimReadyForUpgrade tells Keeper that someone has get ready for the upgrade.
 // cb could be nil if there's no code to be execute when the upgrade is take effective.
-func (keeper *Keeper) ClaimReadyForUpgrade(ctx sdk.Context, name string, cb func(types.UpgradeInfo)) {
-	if keeper.IsUpgradeEffective(ctx, name) {
-		keeper.Logger(ctx).Info("upgrade has been effective, ready for it will do nothing", "upgrade name", name)
-	}
-
+func (keeper *Keeper) ClaimReadyForUpgrade(name string, cb func(types.UpgradeInfo)) {
 	if _, ok := keeper.upgradeReadyMap[name]; ok {
-		keeper.Logger(ctx).Error("more than one guys ready for the same upgrade, the front one will be cover", "upgrade name", name)
+		keeper.logger.Error("more than one guys ready for the same upgrade, the front one will be cover", "upgrade name", name)
 	}
 	keeper.upgradeReadyMap[name] = cb
 }
