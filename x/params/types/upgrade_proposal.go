@@ -108,12 +108,8 @@ func (up UpgradeProposal) String() string {
   Description: %s
   Name:        %s
   Height:      %d
-  Config:
-`, up.Title, up.Description, up.Name, up.ExpectHeight))
-
-	for k, v := range up.Config {
-		b.WriteString(fmt.Sprintf("    %s:%s\n", k, v))
-	}
+  Config:      %s
+`, up.Title, up.Description, up.Name, up.ExpectHeight, up.Config))
 
 	return b.String()
 }

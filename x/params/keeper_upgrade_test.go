@@ -109,9 +109,7 @@ func (suite *UpgradeKeeperSuite) TestUpgradeEffective() {
 			Name:            fmt.Sprintf("name-%d", i),
 			EffectiveHeight: tt.effectiveHeight,
 			Status:          tt.status,
-			Config: map[string]string{
-				fmt.Sprintf("config-%d", i): fmt.Sprintf("%d", i),
-			},
+			Config:          fmt.Sprintf("config-%d", i),
 		}
 		if tt.isStore {
 			suite.NoError(suite.paramsKeeper.writeUpgradeInfo(ctx, expectInfo, false))
@@ -148,10 +146,8 @@ func (suite *UpgradeKeeperSuite) TestReadUpgradeInfo() {
 	ctx := suite.Context(20)
 	for i, tt := range tests {
 		expectInfo := types.UpgradeInfo{
-			Name: fmt.Sprintf("name-%d", i),
-			Config: map[string]string{
-				fmt.Sprintf("config-%d", i): fmt.Sprintf("%d", i),
-			},
+			Name:            fmt.Sprintf("name-%d", i),
+			Config:          fmt.Sprintf("config-%d", i),
 			EffectiveHeight: uint64(i),
 			Status:          types.UpgradeStatusPreparing,
 		}
@@ -191,10 +187,8 @@ func (suite *UpgradeKeeperSuite) TestWriteUpgradeInfo() {
 	for i, tt := range tests {
 		name := fmt.Sprintf("name-%d", i)
 		expectInfo1 := types.UpgradeInfo{
-			Name: name,
-			Config: map[string]string{
-				fmt.Sprintf("config-%d", i): fmt.Sprintf("%d", i),
-			},
+			Name:            name,
+			Config:          fmt.Sprintf("config-%d", i),
 			EffectiveHeight: 30,
 			Status:          types.UpgradeStatusWaitingEffective,
 		}
@@ -233,7 +227,7 @@ func (suite *UpgradeKeeperSuite) TestIterateAllUpgradeInfo() {
 		{
 			Name:         "name2",
 			ExpectHeight: 20,
-			Config:       map[string]string{"config2": "data2"},
+			Config:       "config2",
 		},
 		{
 			Name:            "name3",
