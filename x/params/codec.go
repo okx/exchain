@@ -18,4 +18,5 @@ func init() {
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(types.ParameterChangeProposal{}, "okexchain/params/ParameterChangeProposal", nil)
 	cdc.RegisterConcrete(types.UpgradeProposal{}, "okexchain/params/UpgradeProposal", nil)
+	cdc.RegisterConcrete(types.UpgradeInfo{}, "okexchain/params/UpgradeInfo", nil)
 }
