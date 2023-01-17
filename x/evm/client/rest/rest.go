@@ -34,10 +34,10 @@ import (
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/cosmos/tx/v1beta1/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/cosmos/tx/v1beta1/txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET") // default from auth
-	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")                        // default from auth
-	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST")           // default from auth
+	r.HandleFunc("txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")          // default from auth
+	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")              // default from auth
+	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
 	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
@@ -45,6 +45,9 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc("/cosmos/tx/v1beta1/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/cosmos/tx/v1beta1/txs", authrest.CM45QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")
 	registerQueryRoutes(cliCtx, r)
 }
 
