@@ -65,7 +65,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// Get all validators
 	r.HandleFunc(
-		"/cosmos/staking/v1beta1/validators",
+		"/staking/validators",
 		validatorsHandlerFn(cliCtx),
 	).Methods("GET")
 
