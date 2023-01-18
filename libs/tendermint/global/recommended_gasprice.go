@@ -7,7 +7,7 @@ import (
 var globalMinGasPrice *big.Int
 var globalMaxGasPrice *big.Int
 
-func SetGlobalMinGasPrice(minGP *big.Int) {
+func SetGlobalMinAndMaxGasPrice(minGP *big.Int) {
 	globalMinGasPrice = new(big.Int).Set(minGP)
 	globalMaxGasPrice = new(big.Int).Mul(globalMinGasPrice, big.NewInt(5000))
 }

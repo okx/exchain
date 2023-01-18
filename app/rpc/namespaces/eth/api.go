@@ -256,11 +256,14 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
+	globalMinGP := global.GetGlobalMinGasPrice()
+	globalMaxGP := global.GetGlobalMaxGasPrice()
+
 	recommendGP := (*big.Int)(api.gasPrice)
 	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
 		price := new(big.Int).Set(mempool.GlobalRecommendedGP)
-		if price.Cmp(mempool.MinGasPrice) == -1 {
-			price.Set(mempool.MinGasPrice)
+		if price.Cmp(globalMinGP) == -1 {
+			price.Set(globalMinGP)
 		}
 
 		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
@@ -270,8 +273,8 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 			recommendGP = price
 		}
 
-		if recommendGP.Cmp(mempool.MaxGasPrice) == 1 {
-			recommendGP.Set(mempool.MaxGasPrice)
+		if recommendGP.Cmp(globalMaxGP) == 1 {
+			recommendGP.Set(globalMaxGP)
 		}
 	}
 
@@ -282,11 +285,14 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	monitor := monitor.GetMonitor("eth_gasPriceIn3Gears", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
+	globalMinGP := global.GetGlobalMinGasPrice()
+	globalMaxGP := global.GetGlobalMaxGasPrice()
+
 	avgGP := (*big.Int)(api.gasPrice)
 	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
 		price := new(big.Int).Set(mempool.GlobalRecommendedGP)
-		if price.Cmp(mempool.MinGasPrice) == -1 {
-			price.Set(mempool.MinGasPrice)
+		if price.Cmp(globalMinGP) == -1 {
+			price.Set(globalMinGP)
 		}
 
 		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
@@ -296,19 +302,19 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 			avgGP = price
 		}
 
-		if avgGP.Cmp(mempool.MaxGasPrice) == 1 {
-			avgGP.Set(mempool.MaxGasPrice)
+		if avgGP.Cmp(globalMaxGP) == 1 {
+			avgGP.Set(globalMaxGP)
 		}
 	}
 	// safe low GP = average GP * 0.5, but it will not be less than the minimal GP.
 	safeGp := new(big.Int).Quo(avgGP, big.NewInt(2))
-	if safeGp.Cmp(mempool.MinGasPrice) == -1 {
-		safeGp.Set(mempool.MinGasPrice)
+	if safeGp.Cmp(globalMinGP) == -1 {
+		safeGp.Set(globalMinGP)
 	}
 	// fastest GP = average GP * 1.5, but it will not be greater than the max GP.
 	fastestGp := new(big.Int).Add(avgGP, new(big.Int).Quo(avgGP, big.NewInt(2)))
-	if fastestGp.Cmp(mempool.MaxGasPrice) == 1 {
-		fastestGp.Set(mempool.MaxGasPrice)
+	if fastestGp.Cmp(globalMaxGP) == 1 {
+		fastestGp.Set(globalMaxGP)
 	}
 
 	res := rpctypes.NewGPIn3Gears(safeGp, avgGP, fastestGp)

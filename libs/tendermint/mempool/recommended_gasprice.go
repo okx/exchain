@@ -4,29 +4,22 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/spf13/viper"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/types"
-)
-
-var (
-	MinGasPrice = getDefaultGasPrice()
-	MaxGasPrice = new(big.Int).Mul(MinGasPrice, big.NewInt(5000))
 )
 
 type GPOConfig struct {
 	Weight  int
-	Default *big.Int `toml:",omitempty"`
+	Default *big.Int
 	Blocks  int
 }
 
 func NewGPOConfig(weight int, checkBlocks int) GPOConfig {
 	return GPOConfig{
 		Weight: weight,
-		// Note: deep copy is necessary here
-		Default: new(big.Int).Set(MinGasPrice),
+		// default gas price is 0.1GWei
+		Default: big.NewInt(100000000),
 		Blocks:  checkBlocks,
 	}
 }
@@ -63,6 +56,9 @@ func NewOracle(params GPOConfig) *Oracle {
 
 func (gpo *Oracle) RecommendGP() *big.Int {
 
+	minGP := global.GetGlobalMinGasPrice()
+	maxGP := global.GetGlobalMaxGasPrice()
+
 	maxGasUsed := cfg.DynamicConfig.GetDynamicGpMaxGasUsed()
 	maxTxNum := cfg.DynamicConfig.GetDynamicGpMaxTxNum()
 
@@ -81,7 +77,7 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 
 	// If the block is not congested, return the minimal GP
 	if !isCongested {
-		price.Set(MinGasPrice)
+		price.Set(minGP)
 		gpo.lastPrice.Set(price)
 		return price
 	}
@@ -91,19 +87,9 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 		price.Set(txPrices[(len(txPrices)-1)*gpo.weight/100])
 	}
 
-	if price.Cmp(MaxGasPrice) > 0 {
-		price.Set(MaxGasPrice)
+	if price.Cmp(maxGP) > 0 {
+		price.Set(maxGP)
 	}
 	gpo.lastPrice.Set(price)
 	return price
-}
-
-func getDefaultGasPrice() *big.Int {
-	//Note: fix import cycle. server.FlagMinGasPrices -> "minimum-gas-prices"
-	gasPrices, err := sdk.ParseDecCoins(viper.GetString("minimum-gas-prices"))
-	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
-		return gasPrices[0].Amount.BigInt()
-	}
-	//return the default gas price : DefaultGasPrice
-	return sdk.NewDecFromBigIntWithPrec(big.NewInt(1), sdk.Precision/2+1).BigInt()
 }

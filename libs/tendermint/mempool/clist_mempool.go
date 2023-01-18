@@ -34,7 +34,8 @@ type TxInfoParser interface {
 }
 
 var (
-	GlobalRecommendedGP = &big.Int{}
+	// init GlobalRecommendedGP == 0.1GWei
+	GlobalRecommendedGP = big.NewInt(100000000)
 )
 
 //--------------------------------------------------------------------------------
@@ -1028,6 +1029,7 @@ func (mem *CListMempool) Update(
 		GlobalRecommendedGP = mem.gpo.RecommendGP()
 		mem.gpo.CurrentBlockGPs.Clear()
 	}
+	trace.GetElapsedInfo().AddInfo(trace.RecommendedGP, fmt.Sprintf("%sWei", GlobalRecommendedGP.String()))
 
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))

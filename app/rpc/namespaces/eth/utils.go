@@ -11,15 +11,17 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/spf13/viper"
+
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerror "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/token"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -40,11 +42,13 @@ const (
 func ParseGasPrice() *hexutil.Big {
 	gasPrices, err := sdk.ParseDecCoins(viper.GetString(server.FlagMinGasPrices))
 	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
+		global.SetGlobalMinAndMaxGasPrice(gasPrices[0].Amount.BigInt())
 		return (*hexutil.Big)(gasPrices[0].Amount.BigInt())
 	}
-
 	//return the default gas price : DefaultGasPrice
-	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2+1).BigInt())
+	defaultGP := sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2+1).BigInt()
+	global.SetGlobalMinAndMaxGasPrice(defaultGP)
+	return (*hexutil.Big)(defaultGP)
 }
 
 type cosmosError struct {
