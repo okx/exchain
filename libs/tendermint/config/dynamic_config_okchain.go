@@ -14,6 +14,7 @@ type IDynamicConfig interface {
 	GetPGUPercentageThreshold() int64
 	GetPGUConcurrency() int
 	GetPGUAdjustment() float64
+	GetPGUPersist() bool
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
 	GetMempoolCheckTxCost() bool
@@ -80,6 +81,10 @@ func (d MockDynamicConfig) GetPGUConcurrency() int {
 
 func (d MockDynamicConfig) GetPGUAdjustment() float64 {
 	return 1
+}
+
+func (d MockDynamicConfig) GetPGUPersist() bool {
+	return false
 }
 
 func (d MockDynamicConfig) GetMempoolFlush() bool {

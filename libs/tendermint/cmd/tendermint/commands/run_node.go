@@ -147,6 +147,10 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"adjustment for pgu, such as 0.9 or 1.1",
 	)
 	cmd.Flags().Bool(
+		"mempool.pgu-persist",
+		false,
+		"persist the gas estimated by pgu")
+	cmd.Flags().Bool(
 		"mempool.sort_tx_by_gp",
 		config.Mempool.SortTxByGp,
 		"Sort tx by gas price in mempool",

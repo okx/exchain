@@ -55,6 +55,8 @@ type OecConfig struct {
 	pguConcurrency int
 	// mempool.pgu-adjustment
 	pguAdjustment float64
+	// mempool.pgu-persist
+	pguPersist bool
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
 	//mempool.check_tx_cost
@@ -142,6 +144,7 @@ const (
 	FlagPGUPercentageThreshold     = "mempool.pgu-percentage-threshold"
 	FlagPGUConcurrency             = "mempool.pgu-concurrency"
 	FlagPGUAdjustment              = "mempool.pgu-adjustment"
+	FlagPGUPersist                 = "mempool.pgu-persist"
 	FlagNodeKeyWhitelist           = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost         = "mempool.check_tx_cost"
 	FlagMempoolEnableDeleteMinGPTx = "mempool.enable_delete_min_gp_tx"
@@ -286,6 +289,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetPGUPercentageThreshold(viper.GetInt64(FlagPGUPercentageThreshold))
 	c.SetPGUConcurrency(viper.GetInt(FlagPGUConcurrency))
 	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
+	c.SetPGUPersist(viper.GetBool(FlagPGUPersist))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
@@ -510,6 +514,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetPGUAdjustment(r)
+	case FlagPGUPersist:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetPGUPersist(r)
 	case FlagGasLimitBuffer:
 		r, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
@@ -844,6 +854,14 @@ func (c *OecConfig) GetPGUAdjustment() float64 {
 
 func (c *OecConfig) SetPGUAdjustment(value float64) {
 	c.pguAdjustment = value
+}
+
+func (c *OecConfig) GetPGUPersist() bool {
+	return c.pguPersist
+}
+
+func (c *OecConfig) SetPGUPersist(value bool) {
+	c.pguPersist = value
 }
 
 func (c *OecConfig) GetGasLimitBuffer() uint64 {

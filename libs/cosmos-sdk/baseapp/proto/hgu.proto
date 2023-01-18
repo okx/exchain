@@ -5,4 +5,5 @@ message HguRecord {
   int64 MaxGas = 1;
   int64 MinGas = 2;
   int64 MovingAverageGas = 3;
+  int64 BlockNum = 4;
 }
