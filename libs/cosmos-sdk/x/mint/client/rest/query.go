@@ -18,19 +18,26 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 
+	//
+	//r.HandleFunc(
+	//	"/minting/annual-provisions",
+	//	queryAnnualProvisionsHandlerFn(cliCtx),
+	//).Methods("GET")
+
+	r.HandleFunc(
+		"/minting/block-rewards",
+		queryBlockRewardsHandlerFn(cliCtx))
+
+	// compatible with cosmos v0.45.1
 	r.HandleFunc(
 		"/cosmos/mint/v1beta1/inflation",
 		queryInflationHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
-		"/minting/annual-provisions",
-		queryAnnualProvisionsHandlerFn(cliCtx),
+		"/cosmos/mint/v1beta1/params",
+		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
-
-	r.HandleFunc(
-		"/minting/block-rewards",
-		queryBlockRewardsHandlerFn(cliCtx))
 }
 
 func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
