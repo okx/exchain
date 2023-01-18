@@ -172,7 +172,26 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			cs.handleAVCProposal(msg.Proposal)
 		}
 	case *ProposalBlockMessage:
-		cs.Logger.Error("GetBlockRedis", "height", msg.Proposal.Height, "time", tmtime.Now())
+		// not handle this msg if
+		// 1.the Height is not equal
+		// 2.the Round is not equal
+		// 3.has received the proposal and the proposal is not equal
+		// 3.has received the block
+		if cs.Height != msg.Block.Height || cs.Height != msg.Proposal.Height ||
+			cs.Round != cs.Proposal.Round ||
+			(cs.Proposal != nil && !bytes.Equal(cs.Proposal.Signature, msg.Proposal.Signature)) ||
+			cs.ProposalBlock != nil {
+			return
+		}
+		if cs.Proposal == nil {
+			if add, _ := cs.defaultSetProposal(msg.Proposal); !add {
+				return
+			}
+		}
+		cs.ProposalBlock = msg.Block
+		cs.trc.Pin("recvBlock")
+		cs.finishReceiveBlock(msg.Block.Height)
+		cs.Logger.Debug("GetBlockRedis", "height", msg.Proposal.Height, "time", tmtime.Now())
 	case *BlockPartMessage:
 		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
 		if cs.HasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
@@ -197,10 +216,18 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		// RoundState with the updated copy or by emitting RoundState events in
 		// more places for routines depending on it to listen for.
 
-		cs.mtx.Unlock()
-		cs.mtx.Lock()
 		if added && cs.ProposalBlockParts.IsComplete() {
-			cs.handleCompleteProposal(msg.Height)
+			cs.trc.Pin("lastPart")
+			cs.bt.onRecvBlock(msg.Height)
+			cs.bt.totalParts = cs.ProposalBlockParts.Total()
+
+			if cs.ProposalBlock == nil {
+				err = cs.unmarshalBlock()
+				if err != nil {
+					return
+				}
+				cs.finishReceiveBlock(msg.Height)
+			}
 		}
 
 		if added {
@@ -314,6 +341,20 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	}
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
+}
+
+//
+func (cs *State) finishReceiveBlock(height int64) {
+	cs.mtx.Unlock()
+	cs.mtx.Lock()
+
+	if cs.prerunTx {
+		cs.blockExec.NotifyPrerun(cs.ProposalBlock)
+	}
+	// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
+	cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
+	cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent())
+	cs.handleCompleteProposal(height)
 }
 
 // requestForProposer FireEvent to broadcast ProposeRequestMessage
