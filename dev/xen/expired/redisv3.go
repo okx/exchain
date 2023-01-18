@@ -14,15 +14,18 @@ import (
 )
 
 const (
-	minHeight = 15405261
-	maxHeight = 16359432
+	minHeight  = 15405261
+	maxHeight  = 26359432
+	flagFilter = "filter"
 )
 
 func init() {
 	expiredRedisV3Cmd.Flags().String(flagRedisAddr, ":6379", "redis addr")
 	expiredRedisV3Cmd.Flags().String(flagRedisPassWord, "", "redis password")
+	expiredRedisV3Cmd.Flags().String(flagFilter, "", "contract filter")
 	viper.BindPFlag(flagRedisAddr, expiredRedisV3Cmd.Flags().Lookup(flagRedisAddr))
 	viper.BindPFlag(flagRedisPassWord, expiredRedisV3Cmd.Flags().Lookup(flagRedisPassWord))
+	viper.BindPFlag(flagFilter, expiredRedisV3Cmd.Flags().Lookup(flagFilter))
 }
 
 func RedisV3Command() *cobra.Command {
@@ -92,11 +95,14 @@ func scanClaimRedisV3() {
 							reward := getLatestReward(claims.UserAddr)
 							if reward == nil ||
 								(reward != nil && reward.BlockTime.Unix() < claims.BlockTime.Add(time.Duration(claims.Term)*time.Duration(24)*time.Hour).Unix()) {
-								counter++
-								line := fmt.Sprintf("%v,%v,%v,%v\n", counter, claims.TxHash, claims.TxSender, claims.UserAddr)
-								_, err = f.WriteString(line)
-								if err != nil {
-									panic(err)
+								constractAddr := viper.GetString(flagFilter)
+								if viper.GetString(flagFilter) != "" && constractAddr == claims.To {
+									counter++
+									line := fmt.Sprintf("%v,%v,%v,%v\n", counter, claims.TxHash, claims.TxSender, claims.UserAddr)
+									_, err = f.WriteString(line)
+									if err != nil {
+										panic(err)
+									}
 								}
 							}
 						}
