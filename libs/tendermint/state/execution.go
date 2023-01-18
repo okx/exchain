@@ -243,9 +243,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// publish event
 	if types.EnableEventBlockTime {
-		blockExec.eventsChan <- event{
-			block:   block,
-			abciRsp: abciResponses,
+		if !blockExec.isNullIndexer {
+			blockExec.eventsChan <- event{
+				block:   block,
+				abciRsp: abciResponses,
+			}
 		}
 		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), true)
 	}
@@ -316,10 +318,12 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	if !blockExec.isNullIndexer && !types.EnableEventBlockTime {
-		blockExec.eventsChan <- event{
-			block:   block,
-			abciRsp: abciResponses,
+	if !types.EnableEventBlockTime {
+		if !blockExec.isNullIndexer {
+			blockExec.eventsChan <- event{
+				block:   block,
+				abciRsp: abciResponses,
+			}
 		}
 	}
 
