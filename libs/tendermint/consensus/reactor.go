@@ -1110,7 +1110,7 @@ func (conR *Reactor) getBlockRoutine() {
 		//}
 		pbm := &ProposalBlockMessage{}
 		if err := pbm.Unmarshal([]byte(msg.Payload)); err == nil {
-			conR.Logger.Error("sub-test===success===:", "chan", msg.Channel, "height", pbm.Proposal.Height)
+			conR.Logger.Debug("Block from Redis:", "chan", msg.Channel, "height", pbm.Proposal.Height)
 			conR.conS.peerMsgQueue <- msgInfo{pbm, ""}
 		}
 	}
