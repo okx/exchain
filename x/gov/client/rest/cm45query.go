@@ -2,6 +2,7 @@ package rest
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -77,7 +78,7 @@ func cm45QueryProposalsWithParameterFn(cliCtx context.CLIContext) http.HandlerFu
 			return
 		}
 
-		res, height, err := cliCtx.QueryWithData("custom/gov/proposals", bz)
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/gov/%s", types.QueryCM45Proposals), bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -128,7 +129,7 @@ func cm45QueryProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		res, height, err := cliCtx.QueryWithData("custom/gov/proposal", bz)
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/gov/%s", types.QueryCM45Proposal), bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -165,7 +166,7 @@ func cm45QueryDepositsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		res, _, err := cliCtx.QueryWithData("custom/gov/proposal", bz)
+		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/gov/%s", types.QueryCM45Proposal), bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return

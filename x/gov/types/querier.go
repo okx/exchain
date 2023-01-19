@@ -6,14 +6,16 @@ import (
 
 // query endpoints supported by the governance Querier
 const (
-	QueryParams    = "params"
-	QueryProposals = "proposals"
-	QueryProposal  = "proposal"
-	QueryDeposits  = "deposits"
-	QueryDeposit   = "deposit"
-	QueryVotes     = "votes"
-	QueryVote      = "vote"
-	QueryTally     = "tally"
+	QueryParams        = "params"
+	QueryProposals     = "proposals"
+	QueryProposal      = "proposal"
+	QueryCM45Proposals = "cm45proposals"
+	QueryCM45Proposal  = "cm45proposal"
+	QueryDeposits      = "deposits"
+	QueryDeposit       = "deposit"
+	QueryVotes         = "votes"
+	QueryVote          = "vote"
+	QueryTally         = "tally"
 
 	ParamDeposit  = "deposit"
 	ParamVoting   = "voting"

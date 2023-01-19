@@ -8,7 +8,6 @@ import (
 
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/gov/types"
-	paramstypes "github.com/okex/exchain/x/params/types"
 )
 
 // NewQuerier returns all query handlers
@@ -19,8 +18,12 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryParams(ctx, path[1:], req, keeper)
 		case types.QueryProposals:
 			return queryProposals(ctx, path[1:], req, keeper)
+		case types.QueryCM45Proposals:
+			return cm45QueryProposals(ctx, path[1:], req, keeper)
 		case types.QueryProposal:
 			return queryProposal(ctx, path[1:], req, keeper)
+		case types.QueryCM45Proposal:
+			return cm45QueryProposal(ctx, path[1:], req, keeper)
 		case types.QueryDeposits:
 			return queryDeposits(ctx, path[1:], req, keeper)
 		case types.QueryDeposit:
@@ -73,14 +76,6 @@ func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 	proposal, ok := keeper.GetProposal(ctx, params.ProposalID)
 	if !ok {
 		return nil, types.ErrUnknownProposal(params.ProposalID)
-	}
-
-	// Here is for compatibility with the standard cosmos REST API.
-	// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
-	if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
-		innerContent := pcp.GetParameterChangeProposal()
-		newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
-		proposal = newProposal
 	}
 
 	if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
@@ -206,23 +201,19 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	}
 
 	proposals := keeper.GetProposalsFiltered(ctx, params.Voter, params.Depositor, params.ProposalStatus, params.Limit)
-	cosmosProposals := make([]types.Proposal, 0, len(proposals))
+
+	newProposals := make([]types.Proposal, 0)
 	for _, proposal := range proposals {
-		if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
-			// Here is for compatibility with the standard cosmos REST API.
-			// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
-			innerContent := pcp.GetParameterChangeProposal()
-			newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
-			cosmosProposals = append(cosmosProposals, newProposal)
-		} else if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
+		if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
 			p.FixShortAddr()
 			newProposal := types.WrapProposalForCosmosAPI(proposal, p)
-			cosmosProposals = append(cosmosProposals, newProposal)
+			newProposals = append(newProposals, newProposal)
 		} else {
-			cosmosProposals = append(cosmosProposals, proposal)
+			newProposals = append(newProposals, proposal)
 		}
 	}
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, cosmosProposals)
+
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, newProposals)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 	}
