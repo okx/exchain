@@ -458,12 +458,18 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber, directlyKey bool) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	useWatchBackend := api.useWatchBackend(blockNum)
+
+	qWatchdbKey := key
 	if useWatchBackend {
-		res, err := api.wrappedBackend.MustGetState(address, key)
+		if !directlyKey {
+			qWatchdbKey = evmtypes.GetStorageByAddressKey(address.Bytes(), key).Bytes()
+		}
+		res, err := api.wrappedBackend.MustGetState(address, qWatchdbKey)
 		if err == nil {
 			return res, nil
 		}
 	}
+
 	var queryStr = ""
 	if !directlyKey {
 		queryStr = fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key)
@@ -479,7 +485,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	if useWatchBackend {
-		api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
+		api.watcherBackend.CommitStateToRpcDb(address, qWatchdbKey, out.Value)
 	}
 	return out.Value, nil
 }
