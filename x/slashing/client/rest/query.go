@@ -24,8 +24,13 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	).Methods("GET")
 
 	r.HandleFunc(
-		"/cosmos/slashing/v1beta1/params",
+		"/slashing/parameters",
 		queryParamsHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/slashing/v1beta1/params",
+		cm45QueryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 }
 
@@ -111,11 +116,8 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		var params types.Params
-		cliCtx.Codec.MustUnmarshalJSON(res, &params)
-		cm45p := params.ToCM45Params()
-		wrappedParams := types.NewWrappedParams(cm45p)
+
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedParams)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
