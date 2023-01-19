@@ -43,6 +43,11 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, phs []ProposalREST
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}/deposits", RestProposalID), depositHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}/votes", RestProposalID), voteHandlerFn(cliCtx)).Methods("POST")
 
+	r.HandleFunc(
+		fmt.Sprintf("/gov/parameters/{%s}", RestParamsType),
+		queryParamsHandlerFn(cliCtx),
+	).Methods("GET")
+
 	r.HandleFunc("/gov/proposals", queryProposalsWithParameterFn(cliCtx)).Methods("GET")
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}", RestProposalID), queryProposalHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc(
@@ -56,14 +61,14 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, phs []ProposalREST
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}/votes/{%s}", RestProposalID, RestVoter), queryVoteHandlerFn(cliCtx)).Methods("GET")
 
 	// Compatible with cosmos v0.45.1
-	r.HandleFunc("/cosmos/gov/v1beta1/proposals", queryProposalsWithParameterCM45Fn(cliCtx)).Methods("GET")
-	r.HandleFunc(fmt.Sprintf("/cosmos/gov/v1beta1/proposals/{%s}", RestProposalID), queryProposalHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc(fmt.Sprintf("/cosmos/gov/v1beta1/proposals/{%s}/deposits", RestProposalID), queryDepositsHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/cosmos/gov/v1beta1/proposals", cm45QueryProposalsWithParameterFn(cliCtx)).Methods("GET")
+	r.HandleFunc(fmt.Sprintf("/cosmos/gov/v1beta1/proposals/{%s}", RestProposalID), cm45QueryProposalHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc(fmt.Sprintf("/cosmos/gov/v1beta1/proposals/{%s}/deposits", RestProposalID), cm45QueryDepositsHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc(
 		fmt.Sprintf("/cosmos/gov/v1beta1/params/{%s}", RestParamsType),
-		queryParamsHandlerFn(cliCtx),
+		cm45QueryParamsHandlerFn(cliCtx),
 	).Methods("GET")
-	r.HandleFunc(fmt.Sprintf("/cosmos/gov/v1beta1/proposals/{%s}/tally", RestProposalID), queryTallyOnProposalHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc(fmt.Sprintf("/cosmos/gov/v1beta1/proposals/{%s}/tally", RestProposalID), cm45QueryTallyOnProposalHandlerFn(cliCtx)).Methods("GET")
 }
 
 // PostProposalReq defines the properties of a proposal request's body.

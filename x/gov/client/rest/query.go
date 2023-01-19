@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 
@@ -12,7 +11,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	common "github.com/okex/exchain/x/gov/client/common"
 	gcutils "github.com/okex/exchain/x/gov/client/utils"
 	"github.com/okex/exchain/x/gov/types"
 )
@@ -107,7 +105,7 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		res, height, err := common.QueryParams(cliCtx, paramType)
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/gov/%s/%s", types.QueryParams, paramType), nil)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusNotFound, err.Error())
 			return
@@ -152,12 +150,9 @@ func queryProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		var proposal types.Proposal
-		cliCtx.Codec.MustUnmarshalJSON(res, &proposal)
-		cm45p := proposal.ToCM45Proposal()
-		wrappedProposal := types.NewWrappedProposal(*cm45p)
+
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedProposal)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
@@ -209,13 +204,10 @@ func queryDepositsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		var deposits types.Deposits
-		cliCtx.Codec.MustUnmarshalJSON(res, &deposits)
-		wrappedDeposits := types.NewWrappedDeposits(deposits)
-		rest.PostProcessResponse(w, cliCtx, wrappedDeposits)
+
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
-
 func queryProposerHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -529,90 +521,6 @@ func queryProposalsWithParameterFn(cliCtx context.CLIContext) http.HandlerFunc {
 	}
 }
 
-func queryProposalsWithParameterCM45Fn(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		bechVoterAddr := r.URL.Query().Get(RestVoter)
-		bechDepositorAddr := r.URL.Query().Get(RestDepositor)
-		strProposalStatus := r.URL.Query().Get(RestProposalStatus)
-		strNumLimit := r.URL.Query().Get(RestNumLimit)
-		strReverse := r.URL.Query().Get("pagination.reverse")
-
-		params := types.QueryProposalsParams{}
-
-		if len(bechVoterAddr) != 0 {
-			voterAddr, err := sdk.AccAddressFromBech32(bechVoterAddr)
-			if err != nil {
-				rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-				return
-			}
-			params.Voter = voterAddr
-		}
-
-		if len(bechDepositorAddr) != 0 {
-			depositorAddr, err := sdk.AccAddressFromBech32(bechDepositorAddr)
-			if err != nil {
-				rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-				return
-			}
-			params.Depositor = depositorAddr
-		}
-
-		if len(strProposalStatus) != 0 {
-			proposalStatus, err := types.ProposalStatusFromString(gcutils.NormalizeProposalStatus(strProposalStatus))
-			if err != nil {
-				rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-				return
-			}
-			params.ProposalStatus = proposalStatus
-		}
-		if len(strNumLimit) != 0 {
-			numLimit, ok := rest.ParseUint64OrReturnBadRequest(w, strNumLimit)
-			if !ok {
-				return
-			}
-			params.Limit = numLimit
-		}
-		needReverse := false
-		if len(strReverse) != 0 {
-			reverse, err := strconv.ParseBool(strReverse)
-			if err != nil {
-				return
-			}
-			needReverse = reverse
-		}
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		bz, err := cliCtx.Codec.MarshalJSON(params)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		res, height, err := cliCtx.QueryWithData("custom/gov/proposals", bz)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		var proposals []types.Proposal
-		cliCtx.Codec.MustUnmarshalJSON(res, &proposals)
-		if needReverse {
-			for i, j := 0, len(proposals)-1; i < j; i, j = i+1, j-1 {
-				proposals[i], proposals[j] = proposals[j], proposals[i]
-			}
-		}
-		var cm45proposals []types.CM45Proposal
-		for _, p := range proposals {
-			cm45proposals = append(cm45proposals, *p.ToCM45Proposal())
-		}
-		wrappedProposals := types.NewWrappedProposals(cm45proposals)
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedProposals)
-	}
-}
-
 // todo: Split this functionality into helper functions to remove the above
 func queryTallyOnProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -649,10 +557,7 @@ func queryTallyOnProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		var tr types.TallyResult
-		cliCtx.Codec.MustUnmarshalJSON(res, &tr)
-		wrappedTallyResult := types.NewWrappedTallyResult(tr)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedTallyResult)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
