@@ -58,16 +58,16 @@ func TestQueryValidatorCommission(t *testing.T) {
 	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
 	querior := NewQuerier(k)
 	k.SetValidatorAccumulatedCommission(ctx, valOpAddr1, NewTestSysCoins(15, 1))
-	params := types.NewQueryValidatorCommissionRequest(valOpAddr1.String())
-	bz, err := amino.MarshalJSON(params)
+
+	bz, err := amino.MarshalJSON(types.NewQueryValidatorCommissionParams(valOpAddr1))
 	require.NoError(t, err)
 	commission, err := querior(ctx, []string{types.QueryValidatorCommission}, abci.RequestQuery{Data: bz})
 	require.NoError(t, err)
 
-	var data types.QueryValidatorCommissionResponse
+	var data sdk.SysCoins
 	err = amino.UnmarshalJSON(commission, &data)
 	require.NoError(t, err)
-	require.Equal(t, NewTestSysCoins(15, 1), data.Commission)
+	require.Equal(t, NewTestSysCoins(15, 1), data)
 }
 
 func TestQueryDelegatorWithdrawAddress(t *testing.T) {

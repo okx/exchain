@@ -29,17 +29,17 @@ func getQueriedValidatorOutstandingRewards(t *testing.T, ctx sdk.Context, querie
 }
 
 func getQueriedValidatorCommission(t *testing.T, ctx sdk.Context, querier sdk.Querier,
-	validatorAddr sdk.ValAddress) sdk.DecCoins {
+	validatorAddr sdk.ValAddress) (validatorCommission sdk.DecCoins) {
 	bz, err := amino.MarshalJSON(types.NewQueryValidatorCommissionParams(validatorAddr))
 	require.NoError(t, err)
 
 	result, err := querier(ctx, []string{types.QueryValidatorCommission}, abci.RequestQuery{Data: bz})
 	require.NoError(t, err)
-	var commission types.QueryValidatorCommissionResponse
-	err = amino.UnmarshalJSON(result, &commission)
+
+	err = amino.UnmarshalJSON(result, &validatorCommission)
 	require.NoError(t, err)
 
-	return commission.Commission
+	return validatorCommission
 }
 
 func getQueriedDelegatorTotalRewards(t *testing.T, ctx sdk.Context, querier sdk.Querier,

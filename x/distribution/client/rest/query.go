@@ -24,13 +24,13 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 
 	// accumulated commission of a single validator
 	r.HandleFunc(
-		"/cosmos/distribution/v1beta1/validators/{validatorAddr}/commission",
+		"/distribution/validators/{validatorAddr}/validator_commission",
 		accumulatedCommissionHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
 	// Get the current distribution parameter values
 	r.HandleFunc(
-		"/cosmos/distribution/v1beta1/params",
+		"/distribution/parameters",
 		paramsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
@@ -79,7 +79,17 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 	// Compatible with cosmos v0.45.1
 	r.HandleFunc(
 		"/cosmos/distribution/v1beta1/delegators/{delegatorAddr}/rewards",
-		delegatorRewardsHandlerFnCM45(cliCtx, queryRoute),
+		cm45DelegatorRewardsHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/distribution/v1beta1/validators/{validatorAddr}/commission",
+		cm45AccumulatedCommissionHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/distribution/v1beta1/params",
+		cm45ParamsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 }
 
@@ -122,8 +132,8 @@ func paramsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerF
 			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalidRoute, err.Error())
 			return
 		}
-		wrappedParams := types.NewWrappedParams(params)
-		rest.PostProcessResponse(w, cliCtx, wrappedParams)
+
+		rest.PostProcessResponse(w, cliCtx, params)
 	}
 }
 
@@ -156,25 +166,25 @@ func communityPoolHandler(cliCtx context.CLIContext, queryRoute string) http.Han
 // HTTP request handler to query the accumulated commission of one single validator
 func accumulatedCommissionHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		validatorAddr := mux.Vars(r)["validatorAddr"]
+		validatorAddr, ok := checkValidatorAddressVar(w, r)
+		if !ok {
+			return
+		}
 
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		bin := cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorCommissionRequest(validatorAddr))
+		bin := cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorCommissionParams(validatorAddr))
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/validator_commission", queryRoute), bin)
 		if err != nil {
 			sdkErr := comm.ParseSDKError(err.Error())
 			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
-		var commission types.QueryValidatorCommissionResponse
-		cliCtx.Codec.MustUnmarshalJSON(res, &commission)
-		wrappedCommission := types.NewWrappedCommission(commission)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedCommission)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
@@ -203,46 +213,6 @@ func delegatorRewardsHandlerFn(cliCtx context.CLIContext, queryRoute string) htt
 		if err != nil {
 			sdkErr := comm.ParseSDKError(err.Error())
 			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
-			return
-		}
-
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
-	}
-}
-
-func delegatorRewardsHandlerFnCM45(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		delegatorAddr, ok := checkDelegatorAddressVar(w, r)
-		if !ok {
-			return
-		}
-
-		params := types.NewQueryDelegatorParams(delegatorAddr)
-		bz, err := cliCtx.Codec.MarshalJSON(params)
-		if err != nil {
-			comm.HandleErrorMsg(w, cliCtx, comm.CodeMarshalJSONFailed, err.Error())
-			return
-		}
-
-		route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryDelegatorTotalRewards)
-		res, height, err := cliCtx.QueryWithData(route, bz)
-		if err != nil {
-			sdkErr := comm.ParseSDKError(err.Error())
-			if sdkErr.Code == types.CodeEmptyDelegationDistInfo {
-				total := sdk.DecCoins{}
-				delRewards := make([]types.DelegationDelegatorReward, 0)
-				totalRewards := types.NewQueryDelegatorTotalRewardsResponse(delRewards, total)
-				cliCtx = cliCtx.WithHeight(height)
-				rest.PostProcessResponse(w, cliCtx, totalRewards)
-			} else {
-				comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
-			}
 			return
 		}
 

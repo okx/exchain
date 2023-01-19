@@ -4,10 +4,11 @@ import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 // querier keys
 const (
-	QueryParams              = "params"
-	QueryValidatorCommission = "validator_commission"
-	QueryWithdrawAddr        = "withdraw_addr"
-	QueryCommunityPool       = "community_pool"
+	QueryParams                  = "params"
+	QueryValidatorCommission     = "validator_commission"
+	QueryCM45ValidatorCommission = "commission"
+	QueryWithdrawAddr            = "withdraw_addr"
+	QueryCommunityPool           = "community_pool"
 
 	ParamCommunityTax        = "community_tax"
 	ParamWithdrawAddrEnabled = "withdraw_addr_enabled"

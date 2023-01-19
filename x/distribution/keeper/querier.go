@@ -19,6 +19,9 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryValidatorCommission:
 			return queryValidatorCommission(ctx, path[1:], req, k)
 
+		case types.QueryCM45ValidatorCommission:
+			return cm45QueryValidatorCommission(ctx, path[1:], req, k)
+
 		case types.QueryWithdrawAddr:
 			return queryDelegatorWithdrawAddress(ctx, path[1:], req, k)
 
@@ -81,17 +84,18 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper
 }
 
 func queryValidatorCommission(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	var params types.QueryValidatorCommissionRequest
+	var params types.QueryValidatorCommissionParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
-	res, err := k.ValidatorCommission(sdk.WrapSDKContext(ctx), &params)
-	if err != nil {
-		return nil, err
+	commission := k.GetValidatorAccumulatedCommission(ctx, params.ValidatorAddress)
+	if commission == nil { //TODO
+		commission = types.ValidatorAccumulatedCommission{}
 	}
-	bz, err := codec.MarshalJSONIndent(k.cdc, res)
+
+	bz, err := codec.MarshalJSONIndent(k.cdc, commission)
 	if err != nil {
 		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
