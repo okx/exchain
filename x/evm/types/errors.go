@@ -138,6 +138,12 @@ func ErrCodeProposerMustBeValidator() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, 23, "the proposal of proposer must be validator")
 }
 
+func ErrContractCodeNotBeenUpdated(addr string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(DefaultParamspace, 24, fmt.Sprintf("failed ,the address has not been updated: %s", addr)),
+	}
+}
+
 type ErrContractBlockedVerify struct {
 	Descriptor string
 }

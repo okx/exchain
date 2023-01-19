@@ -353,6 +353,7 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	}
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
 	if !info.ctx.Cache().IsEnabled() {
+		app.blockCache.Clear()
 		app.blockCache = nil
 		app.chainCache = nil
 	}

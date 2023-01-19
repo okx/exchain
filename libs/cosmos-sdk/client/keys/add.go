@@ -84,7 +84,7 @@ the flag --nosort is set.
 	cmd.Flags().String(flagKeyAlgo, string(keys.Secp256k1), "Key signing algorithm to generate keys for")
 
 	cmd.Flags().BoolP(flagYes, "y", false, "Overwrite the existing account without confirmation")
-	cmd.Flags().StringP(flagMnemonic, "m", "", "Mnemonic words")
+	cmd.Flags().StringP(flagMnemonic, "m", "", "Mnemonic words or private key")
 	return cmd
 }
 

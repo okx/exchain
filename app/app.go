@@ -153,6 +153,7 @@ var (
 			evmclient.ManageContractMethodGuFactorProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			evmclient.ManageSysContractAddressProposalHandler,
+			evmclient.ManageContractByteCodeProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
@@ -741,7 +742,7 @@ func NewOKExChainApp(
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
 	}
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper, app.StakingKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
@@ -959,7 +960,9 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 
-	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
+	isFastStorage := appstatus.IsFastStorageStrategy()
+	iavl.SetEnableFastStorage(isFastStorage)
+	viper.Set(iavl.FlagIavlEnableFastStorage, isFastStorage)
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 

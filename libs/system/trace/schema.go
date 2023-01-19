@@ -75,6 +75,8 @@ const (
 	LastBlockTime = "LastBlockTime"
 	BTInterval    = "BTInterval"
 	RecommendedGP = "RecommendedGP"
+	UpdateState   = "UpdateState"
+	Waiting       = "Waiting"
 
 	MempoolCheckTxCnt  = "CheckTx"
 	MempoolTxsCnt      = "MempoolTxs"
