@@ -295,7 +295,8 @@ func (w *Watcher) CommitStateToRpcDb(addr common.Address, key, value []byte) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgState(addr, key, value)
+	midKey := evmtypes.GetStorageByAddressKey(addr.Bytes(), key)
+	wMsg := NewMsgState(addr, midKey.Bytes(), value)
 	if wMsg != nil {
 		w.store.Set(append(prefixRpcDb, wMsg.GetKey()...), []byte(wMsg.GetValue()))
 	}
