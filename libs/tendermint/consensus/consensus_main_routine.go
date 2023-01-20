@@ -350,6 +350,9 @@ func (cs *State) finishReceiveBlock(height int64) {
 	if cs.prerunTx {
 		cs.blockExec.NotifyPrerun(cs.ProposalBlock)
 	}
+	if !cs.ProposalBlockParts.IsComplete() {
+		cs.ProposalBlockParts = cs.ProposalBlock.MakePartSet(types.BlockPartSizeBytes)
+	}
 	// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
 	cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 	cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent())

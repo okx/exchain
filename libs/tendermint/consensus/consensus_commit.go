@@ -167,10 +167,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
 	block, blockParts := cs.ProposalBlock, cs.ProposalBlockParts
-	if !blockParts.IsComplete() {
-		cs.ProposalBlockParts = block.MakePartSet(types.BlockPartSizeBytes)
-		blockParts = cs.ProposalBlockParts
-	}
 
 	if !ok {
 		panic(fmt.Sprintf("Cannot finalizeCommit, commit does not have two thirds majority"))
