@@ -191,7 +191,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		cs.ProposalBlock = msg.Block
 		cs.trc.Pin("recvBlock")
 		cs.finishReceiveBlock(msg.Block.Height)
-		cs.Logger.Debug("GetBlockRedis", "height", msg.Proposal.Height, "time", tmtime.Now())
+		cs.Logger.Error("GetBlockRedis", "height", msg.Proposal.Height, "time", tmtime.Now())
 	case *BlockPartMessage:
 		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
 		if cs.HasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
@@ -220,6 +220,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			cs.trc.Pin("lastPart")
 			cs.bt.onRecvBlock(msg.Height)
 			cs.bt.totalParts = cs.ProposalBlockParts.Total()
+			cs.Logger.Error("GetBlockP2P", "height", msg.Height, "time", tmtime.Now())
 
 			if cs.ProposalBlock == nil {
 				err = cs.unmarshalBlock()
