@@ -174,11 +174,9 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	case *ProposalBlockMessage:
 		// not handle this msg if
 		// 1.the Height is not equal
-		// 2.the Round is not equal
-		// 3.has received the proposal and the proposal is not equal
+		// 2.has received the proposal and the proposal is not equal
 		// 3.has received the block
 		if cs.Height != msg.Block.Height || cs.Height != msg.Proposal.Height ||
-			cs.Round != cs.Proposal.Round ||
 			(cs.Proposal != nil && !bytes.Equal(cs.Proposal.Signature, msg.Proposal.Signature)) ||
 			cs.ProposalBlock != nil {
 			return
