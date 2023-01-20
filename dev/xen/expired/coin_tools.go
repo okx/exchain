@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -143,7 +144,8 @@ loop:
 }
 
 func getIndex(count int64, sender string) {
-	byteCode := getByteCode(sender)
+	byteCode := getByteCode()
+	log.Println(hex.EncodeToString(byteCode))
 	var i int64
 	for i = 1; i <= count; i++ {
 		salt := getSalt(i, sender)
@@ -154,13 +156,13 @@ func getIndex(count int64, sender string) {
 }
 
 // bytes32 bytecode = keccak256(abi.encodePacked(bytes.concat(bytes20(0x3D602d80600A3D3981F3363d3d373d3D3D363d73), bytes20(address(this)), bytes15(0x5af43d82803e903d91602b57fd5bf3))));
-func getByteCode(sender string) []byte {
+func getByteCode() []byte {
 	bytes55Type, _ := abi.NewType("bytes55", "bytes55", nil)
 	arguments := abi.Arguments{{
 		Type: bytes55Type,
 	}}
 	payload1 := common.FromHex("0x3D602d80600A3D3981F3363d3d373d3D3D363d73")
-	payload2 := common.FromHex(sender)
+	payload2 := common.FromHex("0x6f0a55cd633Cc70BeB0ba7874f3B010C002ef59f")
 	payload3 := common.FromHex("0x5af43d82803e903d91602b57fd5bf3")
 	var payload []byte
 	payload = append(payload, payload1...)
@@ -174,7 +176,6 @@ func getByteCode(sender string) []byte {
 		panic(err)
 	}
 	var buf []byte
-	sha3.NewLegacyKeccak256()
 	hash := sha3.NewLegacyKeccak256()
 	hash.Write(bytes)
 	buf = hash.Sum(buf)
@@ -207,6 +208,12 @@ func getSalt(index int64, senderStr string) []byte {
 	hash.Write(bytes)
 	buf = hash.Sum(buf)
 
+	ret, err := hex.DecodeString("5561f76146ee534ff9d3b3d42a6682b48beded2b5298428f65386c8d0f6ac122")
+	if err != nil {
+		panic(err)
+	}
+	return ret
+
 	return buf
 }
 
@@ -234,7 +241,7 @@ func getAddress(senderStr string, salt, bytecode []byte) []byte {
 
 	bytes, err := arguments.Pack(
 		[]byte{255},
-		common.HexToAddress(senderStr),
+		common.HexToAddress("0x6f0a55cd633Cc70BeB0ba7874f3B010C002ef59f"),
 		salt32,
 		bytecode32,
 	)
