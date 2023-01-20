@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/sha3"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -142,4 +143,109 @@ loop:
 }
 
 func getIndex(count int64, sender string) {
+	byteCode := getByteCode(sender)
+	var i int64
+	for i = 1; i <= count; i++ {
+		salt := getSalt(i, sender)
+		log.Println(common.BytesToAddress(salt).String())
+		addrHex := getAddress(sender, salt, byteCode)
+		log.Println(common.BytesToAddress(addrHex).String())
+	}
+}
+
+// bytes32 bytecode = keccak256(abi.encodePacked(bytes.concat(bytes20(0x3D602d80600A3D3981F3363d3d373d3D3D363d73), bytes20(address(this)), bytes15(0x5af43d82803e903d91602b57fd5bf3))));
+func getByteCode(sender string) []byte {
+	bytes55Type, _ := abi.NewType("bytes55", "bytes55", nil)
+	arguments := abi.Arguments{{
+		Type: bytes55Type,
+	}}
+	payload1 := common.FromHex("0x3D602d80600A3D3981F3363d3d373d3D3D363d73")
+	payload2 := common.FromHex(sender)
+	payload3 := common.FromHex("0x5af43d82803e903d91602b57fd5bf3")
+	var payload []byte
+	payload = append(payload, payload1...)
+	payload = append(payload, payload2...)
+	payload = append(payload, payload3...)
+
+	var p [55]byte
+	copy(p[:], payload)
+	bytes, err := arguments.Pack(p)
+	if err != nil {
+		panic(err)
+	}
+	var buf []byte
+	sha3.NewLegacyKeccak256()
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(bytes)
+	buf = hash.Sum(buf)
+
+	return buf
+}
+
+// bytes32 salt = keccak256(abi.encodePacked(_salt,a[i],msg.sender));
+func getSalt(index int64, senderStr string) []byte {
+	uint256Type, _ := abi.NewType("uint256", "uint256", nil)
+	bytes1Type, _ := abi.NewType("bytes1", "bytes1", nil)
+	addressType, _ := abi.NewType("address", "address", nil)
+	arguments := abi.Arguments{
+		{Type: bytes1Type},
+		{Type: uint256Type},
+		{Type: addressType},
+	}
+
+	bytes, err := arguments.Pack(
+		[1]byte{1},
+		big.NewInt(index),
+		common.HexToAddress(senderStr),
+	)
+	if err != nil {
+		panic(err)
+	}
+	var buf []byte
+	sha3.NewLegacyKeccak256()
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(bytes)
+	buf = hash.Sum(buf)
+
+	return buf
+}
+
+// address proxy = address(uint160(uint(keccak256(abi.encodePacked(
+// hex'ff',
+// address(this),
+// salt,
+// bytecode
+// )))));
+func getAddress(senderStr string, salt, bytecode []byte) []byte {
+	bytesType, _ := abi.NewType("bytes", "bytes", nil)
+	bytes32Type, _ := abi.NewType("bytes32", "bytes32", nil)
+	addressType, _ := abi.NewType("address", "address", nil)
+	arguments := abi.Arguments{
+		{Type: bytesType},
+		{Type: addressType},
+		{Type: bytes32Type},
+		{Type: bytes32Type},
+	}
+
+	var salt32 [32]byte
+	var bytecode32 [32]byte
+	copy(salt32[:], salt)
+	copy(bytecode32[:], bytecode)
+
+	bytes, err := arguments.Pack(
+		[]byte{255},
+		common.HexToAddress(senderStr),
+		salt32,
+		bytecode32,
+	)
+	if err != nil {
+		panic(err)
+	}
+	var buf []byte
+	sha3.NewLegacyKeccak256()
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(bytes)
+	buf = hash.Sum(buf)
+
+	return buf
 }
