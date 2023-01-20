@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/x/common"
 
 	"github.com/gorilla/mux"
@@ -102,51 +101,6 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 		}
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
-	}
-}
-
-func queryValidatorCM45(cliCtx context.CLIContext, endpoint string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		bech32ValAddr := mux.Vars(r)["validatorAddr"]
-
-		validatorAddr, err := sdk.ValAddressFromBech32(bech32ValAddr)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeBadValidatorAddr, "validator address is invalid")
-			return
-		}
-
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		params := types.NewQueryValidatorParams(validatorAddr)
-
-		bz, err := cliCtx.Codec.MarshalJSON(params)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
-			return
-		}
-
-		res, height, err := cliCtx.QueryWithData(endpoint, bz)
-		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
-			return
-		}
-
-		//format validator to be compatible with cosmos v0.45.1
-		var val types.Validator
-		cliCtx.Codec.MustUnmarshalJSON(res, &val)
-		pubkey, ok := val.ConsPubKey.(ed25519.PubKeyEd25519)
-		if !ok {
-			common.HandleErrorMsg(w, cliCtx, common.CodeInternalError, "invalid consensus_pubkey type ")
-			return
-		}
-		cosmosAny := types.WrapCosmosAny(pubkey[:])
-		cosmosVal := types.WrapCM45Validator(val, &cosmosAny)
-		wrappedValidator := types.NewWrappedValidator(cosmosVal)
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedValidator)
 	}
 }
 

@@ -54,7 +54,7 @@ func WrapCM45Validator(v Validator, ca *CosmosAny) CM45Validator {
 		OperatorAddress:         v.OperatorAddress,
 		ConsPubKey:              ca,
 		Jailed:                  v.Jailed,
-		Status:                  v.Status.String(),
+		Status:                  v.Status.CM45String(),
 		Tokens:                  v.Tokens,
 		DelegatorShares:         v.DelegatorShares,
 		Description:             v.Description,

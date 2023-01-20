@@ -10,9 +10,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/x/common"
-	comm "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/staking/types"
 )
 
@@ -90,7 +88,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// get the current staking parameter values
 	r.HandleFunc(
-		"/staking/params",
+		"/staking/parameters",
 		paramsHandlerFn(cliCtx),
 	).Methods("GET")
 
@@ -115,32 +113,32 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	// Compatible with cosmos v0.45.1
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/validators",
-		validatorsCM45HandlerFn(cliCtx),
+		cm45ValidatorsHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/validators/{validatorAddr}",
-		validatorHandlerFnCM45(cliCtx),
+		cm45ValidatorHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/delegators/{delegatorAddr}/unbonding_delegations",
-		delegatorUnbondingDelegationsHandlerFnCM45(cliCtx),
+		cm45DelegatorUnbondingDelegationsHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/delegations/{delegatorAddr}",
-		delegatorHandlerFnCM45(cliCtx),
+		cm45DelegatorHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/pool",
-		poolHandlerFnCM45(cliCtx),
+		cm45PoolHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
 		"/cosmos/staking/v1beta1/params",
-		paramsHandlerFnCM45(cliCtx),
+		cm45ParamsHandlerFn(cliCtx),
 	).Methods("GET")
 }
 
@@ -174,54 +172,6 @@ func delegatorUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.Hand
 	return queryDelegator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation))
 }
 
-func delegatorUnbondingDelegationsHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		bech32DelAddr := mux.Vars(r)["delegatorAddr"]
-
-		delegatorAddr, err := sdk.AccAddressFromBech32(bech32DelAddr)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeNoDelegatorExisted, err.Error())
-			return
-		}
-
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		params := types.NewQueryDelegatorParams(delegatorAddr)
-
-		bz, err := cliCtx.Codec.MarshalJSON(params)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
-			return
-		}
-
-		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation), bz)
-		if err != nil {
-			sdkErr := comm.ParseSDKError(err.Error())
-			if sdkErr.Code == types.CodeNoUnbondingDelegation {
-				// If there is no unbonding delegation, return an empty response instead of en error.
-				undelegationInfos := make([]types.UndelegationInfo, 0)
-				unbondingResp := types.NewUnbondingResponses(undelegationInfos)
-				cliCtx = cliCtx.WithHeight(height)
-				rest.PostProcessResponse(w, cliCtx, unbondingResp)
-			} else {
-				common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
-			}
-			return
-		}
-		// If res is not nil, return a formatted response.
-		undelegationInfos := make([]types.UndelegationInfo, 0)
-		var undelegationInfo types.UndelegationInfo
-		cliCtx.Codec.MustUnmarshalJSON(res, &undelegationInfo)
-		undelegationInfos = append(undelegationInfos, undelegationInfo)
-		unbondingResp := types.NewUnbondingResponses(undelegationInfos)
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, unbondingResp)
-	}
-}
-
 func delegatorUnbondingDelegationsHandlerFn2(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryBonds(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation2))
 }
@@ -229,53 +179,6 @@ func delegatorUnbondingDelegationsHandlerFn2(cliCtx context.CLIContext) http.Han
 // HTTP request handler to query the info of a delegator
 func delegatorHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryDelegator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator))
-}
-
-func delegatorHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		bech32DelAddr := mux.Vars(r)["delegatorAddr"]
-
-		delegatorAddr, err := sdk.AccAddressFromBech32(bech32DelAddr)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, types.CodeNoDelegatorExisted, err.Error())
-			return
-		}
-
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		params := types.NewQueryDelegatorParams(delegatorAddr)
-
-		bz, err := cliCtx.Codec.MarshalJSON(params)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
-			return
-		}
-
-		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator), bz)
-		if err != nil {
-			sdkErr := comm.ParseSDKError(err.Error())
-			if sdkErr.Code == types.CodeNoDelegatorExisted {
-				delegators := make([]types.Delegator, 0)
-				delegationResp := types.NewDelegationResponses(delegators)
-				cliCtx = cliCtx.WithHeight(height)
-				rest.PostProcessResponse(w, cliCtx, delegationResp)
-			} else {
-				common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
-			}
-			return
-		}
-		// If res is not nil, return a formatted response.
-		delegators := make([]types.Delegator, 0)
-		var delegator types.Delegator
-		cliCtx.Codec.MustUnmarshalJSON(res, &delegator)
-		delegators = append(delegators, delegator)
-		delegationResp := types.NewDelegationResponses(delegators)
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, delegationResp)
-	}
 }
 
 // HTTP request handler to query the all shares added to a validator
@@ -352,67 +255,9 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	}
 }
 
-// HTTP request handler to query list of validators
-func validatorsCM45HandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		pr, err := rest.ParseCM45PageRequest(r)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
-			return
-		}
-
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		status := r.FormValue("status")
-		if status == "" {
-			status = sdk.BondStatusBonded
-		}
-
-		page := (pr.Offset / pr.Limit) + 1
-		params := types.NewQueryValidatorsParams(int(page), int(pr.Limit), status)
-		bz, err := cliCtx.Codec.MarshalJSON(params)
-		if err != nil {
-			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
-			return
-		}
-
-		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidators)
-		res, height, err := cliCtx.QueryWithData(route, bz)
-		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
-			return
-		}
-
-		//format validators to be compatible with cosmos
-		var vs []types.Validator
-		cliCtx.Codec.MustUnmarshalJSON(res, &vs)
-		filteredCosmosValidators := make([]types.CM45Validator, 0, len(vs))
-		for _, val := range vs {
-			pubkey, ok := val.ConsPubKey.(ed25519.PubKeyEd25519)
-			if !ok {
-				common.HandleErrorMsg(w, cliCtx, common.CodeInternalError, "invalid consensus_pubkey type ")
-				return
-			}
-			cosmosAny := types.WrapCosmosAny(pubkey[:])
-			cosmosVal := types.WrapCM45Validator(val, &cosmosAny)
-			filteredCosmosValidators = append(filteredCosmosValidators, cosmosVal)
-		}
-		wrappedValidators := types.NewWrappedValidators(filteredCosmosValidators)
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedValidators)
-	}
-}
-
 // HTTP request handler to query the validator information from a given validator address
 func validatorHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryValidator(cliCtx, "custom/staking/validator")
-}
-
-func validatorHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
-	return queryValidatorCM45(cliCtx, "custom/staking/validator")
 }
 
 // HTTP request handler to query the pool information
@@ -433,26 +278,6 @@ func poolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	}
 }
 
-func poolHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		res, height, err := cliCtx.QueryWithData("custom/staking/pool", nil)
-		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
-			return
-		}
-		var pool types.Pool
-		cliCtx.Codec.MustUnmarshalJSON(res, &pool)
-		wrappedPool := types.NewWrappedPool(pool)
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedPool)
-	}
-}
-
 // HTTP request handler to query the staking params values
 func paramsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -468,27 +293,6 @@ func paramsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
-	}
-}
-
-func paramsHandlerFnCM45(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		res, height, err := cliCtx.QueryWithData("custom/staking/parameters", nil)
-		if err != nil {
-			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
-			return
-		}
-		var params types.Params
-		cliCtx.Codec.MustUnmarshalJSON(res, &params)
-		cm45p := params.ToCM45Params()
-		wrappedParams := types.NewWrappedParams(cm45p)
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, wrappedParams)
 	}
 }
 
