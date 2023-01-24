@@ -254,7 +254,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 			// Potentially exit early.
 			select {
 			case <-ctx.Done():
-				return []*types.TxResult{}, errors.Wrap(err, "request processing timeout, optimize request filter conditions parameter")
+				return []*types.TxResult{}, errors.New("request processing timeout, optimize request filter conditions parameter")
 			default:
 			}
 		}
@@ -546,13 +546,13 @@ func (txi *TxIndex) matchRange(
 LOOP:
 	for ; it.Valid(); it.Next() {
 		if count > maxCount {
-			return nil, errors.Wrap(err, "request processing timeout, optimize request filter conditions parameter")
+			return nil, errors.New("request processing more than max count, optimize request filter conditions parameter")
 		}
 		count++
 		// Potentially exit early.
 		select {
 		case <-ctx.Done():
-			return nil, errors.Wrap(err, "request processing timeout, optimize request filter conditions parameter")
+			return nil, errors.New("request processing timeout, optimize request filter conditions parameter")
 		default:
 		}
 		if !isTagKey(it.Key()) {
