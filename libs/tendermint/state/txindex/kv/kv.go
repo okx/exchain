@@ -541,9 +541,14 @@ func (txi *TxIndex) matchRange(
 		panic(err)
 	}
 	defer it.Close()
-
+	count := 0
+	maxCount := 256
 LOOP:
 	for ; it.Valid(); it.Next() {
+		if count > maxCount {
+			return nil, errors.Wrap(err, "request processing timeout, optimize request filter conditions parameter")
+		}
+		count++
 		// Potentially exit early.
 		select {
 		case <-ctx.Done():
