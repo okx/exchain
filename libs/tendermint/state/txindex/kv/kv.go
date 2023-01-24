@@ -227,7 +227,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 	// if both upper and lower bounds exist, it's better to get them in order not
 	// no iterate over kvs that are not within range.
 	ranges, rangeIndexes := lookForRanges(conditions)
-	ctx, cancel := context.WithTimeout(ctx, 5* time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3* time.Second)
 	defer cancel()
 	if len(ranges) > 0 {
 		skipIndexes = append(skipIndexes, rangeIndexes...)
@@ -538,6 +538,12 @@ func (txi *TxIndex) matchRange(
 
 LOOP:
 	for ; it.Valid(); it.Next() {
+		// Potentially exit early.
+		select {
+		case <-ctx.Done():
+			break
+		default:
+		}
 		if !isTagKey(it.Key()) {
 			continue
 		}
@@ -569,12 +575,7 @@ LOOP:
 			// 	}
 		}
 
-		// Potentially exit early.
-		select {
-		case <-ctx.Done():
-			break
-		default:
-		}
+
 	}
 
 	if len(tmpHashes) == 0 || firstRun {
