@@ -234,7 +234,10 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 
 		for _, r := range ranges {
 			if !hashesInitialized {
-				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, true)
+				filteredHashes, err = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, true)
+				if err != nil {
+					return []*types.TxResult{}, err
+				}
 				hashesInitialized = true
 
 				// Ignore any remaining conditions if the first condition resulted
@@ -243,7 +246,10 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 					break
 				}
 			} else {
-				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, false)
+				filteredHashes, err = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, false)
+				if err != nil {
+					return []*types.TxResult{}, err
+				}
 			}
 			// Potentially exit early.
 			select {
@@ -519,11 +525,11 @@ func (txi *TxIndex) matchRange(
 	startKey []byte,
 	filteredHashes map[string][]byte,
 	firstRun bool,
-) map[string][]byte {
+) (map[string][]byte, error) {
 	// A previous match was attempted but resulted in no matches, so we return
 	// no matches (assuming AND operand).
 	if !firstRun && len(filteredHashes) == 0 {
-		return filteredHashes
+		return filteredHashes, nil
 	}
 
 	tmpHashes := make(map[string][]byte)
@@ -541,7 +547,7 @@ LOOP:
 		// Potentially exit early.
 		select {
 		case <-ctx.Done():
-			break
+			return nil, errors.Wrap(err, "request processing timeout, optimize request filter conditions parameter")
 		default:
 		}
 		if !isTagKey(it.Key()) {
@@ -586,7 +592,7 @@ LOOP:
 		// return no matches (assuming AND operand).
 		//
 		// 2. A previous match was not attempted, so we return all results.
-		return tmpHashes
+		return tmpHashes, nil
 	}
 
 	// Remove/reduce matches in filteredHashes that were not found in this
@@ -604,7 +610,7 @@ LOOP:
 		}
 	}
 
-	return filteredHashes
+	return filteredHashes, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////
