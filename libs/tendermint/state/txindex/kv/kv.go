@@ -248,7 +248,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 			// Potentially exit early.
 			select {
 			case <-ctx.Done():
-				break
+				return []*types.TxResult{}, errors.Wrap(err, "request processing timeout, optimize request filter conditions parameter")
 			default:
 			}
 		}
