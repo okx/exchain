@@ -3,8 +3,10 @@ package iavl
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/okex/exchain/libs/iavl/config"
 
@@ -327,14 +329,20 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 }
 
 func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool, writeToDB bool) {
+	tsBegin := time.Now()
+
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
 	tree.committedHeightMap[version] = true
 
+	var tsTmp time.Time
 	if queue.Len() > tree.historyStateNum {
+		tsTmp = time.Now()
 		item := queue.Front()
 		oldVersion := queue.Remove(item).(int64)
 		delete(tree.committedHeightMap, oldVersion)
+		log.Printf("rm oldversion %v from mem costs %v \n", oldVersion, time.Since(tsTmp).Seconds())
+		tsTmp = time.Now()
 
 		if EnablePruningHistoryState {
 			if writeToDB {
@@ -346,13 +354,17 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
 			}
+			log.Printf("rm oldversion %v from db  costs %v \n", oldVersion, time.Since(tsTmp).Seconds())
+			tsTmp = time.Now()
 			if writeToDB {
 				if err := tree.ndb.Commit(batch); err != nil {
 					panic(err)
 				}
 			}
+			log.Printf("rm oldversion %v from com costs %v \n", oldVersion, time.Since(tsTmp).Seconds())
 		}
 	}
+	log.Printf("prinue %v\n", time.Since(tsBegin).Seconds())
 }
 
 func (tree *MutableTree) GetDBReadTime() int {
