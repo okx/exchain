@@ -337,11 +337,9 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 
 	var tsTmp time.Time
 	if queue.Len() > tree.historyStateNum {
-		tsTmp = time.Now()
 		item := queue.Front()
 		oldVersion := queue.Remove(item).(int64)
 		delete(tree.committedHeightMap, oldVersion)
-		log.Printf("rm oldversion %v from mem costs %v \n", oldVersion, time.Since(tsTmp).Seconds())
 		tsTmp = time.Now()
 
 		if EnablePruningHistoryState {
@@ -354,17 +352,17 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
 			}
-			log.Printf("rm oldversion %v from db  costs %v \n", oldVersion, time.Since(tsTmp).Seconds())
+			log.Printf("rm oldversion %v from db  costs %v %v \n", oldVersion, time.Since(tsTmp).Seconds(), tree.ndb.name)
 			tsTmp = time.Now()
 			if writeToDB {
 				if err := tree.ndb.Commit(batch); err != nil {
 					panic(err)
 				}
 			}
-			log.Printf("rm oldversion %v from com costs %v \n", oldVersion, time.Since(tsTmp).Seconds())
+			log.Printf("rm oldversion %v commit   costs %v %v \n", oldVersion, time.Since(tsTmp).Seconds(), tree.ndb.name)
 		}
 	}
-	log.Printf("prinue %v\n", time.Since(tsBegin).Seconds())
+	log.Printf("prune %v %v \n", time.Since(tsBegin).Seconds(), tree.ndb.name)
 }
 
 func (tree *MutableTree) GetDBReadTime() int {
