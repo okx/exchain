@@ -231,7 +231,6 @@ func (tree *MutableTree) commitSchedule() {
 		}
 		noBatch := false
 		if IavlCommitAsyncNoBatch && !event.isStop {
-			noBatch = true
 		}
 		trc := trace.NewTracer("commitSchedule")
 
