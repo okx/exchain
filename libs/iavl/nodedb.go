@@ -3,7 +3,6 @@ package iavl
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"log"
 	"math"
 	"sort"
@@ -640,8 +639,8 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 			ndb.saveOrphan(batch, hash, fromVersion, predecessor)
 		}
 	})
-	if global.Record() {
-		log.Printf("version %v delete %v\n", version, count)
+	if ndb.name == "acc" || ndb.name == "evm" {
+		log.Printf("version %v delete %v %v\n", version, count, ndb.name)
 	}
 }
 
