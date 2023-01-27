@@ -1041,7 +1041,6 @@ func (mem *CListMempool) Update(
 		mem.gpo.CurrentBlockGPs.Clear()
 	}
 	trace.GetElapsedInfo().AddInfo(trace.RecommendedGP, fmt.Sprintf("%sWei", GlobalRecommendedGP.String()))
-
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
 
