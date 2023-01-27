@@ -243,13 +243,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// publish event
 	if types.EnableEventBlockTime {
+		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), true)
 		if !blockExec.isNullIndexer {
 			blockExec.eventsChan <- event{
 				block:   block,
 				abciRsp: abciResponses,
 			}
 		}
-		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), true)
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.LastRun, fmt.Sprintf("%dms", duration.Milliseconds()))
