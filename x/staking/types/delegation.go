@@ -8,26 +8,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-type UnbondingResponses struct {
-	UI []UndelegationInfo `json:"unbonding_responses"`
-}
-
-func NewUnbondingResponses(ui []UndelegationInfo) UnbondingResponses {
-	return UnbondingResponses{
-		UI: ui,
-	}
-}
-
-type DelegationResponses struct {
-	D []Delegator `json:"delegation_responses"`
-}
-
-func NewDelegationResponses(ds []Delegator) DelegationResponses {
-	return DelegationResponses{
-		D: ds,
-	}
-}
-
 // UndelegationInfo is the struct of the undelegation info
 type UndelegationInfo struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`

@@ -83,23 +83,20 @@ func cm45DelegatorHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		if err != nil {
 			sdkErr := comm.ParseSDKError(err.Error())
 			if sdkErr.Code == types.CodeNoDelegatorExisted {
-				delegators := make([]types.Delegator, 0)
-				delegationResp := types.NewDelegationResponses(delegators)
+				delegationResponses := types.NewCM45DelegationResponses(make([]types.CM45DelegationResp, 0))
 				cliCtx = cliCtx.WithHeight(height)
-				rest.PostProcessResponse(w, cliCtx, delegationResp)
+				rest.PostProcessResponse(w, cliCtx, delegationResponses)
 			} else {
 				common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			}
 			return
 		}
 		// If res is not nil, return a formatted response.
-		delegators := make([]types.Delegator, 0)
 		var delegator types.Delegator
 		cliCtx.Codec.MustUnmarshalJSON(res, &delegator)
-		delegators = append(delegators, delegator)
-		delegationResp := types.NewDelegationResponses(delegators)
+		delegationResponses := types.FormatCM45DelegationResponses(delegator)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, delegationResp)
+		rest.PostProcessResponse(w, cliCtx, delegationResponses)
 	}
 }
 
@@ -131,23 +128,20 @@ func cm45DelegatorUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.
 			sdkErr := comm.ParseSDKError(err.Error())
 			if sdkErr.Code == types.CodeNoUnbondingDelegation {
 				// If there is no unbonding delegation, return an empty response instead of en error.
-				undelegationInfos := make([]types.UndelegationInfo, 0)
-				unbondingResp := types.NewUnbondingResponses(undelegationInfos)
+				unbondingResponses := types.NewUnbondingResponses(make([]types.CM45UnbondingResp, 0))
 				cliCtx = cliCtx.WithHeight(height)
-				rest.PostProcessResponse(w, cliCtx, unbondingResp)
+				rest.PostProcessResponse(w, cliCtx, unbondingResponses)
 			} else {
 				common.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			}
 			return
 		}
 		// If res is not nil, return a formatted response.
-		undelegationInfos := make([]types.UndelegationInfo, 0)
 		var undelegationInfo types.UndelegationInfo
 		cliCtx.Codec.MustUnmarshalJSON(res, &undelegationInfo)
-		undelegationInfos = append(undelegationInfos, undelegationInfo)
-		unbondingResp := types.NewUnbondingResponses(undelegationInfos)
+		unbondingResponses := types.FormatCM45UnbondingResponses(undelegationInfo)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, unbondingResp)
+		rest.PostProcessResponse(w, cliCtx, unbondingResponses)
 	}
 }
 
