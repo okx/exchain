@@ -3,6 +3,7 @@ package iavl
 import (
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"log"
 	"sort"
 	"sync"
@@ -346,6 +347,12 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 			if writeToDB {
 				batch = tree.ndb.db.NewBatch()
 			}
+			log.Printf("rm oldversion %v from db %v \n", oldVersion, tree.ndb.name)
+			global.SetGlobalRecord(0)
+			if tree.ndb.name == "evm" {
+				global.SetGlobalRecord(1)
+			}
+
 			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {

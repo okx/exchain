@@ -3,6 +3,8 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"log"
 	"math"
 	"sort"
 	"strconv"
@@ -611,8 +613,10 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 
 	// Traverse orphans with a lifetime ending at the version specified.
 	// TODO optimize.
+	count := 0
 	ndb.traverseOrphansVersion(version, func(key, hash []byte) {
 		var fromVersion, toVersion int64
+		count++
 
 		// See comment on `orphanKeyFmt`. Note that here, `version` and
 		// `toVersion` are always equal.
@@ -636,6 +640,9 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 			ndb.saveOrphan(batch, hash, fromVersion, predecessor)
 		}
 	})
+	if global.Record() {
+		log.Printf("version %v delete %v\n", version, count)
+	}
 }
 
 func (ndb *nodeDB) nodeKey(hash []byte) []byte {
