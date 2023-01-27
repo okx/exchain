@@ -74,6 +74,8 @@ const (
 	Consensus     = "Consensus"
 	LastBlockTime = "LastBlockTime"
 	BTInterval    = "BTInterval"
+	UpdateState   = "UpdateState"
+	Waiting       = "Waiting"
 
 	MempoolCheckTxCnt  = "CheckTx"
 	MempoolTxsCnt      = "MempoolTxs"

@@ -217,6 +217,11 @@ func ManageContractMethodBlockedListProposalRESTHandler(context.CLIContext) govR
 	return govRest.ProposalRESTHandler{}
 }
 
+// ManageContractBytecodeProposalRESTHandler defines evm proposal handler
+func ManageContractBytecodeProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
+
 func QuerySectionFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, _, err := cliCtx.Query(fmt.Sprintf("custom/%s/%s", evmtypes.RouterKey, evmtypes.QuerySection))
