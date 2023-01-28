@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	amino "github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -20,6 +21,7 @@ const (
 	EventNewBlockHeader      = "NewBlockHeader"
 	EventTx                  = "Tx"
 	EventPendingTx           = "PendingTx"
+	EventRmPendingTx         = "RmPendingTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 	EventBlockTime           = "BlockTime"
 	EventTxs                 = "Txs"
@@ -43,6 +45,14 @@ const (
 	EventProposeRequest   = "ProposeRequest"
 )
 
+type RmPendingTxReason int
+
+const (
+	Recheck RmPendingTxReason = iota
+	MinGasPrice
+	Confirmed
+)
+
 var EnableEventBlockTime = false
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,7 +66,7 @@ type TMEventData interface {
 
 func RegisterEventDatas(cdc *amino.Codec) {
 	cdc.RegisterInterface((*TMEventData)(nil), nil)
-	cdc.RegisterConcrete(EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
+	cdc.RegisterConcrete(CM40EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
 	cdc.RegisterConcrete(EventDataNewBlockHeader{}, "tendermint/event/NewBlockHeader", nil)
 	cdc.RegisterConcrete(EventDataTx{}, "tendermint/event/Tx", nil)
 	cdc.RegisterConcrete(EventDataRoundState{}, "tendermint/event/RoundState", nil)
@@ -77,6 +87,11 @@ type EventDataNewBlock struct {
 	ResultEndBlock   abci.ResponseEndBlock   `json:"result_end_block"`
 }
 
+func (e EventDataNewBlock) Upgrade() interface{} {
+	ret := CM40EventDataNewBlock{}
+	return ret.From(e)
+}
+
 type EventDataNewBlockHeader struct {
 	Header Header `json:"header"`
 
@@ -88,6 +103,7 @@ type EventDataNewBlockHeader struct {
 // All txs fire EventDataTx
 type EventDataTx struct {
 	TxResult
+	Nonce uint64
 }
 
 type EventDataTxs struct {
@@ -96,11 +112,19 @@ type EventDataTxs struct {
 	Results []*abci.ResponseDeliverTx
 }
 
+type EventDataRmPendingTx struct {
+	Hash   []byte
+	From   string
+	Nonce  uint64
+	Reason RmPendingTxReason
+}
+
 // latest blockTime
 type EventDataBlockTime struct {
-	Height       int64
-	BlockTime    int64
-	NextProposer Address
+	Height    int64
+	TimeNow   int64
+	TxNum     int
+	Available bool
 }
 
 // NOTE: This goes into the replay WAL
@@ -154,6 +178,10 @@ const (
 	// TxHeightKey is a reserved key, used to specify transaction block's height.
 	// see EventBus#PublishEventTx
 	TxHeightKey = "tx.height"
+
+	// BlockHeightKey is a reserved key used for indexing BeginBlock and Endblock
+	// events.
+	BlockHeightKey = "block.height"
 )
 
 var (
@@ -191,9 +219,11 @@ type BlockEventPublisher interface {
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
 	PublishEventLatestBlockTime(time EventDataBlockTime) error
+	PublishEventRmPendingTx(EventDataRmPendingTx) error
 }
 
 type TxEventPublisher interface {
 	PublishEventTx(EventDataTx) error
 	PublishEventPendingTx(EventDataTx) error
+	PublishEventRmPendingTx(EventDataRmPendingTx) error
 }

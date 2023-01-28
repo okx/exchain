@@ -116,6 +116,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.MaxTxNumPerBlock,
 		"Maximum number of transactions in a block",
 	)
+	cmd.Flags().Bool(
+		"mempool.enable_delete_min_gp_tx",
+		config.Mempool.EnableDeleteMinGPTx,
+		"Enable delete the minimum gas price tx from mempool when mempool is full",
+	)
 	cmd.Flags().Int64(
 		"mempool.max_gas_used_per_block",
 		config.Mempool.MaxGasUsedPerBlock,
@@ -166,6 +171,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.PendingPoolMaxTxPerAddress,
 		"Maximum number of transactions per address in the pending pool",
 	)
+	cmd.Flags().Bool(
+		"mempool.pending_remove_event",
+		config.Mempool.PendingRemoveEvent,
+		"Push event when remove a pending tx",
+	)
 
 	cmd.Flags().String(
 		"mempool.node_key_whitelist",
@@ -204,6 +214,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"db_dir",
 		config.DBPath,
 		"Database directory")
+
+	cmd.Flags().String(
+		"grpc.address",
+		config.GRPC.Address,
+		"grpc server address")
 
 	addMoreFlags(cmd)
 }

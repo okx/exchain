@@ -94,17 +94,20 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
+
+	cs.stateMtx.RLock()
+	cs.updateRoundStep(round, cstypes.RoundStepPropose)
 	newProposer := ""
-	if cs.vcHeight[height] != "" {
+	if cs.vcHeight[height] != "" && cs.Round == 0 {
 		newProposer = "-avc-" + cs.vcHeight[height][:6]
 	}
+	cs.stateMtx.RUnlock()
 	cs.trc.Pin("enterPropose-%d-%s-%s%s", round, isBlockProducer, bpAddr, newProposer)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 	defer func() {
 		// Done enterPropose:
-		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
 
 		// If we have the whole proposal + POL, then goto Prevote now.
@@ -124,7 +127,7 @@ func (cs *State) enterPropose(height int64, round int) {
 			bpAddr,
 			"privValidator",
 			cs.privValidator)
-		if cs.vcHeight[height] == "" || cs.Round != 0 {
+		if newProposer == "" || cs.Round != 0 {
 			cs.decideProposal(height, round)
 		}
 	} else {
