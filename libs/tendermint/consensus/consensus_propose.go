@@ -161,11 +161,6 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		if block == nil {
 			return
 		}
-		//blockBytes, err := block.Marshal()
-		//if err != nil {
-		//	return
-		//}
-		//cs.blockCtx.deltaBroker.SetBlock(block.Height, cs.Round, blockBytes)
 	}
 
 	// Flush the WAL. Otherwise, we may not recompute the same proposal to sign,

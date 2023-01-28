@@ -1,13 +1,14 @@
 package consensus
 
 import (
+	"os"
+	"time"
+
 	"github.com/okex/exchain/libs/tendermint/delta"
-	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
-	"os"
-	"time"
 )
 
 type BlockContext struct {

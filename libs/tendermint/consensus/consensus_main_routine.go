@@ -112,11 +112,6 @@ func (cs *State) handleAVCProposal(proposal *types.Proposal) {
 	if !bytes.Equal(proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || proposal.Height != res.block.Height {
 		return
 	}
-	//blockBytes, err := res.block.Marshal()
-	//if err != nil {
-	//	return
-	//}
-	//cs.blockCtx.deltaBroker.SetBlock(res.block.Height, cs.Round, blockBytes)
 	pi := ProposalBlockMessage{proposal, res.block}
 	cs.blockCtx.deltaBroker.Pub(pi.Marshal())
 	cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
@@ -189,7 +184,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		cs.ProposalBlock = msg.Block
 		cs.trc.Pin("recvBlock")
 		cs.finishReceiveBlock(msg.Block.Height)
-		cs.Logger.Error("GetBlockRedis", "height", msg.Proposal.Height, "time", tmtime.Now())
+		cs.Logger.Info("GetBlockRedis", "height", msg.Proposal.Height, "time", tmtime.Now())
 	case *BlockPartMessage:
 		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
 		if cs.HasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
@@ -218,7 +213,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			cs.trc.Pin("lastPart")
 			cs.bt.onRecvBlock(msg.Height)
 			cs.bt.totalParts = cs.ProposalBlockParts.Total()
-			cs.Logger.Error("GetBlockP2P", "height", msg.Height, "time", tmtime.Now())
+			cs.Logger.Info("GetBlockP2P", "height", msg.Height, "time", tmtime.Now())
 
 			if cs.ProposalBlock == nil {
 				err = cs.unmarshalBlock()

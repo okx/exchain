@@ -1104,31 +1104,12 @@ func (conR *Reactor) getBlockRoutine() {
 	ctx := conR.conS.blockCtx
 	subChan := ctx.deltaBroker.SubChannel().Channel()
 	for msg := range subChan {
-		//block := &types.Block{}
-		//if err := block.Unmarshal([]byte(msg.Payload)); err == nil {
-		//	conR.conS.peerMsgQueue <- msgInfo{&BlockMessage{Height: rs.Height, Round: rs.Round, Block: block}, ""}
-		//}
 		pbm := &ProposalBlockMessage{}
 		if err := pbm.Unmarshal([]byte(msg.Payload)); err == nil {
 			conR.Logger.Debug("Block from Redis:", "chan", msg.Channel, "height", pbm.Proposal.Height)
 			conR.conS.peerMsgQueue <- msgInfo{pbm, ""}
 		}
 	}
-	//var hasHeight int64 = 0
-	//for {
-	//	rs := conR.getRoundState()
-	//	if hasHeight < rs.Height {
-	//		if blockBytes, _ := ctx.deltaBroker.GetBlock(rs.Height, rs.Round); blockBytes != nil {
-	//			hasHeight = rs.Height
-	//			block := &types.Block{}
-	//			if err := block.Unmarshal(blockBytes); err == nil {
-	//				conR.conS.peerMsgQueue <- msgInfo{&BlockMessage{Height: rs.Height, Round: rs.Round, Block: block}, ""}
-	//			}
-	//		}
-	//	}
-	//
-	//	time.Sleep(conR.conS.config.PeerGossipSleepDuration)
-	//}
 }
 
 func (conR *Reactor) peerStatsRoutine() {
