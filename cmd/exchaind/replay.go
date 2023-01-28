@@ -187,11 +187,15 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
 
-	viper.SetDefault(watcher.FlagFastQuery, false)
-	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
-	viper.SetDefault(dbm.FlagRocksdbOpts, "unordered_write=true")
-
 	return cmd
+}
+
+func setReplayDefaultFlag() {
+	if len(os.Args) > 1 && os.Args[1] == "replay" {
+		viper.SetDefault(watcher.FlagFastQuery, false)
+		viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
+		viper.SetDefault(iavl.FlagIavlCommitAsyncNoBatch, true)
+	}
 }
 
 // panic if error is not nil

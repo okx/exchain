@@ -2,24 +2,34 @@ package web3
 
 import (
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/spf13/viper"
+)
+
+const (
+	NameSpace = "web3"
 )
 
 // PublicWeb3API is the web3_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicWeb3API struct {
 	logger  log.Logger
-	Metrics map[string]*monitor.RpcMetrics
+	Metrics *monitor.RpcMetrics
 }
 
 // NewAPI creates an instance of the Web3 API.
 func NewAPI(log log.Logger) *PublicWeb3API {
-	return &PublicWeb3API{
-		logger: log.With("module", "json-rpc", "namespace", "web3"),
+	api := &PublicWeb3API{
+		logger: log.With("module", "json-rpc", "namespace", NameSpace),
 	}
+	if viper.GetBool(monitor.FlagEnableMonitor) {
+		api.Metrics = monitor.MakeMonitorMetrics(NameSpace)
+	}
+	return api
 }
 
 // ClientVersion returns the client version in the Web3 user agent format.

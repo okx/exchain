@@ -67,7 +67,6 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	types.RegisterCodec(cdc)
 }
 
-// TODO
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
 	clienttypes.RegisterQueryHandlerClient(context.Background(), mux, clienttypes.NewQueryClient(ctx))
@@ -102,14 +101,14 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 type AppModule struct {
 	AppModuleBasic
 	*base.BaseIBCUpgradeModule
-	keeper *keeper.Keeper
+	keeper *keeper.FacadedKeeper
 
 	// create localhost by default
 	createLocalhost bool
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(k *keeper.Keeper) AppModule {
+func NewAppModule(k *keeper.FacadedKeeper) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
@@ -117,7 +116,6 @@ func NewAppModule(k *keeper.Keeper) AppModule {
 	return ret
 }
 
-// TODO
 func (a AppModule) NewQuerierHandler() sdk.Querier {
 	return nil
 }
@@ -132,14 +130,11 @@ func (AppModule) Name() string {
 }
 
 // RegisterInvariants registers the ibc module invariants.
-func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	// TODO:
-}
+func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 // Route returns the message routing key for the ibc module.
 func (am AppModule) Route() string {
 	return host.RouterKey
-	//return sdk.NewRoute(host.RouterKey, NewHandler(*am.keeper))
 }
 
 // QuerierRoute returns the ibc module's querier route name.
@@ -147,20 +142,12 @@ func (AppModule) QuerierRoute() string {
 	return host.QuerierRoute
 }
 
-// LegacyQuerierHandler returns nil. IBC does not support the legacy querier.
-//func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
-//	return nil
-//}
-
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	clienttypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	connectiontypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	channeltypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
-	types.RegisterQueryService(cfg.QueryServer(), am.keeper)
-
-	//m := clientkeeper.NewMigrator(am.keeper.ClientKeeper)
-	//cfg.RegisterMigration(host.ModuleName, 1, m.Migrate1to2)
+	types.RegisterQueryService(cfg.QueryServer(), am.keeper.V2Keeper)
 }
 
 // InitGenesis performs genesis initialization for the ibc module. It returns
@@ -176,7 +163,7 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 	if err != nil {
 		panic(fmt.Sprintf("failed to unmarshal %s genesis state: %s", host.ModuleName, err))
 	}
-	InitGenesis(ctx, *am.keeper, am.createLocalhost, &gs)
+	InitGenesis(ctx, *am.keeper.V2Keeper, am.createLocalhost, &gs)
 	return []abci.ValidatorUpdate{}
 }
 
@@ -187,7 +174,7 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 }
 
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(ExportGenesis(ctx, *am.keeper))
+	return ModuleCdc.MustMarshalJSON(ExportGenesis(ctx, *am.keeper.V2Keeper))
 }
 
 func lazyGenesis() json.RawMessage {
@@ -200,7 +187,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	if !tmtypes.HigherThanVenus1(req.Header.Height) {
 		return
 	}
-	ibcclient.BeginBlocker(ctx, am.keeper.ClientKeeper)
+	ibcclient.BeginBlocker(ctx, am.keeper.V2Keeper.ClientKeeper)
 }
 
 // EndBlock returns the end blocker for the ibc module. It returns no validator
@@ -234,7 +221,7 @@ func (AppModule) RandomizedParams(_ *rand.Rand) []simulation2.ParamChange {
 
 // RegisterStoreDecoder registers a decoder for ibc module's types
 func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
-	sdr[host.StoreKey] = simulation.NewDecodeStore(*am.keeper)
+	sdr[host.StoreKey] = simulation.NewDecodeStore(*am.keeper.V2Keeper)
 }
 
 // WeightedOperations returns the all the ibc module operations with their respective weights.

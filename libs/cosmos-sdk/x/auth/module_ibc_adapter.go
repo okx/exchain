@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -12,8 +13,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 
-	authinternaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/internal"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	authinternaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/typesadapter"
 	"github.com/spf13/cobra"
 )
 

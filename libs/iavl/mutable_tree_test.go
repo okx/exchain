@@ -786,7 +786,7 @@ func TestUpgradeStorageToFast_DbErrorConstructor_Failure(t *testing.T) {
 	expectedError := errors.New("some db error")
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(nil, expectedError).Times(1)
-	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(0)
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(1)
 
 	tree, err := NewMutableTree(dbMock, 0)
@@ -803,7 +803,7 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
 	rIterMock.EXPECT().Valid().Return(true).Times(2)
 	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key([]byte(defaultStorageVersionValue))).Times(2)
-	rIterMock.EXPECT().Close().Return().Times(2)
+	rIterMock.EXPECT().Close().Return().Times(1)
 
 	expectedError := errors.New("some db error")
 
@@ -820,7 +820,7 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 	require.NotNil(t, tree)
 	require.False(t, tree.IsFastCacheEnabled())
 
-	rIterMock.EXPECT().Close().Return().Times(2)
+	rIterMock.EXPECT().Close().Return().Times(1)
 
 	IterMock := mock.NewMockIterator(ctrl)
 	IterMock.EXPECT().Error().Return(nil)
@@ -856,7 +856,7 @@ func TestFastStorageReUpgradeProtection_NoForceUpgrade_Success(t *testing.T) {
 	batchMock := mock.NewMockBatch(ctrl)
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(expectedStorageVersion, nil).Times(1)
-	dbMock.EXPECT().NewBatch().Return(batchMock).Times(1)
+	dbMock.EXPECT().NewBatch().Return(batchMock).Times(0)
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(2) // called to get latest version
 
 	tree, err := NewMutableTree(dbMock, 0)
@@ -904,7 +904,7 @@ func TestFastStorageReUpgradeProtection_ForceUpgradeFirstTime_NoForceSecondTime_
 	endFormat := fastKeyFormat.Key()
 	endFormat[0]++
 	dbMock.EXPECT().Iterator(startFormat, endFormat).Return(iterMock, nil).Times(1)
-	dbMock.EXPECT().Compact()
+	//	dbMock.EXPECT().Compact()
 
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
 	rIterMock.EXPECT().Valid().Return(true).Times(2)

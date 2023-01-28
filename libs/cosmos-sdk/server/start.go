@@ -6,6 +6,9 @@ import (
 	"os"
 	"runtime/pprof"
 
+	app2 "github.com/okex/exchain/libs/cosmos-sdk/server/types"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/server/grpc"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -239,6 +242,10 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
 	}
 
+	if cfg.GRPC.Enable {
+		go grpc.StartGRPCServer(cdc, registry, app.(app2.ApplicationAdapter), cfg.GRPC, tmNode)
+	}
+
 	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)
 
 	if cfg.Mempool.EnablePendingPool {
@@ -325,6 +332,7 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
 	if viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) {
 		tmiavl.SetEnableFastStorage(false)
+		viper.Set(tmiavl.FlagIavlEnableFastStorage, false)
 	}
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 
