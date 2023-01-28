@@ -36,7 +36,7 @@ var (
 	HeightOrphansCacheSize          = 8
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
-	CommitTolerance                 = uint(0)
+	CommitTolerance                 = uint(2)
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = config.DefaultCommitGapHeight
 	enableFastStorage               = true
