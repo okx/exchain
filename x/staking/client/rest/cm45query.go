@@ -210,6 +210,15 @@ func cm45ValidatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		status := r.FormValue("status")
 		if status == "" {
+			status = sdk.CM45BondStatusBonded
+		}
+		// compatible with status of cosmos v0.45.1
+		switch status {
+		case sdk.CM45BondStatusBonded:
+			status = sdk.BondStatusBonded
+		case sdk.CM45BondStatusUnbonding:
+			status = sdk.BondStatusUnbonding
+		case sdk.CM45BondStatusUnbonded:
 			status = sdk.BondStatusBonded
 		}
 
