@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/sha3"
@@ -23,8 +25,9 @@ import (
 const (
 	RpcUrl                = "https://exchainrpc.okex.org"
 	CoinToolsContractAddr = "6f0a55cd633Cc70BeB0ba7874f3B010C002ef59f"
-	CoinToolsBinPath      = "./coin_tools.bin"
-	CoinToolsABIPath      = "./coin_tools.abi"
+	CoinToolsBinPath      = "/Users/oker/workspace/exchain/dev/coin_tools.bin"
+	CoinToolsABIPath      = "/Users/oker/workspace/exchain/dev/coin_tools.abi"
+	maxCheckTime          = 1000000
 )
 
 var (
@@ -107,7 +110,7 @@ var coinToolsIndexCmd = &cobra.Command{
 	},
 }
 
-// 1168991,0xced91736949570ce9300008f7b315b112bfe76f22c6e10fd78b61681b7e4ef79,0xc69eb9fdfd817b21a2b8302e545c024f2f650023,0xcd837ef90e551321f1dd1d254c80dfeba9a663a4
+// 1168933,0x420b30f83066f40a33f90a08421f5821890ff53ea227e84802c6bea08cd3c521,0x3e0fadb51dbc27e4555b73229b40116c88601241,0x4bc9049a73ffdd6b23824300d3d57f01a4b5e75d
 
 func scanUserAddr() {
 	var retryCount int
@@ -136,11 +139,30 @@ loop:
 		counter++
 		line := scanner.Text()
 		eu := getExpiredUser(line)
-		count := ReadContract(client, common.HexToAddress(CoinToolsContractAddr), "map", common.HexToAddress(eu.Sender), []byte{1})
+		found := false
+		for i := 1; i < maxCheckTime; i++ {
+			if eu.UserAddr == calcUserAddr(int64(i), eu.Sender) {
+				log.Printf("%v,%v,%v,%v,%v\n", eu.LineNum, eu.TxHash, eu.Sender, eu.UserAddr, i)
+				found = true
+				break
+			}
+		}
+		if !found {
+			log.Printf("%v,%v,%v,%v,%v\n", eu.LineNum, eu.TxHash, eu.Sender, eu.UserAddr, "warning")
+		}
+		//		count := ReadContract(client, common.HexToAddress(CoinToolsContractAddr), "map", common.HexToAddress(eu.Sender), []byte{1})
 
-		getIndex(count, eu.Sender)
-		time.Sleep(time.Duration(50) * time.Millisecond)
+		//		getIndex(count, eu.Sender)
+		//		time.Sleep(time.Duration(50) * time.Millisecond)
 	}
+}
+
+func calcUserAddr(index int64, sender string) string {
+	byteCode := getByteCode()
+	salt := getSalt(index, sender)
+	addrHex := common.BytesToAddress(getAddress(sender, salt, byteCode))
+
+	return strings.ToLower(addrHex.String())
 }
 
 func getIndex(count int64, sender string) {
@@ -149,9 +171,8 @@ func getIndex(count int64, sender string) {
 	var i int64
 	for i = 1; i <= count; i++ {
 		salt := getSalt(i, sender)
-		log.Println(common.BytesToAddress(salt).String())
 		addrHex := getAddress(sender, salt, byteCode)
-		log.Println(common.BytesToAddress(addrHex).String())
+		log.Printf("index %v %v\n", i, hexutil.Encode(addrHex))
 	}
 }
 
@@ -185,34 +206,20 @@ func getByteCode() []byte {
 
 // bytes32 salt = keccak256(abi.encodePacked(_salt,a[i],msg.sender));
 func getSalt(index int64, senderStr string) []byte {
-	uint256Type, _ := abi.NewType("uint256", "uint256", nil)
-	bytes1Type, _ := abi.NewType("bytes1", "bytes1", nil)
-	addressType, _ := abi.NewType("address", "address", nil)
-	arguments := abi.Arguments{
-		{Type: bytes1Type},
-		{Type: uint256Type},
-		{Type: addressType},
-	}
+	var bytes []byte
+	bytes = append(bytes, 0x01)
+	var padding [24]byte
+	bytes = append(bytes, padding[:]...)
+	_index := make([]byte, 8)
+	binary.BigEndian.PutUint64(_index, uint64(index))
+	bytes = append(bytes, _index...)
+	_addr := common.FromHex(senderStr)
+	bytes = append(bytes, _addr...)
 
-	bytes, err := arguments.Pack(
-		[1]byte{1},
-		big.NewInt(index),
-		common.HexToAddress(senderStr),
-	)
-	if err != nil {
-		panic(err)
-	}
 	var buf []byte
-	sha3.NewLegacyKeccak256()
 	hash := sha3.NewLegacyKeccak256()
 	hash.Write(bytes)
 	buf = hash.Sum(buf)
-
-	ret, err := hex.DecodeString("5561f76146ee534ff9d3b3d42a6682b48beded2b5298428f65386c8d0f6ac122")
-	if err != nil {
-		panic(err)
-	}
-	return ret
 
 	return buf
 }
@@ -224,32 +231,13 @@ func getSalt(index int64, senderStr string) []byte {
 // bytecode
 // )))));
 func getAddress(senderStr string, salt, bytecode []byte) []byte {
-	bytesType, _ := abi.NewType("bytes", "bytes", nil)
-	bytes32Type, _ := abi.NewType("bytes32", "bytes32", nil)
-	addressType, _ := abi.NewType("address", "address", nil)
-	arguments := abi.Arguments{
-		{Type: bytesType},
-		{Type: addressType},
-		{Type: bytes32Type},
-		{Type: bytes32Type},
-	}
+	var bytes []byte
+	bytes = append(bytes, 0xff)
+	bytes = append(bytes, common.FromHex("0x6f0a55cd633Cc70BeB0ba7874f3B010C002ef59f")...)
+	bytes = append(bytes, salt...)
+	bytes = append(bytes, bytecode...)
 
-	var salt32 [32]byte
-	var bytecode32 [32]byte
-	copy(salt32[:], salt)
-	copy(bytecode32[:], bytecode)
-
-	bytes, err := arguments.Pack(
-		[]byte{255},
-		common.HexToAddress("0x6f0a55cd633Cc70BeB0ba7874f3B010C002ef59f"),
-		salt32,
-		bytecode32,
-	)
-	if err != nil {
-		panic(err)
-	}
 	var buf []byte
-	sha3.NewLegacyKeccak256()
 	hash := sha3.NewLegacyKeccak256()
 	hash.Write(bytes)
 	buf = hash.Sum(buf)
