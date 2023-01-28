@@ -219,7 +219,7 @@ func cm45ValidatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		case sdk.CM45BondStatusUnbonding:
 			status = sdk.BondStatusUnbonding
 		case sdk.CM45BondStatusUnbonded:
-			status = sdk.BondStatusBonded
+			status = sdk.BondStatusUnbonded
 		}
 
 		page := (pr.Offset / pr.Limit) + 1
