@@ -2,7 +2,6 @@ package expired
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/hex"
@@ -14,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/sha3"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
@@ -25,9 +23,11 @@ import (
 const (
 	RpcUrl                = "https://exchainrpc.okex.org"
 	CoinToolsContractAddr = "6f0a55cd633Cc70BeB0ba7874f3B010C002ef59f"
-	CoinToolsBinPath      = "/Users/oker/workspace/exchain/dev/coin_tools.bin"
-	CoinToolsABIPath      = "/Users/oker/workspace/exchain/dev/coin_tools.abi"
-	maxCheckTime          = 1000000
+	//	CoinToolsBinPath      = "/Users/oker/workspace/exchain/dev/coin_tools.bin"
+	//	CoinToolsABIPath      = "/Users/oker/workspace/exchain/dev/coin_tools.abi"
+	CoinToolsBinPath = "./coin_tools.bin"
+	CoinToolsABIPath = "./coin_tools.abi"
+	maxCheckTime     = 1000000
 )
 
 var (
@@ -36,20 +36,21 @@ var (
 )
 
 func init() {
-	bin, err := ioutil.ReadFile(CoinToolsBinPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	coinToolsContractByteCode = common.Hex2Bytes(string(bin))
-
-	abiByte, err := ioutil.ReadFile(CoinToolsABIPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	coinToolsContractABI, err = abi.JSON(bytes.NewReader(abiByte))
-	if err != nil {
-		log.Fatal(err)
-	}
+	return
+	//	bin, err := ioutil.ReadFile(CoinToolsBinPath)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	coinToolsContractByteCode = common.Hex2Bytes(string(bin))
+	//
+	//	abiByte, err := ioutil.ReadFile(CoinToolsABIPath)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//	coinToolsContractABI, err = abi.JSON(bytes.NewReader(abiByte))
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
 }
 
 type ExpiredUser struct {
