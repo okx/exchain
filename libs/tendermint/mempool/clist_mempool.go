@@ -34,7 +34,7 @@ type TxInfoParser interface {
 }
 
 var (
-	// init GlobalRecommendedGP == 0.1GWei
+	// GlobalRecommendedGP is initialized to 0.1GWei
 	GlobalRecommendedGP = big.NewInt(100000000)
 )
 

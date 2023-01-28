@@ -4,6 +4,7 @@ import (
 	"math/big"
 )
 
+// initialization
 var globalMinGasPrice = big.NewInt(100000000)
 var globalMaxGasPrice = big.NewInt(500000000000)
 
