@@ -4,8 +4,8 @@ import (
 	"math/big"
 )
 
-var globalMinGasPrice *big.Int
-var globalMaxGasPrice *big.Int
+var globalMinGasPrice = big.NewInt(100000000)
+var globalMaxGasPrice = big.NewInt(500000000000)
 
 func SetGlobalMinAndMaxGasPrice(minGP *big.Int) {
 	globalMinGasPrice = new(big.Int).Set(minGP)
