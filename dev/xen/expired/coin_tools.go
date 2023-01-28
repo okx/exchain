@@ -143,7 +143,7 @@ loop:
 		found := false
 		for i := 1; i < maxCheckTime; i++ {
 			if eu.UserAddr == calcUserAddr(int64(i), eu.Sender) {
-				log.Printf("%v,%v,%v,%v,%v\n", eu.LineNum, eu.TxHash, eu.Sender, eu.UserAddr, i)
+				fmt.Printf("%v,%v,%v,%v,%v\n", eu.LineNum, eu.TxHash, eu.Sender, eu.UserAddr, i)
 				found = true
 				break
 			}
