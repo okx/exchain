@@ -1037,6 +1037,7 @@ func (mem *CListMempool) Update(
 		currentBlockGPsCopy := mem.gpo.CurrentBlockGPs.Copy()
 		_ = mem.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
 		GlobalRecommendedGP = mem.gpo.RecommendGP()
+		trace.GetElapsedInfo().AddInfo(trace.RecommendedGP, fmt.Sprintf("%sWei", GlobalRecommendedGP.String()))
 		mem.gpo.CurrentBlockGPs.Clear()
 	}
 
