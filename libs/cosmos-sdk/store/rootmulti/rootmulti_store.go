@@ -643,14 +643,16 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 		}
 
 		rs.versions = append(rs.versions, version)
-		flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
-	} else {
-		//flushMetadataInAsyncCommit(rs.db, version, rs.lastCommitInfo)
 	}
 	persist.GetStatistics().Accumulate(trace.CommitStores, tsCommitStores)
 
 	tsFlushMeta := time.Now()
-	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	if !iavltree.EnableAsyncCommit {
+		flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	} else {
+		flushMetadataInAsyncCommit(rs.db, version, rs.lastCommitInfo)
+	}
+
 	persist.GetStatistics().Accumulate(trace.FlushMeta, tsFlushMeta)
 
 	return types.CommitID{
