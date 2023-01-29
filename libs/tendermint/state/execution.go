@@ -748,10 +748,10 @@ func fireEvents(
 		})
 	}
 
-	if len(validatorUpdates) > 0 {
-		eventBus.PublishEventValidatorSetUpdates(
-			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
-	}
+	//if len(validatorUpdates) > 0 {
+	//	eventBus.PublishEventValidatorSetUpdates(
+	//		types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
+	//}
 }
 
 func (blockExec *BlockExecutor) FireBlockTimeEvents(height int64, txNum int, available bool) {
