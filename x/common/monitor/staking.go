@@ -22,6 +22,7 @@ type StakingMetric struct {
 	CommunityDelegatorStakingOKT               metrics.Gauge
 	CommunityValidatorOutstandingOKT           metrics.Gauge
 	TotalStakingOKT                            metrics.Gauge
+	TotalSupplyOKT                             metrics.Gauge
 }
 
 // DefaultOrderMetrics returns Metrics build using Prometheus client library if Prometheus is enabled
@@ -112,6 +113,12 @@ func NewStakingMetric(labelsAndValues ...string) *StakingMetric {
 			Name:      "total_staking_okt",
 			Help:      "total amount of staking okt",
 		}, labels).With(labelsAndValues...),
+		TotalSupplyOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: xNameSpace,
+			Subsystem: stakingSubSystem,
+			Name:      "total_supply_okt",
+			Help:      "total supply okt",
+		}, labels).With(labelsAndValues...),
 		CommunityValidatorOutstandingOKT: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: xNameSpace,
 			Subsystem: stakingSubSystem,
@@ -137,5 +144,6 @@ func NopStakingMetric() *StakingMetric {
 		CommunityDelegatorStakingOKT:               discard.NewGauge(),
 		CommunityValidatorOutstandingOKT:           discard.NewGauge(),
 		TotalStakingOKT:                            discard.NewGauge(),
+		TotalSupplyOKT:                             discard.NewGauge(),
 	}
 }

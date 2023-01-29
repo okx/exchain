@@ -58,13 +58,17 @@ func (k Keeper) CheckStatistics(ctx sdk.Context) {
 	k.metric.CommunityDelegatorStakingOKT.Set(sdk.ConvertDecToFloat64(communityDelegatorStakingOKT))
 	k.metric.CommunityValidatorOutstandingOKT.Set(sdk.ConvertDecToFloat64(communityValidatorOutstandingOKT))
 	k.metric.TotalStakingOKT.Set(sdk.ConvertDecToFloat64(totalStakingOKT))
+
+	totalSupplyOKT := k.supplyKeeper.GetSupplyByDenom(ctx, "okt")
+	k.metric.TotalSupplyOKT.Set(sdk.ConvertDecToFloat64(totalSupplyOKT))
 	logger.Error("Staking okt.", "official_validator", officialValidatorStakingOKT,
 		"official_delegator", officialDelegatorStakingOKT,
 		"official_validator_outstanding", officialValidatorOutstandingOKT,
 		"community_validator", communityValidatorStakingOKT,
 		"community_delegator", communityDelegatorStakingOKT,
 		"community_validator_outstanding", communityValidatorOutstandingOKT,
-		"total_stakingOKT", totalStakingOKT)
+		"total_staking_okt", totalStakingOKT,
+		"total_supply_okt", totalSupplyOKT)
 }
 
 // build a filter
