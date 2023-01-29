@@ -239,13 +239,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
-	// publish event of the latest block time
-	if types.EnableEventBlockTime {
-		validators := cs.Validators.Copy()
-		validators.IncrementProposerPriority(1)
-		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
-	}
-
 	if iavl.EnableAsyncCommit {
 		cs.handleCommitGapOffset(height)
 	}
@@ -294,6 +287,10 @@ func (cs *State) finalizeCommit(height int64) {
 	// Private validator might have changed it's key pair => refetch pubkey.
 	if err := cs.updatePrivValidatorPubKey(); err != nil {
 		cs.Logger.Error("Can't get private validator pubkey", "err", err)
+	}
+
+	if types.EnableEventBlockTime {
+		cs.blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), false)
 	}
 
 	cs.trc.Pin("Waiting")
