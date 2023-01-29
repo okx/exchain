@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/x/evm/statistics/rediscli"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,6 +68,9 @@ func scanClaimRedisV3() {
 
 	counter := 0
 	curse := viper.GetInt(flagCursor)
+	constractAddr := viper.GetString(flagFilter)
+
+	unclaimdCount := 0
 	for {
 		curseValues, err := redis.Values(db.Do("SCAN", curse))
 		if err != nil {
@@ -91,11 +95,15 @@ func scanClaimRedisV3() {
 					unRewardKey := checkMintRewardIfNotEqualReturnTheLatestMint(useraddr)
 					if unRewardKey != "" {
 						claims := getLatestClaim(unRewardKey, useraddr[1:])
+
+						if viper.GetString(flagFilter) != "" && constractAddr == claims.To {
+							unclaimdCount++
+						}
+
 						if time.Now().Unix() > claims.BlockTime.Add(time.Duration(claims.Term+ttl)*time.Duration(24)*time.Hour).Unix() {
 							reward := getLatestReward(claims.UserAddr)
 							if reward == nil ||
 								(reward != nil && reward.BlockTime.Unix() < claims.BlockTime.Add(time.Duration(claims.Term)*time.Duration(24)*time.Hour).Unix()) {
-								constractAddr := viper.GetString(flagFilter)
 								if viper.GetString(flagFilter) != "" && constractAddr == claims.To {
 									counter++
 									line := fmt.Sprintf("%v,%v,%v,%v\n", counter, claims.TxHash, claims.TxSender, claims.UserAddr)
@@ -111,6 +119,7 @@ func scanClaimRedisV3() {
 			}
 
 			if curse == 0 {
+				log.Printf("unclaimed %v %v\n", constractAddr, unclaimdCount)
 				return
 			}
 		}
