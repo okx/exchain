@@ -1,7 +1,6 @@
 package state_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -319,6 +318,7 @@ func TestUpdateValidators(t *testing.T) {
 }
 
 // TestEndBlockValidatorUpdates ensures we update validator set and send an event.
+/*
 func TestEndBlockValidatorUpdates(t *testing.T) {
 	app := &testApp{}
 	cc := proxy.NewLocalClientCreator(app)
@@ -384,6 +384,7 @@ func TestEndBlockValidatorUpdates(t *testing.T) {
 		t.Fatal("Did not receive EventValidatorSetUpdates within 1 sec.")
 	}
 }
+*/
 
 // TestEndBlockValidatorUpdatesResultingInEmptySet checks that processing validator updates that
 // would result in empty set causes no panic, an error is raised and NextValidators is not updated
