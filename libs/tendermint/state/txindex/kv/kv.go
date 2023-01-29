@@ -21,6 +21,8 @@ import (
 
 const (
 	tagKeySeparator = "/"
+	defaultTimeOut = 5 * time.Second
+	maxQueryRange = 256
 )
 
 var _ txindex.TxIndexer = (*TxIndex)(nil)
@@ -227,7 +229,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 	// if both upper and lower bounds exist, it's better to get them in order not
 	// no iterate over kvs that are not within range.
 	ranges, rangeIndexes := lookForRanges(conditions)
-	ctx, cancel := context.WithTimeout(ctx, 3* time.Second)
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeOut)
 	defer cancel()
 	if len(ranges) > 0 {
 		skipIndexes = append(skipIndexes, rangeIndexes...)
@@ -542,10 +544,9 @@ func (txi *TxIndex) matchRange(
 	}
 	defer it.Close()
 	count := 0
-	maxCount := 256
 LOOP:
 	for ; it.Valid(); it.Next() {
-		if count > maxCount {
+		if count > maxQueryRange {
 			return nil, errors.New("request processing more than max count, optimize request filter conditions parameter")
 		}
 		count++
