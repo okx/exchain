@@ -986,7 +986,6 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 
-	//todo
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
@@ -1040,7 +1039,7 @@ func (mem *CListMempool) Update(
 		GlobalRecommendedGP = mem.gpo.RecommendGP()
 		mem.gpo.CurrentBlockGPs.Clear()
 	}
-	trace.GetElapsedInfo().AddInfo(trace.RecommendedGP, fmt.Sprintf("%sWei", GlobalRecommendedGP.String()))
+
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
 
