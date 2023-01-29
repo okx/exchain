@@ -289,6 +289,7 @@ func (cs *State) finalizeCommit(height int64) {
 		cs.Logger.Error("Can't get private validator pubkey", "err", err)
 	}
 
+	// publish event
 	if types.EnableEventBlockTime {
 		cs.blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), false)
 	}
