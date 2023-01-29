@@ -66,11 +66,13 @@ func repairStateOnStart(ctx *server.Context) {
 	iavl.EnableAsyncCommit = false
 	viper.Set(flatkv.FlagEnable, false)
 	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
+	iavl.SetForceReadIavl(true)
 
 	// repair state
 	RepairState(ctx, true)
 
 	//set original flag
+	iavl.SetForceReadIavl(false)
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
 	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
@@ -91,6 +93,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 		return
 	}
 
+	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
@@ -176,47 +179,47 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
 	stateCopy := state.Copy()
-	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
+
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	// repair state
 	eventBus := types.NewEventBus()
-	txStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
+	txStore, blockIndexStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
+	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
+	blockExec.SetEventBus(eventBus)
+	// Save state synchronously during repair state
+	blockExec.SetIsAsyncSaveDB(false)
 	defer func() {
-		if txindexServer != nil && txindexServer.IsRunning() {
-			txindexServer.Stop()
-			txindexServer.Wait()
-		}
+		// stop sequence is important to avoid data missing: blockExecutor->eventBus->txIndexer
+		// keep the same sequence as node.go:OnStop
+		blockExec.Stop()
+
 		if eventBus != nil && eventBus.IsRunning() {
 			eventBus.Stop()
 			eventBus.Wait()
+		}
+		if txindexServer != nil && txindexServer.IsRunning() {
+			txindexServer.Stop()
+			txindexServer.Wait()
 		}
 		if txStore != nil {
 			err := txStore.Close()
 			panicError(err)
 		}
+		if blockIndexStore != nil {
+			err := blockIndexStore.Close()
+			panicError(err)
+		}
 	}()
-	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-	blockExec.SetEventBus(eventBus)
-	// Save state synchronously during repair state
-	blockExec.SetIsAsyncSaveDB(false)
+
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)
 		state, _, err = blockExec.ApplyBlockWithTrace(state, repairBlockMeta.BlockID, repairBlock)
 		panicError(err)
-		// use stateCopy to correct the repaired state
-		if state.LastBlockHeight == stateCopy.LastBlockHeight {
-			state.LastHeightConsensusParamsChanged = stateCopy.LastHeightConsensusParamsChanged
-			state.LastHeightValidatorsChanged = stateCopy.LastHeightValidatorsChanged
-			state.LastValidators = stateCopy.LastValidators.Copy()
-			state.Validators = stateCopy.Validators.Copy()
-			state.NextValidators = stateCopy.NextValidators.Copy()
-			sm.SaveState(stateStoreDB, state)
-		}
 		ctx.Logger.Debug("repairedState", "state", fmt.Sprintf("%+v", state))
 		res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 		panicError(err)
@@ -227,10 +230,10 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 }
 
-func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, indexerService *txindex.IndexerService, err error) {
+func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, blockIndexStore dbm.DB, indexerService *txindex.IndexerService, err error) {
 	eventBus.SetLogger(logger.With("module", "events"))
 	if err := eventBus.Start(); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	// Transaction indexing
 	var txIndexer txindex.TxIndexer
@@ -239,11 +242,11 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	case "kv":
 		txStore, err = sdk.NewDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		blockIndexStore, err := sdk.NewDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
+		blockIndexStore, err = sdk.NewDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		switch {
 		case config.TxIndex.IndexKeys != "":
@@ -269,9 +272,9 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 			txStore.Close()
 		}
 
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return txStore, indexerService, nil
+	return txStore, blockIndexStore, indexerService, nil
 }
 
 // splitAndTrimEmpty slices s into all subslices separated by sep and returns a
@@ -297,12 +300,12 @@ func splitAndTrimEmpty(s, sep, cutset string) []string {
 
 func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64) sm.State {
 	stateCopy := state.Copy()
-	validators, err := sm.LoadValidators(stateStoreDB, startHeight)
-	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight-1)
+	validators, lastStoredHeight, err := sm.LoadValidatorsWithStoredHeight(stateStoreDB, startHeight+1)
+	lastValidators, err := sm.LoadValidators(stateStoreDB, startHeight)
 	if err != nil {
 		return stateCopy
 	}
-	nextValidators, err := sm.LoadValidators(stateStoreDB, startHeight+1)
+	nextValidators, err := sm.LoadValidators(stateStoreDB, startHeight+2)
 	if err != nil {
 		return stateCopy
 	}
@@ -315,6 +318,7 @@ func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64)
 	stateCopy.NextValidators = nextValidators
 	stateCopy.ConsensusParams = consensusParams
 	stateCopy.LastBlockHeight = startHeight
+	stateCopy.LastHeightValidatorsChanged = lastStoredHeight
 	return stateCopy
 }
 

@@ -8,13 +8,18 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
+	"github.com/spf13/viper"
+)
+
+const (
+	NameSpace = "net"
 )
 
 // PublicNetAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicNetAPI struct {
 	networkVersion uint64
 	logger         log.Logger
-	Metrics        map[string]*monitor.RpcMetrics
+	Metrics        *monitor.RpcMetrics
 	tmClient       rpcclient.Client
 }
 
@@ -26,11 +31,15 @@ func NewAPI(clientCtx context.CLIContext, log log.Logger) *PublicNetAPI {
 		panic(err)
 	}
 
-	return &PublicNetAPI{
+	api := &PublicNetAPI{
 		networkVersion: chainIDEpoch.Uint64(),
-		logger:         log.With("module", "json-rpc", "namespace", "net"),
+		logger:         log.With("module", "json-rpc", "namespace", NameSpace),
 		tmClient:       clientCtx.Client,
 	}
+	if viper.GetBool(monitor.FlagEnableMonitor) {
+		api.Metrics = monitor.MakeMonitorMetrics(NameSpace)
+	}
+	return api
 }
 
 // Version returns the current ethereum protocol version.

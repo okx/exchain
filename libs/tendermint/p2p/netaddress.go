@@ -11,7 +11,9 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/pkg/errors"
 )
@@ -27,7 +29,7 @@ type NetAddress struct {
 	// Name string `json:"name"` // optional DNS name
 
 	// memoize .String()
-	str string
+	str *string
 }
 
 // IDAddressString returns id@hostPort. It strips the leading
@@ -160,19 +162,31 @@ func (na *NetAddress) Same(other interface{}) bool {
 	return false
 }
 
+func (na *NetAddress) safeLoadStr() *string {
+	return (*string)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&na.str))))
+}
+
+func (na *NetAddress) safeStoreStr(addrStr string) {
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&na.str)), unsafe.Pointer(&addrStr))
+}
+
 // String representation: <ID>@<IP>:<PORT>
 func (na *NetAddress) String() string {
 	if na == nil {
 		return "<nil-NetAddress>"
 	}
-	if na.str == "" {
+
+	addrP := na.safeLoadStr()
+	if addrP == nil {
 		addrStr := na.DialString()
 		if na.ID != "" {
 			addrStr = IDAddressString(na.ID, addrStr)
 		}
-		na.str = addrStr
+		addrP = &addrStr
+		na.safeStoreStr(addrStr)
 	}
-	return na.str
+
+	return *addrP
 }
 
 func (na *NetAddress) DialString() string {

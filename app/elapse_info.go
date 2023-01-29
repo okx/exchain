@@ -52,7 +52,7 @@ var (
 		trace.SimGasUsed,
 		trace.InvalidTxs,
 		trace.LastRun,
-		trace.RunTx,
+		trace.ApplyBlock,
 		trace.Prerun,
 		trace.MempoolTxsCnt,
 		trace.Workload,

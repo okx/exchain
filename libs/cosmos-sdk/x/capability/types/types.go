@@ -2,8 +2,9 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"sort"
+
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	yaml "gopkg.in/yaml.v2"
 )

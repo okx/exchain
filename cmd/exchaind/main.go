@@ -72,7 +72,7 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:               "exchaind",
 		Short:             "ExChain App Daemon (server)",
-		PersistentPreRunE: server.PersistentPreRunEFn(ctx),
+		PersistentPreRunE: preRun(ctx),
 	}
 	// CLI commands to initialize the chain
 	rootCmd.AddCommand(
@@ -197,5 +197,12 @@ func preCheckLongFlagSyntax() {
 				" boolean flag should be --flag=true or --flag=false \n")
 			os.Exit(1)
 		}
+	}
+}
+
+func preRun(ctx *server.Context) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		setReplayDefaultFlag()
+		return server.PersistentPreRunEFn(ctx)(cmd, args)
 	}
 }

@@ -83,7 +83,23 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 // ExportEthCompCommand exports a key with the given name as a keystore file.
 func ExportEthCompCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "export-eth-comp [name] [dir]",
+		Use:    "export-eth-comp [name] [dir]",
+		Short:  "Export an Ethereum private keystore directory (This command has been deprecated,please use 'exchaincli keys export-eth-keystore')",
+		Hidden: true,
+		Long: `Export an Ethereum private keystore file encrypted to use in eth client import.
+
+	The parameters of scrypt encryption algorithm is StandardScryptN and StandardScryptN`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("This command has been deprecated,please use 'exchaincli keys export-eth-keystore'")
+		},
+	}
+}
+
+// ExportEthKeyStoreCommand exports a key with the given name as a keystore file.
+func ExportEthKeyStoreCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "export-eth-keystore [name] [dir]",
 		Short: "Export an Ethereum private keystore directory",
 		Long: `Export an Ethereum private keystore file encrypted to use in eth client import.
 
@@ -144,4 +160,43 @@ func ExportEthCompCommand() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// ImportEthKeyStoreCommand import keystore file.
+func ImportEthKeyStoreCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "import-eth-keystore [name] [file]",
+		Short: "Import an Ethereum private keystore",
+		Long:  `Import an Ethereum private keystore file.`,
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			algo, err := cmd.Flags().GetString(flagKeyAlgo)
+			if err != nil {
+				return err
+			}
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			accountName := args[0]
+			file := args[1]
+
+			// Get keystore password
+			decryptPassword, err := input.GetPassword("Enter passphrase to decrypt keystore file:", inBuf)
+			if err != nil {
+				return err
+			}
+
+			privkeyArmor, err := ethkeystore.ImportKeyStoreFile(decryptPassword, decryptPassword, file, keys.SigningAlgo(algo))
+			if err != nil {
+				return err
+			}
+			buf := bufio.NewReader(cmd.InOrStdin())
+			kb, err := keys.NewKeyring(sdk.KeyringServiceName(), viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), buf)
+			if err != nil {
+				return err
+			}
+
+			return kb.ImportPrivKey(accountName, privkeyArmor, decryptPassword)
+		},
+	}
+	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
+	return cmd
 }

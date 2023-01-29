@@ -30,6 +30,9 @@ const (
 
 	// how often the WAL should be sync'd during period sync'ing
 	walDefaultFlushInterval = 2 * time.Second
+
+	// if write wal time is more than walAlertTime, should log error
+	walAlertTime = 500 * time.Millisecond
 )
 
 //--------------------------------------------------------
@@ -200,6 +203,7 @@ func (wal *BaseWAL) Wait() {
 // peerMsgQueue and the timeoutTicker.
 // NOTE: does not call fsync()
 func (wal *BaseWAL) Write(msg WALMessage) error {
+	t0 := tmtime.Now()
 	if wal == nil {
 		return nil
 	}
@@ -209,6 +213,9 @@ func (wal *BaseWAL) Write(msg WALMessage) error {
 			"err", err, "msg", msg)
 		return err
 	}
+	if t := tmtime.Now().Sub(t0); t > walAlertTime {
+		wal.Logger.Error("WAL Write Message", "time", t, "msg", msg)
+	}
 
 	return nil
 }
@@ -217,6 +224,7 @@ func (wal *BaseWAL) Write(msg WALMessage) error {
 // so that we write to disk before sending signed messages.
 // NOTE: calls fsync()
 func (wal *BaseWAL) WriteSync(msg WALMessage) error {
+	t0 := tmtime.Now()
 	if wal == nil {
 		return nil
 	}
@@ -230,6 +238,9 @@ func (wal *BaseWAL) WriteSync(msg WALMessage) error {
 		WARNING: may result in creating alternative proposals / votes for the current height iff the node restarted`,
 			"err", err)
 		return err
+	}
+	if t := tmtime.Now().Sub(t0); t > walAlertTime {
+		wal.Logger.Error("WriteSync WAL", "time", t, "msg", msg)
 	}
 
 	return nil

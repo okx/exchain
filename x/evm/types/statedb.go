@@ -1,7 +1,10 @@
 package types
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
@@ -73,6 +76,7 @@ type CacheCode struct {
 //
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
+// Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 type CommitStateDB struct {
 	db           ethstate.Database
 	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
@@ -133,7 +137,11 @@ type CommitStateDB struct {
 	cdc *codec.Codec
 
 	updatedAccount map[ethcmn.Address]struct{} // will destroy every block
+
+	GuFactor sdk.Dec
 }
+
+// Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 
 type StoreProxy interface {
 	Set(key, value []byte)
@@ -183,6 +191,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
+		GuFactor:            DefaultGuFactor,
 	}
 
 	return csdb
@@ -301,6 +310,7 @@ func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx
 	csdb.dbErr = nil
 	csdb.nextRevisionID = 0
 	csdb.params = nil
+	csdb.GuFactor = DefaultGuFactor
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
@@ -1567,11 +1577,18 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
 	if csdb.ctx.UseParamCache() {
+		tempEnableCache := true
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
+			// Note: when checktx GetEvmParamsCache().UpdateBlockedContractMethod will not be really update, so we must find GetBlockedContract from db.
+			if csdb.ctx.IsCheckTx() {
+				tempEnableCache = false
+			}
 		}
-		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
+		if tempEnableCache {
+			return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
+		}
 	}
 
 	//use dbAdapter for watchdb or prefixdb
@@ -1615,6 +1632,9 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 // InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store
 func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
 	defer GetEvmParamsCache().SetNeedBlockedUpdate()
+	if err := contractList.ValidateExtra(); err != nil {
+		return err
+	}
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
@@ -1718,4 +1738,104 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 
 	key := GetContractBlockedListMemberKey(contract.Address)
 	store.Set(key, value)
+}
+
+func (csdb *CommitStateDB) GetAccount(addr ethcmn.Address) *ethermint.EthAccount {
+	obj := csdb.getStateObject(addr)
+	if obj == nil {
+		return nil
+	}
+	return obj.account
+}
+
+func (csdb *CommitStateDB) UpdateContractBytecode(ctx sdk.Context, p ManageContractByteCodeProposal) sdk.Error {
+	contract := ethcmn.BytesToAddress(p.Contract)
+	substituteContract := ethcmn.BytesToAddress(p.SubstituteContract)
+
+	revertContractByteCode := p.Contract.String() == p.SubstituteContract.String()
+
+	preCode := csdb.GetCode(contract)
+	contractAcc := csdb.GetAccount(contract)
+	if contractAcc == nil {
+		return ErrNotContracAddress(fmt.Errorf("%s", contract.String()))
+	}
+	preCodeHash := contractAcc.CodeHash
+
+	var newCodeHash []byte
+	if revertContractByteCode {
+		newCodeHash = csdb.getInitContractCodeHash(p.Contract)
+		if len(newCodeHash) == 0 || bytes.Equal(preCodeHash, newCodeHash) {
+			return ErrContractCodeNotBeenUpdated(contract.String())
+		}
+	} else {
+		newCodeHash = csdb.GetCodeHash(substituteContract).Bytes()
+	}
+
+	newCode := csdb.GetCodeByHash(ethcmn.BytesToHash(newCodeHash))
+	// update code
+	csdb.SetCode(contract, newCode)
+
+	// store init code
+	csdb.storeInitContractCodeHash(p.Contract, preCodeHash)
+
+	// commit state db
+	csdb.Commit(false)
+	return csdb.afterUpdateContractByteCode(ctx, contract, substituteContract, preCodeHash, preCode, newCode)
+}
+
+var (
+	EventTypeContractUpdateByProposal = "contract-update-by-proposal"
+)
+
+func (csdb *CommitStateDB) afterUpdateContractByteCode(ctx sdk.Context, contract, substituteContract ethcmn.Address, preCodeHash, preCode, newCode []byte) error {
+	contractAfterUpdateCode := csdb.GetAccount(contract)
+	if contractAfterUpdateCode == nil {
+		return ErrNotContracAddress(fmt.Errorf("%s", contractAfterUpdateCode.String()))
+	}
+
+	// log
+	ctx.Logger().Info("updateContractByteCode", "contract", contract, "preCodeHash", hex.EncodeToString(preCodeHash), "preCodeSize", len(preCode),
+		"codeHashAfterUpdateCode", hex.EncodeToString(contractAfterUpdateCode.CodeHash), "codeSizeAfterUpdateCode", len(newCode))
+	// emit event
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		EventTypeContractUpdateByProposal,
+		sdk.NewAttribute("contract", contract.String()),
+		sdk.NewAttribute("preCodeHash", hex.EncodeToString(preCodeHash)),
+		sdk.NewAttribute("preCodeSize", fmt.Sprintf("%d", len(preCode))),
+		sdk.NewAttribute("SubstituteContract", substituteContract.String()),
+		sdk.NewAttribute("codeHashAfterUpdateCode", hex.EncodeToString(contractAfterUpdateCode.CodeHash)),
+		sdk.NewAttribute("codeSizeAfterUpdateCode", fmt.Sprintf("%d", len(newCode))),
+	))
+	// update watcher
+	csdb.WithContext(ctx).IteratorCode(func(addr ethcmn.Address, c CacheCode) bool {
+		ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(ctx.BlockHeight()))
+		ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
+		ctx.GetWatcher().SaveAccount(contractAfterUpdateCode)
+		return true
+	})
+	return nil
+}
+
+func (csdb *CommitStateDB) storeInitContractCodeHash(addr sdk.AccAddress, codeHash []byte) {
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+	key := GetInitContractCodeHashKey(addr)
+	if !store.Has(key) {
+		store.Set(key, codeHash)
+	}
+}
+
+func (csdb *CommitStateDB) getInitContractCodeHash(addr sdk.AccAddress) []byte {
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+	key := GetInitContractCodeHashKey(addr)
+	return store.Get(key)
 }

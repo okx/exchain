@@ -44,6 +44,9 @@ func (p UpdateDeploymentWhitelistProposal) MarshalYAML() (interface{}, error) {
 }
 
 func validateDistributorAddrs(addrs []string) error {
+	if IsNobody(addrs) {
+		return nil
+	}
 	if IsAllAddress(addrs) {
 		return nil
 	}
@@ -53,6 +56,13 @@ func validateDistributorAddrs(addrs []string) error {
 		}
 	}
 	return nil
+}
+
+func IsNobody(addrs []string) bool {
+	if len(addrs) == 1 && addrs[0] == "nobody" {
+		return true
+	}
+	return false
 }
 
 func IsAllAddress(addrs []string) bool {
