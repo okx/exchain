@@ -3,17 +3,19 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -77,10 +79,25 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			}
 			pk = simSecp256k1Pubkey
 		}
+
 		// Only make check if simulate=false
 		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+			switch ppk := pk.(type) {
+			case *secp256k1.PubKeySecp256k1:
+				// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
+				// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
+				// Let it pass after Earth height.
+				if types2.HigherThanEarth(ctx.BlockHeight()) && bytes.Equal(ethsecp256k1.PubKey(ppk[:]).Address(), signers[i]) {
+					break
+				}
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+					"pubKey does not match signer address %s derived by eth pubKey, with signer index: %d", signers[i], i)
+
+			default:
+				//old logic
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+			}
 		}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
