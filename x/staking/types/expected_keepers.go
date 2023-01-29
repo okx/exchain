@@ -99,5 +99,5 @@ type StakingHooks interface {
 	// Check modules enabled
 	CheckEnabled(ctx sdk.Context) bool
 
-	GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec
+	GetOfficeRewards() float64
 }

@@ -89,6 +89,6 @@ func (h Hooks) BeforeDelegationRemoved(_ sdk.Context, _ sdk.AccAddress, _ sdk.Va
 func (h Hooks) AfterDelegationModified(_ sdk.Context, _ sdk.AccAddress, _ []sdk.ValAddress)        {}
 func (h Hooks) BeforeValidatorSlashed(_ sdk.Context, _ sdk.ValAddress, _ sdk.Dec)                  {}
 func (h Hooks) CheckEnabled(ctx sdk.Context) bool                                                  { return true }
-func (h Hooks) GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
-	return sdk.ZeroDec()
+func (h Hooks) GetOfficeRewards() float64 {
+	return 0
 }

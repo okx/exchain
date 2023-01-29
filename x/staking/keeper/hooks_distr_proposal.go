@@ -48,10 +48,10 @@ func (k Keeper) CheckEnabled(ctx sdk.Context) bool {
 	return k.hooks.CheckEnabled(ctx)
 }
 
-func (k Keeper) GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
+func (k Keeper) GetOfficeRewards() float64 {
 	if k.hooks == nil {
-		return sdk.ZeroDec()
+		return 0
 	}
 
-	return k.hooks.GetValidatorOutstandingRewards(ctx, valAddr)
+	return k.hooks.GetOfficeRewards()
 }

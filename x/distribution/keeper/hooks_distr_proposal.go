@@ -108,16 +108,6 @@ func (h Hooks) CheckEnabled(ctx sdk.Context) bool {
 	return h.k.GetWithdrawRewardEnabled(ctx)
 }
 
-func (h Hooks) GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
-	//can delete this after upgrade venus2
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-		return sdk.ZeroDec()
-	}
-
-	rewards := h.k.GetValidatorOutstandingRewards(ctx, valAddr)
-	if len(rewards) > 0 {
-		return h.k.GetValidatorOutstandingRewards(ctx, valAddr)[0].Amount
-	}
-
-	return sdk.ZeroDec()
+func (h Hooks) GetOfficeRewards() float64 {
+	return h.k.GetOfficeRewards()
 }

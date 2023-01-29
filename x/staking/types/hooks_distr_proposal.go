@@ -44,13 +44,11 @@ func (h MultiStakingHooks) CheckEnabled(ctx sdk.Context) bool {
 	return true
 }
 
-func (h MultiStakingHooks) GetValidatorOutstandingRewards(ctx sdk.Context, valAddr sdk.ValAddress) sdk.Dec {
+func (h MultiStakingHooks) GetOfficeRewards() float64 {
+	total := float64(0)
 	for i := range h {
-		reward := h[i].GetValidatorOutstandingRewards(ctx, valAddr)
-		if !reward.Equal(sdk.ZeroDec()) {
-			return reward
-		}
+		total = total + h[i].GetOfficeRewards()
 	}
 
-	return sdk.ZeroDec()
+	return total
 }
