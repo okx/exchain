@@ -547,7 +547,7 @@ func (txi *TxIndex) matchRange(
 LOOP:
 	for ; it.Valid(); it.Next() {
 		if count > maxQueryRange {
-			return nil, errors.New("request processing more than max count, optimize request filter conditions parameter")
+			return nil, errors.New("request processing more than max query range, optimize request filter conditions parameter")
 		}
 		count++
 		// Potentially exit early.
@@ -559,7 +559,6 @@ LOOP:
 		if !isTagKey(it.Key()) {
 			continue
 		}
-
 		if _, ok := r.AnyBound().(int64); ok {
 			v, err := strconv.ParseInt(extractValueFromKey(it.Key()), 10, 64)
 			if err != nil {
