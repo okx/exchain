@@ -266,11 +266,16 @@ func (tree *MutableTree) commitSchedule() {
 
 func (tree *MutableTree) pruningSchedule() {
 	for event := range tree.pruneCh {
+		trc := trace.NewTracer("pruningSchedule")
+		trc.Pin("Pruning")
 		batch := tree.ndb.NewBatch()
 		tree.ndb.deleteVersion(batch, event.version, true)
 		if err := tree.ndb.Commit(batch); err != nil {
 			panic(err)
 		}
+		tree.ndb.log(IavlInfo, "PruningSchedule", "Height", event.version,
+			"Tree", tree.ndb.name,
+			"trc", trc.Format())
 	}
 }
 
