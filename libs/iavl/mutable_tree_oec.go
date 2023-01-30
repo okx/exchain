@@ -169,6 +169,13 @@ func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byt
 	}
 	treeMap.updatePpnc(version)
 
+	tree.updatePruningVersion()
+
+	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
+	return rootHash, version, nil
+}
+
+func (tree *MutableTree) updatePruningVersion() {
 	tree.removedVersions.Range(func(k, v interface{}) bool {
 		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
 		tree.removeVersion(k.(int64))
@@ -176,9 +183,6 @@ func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byt
 		tree.removedVersions.Delete(k)
 		return true
 	})
-
-	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
-	return rootHash, version, nil
 }
 
 func (tree *MutableTree) removeVersion(version int64) {
@@ -285,13 +289,6 @@ func (tree *MutableTree) pruningSchedule() {
 			event.wg.Done()
 		}
 	}
-	tree.pruneWg.Done()
-}
-
-func (tree *MutableTree) stopAndWaitPruningSchedule() {
-	tree.pruneWg.Add(1)
-	close(tree.pruneCh)
-	tree.pruneWg.Wait()
 }
 
 func (tree *MutableTree) waitCurrentPruningScheduleDone() {
@@ -359,6 +356,9 @@ func (tree *MutableTree) StopTreeWithVersion(version int64) {
 
 	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil, true}
 	wg.Wait()
+
+	tree.updatePruningVersion()
+	tree.waitCurrentPruningScheduleDone()
 }
 func (tree *MutableTree) StopTree() {
 	tree.StopTreeWithVersion(tree.version)

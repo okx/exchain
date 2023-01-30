@@ -72,7 +72,6 @@ type MutableTree struct {
 
 	commitCh          chan commitEvent
 	pruneCh           chan pruneEvent
-	pruneWg           sync.WaitGroup
 	lastPersistHeight int64
 	//for ibc module upgrade version
 	upgradeVersion int64
