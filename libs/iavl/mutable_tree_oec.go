@@ -254,7 +254,7 @@ func (tree *MutableTree) commitSchedule() {
 		}
 
 		trc.Pin("Pruning")
-		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions, noBatch)
+		tree.updateCommittedStateHeightPool(event.version, event.versions)
 
 		tree.ndb.persistTpp(&event, noBatch, trc)
 		if event.wg != nil {
@@ -346,7 +346,7 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool, writeToDB bool) {
+func (tree *MutableTree) updateCommittedStateHeightPool(version int64, versions map[int64]bool) {
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
 	tree.committedHeightMap[version] = true
@@ -364,11 +364,6 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
 				tree.pruneCh <- pruneEvent{oldVersion}
-			}
-			if writeToDB {
-				if err := tree.ndb.Commit(batch); err != nil {
-					panic(err)
-				}
 			}
 		}
 	}
