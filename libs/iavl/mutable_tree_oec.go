@@ -54,6 +54,10 @@ type commitEvent struct {
 	isStop     bool
 }
 
+type pruneEvent struct {
+	version int64
+}
+
 type commitOrphan struct {
 	Version  int64
 	NodeHash []byte
@@ -259,6 +263,17 @@ func (tree *MutableTree) commitSchedule() {
 		}
 	}
 }
+
+func (tree *MutableTree) pruningSchedule() {
+	for event := range tree.pruneCh {
+		batch := tree.ndb.NewBatch()
+		tree.ndb.deleteVersion(batch, event.version, true)
+		if err := tree.ndb.Commit(batch); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (tree *MutableTree) GetVersions() ([]int64, error) {
 	versions, err := tree.ndb.getRoots()
 	if err != nil {
@@ -337,14 +352,13 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 		delete(tree.committedHeightMap, oldVersion)
 
 		if EnablePruningHistoryState {
-			if writeToDB {
-				batch = tree.ndb.db.NewBatch()
-			}
-			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
+
+			if err := tree.deleteVersionPrecheck(oldVersion, versions); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
+				tree.pruneCh <- pruneEvent{oldVersion}
 			}
 			if writeToDB {
 				if err := tree.ndb.Commit(batch); err != nil {
