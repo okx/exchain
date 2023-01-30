@@ -56,6 +56,7 @@ type commitEvent struct {
 
 type pruneEvent struct {
 	version int64
+	wg      *sync.WaitGroup
 }
 
 type commitOrphan struct {
@@ -171,7 +172,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byt
 	tree.removedVersions.Range(func(k, v interface{}) bool {
 		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
 		tree.removeVersion(k.(int64))
-		tree.pruneCh <- pruneEvent{k.(int64)}
+		tree.pruneCh <- pruneEvent{version: k.(int64)}
 		tree.removedVersions.Delete(k)
 		return true
 	})
@@ -267,17 +268,37 @@ func (tree *MutableTree) commitSchedule() {
 
 func (tree *MutableTree) pruningSchedule() {
 	for event := range tree.pruneCh {
-		trc := trace.NewTracer("pruningSchedule")
-		trc.Pin("Pruning")
-		batch := tree.ndb.NewBatch()
-		tree.ndb.deleteVersion(batch, event.version, true)
-		if err := tree.ndb.Commit(batch); err != nil {
-			panic(err)
+		if event.version >= 0 {
+			trc := trace.NewTracer("pruningSchedule")
+			trc.Pin("Pruning")
+			batch := tree.ndb.NewBatch()
+			tree.ndb.deleteVersion(batch, event.version, true)
+			if err := tree.ndb.Commit(batch); err != nil {
+				panic(err)
+			}
+			tree.ndb.log(IavlInfo, "PruningSchedule", "Height", event.version,
+				"Tree", tree.ndb.name,
+				"trc", trc.Format())
 		}
-		tree.ndb.log(IavlInfo, "PruningSchedule", "Height", event.version,
-			"Tree", tree.ndb.name,
-			"trc", trc.Format())
+
+		if event.wg != nil {
+			event.wg.Done()
+		}
 	}
+	tree.pruneWg.Done()
+}
+
+func (tree *MutableTree) stopAndWaitPruningSchedule() {
+	tree.pruneWg.Add(1)
+	close(tree.pruneCh)
+	tree.pruneWg.Wait()
+}
+
+func (tree *MutableTree) waitCurrentPruningScheduleDone() {
+	pruneWg := &sync.WaitGroup{}
+	pruneWg.Add(1)
+	tree.pruneCh <- pruneEvent{-1, pruneWg}
+	pruneWg.Wait()
 }
 
 func (tree *MutableTree) GetVersions() ([]int64, error) {
