@@ -171,6 +171,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byt
 	tree.removedVersions.Range(func(k, v interface{}) bool {
 		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
 		tree.removeVersion(k.(int64))
+		tree.pruneCh <- pruneEvent{k.(int64)}
 		tree.removedVersions.Delete(k)
 		return true
 	})
@@ -363,7 +364,6 @@ func (tree *MutableTree) updateCommittedStateHeightPool(version int64, versions 
 			} else {
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
-				tree.pruneCh <- pruneEvent{oldVersion}
 			}
 		}
 	}
