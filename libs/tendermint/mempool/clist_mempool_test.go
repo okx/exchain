@@ -119,7 +119,7 @@ func TestReapMaxBytesMaxGas(t *testing.T) {
 		expectedNumTxs int
 	}{
 		{20, -1, -1, 20},
-		{20, -1, 0, 0},
+		{20, -1, 0, 1},
 		{20, -1, 10, 10},
 		{20, -1, 30, 20},
 		{20, 0, -1, 0},
@@ -984,4 +984,86 @@ func TestTxOrTxHashToKey(t *testing.T) {
 	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
 
 	types.UnittestOnlySetMilestoneVenusHeight(old)
+}
+
+func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
+
+	testCases := []struct {
+		name     string
+		prepare  func(mempool *CListMempool, tt *testing.T)
+		execFunc func(mempool *CListMempool, tt *testing.T)
+	}{
+		{
+			name: "normal mempool is full add tx failed, disableDeleteMinGPTx",
+			prepare: func(mempool *CListMempool, tt *testing.T) {
+				mempool.Flush()
+				err := mempool.CheckTx([]byte{0x01}, nil, TxInfo{})
+				require.NoError(tt, err)
+			},
+			execFunc: func(mempool *CListMempool, tt *testing.T) {
+				err := mempool.CheckTx([]byte{0x02}, nil, TxInfo{})
+				require.Error(tt, err)
+				_, ok := err.(ErrMempoolIsFull)
+				require.True(t, ok)
+			},
+		},
+		{
+			name: "normal mempool is full add tx failed, enableDeleteMinGPTx",
+			prepare: func(mempool *CListMempool, tt *testing.T) {
+				mempool.Flush()
+				err := mempool.CheckTx([]byte{0x02}, nil, TxInfo{})
+				require.NoError(tt, err)
+				moc := cfg.MockDynamicConfig{}
+				moc.SetEnableDeleteMinGPTx(true)
+				cfg.SetDynamicConfig(moc)
+			},
+			execFunc: func(mempool *CListMempool, tt *testing.T) {
+				err := mempool.CheckTx([]byte{0x03}, nil, TxInfo{})
+				require.NoError(tt, err)
+				require.Equal(tt, 1, mempool.Size())
+				tx := mempool.txs.Back().Value.(*mempoolTx).tx
+				require.Equal(tt, byte(0x02), tx[0])
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(tt *testing.T) {
+			app := kvstore.NewApplication()
+			cc := proxy.NewLocalClientCreator(app)
+			mempool, cleanup := newMempoolWithApp(cc)
+			mempool.config.MaxTxsBytes = 1 //  in unit test we only use tx bytes to  control mempool weather full
+			defer cleanup()
+
+			tc.prepare(mempool, tt)
+			tc.execFunc(mempool, tt)
+		})
+	}
+
+}
+
+func TestConsumePendingtxConcurrency(t *testing.T) {
+
+	app := kvstore.NewApplication()
+	cc := proxy.NewLocalClientCreator(app)
+	mem, cleanup := newMempoolWithApp(cc)
+	defer cleanup()
+	mem.pendingPool = newPendingPool(500000, 3, 10, 500000)
+
+	for i := 0; i < 10000; i++ {
+		mem.pendingPool.addTx(&mempoolTx{height: 1, gasWanted: 1, tx: []byte(strconv.Itoa(i)), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(3780), Nonce: uint64(i)}})
+	}
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	startWg := &sync.WaitGroup{}
+	startWg.Add(1)
+	go func() {
+		startWg.Wait()
+		mem.consumePendingTx("1", 0)
+		wg.Done()
+	}()
+	startWg.Done()
+	mem.consumePendingTx("1", 5000)
+	wg.Wait()
+	require.Equal(t, 0, mem.pendingPool.Size())
 }

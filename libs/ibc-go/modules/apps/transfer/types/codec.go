@@ -24,6 +24,10 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*txmsg.Msg)(nil),
 		&MsgTransfer{},
 	)
+	registry.RegisterImplementations(
+		(*types.Msg)(nil),
+		&MsgTransfer{},
+	)
 
 	registry.RegisterImplementations((*types.MsgProtoAdapter)(nil), &MsgTransfer{})
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)

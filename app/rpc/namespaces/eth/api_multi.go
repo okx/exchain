@@ -27,7 +27,7 @@ const (
 )
 
 // GetBalanceBatch returns the provided account's balance up to the provided block number.
-func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (interface{}, error) {
+func (api *PublicEthereumAPI) GetBalanceBatch(addresses []string, blockNrOrHash rpctypes.BlockNumberOrHash) (interface{}, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
 		return nil, errors.New("the method is not allowed")
 	}
@@ -51,18 +51,22 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		Balance *hexutil.Big  `json:"balance"`
 	}
 	balances := make(map[string]accBalance)
-	for _, address := range addresses {
-		if acc, err := api.wrappedBackend.MustGetAccount(address.Bytes()); err == nil {
+	for _, addr := range addresses {
+		address, err := sdk.AccAddressFromBech32(addr)
+		if err != nil {
+			return nil, fmt.Errorf("addr:%s,err:%s", addr, err)
+		}
+		if acc, err := api.wrappedBackend.MustGetAccount(address); err == nil {
 			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
 			if balance == nil {
-				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(sdk.ZeroInt().BigInt())}
+				balances[addr] = accBalance{accountType(acc), (*hexutil.Big)(sdk.ZeroInt().BigInt())}
 			} else {
-				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(balance)}
+				balances[addr] = accBalance{accountType(acc), (*hexutil.Big)(balance)}
 			}
 			continue
 		}
 
-		bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
+		bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address))
 		if err != nil {
 			return nil, err
 		}
@@ -81,12 +85,12 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		if accType == token.UserAccount || accType == token.ContractAccount {
 			api.watcherBackend.CommitAccountToRpcDb(account)
 			if blockNum != rpctypes.PendingBlockNumber {
-				balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
+				balances[addr] = accBalance{accType, (*hexutil.Big)(val)}
 				continue
 			}
 
 			// update the address balance with the pending transactions value (if applicable)
-			pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
+			pendingTxs, err := api.backend.UserPendingTransactions(addr, -1)
 			if err != nil {
 				return nil, err
 			}
@@ -96,15 +100,15 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 					continue
 				}
 
-				if tx.From == address {
+				if tx.From.String() == addr {
 					val = new(big.Int).Sub(val, tx.Value.ToInt())
 				}
-				if *tx.To == address {
+				if tx.To.String() == addr {
 					val = new(big.Int).Add(val, tx.Value.ToInt())
 				}
 			}
 		}
-		balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
+		balances[addr] = accBalance{accType, (*hexutil.Big)(val)}
 	}
 	return balances, nil
 }
@@ -225,7 +229,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		}
 
 		// Convert tx bytes to eth transaction
-		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
+		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx, tx.Height)
 		if err != nil {
 			return nil, err
 		}

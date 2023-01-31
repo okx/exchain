@@ -9,10 +9,15 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
+
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/system/trace/persist"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
@@ -26,6 +31,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	iavltree "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/iavl/config"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -215,21 +221,25 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 	var firstSp storeParams
 	var firstKey types.StoreKey
 	isFindIavlStoreParam := false
+	var versions []int64
+	var err error
 	//find a versions list in one iavl store
 	for firstKey, firstSp = range rs.storesParams {
 		if firstSp.typ == types.StoreTypeIAVL {
+			versions, err = rs.getCommitVersionFromParams(firstSp)
+			if err != nil {
+				return 0, err
+			}
+			// ignore not enabled store
+			if len(versions) == 0 {
+				continue
+			}
 			isFindIavlStoreParam = true
 			break
 		}
 	}
-	var versions []int64
-	var err error
-	if isFindIavlStoreParam {
-		versions, err = rs.getCommitVersionFromParams(firstSp)
-		if err != nil {
-			return 0, err
-		}
-	} else {
+
+	if !isFindIavlStoreParam {
 		version := GetLatestStoredMptHeight()
 		versions = []int64{int64(version)}
 	}
@@ -252,7 +262,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 	return 0, fmt.Errorf("not found any proper version")
 }
 
-//hasVersion means every storesParam in store has this version.
+// hasVersion means every storesParam in store has this version.
 func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	latestVersion := rs.GetLatestVersion()
 	for key, storeParams := range rs.storesParams {
@@ -289,7 +299,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	return true, nil
 }
 
-//loadSubStoreVersion loads specific version for sub kvstore by given key and storeParams.
+// loadSubStoreVersion loads specific version for sub kvstore by given key and storeParams.
 func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams storeParams, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (types.CommitKVStore, error) {
 
 	commitID := rs.getCommitID(infos, key.Name())
@@ -328,7 +338,7 @@ func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams 
 	return store, nil
 }
 
-//loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
+// loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
 func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (map[types.StoreKey]types.CommitKVStore, map[int64][]byte, error) {
 	lock := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
@@ -592,9 +602,12 @@ func (rs *Store) CommitterCommit(*iavltree.TreeDelta) (_ types.CommitID, _ *iavl
 
 // Implements Committer/CommitStore.
 func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.CommitID, iavltree.TreeDeltaMap) {
+	iavltree.IavlCommitAsyncNoBatch = cfg.DynamicConfig.GetIavlAcNoBatch()
+
 	previousHeight := rs.lastCommitInfo.Version
 	version := previousHeight + 1
 
+	tsCommitStores := time.Now()
 	var outputDeltaMap iavltree.TreeDeltaMap
 	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitFilters)
 
@@ -631,7 +644,11 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 		rs.versions = append(rs.versions, version)
 	}
+	persist.GetStatistics().Accumulate(trace.CommitStores, tsCommitStores)
+
+	tsFlushMeta := time.Now()
 	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	persist.GetStatistics().Accumulate(trace.FlushMeta, tsFlushMeta)
 
 	return types.CommitID{
 		Version: version,
@@ -1180,6 +1197,11 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
+
+	// updata commit gap height
+	if iavltree.EnableAsyncCommit {
+		iavltree.UpdateCommitGapHeight(config.DynamicConfig.GetCommitGapHeight())
+	}
 	for key, store := range storeMap {
 		sName := key.Name()
 		if evmAccStoreFilter(sName, version) {
@@ -1218,7 +1240,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
 	}
-
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,

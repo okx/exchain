@@ -4,15 +4,17 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/spf13/viper"
 
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 var (
-	maxPrice     = big.NewInt(500 * params.GWei)
-	defaultPrice = big.NewInt(params.GWei / 10)
+	MinPrice = getDefaultGasPrice()
+	MaxPrice = new(big.Int).Mul(MinPrice, big.NewInt(5000))
 )
 
 type GPOConfig struct {
@@ -23,14 +25,11 @@ type GPOConfig struct {
 
 func NewGPOConfig(weight int, checkBlocks int) GPOConfig {
 	return GPOConfig{
-		Weight:  weight,
-		Default: defaultPrice,
+		Weight: weight,
+		// Note: deep copy is necessary here
+		Default: new(big.Int).Set(MinPrice),
 		Blocks:  checkBlocks,
 	}
-}
-
-func DefaultGPOConfig() GPOConfig {
-	return NewGPOConfig(80, 5)
 }
 
 // Oracle recommends gas prices based on the content of recent blocks.
@@ -57,36 +56,53 @@ func NewOracle(params GPOConfig) *Oracle {
 	return &Oracle{
 		CurrentBlockGPs: cbgp,
 		BlockGPQueue:    bgpq,
-		lastPrice:       params.Default,
-		weight:          weight,
+		// Note: deep copy is necessary here
+		lastPrice: new(big.Int).Set(params.Default),
+		weight:    weight,
 	}
 }
 
 func (gpo *Oracle) RecommendGP() *big.Int {
-	maxGasUsed := appconfig.GetOecConfig().GetMaxGasUsedPerBlock()
-	// If maxGasUsed is not negative and the current block's total gas consumption is
-	// less than 80% of it, then we consider the chain to be uncongested and return defaultPrice.
-	if maxGasUsed > 0 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed*80/100) {
-		return defaultPrice
-	}
-	// If the number of tx in the current block is less than the MaxTxNumPerBlock in mempool config,
-	// the default gas price is returned.
-	allGPsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
-	maxTxNum := appconfig.GetOecConfig().GetMaxTxNumPerBlock()
-	if allGPsLen < maxTxNum {
-		return defaultPrice
+
+	maxGasUsed := appconfig.GetOecConfig().GetDynamicGpMaxGasUsed()
+	maxTxNum := appconfig.GetOecConfig().GetDynamicGpMaxTxNum()
+	allTxsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
+	// If the current block's total gas consumption is more than maxGasUsed,
+	// or the number of tx in the current block is more than maxTxNum,
+	// then we consider the chain to be congested.
+	isCongested := (int64(gpo.CurrentBlockGPs.GetGasUsed()) >= maxGasUsed) || (allTxsLen >= maxTxNum)
+
+	// When the network is congested, increase the recommended gas price.
+	adoptHigherGp := (appconfig.GetOecConfig().GetDynamicGpMode() == types.CongestionHigherGpMode) && isCongested
+
+	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice, adoptHigherGp)
+
+	price := new(big.Int).Set(gpo.lastPrice)
+
+	// If the block is not congested, return the minimal GP
+	if !isCongested {
+		price.Set(MinPrice)
+		gpo.lastPrice.Set(price)
+		return price
 	}
 
-	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice)
-
-	price := gpo.lastPrice
 	if len(txPrices) > 0 {
 		sort.Sort(types.BigIntArray(txPrices))
-		price = txPrices[(len(txPrices)-1)*gpo.weight/100]
+		price.Set(txPrices[(len(txPrices)-1)*gpo.weight/100])
 	}
-	if price.Cmp(maxPrice) > 0 {
-		price = new(big.Int).Set(maxPrice)
+
+	if price.Cmp(MaxPrice) > 0 {
+		price.Set(MaxPrice)
 	}
-	gpo.lastPrice = price
+	gpo.lastPrice.Set(price)
 	return price
+}
+
+func getDefaultGasPrice() *big.Int {
+	gasPrices, err := sdk.ParseDecCoins(viper.GetString(server.FlagMinGasPrices))
+	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
+		return gasPrices[0].Amount.BigInt()
+	}
+	//return the default gas price : DefaultGasPrice
+	return sdk.NewDecFromBigIntWithPrec(big.NewInt(1), sdk.Precision/2+1).BigInt()
 }

@@ -27,7 +27,7 @@ run() {
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
-      --enable-dynamic-gp=false \
+      --dynamic-gp-mode=2 \
       --consensus.timeout_commit 100ms \
       --disable-abci-query-mutex=true \
       --mempool.max_tx_num_per_block=10000 \

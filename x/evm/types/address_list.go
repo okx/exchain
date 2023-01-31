@@ -71,6 +71,33 @@ func (bl BlockedContractList) ValidateBasic() sdk.Error {
 	return nil
 }
 
+// ValidateExtra validates the list of contract which method or all-method is blocked
+func (bl BlockedContractList) ValidateExtra() sdk.Error {
+	//check repeated contract address
+	lenAddrs := len(bl)
+	filter := make(map[string]struct{}, lenAddrs)
+	for i := 0; i < lenAddrs; i++ {
+		key := bl[i].Address.String()
+		if _, ok := filter[key]; ok {
+			return ErrDuplicatedAddr
+		}
+		if err := bl[i].ValidateExtra(); err != nil {
+			return err
+		}
+		filter[key] = struct{}{}
+	}
+	return nil
+}
+
+func (bl BlockedContractList) GetBlockedContract(addr sdk.AccAddress) *BlockedContract {
+	for i, _ := range bl {
+		if addr.Equals(bl[i].Address) {
+			return &bl[i]
+		}
+	}
+	return nil
+}
+
 //BlockedContract i the contract which method or all-method is blocked
 type BlockedContract struct {
 	//Contract Address
@@ -92,6 +119,14 @@ func (bc BlockedContract) ValidateBasic() sdk.Error {
 		return ErrEmptyAddressBlockedContract
 	}
 	return bc.BlockMethods.ValidateBasic()
+}
+
+// ValidateExtra validates BlockedContract
+func (bc BlockedContract) ValidateExtra() sdk.Error {
+	if len(bc.Address) == 0 {
+		return ErrEmptyAddressBlockedContract
+	}
+	return bc.BlockMethods.ValidateExtra()
 }
 
 // IsAllMethodBlocked return true if all method of contract is blocked.
@@ -154,14 +189,50 @@ func (cms ContractMethods) ValidateBasic() sdk.Error {
 	return nil
 }
 
+// ValidateExtra validates the list of blocked contract method
+func (cms ContractMethods) ValidateExtra() sdk.Error {
+	methodMap := make(map[string]ContractMethod)
+	for i, _ := range cms {
+		if _, ok := methodMap[cms[i].Sign]; ok {
+			return ErrDuplicatedMethod
+		}
+		if len(cms[i].Sign) == 0 {
+			return ErrEmptyMethod
+		}
+		methodMap[cms[i].Sign] = cms[i]
+		if factor, err := UnmarshalGuFactor(cms[i].Extra); err == nil {
+			// if factor validateBasic is success then return factor
+			if err = factor.ValidateBasic(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // IsContain return true if the method of contract contains ContractMethods.
 func (cms ContractMethods) IsContain(method string) bool {
 	for i, _ := range cms {
 		if strings.Compare(method, cms[i].Sign) == 0 {
+			// attempt to check Extra has GuFactor, if got factor,then return false.
+			//because GuFactor is not blocked contract method.
+			if cms[i].GetGuFactor() != nil {
+				return false
+			}
 			return true
 		}
 	}
 	return false
+}
+
+// GetMethod return ContractMethod of method .
+func (cms ContractMethods) GetMethod(method string) *ContractMethod {
+	for i, _ := range cms {
+		if strings.Compare(method, cms[i].Sign) == 0 {
+			return &cms[i]
+		}
+	}
+	return nil
 }
 
 // GetContractMethodsMap return map which key is method,value is ContractMethod.
@@ -223,6 +294,16 @@ func (cm ContractMethod) String() string {
 	b.WriteString(cm.Extra)
 	b.WriteString("\n")
 	return strings.TrimSpace(b.String())
+}
+
+func (cm ContractMethod) GetGuFactor() *GuFactor {
+	if factor, err := UnmarshalGuFactor(cm.Extra); err == nil {
+		// if factor validateBasic is success then return factor
+		if err := factor.ValidateBasic(); err == nil {
+			return &factor
+		}
+	}
+	return nil
 }
 
 type ContractMethodBlockedCache struct {

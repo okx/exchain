@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,10 +8,11 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -30,7 +30,6 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -154,6 +153,7 @@ type BaseApp struct { // nolint: maligned
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
 
+	updateGPOHandler sdk.UpdateGPOHandler
 	// volatile states:
 	//
 	// checkState is set on InitChain and reset on Commit
@@ -202,7 +202,7 @@ type BaseApp struct { // nolint: maligned
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	feeCollector          sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
-	FeeSplitCollector     *sync.Map
+	FeeSplitCollector     []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -261,7 +261,7 @@ func NewBaseApp(
 		interceptors:     make(map[string]Interceptor),
 
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
-		FeeSplitCollector:       &sync.Map{},
+		FeeSplitCollector:       make([]*sdk.FeeSplitInfo, 0),
 	}
 
 	for _, option := range options {
@@ -702,6 +702,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeDeliver {
 		ctx.SetDeliver()
 	}
+	ctx.SetFeeSplitInfo(&sdk.FeeSplitInfo{})
 
 	return ctx
 }
@@ -1017,18 +1018,14 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 		return -1
 	}
 
-	db := InstanceOfHistoryGasUsedRecordDB()
-	data, err := db.Get(txFnSig)
-	if err != nil || len(data) == 0 {
-		return -1
-	}
+	hgu := InstanceOfHistoryGasUsedRecordDB().GetHgu(txFnSig)
 
 	if toDeployContractSize > 0 {
 		// if deploy contract case, the history gas used value is unit gas used
-		return int64(binary.BigEndian.Uint64(data))*int64(toDeployContractSize) + int64(1000)
+		return hgu*int64(toDeployContractSize) + int64(1000)
 	}
 
-	return int64(binary.BigEndian.Uint64(data))
+	return hgu
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }

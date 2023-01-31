@@ -1,6 +1,9 @@
 package types
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	types3 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
@@ -9,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	types4 "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
@@ -18,8 +22,6 @@ import (
 	"github.com/okex/exchain/x/evm/types/testdata"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protowire"
-	"math/big"
-	"testing"
 )
 
 const (
@@ -265,4 +267,34 @@ func TestRejectNonADR027(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHeightSensitive(t *testing.T) {
+	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+	cdcProxy := newProxyDecoder()
+	decoder := TxDecoder(cdcProxy)
+
+	msg := types4.NewMsgRegisterPayee("port_Id", "channel_id", "mock", "mock2")
+	msgs := []ibcmsg.Msg{msg}
+
+	interfaceRegistry := types3.NewInterfaceRegistry()
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+	txConfig := ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
+
+	priv, _, _ := types.KeyTestPubAddr()
+	txBytes, err := helpers2.GenTxBytes(
+		txConfig,
+		msgs,
+		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
+		helpers.DefaultGenTxGas,
+		"exchain-101",
+		[]uint64{0}, //[]uint64{acc.GetAccountNumber()},
+		[]uint64{0}, //[]uint64{acc.GetSequence()},
+		1,
+		priv,
+	)
+	require.NoError(t, err)
+	_, err = decoder(txBytes)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not support before")
 }
