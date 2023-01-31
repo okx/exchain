@@ -458,12 +458,18 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber, directlyKey bool) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	useWatchBackend := api.useWatchBackend(blockNum)
+
+	qWatchdbKey := key
 	if useWatchBackend {
-		res, err := api.wrappedBackend.MustGetState(address, key)
+		if !directlyKey {
+			qWatchdbKey = evmtypes.GetStorageByAddressKey(address.Bytes(), key).Bytes()
+		}
+		res, err := api.wrappedBackend.MustGetState(address, qWatchdbKey)
 		if err == nil {
 			return res, nil
 		}
 	}
+
 	var queryStr = ""
 	if !directlyKey {
 		queryStr = fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key)
@@ -479,7 +485,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	if useWatchBackend {
-		api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
+		api.watcherBackend.CommitStateToRpcDb(address, qWatchdbKey, out.Value)
 	}
 	return out.Value, nil
 }
@@ -505,14 +511,14 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
 
-	var err error
-	blockNum := rpctypes.LatestBlockNumber
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+
 	// do not support block number param when node is pruning everything
-	if !api.backend.PruneEverything() {
-		blockNum, err = api.backend.ConvertToBlockNumber(blockNrOrHash)
-		if err != nil {
-			return nil, err
-		}
+	if api.backend.PruneEverything() && blockNum != rpctypes.PendingBlockNumber {
+		blockNum = rpctypes.LatestBlockNumber
 	}
 
 	clientCtx := api.clientCtx
@@ -1065,6 +1071,11 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	}
 	maxGasLimitPerTx := params.MaxGasLimitPerTx
 
+	if args.GasPrice == nil || args.GasPrice.ToInt().Sign() <= 0 {
+		// set the default value for possible check of GasPrice
+		args.GasPrice = api.gasPrice
+	}
+
 	estimatedGas, err := api.simDoCall(args, maxGasLimitPerTx)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
@@ -1546,7 +1557,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	if args.GasPrice == nil {
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = ParseGasPrice().ToInt()
+		gasPrice = api.gasPrice.ToInt()
 	}
 
 	if args.Nonce != nil && (uint64)(*args.Nonce) > 0 {

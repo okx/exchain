@@ -13,7 +13,7 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.6.6
+Version=v1.6.8.2
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -59,6 +59,8 @@ else ifeq ($(MAKECMDGOALS),testnet)
    Venus1Height=12067000
    Venus2Height=14781000
    Venus3Height=15540000
+   EarthHeight=17364500
+   Venus4Height=17531500
 
    WITH_ROCKSDB=true
 endif
