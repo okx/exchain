@@ -20,7 +20,7 @@ func QueryParams(cliCtx context.CLIContext, paramType string) (types.CM45Params,
 		var voting types.VotingParams
 		bytes, h, err := cliCtx.Query(route)
 		if err != nil {
-			return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0, err
+			return types.NewCM45Params(vp.ToCM45VotingParams(), tp.ToCM45TallyParams(), dp.ToCM45DepositParams()), 0, err
 		}
 		cliCtx.Codec.MustUnmarshalJSON(bytes, &voting)
 		vp = voting
@@ -29,7 +29,7 @@ func QueryParams(cliCtx context.CLIContext, paramType string) (types.CM45Params,
 		var tallying types.TallyParams
 		bytes, h, err := cliCtx.Query(route)
 		if err != nil {
-			return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0, err
+			return types.NewCM45Params(vp.ToCM45VotingParams(), tp.ToCM45TallyParams(), dp.ToCM45DepositParams()), 0, err
 		}
 		cliCtx.Codec.MustUnmarshalJSON(bytes, &tallying)
 		tp = tallying
@@ -38,14 +38,14 @@ func QueryParams(cliCtx context.CLIContext, paramType string) (types.CM45Params,
 		var deposit types.DepositParams
 		bytes, h, err := cliCtx.Query(route)
 		if err != nil {
-			return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0, err
+			return types.NewCM45Params(vp.ToCM45VotingParams(), tp.ToCM45TallyParams(), dp.ToCM45DepositParams()), 0, err
 		}
 		cliCtx.Codec.MustUnmarshalJSON(bytes, &deposit)
 		dp = deposit
 		height = h
 	default:
-		return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0,
+		return types.NewCM45Params(vp.ToCM45VotingParams(), tp.ToCM45TallyParams(), dp.ToCM45DepositParams()), 0,
 			sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "%s is not a valid param type", paramType)
 	}
-	return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), height, nil
+	return types.NewCM45Params(vp.ToCM45VotingParams(), tp.ToCM45TallyParams(), dp.ToCM45DepositParams()), height, nil
 }

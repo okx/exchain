@@ -32,11 +32,6 @@ type DepositParams struct {
 	MaxDepositPeriod time.Duration `json:"max_deposit_period,omitempty" yaml:"max_deposit_period,omitempty"` //  Maximum period for Atom holders to deposit on a proposal. Initial value: 2 months
 }
 
-type CM45DepositParams struct {
-	MinDeposit       sdk.SysCoins `json:"min_deposit,omitempty" yaml:"min_deposit,omitempty"`
-	MaxDepositPeriod string       `json:"max_deposit_period,omitempty" yaml:"max_deposit_period,omitempty"`
-}
-
 // NewDepositParams creates a new DepositParams object
 func NewDepositParams(minDeposit sdk.SysCoins, maxDepositPeriod time.Duration) DepositParams {
 	return DepositParams{
@@ -87,7 +82,7 @@ func validateDepositParams(i interface{}) error {
 type TallyParams struct {
 	Quorum          sdk.Dec `json:"quorum,omitempty" yaml:"quorum,omitempty"`                         //  Minimum percentage of total stake needed to vote for a result to be considered valid
 	Threshold       sdk.Dec `json:"threshold,omitempty" yaml:"threshold,omitempty"`                   //  Minimum proportion of Yes votes for proposal to pass. Initial value: 0.5
-	Veto            sdk.Dec `json:"veto_threshold,omitempty" yaml:"veto_threshold,omitempty"`         //  Minimum value of Veto votes to Total votes ratio for proposal to be vetoed. Initial value: 1/3
+	Veto            sdk.Dec `json:"veto,omitempty" yaml:"veto,omitempty"`                             //  Minimum value of Veto votes to Total votes ratio for proposal to be vetoed. Initial value: 1/3
 	YesInVotePeriod sdk.Dec `json:"yes_in_vote_period,omitempty" yaml:"yes_in_vote_period,omitempty"` //
 }
 
@@ -102,6 +97,15 @@ func NewTallyParams(quorum, threshold, veto sdk.Dec) TallyParams {
 
 func DefaultTallyParams() TallyParams {
 	return NewTallyParams(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+}
+
+func (tp TallyParams) ToCM45TallyParams() CM45TallyParams {
+	return CM45TallyParams{
+		Quorum:          tp.Quorum,
+		Threshold:       tp.Threshold,
+		Veto:            tp.Veto,
+		YesInVotePeriod: tp.YesInVotePeriod,
+	}
 }
 
 func (tp TallyParams) String() string {
@@ -145,10 +149,6 @@ type VotingParams struct {
 	VotingPeriod time.Duration `json:"voting_period,omitempty" yaml:"voting_period,omitempty"` //  Length of the voting period.
 }
 
-type CM45VotingParams struct {
-	VotingPeriod string `json:"voting_period,omitempty" yaml:"voting_period,omitempty"` //  Length of the voting period.
-}
-
 // NewVotingParams creates a new VotingParams object
 func NewVotingParams(votingPeriod time.Duration) VotingParams {
 	return VotingParams{
@@ -189,12 +189,6 @@ type Params struct {
 	DepositParams DepositParams `json:"deposit_params" yaml:"deposit_parmas"`
 }
 
-type CM45Params struct {
-	VotingParams  CM45VotingParams  `json:"voting_params" yaml:"voting_params"`
-	TallyParams   TallyParams       `json:"tally_params" yaml:"tally_params"`
-	DepositParams CM45DepositParams `json:"deposit_params" yaml:"deposit_parmas"`
-}
-
 func (gp Params) String() string {
 	return gp.VotingParams.String() + "\n" +
 		gp.TallyParams.String() + "\n" +
@@ -203,14 +197,6 @@ func (gp Params) String() string {
 
 func NewParams(vp VotingParams, tp TallyParams, dp DepositParams) Params {
 	return Params{
-		VotingParams:  vp,
-		DepositParams: dp,
-		TallyParams:   tp,
-	}
-}
-
-func NewCM45Params(vp CM45VotingParams, tp TallyParams, dp CM45DepositParams) CM45Params {
-	return CM45Params{
 		VotingParams:  vp,
 		DepositParams: dp,
 		TallyParams:   tp,
