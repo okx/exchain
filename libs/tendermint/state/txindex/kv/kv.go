@@ -21,6 +21,8 @@ import (
 
 const (
 	tagKeySeparator = "/"
+	defaultTimeOut = 5 * time.Second
+	maxQueryRange = 256
 )
 
 var _ txindex.TxIndexer = (*TxIndex)(nil)
@@ -222,7 +224,8 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 
 	// conditions to skip because they're handled before "everything else"
 	skipIndexes := make([]int, 0)
-
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeOut)
+	defer cancel()
 	// extract ranges
 	// if both upper and lower bounds exist, it's better to get them in order not
 	// no iterate over kvs that are not within range.
@@ -232,7 +235,10 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 
 		for _, r := range ranges {
 			if !hashesInitialized {
-				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, true)
+				filteredHashes, err = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, true)
+				if err != nil {
+					return []*types.TxResult{}, err
+				}
 				hashesInitialized = true
 
 				// Ignore any remaining conditions if the first condition resulted
@@ -241,7 +247,16 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 					break
 				}
 			} else {
-				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, false)
+				filteredHashes, err = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, false)
+				if err != nil {
+					return []*types.TxResult{}, err
+				}
+			}
+			// Potentially exit early.
+			select {
+			case <-ctx.Done():
+				return []*types.TxResult{}, errors.New("request processing timeout, optimize request filter conditions parameter")
+			default:
 			}
 		}
 	}
@@ -511,11 +526,11 @@ func (txi *TxIndex) matchRange(
 	startKey []byte,
 	filteredHashes map[string][]byte,
 	firstRun bool,
-) map[string][]byte {
+) (map[string][]byte, error) {
 	// A previous match was attempted but resulted in no matches, so we return
 	// no matches (assuming AND operand).
 	if !firstRun && len(filteredHashes) == 0 {
-		return filteredHashes
+		return filteredHashes, nil
 	}
 
 	tmpHashes := make(map[string][]byte)
@@ -527,9 +542,20 @@ func (txi *TxIndex) matchRange(
 		panic(err)
 	}
 	defer it.Close()
+	count := 0
 
 LOOP:
 	for ; it.Valid(); it.Next() {
+		if count > maxQueryRange {
+			return nil, errors.New("request processing more than max query range, optimize request filter conditions parameter")
+		}
+		count++
+		// Potentially exit early.
+		select {
+		case <-ctx.Done():
+			return nil, errors.New("request processing timeout, optimize request filter conditions parameter")
+		default:
+		}
 		if !isTagKey(it.Key()) {
 			continue
 		}
@@ -560,13 +586,6 @@ LOOP:
 			// 		break
 			// 	}
 		}
-
-		// Potentially exit early.
-		select {
-		case <-ctx.Done():
-			break
-		default:
-		}
 	}
 
 	if len(tmpHashes) == 0 || firstRun {
@@ -577,7 +596,7 @@ LOOP:
 		// return no matches (assuming AND operand).
 		//
 		// 2. A previous match was not attempted, so we return all results.
-		return tmpHashes
+		return tmpHashes, nil
 	}
 
 	// Remove/reduce matches in filteredHashes that were not found in this
@@ -595,7 +614,7 @@ LOOP:
 		}
 	}
 
-	return filteredHashes
+	return filteredHashes, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////
