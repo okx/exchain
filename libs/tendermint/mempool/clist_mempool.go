@@ -94,7 +94,9 @@ type CListMempool struct {
 
 	txs ITransactionQueue
 
-	simQueue chan *mempoolTx
+	simQueue        chan *mempoolTx
+	totalPGU        int32
+	pguCloseSignals chan struct{}
 
 	gasCache *lru.Cache
 
@@ -142,9 +144,8 @@ func NewCListMempool(
 		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
 		go mempool.fireRmPendingTxEvents()
 	}
-	for i := 0; i < cfg.DynamicConfig.GetPGUConcurrency(); i++ {
-		go mempool.simulationRoutine()
-	}
+
+	go mempool.managePGU()
 
 	if cfg.DynamicConfig.GetMempoolCacheSize() > 0 {
 		mempool.cache = newMapTxCache(cfg.DynamicConfig.GetMempoolCacheSize())
@@ -1367,9 +1368,37 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	return &simuRes, err
 }
 
+func (mem *CListMempool) managePGU() {
+	mem.pguCloseSignals = make(chan struct{}, 10)
+	for {
+		concurrency := int32(cfg.DynamicConfig.GetPGUConcurrency())
+		// concurrency can not be less than 1
+		// disable pgu instead of setting concurrency less than 1
+		if concurrency < 1 {
+			concurrency = 1
+		}
+		for i := atomic.LoadInt32(&mem.totalPGU); i < concurrency; i++ {
+			// start new routine if concurrency is greater than totalPGU
+			go mem.simulationRoutine()
+		}
+		for i := concurrency; i < atomic.LoadInt32(&mem.totalPGU); i++ {
+			// stop routine if concurrency is less than totalPGU
+			mem.pguCloseSignals <- struct{}{}
+		}
+		time.Sleep(time.Minute)
+	}
+}
+
 func (mem *CListMempool) simulationRoutine() {
-	for memTx := range mem.simQueue {
-		mem.simulationJob(memTx)
+	atomic.AddInt32(&mem.totalPGU, 1)
+	defer atomic.AddInt32(&mem.totalPGU, -1)
+	for {
+		select {
+		case <-mem.pguCloseSignals:
+			return
+		case memTx := <-mem.simQueue:
+			mem.simulationJob(memTx)
+		}
 	}
 }
 
