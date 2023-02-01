@@ -142,7 +142,7 @@ func NewCListMempool(
 		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
 		go mempool.fireRmPendingTxEvents()
 	}
-	for i := 0; i < 8; i++ {
+	for i := 0; i < cfg.DynamicConfig.GetPGUConcurrency(); i++ {
 		go mempool.simulationRoutine()
 	}
 

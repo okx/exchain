@@ -136,6 +136,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		1,
 		"adjustment for pgu, such as 0.9 or 1.1",
 	)
+	cmd.Flags().Int(
+		"mempool.pgu-concurrency",
+		1,
+		"concurrency of pgu",
+	)
 	cmd.Flags().Bool(
 		"mempool.sort_tx_by_gp",
 		config.Mempool.SortTxByGp,
