@@ -92,7 +92,7 @@ func cm45QueryProposalsWithParameterFn(cliCtx context.CLIContext) http.HandlerFu
 		}
 		var cm45proposals []types.CM45Proposal
 		for _, p := range proposals {
-			cm45proposals = append(cm45proposals, *p.ToCM45Proposal())
+			cm45proposals = append(cm45proposals, p.ToCM45Proposal())
 		}
 		wrappedProposals := types.NewWrappedProposals(cm45proposals)
 		cliCtx = cliCtx.WithHeight(height)
@@ -137,7 +137,7 @@ func cm45QueryProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		var proposal types.Proposal
 		cliCtx.Codec.MustUnmarshalJSON(res, &proposal)
 		cm45p := proposal.ToCM45Proposal()
-		wrappedProposal := types.NewWrappedProposal(*cm45p)
+		wrappedProposal := types.NewWrappedProposal(cm45p)
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, wrappedProposal)
 	}

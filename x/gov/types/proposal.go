@@ -89,7 +89,7 @@ func WrapProposalForCosmosAPI(proposal Proposal, content Content) Proposal {
 	}
 }
 
-func (p Proposal) ToCM45Proposal() *CM45Proposal {
+func (p Proposal) ToCM45Proposal() CM45Proposal {
 	cm45p := CM45Proposal{
 		Content:          p.Content,
 		ProposalID:       p.ProposalID,
@@ -101,7 +101,7 @@ func (p Proposal) ToCM45Proposal() *CM45Proposal {
 		VotingStartTime:  p.VotingStartTime,
 		VotingEndTime:    p.VotingEndTime,
 	}
-	return &cm45p
+	return cm45p
 }
 
 // nolint
