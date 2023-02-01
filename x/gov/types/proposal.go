@@ -9,49 +9,13 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-type WrappedProposal struct {
-	P CM45Proposal `json:"proposal" yaml:"result"`
-}
-
-func NewWrappedProposal(p CM45Proposal) WrappedProposal {
-	return WrappedProposal{
-		P: p,
-	}
-}
-
-type WrappedProposals struct {
-	Ps []CM45Proposal `json:"proposals" yaml:"result"`
-}
-
-func NewWrappedProposals(ps []CM45Proposal) WrappedProposals {
-	return WrappedProposals{
-		Ps: ps,
-	}
-}
-
-// CM45Proposal is constructed to be compatible with the REST API of cosmos v0.45.1
-type CM45Proposal struct {
-	Content `json:"content" yaml:"content"` // Proposal content interface
-
-	ProposalID       uint64      `json:"proposal_id" yaml:"proposal_id"`               //  ID of the proposal
-	Status           string      `json:"status" yaml:"proposal_status"`                // Status of the Proposal {Pending, Active, Passed, Rejected}
-	FinalTallyResult TallyResult `json:"final_tally_result" yaml:"final_tally_result"` // Result of Tallys
-
-	SubmitTime     time.Time    `json:"submit_time" yaml:"submit_time"`           // Time of the block where TxGovSubmitProposal was included
-	DepositEndTime time.Time    `json:"deposit_end_time" yaml:"deposit_end_time"` // Time that the Proposal would expire if deposit amount isn't met
-	TotalDeposit   sdk.SysCoins `json:"total_deposit" yaml:"total_deposit"`       // Current deposit on this proposal. Initial value is set at InitialDeposit
-
-	VotingStartTime time.Time `json:"voting_start_time" yaml:"voting_start_time"` // Time of the block where MinDeposit was reached. -1 if MinDeposit is not reached
-	VotingEndTime   time.Time `json:"voting_end_time" yaml:"voting_end_time"`     // Time that the VotingPeriod for this proposal will end and votes will be tallied
-}
-
 // Proposal defines a struct used by the governance module to allow for voting
 // on network changes.
 type Proposal struct {
 	Content `json:"content" yaml:"content"` // Proposal content interface
 
 	ProposalID       uint64         `json:"id" yaml:"id"`                                 //  ID of the proposal
-	Status           ProposalStatus `json:"status" yaml:"proposal_status"`                // Status of the Proposal {Pending, Active, Passed, Rejected}
+	Status           ProposalStatus `json:"proposal_status" yaml:"proposal_status"`       // Status of the Proposal {Pending, Active, Passed, Rejected}
 	FinalTallyResult TallyResult    `json:"final_tally_result" yaml:"final_tally_result"` // Result of Tallys
 
 	SubmitTime     time.Time    `json:"submit_time" yaml:"submit_time"`           // Time of the block where TxGovSubmitProposal was included
@@ -72,36 +36,6 @@ func NewProposal(ctx sdk.Context, totalVoting sdk.Dec, content Content, id uint6
 		SubmitTime:       submitTime,
 		DepositEndTime:   depositEndTime,
 	}
-}
-
-// WrapProposalForCosmosAPI is for compatibility with the standard cosmos REST API
-func WrapProposalForCosmosAPI(proposal Proposal, content Content) Proposal {
-	return Proposal{
-		Content:          content,
-		ProposalID:       proposal.ProposalID,
-		Status:           proposal.Status,
-		FinalTallyResult: proposal.FinalTallyResult,
-		SubmitTime:       proposal.SubmitTime,
-		DepositEndTime:   proposal.DepositEndTime,
-		TotalDeposit:     proposal.TotalDeposit,
-		VotingStartTime:  proposal.VotingStartTime,
-		VotingEndTime:    proposal.VotingEndTime,
-	}
-}
-
-func (p Proposal) ToCM45Proposal() CM45Proposal {
-	cm45p := CM45Proposal{
-		Content:          p.Content,
-		ProposalID:       p.ProposalID,
-		Status:           p.Status.ToCM45Status(),
-		FinalTallyResult: p.FinalTallyResult,
-		SubmitTime:       p.SubmitTime,
-		DepositEndTime:   p.DepositEndTime,
-		TotalDeposit:     p.TotalDeposit,
-		VotingStartTime:  p.VotingStartTime,
-		VotingEndTime:    p.VotingEndTime,
-	}
-	return cm45p
 }
 
 // nolint
@@ -193,28 +127,6 @@ func ValidProposalStatus(status ProposalStatus) bool {
 	return false
 }
 
-func (status ProposalStatus) ToCM45Status() string {
-	switch status {
-	case StatusDepositPeriod:
-		return "PROPOSAL_STATUS_DEPOSIT_PERIOD"
-
-	case StatusVotingPeriod:
-		return "PROPOSAL_STATUS_VOTING_PERIOD"
-
-	case StatusPassed:
-		return "PROPOSAL_STATUS_PASSED"
-
-	case StatusRejected:
-		return "PROPOSAL_STATUS_REJECTED"
-
-	case StatusFailed:
-		return "PROPOSAL_STATUS_FAILED"
-
-	default:
-		return ""
-	}
-}
-
 // Marshal needed for protobuf compatibility
 func (status ProposalStatus) Marshal() ([]byte, error) {
 	return []byte{byte(status)}, nil
@@ -238,10 +150,12 @@ func (status *ProposalStatus) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+
 	bz2, err := ProposalStatusFromString(s)
 	if err != nil {
 		return err
 	}
+
 	*status = bz2
 	return nil
 }
@@ -300,16 +214,6 @@ func (status ProposalStatus) Format(s fmt.State, verb rune) {
 	default:
 		// TODO: Do this conversion more directly
 		s.Write([]byte(fmt.Sprintf("%v", byte(status))))
-	}
-}
-
-type WrappedTallyResult struct {
-	TR TallyResult `json:"tally"`
-}
-
-func NewWrappedTallyResult(tr TallyResult) WrappedTallyResult {
-	return WrappedTallyResult{
-		TR: tr,
 	}
 }
 
