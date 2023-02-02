@@ -902,7 +902,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 }
 
 func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions map[int64]bool) error {
-	if err := tree.deleteVersionPrecheck(version, versions); err != nil {
+	if err := tree.deleteVersionPreCheck(version, versions); err != nil {
 		return err
 	}
 
@@ -911,7 +911,7 @@ func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions 
 	return nil
 }
 
-func (tree *MutableTree) deleteVersionPrecheck(version int64, versions map[int64]bool) error {
+func (tree *MutableTree) deleteVersionPreCheck(version int64, versions map[int64]bool) error {
 	if version == 0 {
 		return errors.New("version must be greater than 0")
 	}
