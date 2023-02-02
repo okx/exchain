@@ -274,9 +274,10 @@ func (tree *MutableTree) pruningSchedule() {
 	for event := range tree.pruneCh {
 		if event.version >= 0 {
 			trc := trace.NewTracer("pruningSchedule")
-			trc.Pin("Pruning")
 			batch := tree.ndb.NewBatch()
+			trc.Pin("deleteVersion")
 			tree.ndb.deleteVersion(batch, event.version, true)
+			trc.Pin("Commit")
 			if err := tree.ndb.Commit(batch); err != nil {
 				panic(err)
 			}
