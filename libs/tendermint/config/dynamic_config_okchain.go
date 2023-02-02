@@ -12,6 +12,7 @@ type IDynamicConfig interface {
 	GetMaxGasUsedPerBlock() int64
 	GetEnablePGU() bool
 	GetPGUAdjustment() float64
+	GetPGUConcurrency() int
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
 	GetMempoolCheckTxCost() bool
@@ -69,6 +70,10 @@ func (d MockDynamicConfig) GetEnablePGU() bool {
 }
 
 func (d MockDynamicConfig) GetPGUAdjustment() float64 {
+	return 1
+}
+
+func (d MockDynamicConfig) GetPGUConcurrency() int {
 	return 1
 }
 
