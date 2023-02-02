@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/okex/exchain/libs/system/trace/persist"
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app/rpc/simulator"
@@ -275,6 +276,10 @@ func (app *BaseApp) addCommitTraceInfo() {
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
+	persist.GetStatistics().Init(trace.PreChange, trace.FlushCache, trace.CommitStores, trace.FlushMeta)
+	defer func() {
+		trace.GetElapsedInfo().AddInfo(trace.PersistDetails, persist.GetStatistics().Format())
+	}()
 	header := app.deliverState.ctx.BlockHeader()
 
 	if app.mptCommitHandler != nil {
@@ -413,10 +418,19 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			}
 		}
 	}
-	tx, err := app.txDecoder(txBytes)
-	if err != nil {
-		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+
+	var tx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
 	}
+	if tx == nil {
+		tx, err = app.txDecoder(txBytes)
+		if err != nil {
+			return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+		}
+	}
+
 	msgs := tx.GetMsgs()
 
 	if enableFastQuery() {

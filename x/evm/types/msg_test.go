@@ -3,11 +3,13 @@ package types
 import (
 	"bytes"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"math/rand"
 	"strings"
 	"testing"
+
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"encoding/hex"
 
@@ -425,6 +427,7 @@ func newProxyDecoder() *codec.CodecProxy {
 	ModuleBasics := module.NewBasicManager(
 		ibc.AppModuleBasic{},
 		ibctransfer.AppModuleBasic{},
+		ibcfee.AppModuleBasic{},
 	)
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
@@ -510,7 +513,7 @@ func BenchmarkEvmTxVerifySig(b *testing.B) {
 	b.Run("firstVerifySig", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			err := msg.firstVerifySig(chainID)
+			_, err := msg.firstVerifySig(chainID)
 			if err != nil {
 				b.Fatal(err)
 			}

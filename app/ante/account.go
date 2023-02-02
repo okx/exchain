@@ -12,11 +12,16 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
+
+type accountKeeperInterface interface {
+	SetAccount(ctx sdk.Context, acc exported.Account)
+}
 
 type AccountAnteDecorator struct {
 	ak        auth.AccountKeeper
@@ -146,7 +151,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 	return ctx, nil
 }
 
-func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool, ak auth.AccountKeeper) error {
+func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
@@ -172,7 +177,7 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = deductFees(ak, *ctx, acc, feeAmt)
+		err = deductFees(ik, ak, sk, *ctx, acc, feeAmt)
 		if err != nil {
 			return err
 		}
@@ -183,7 +188,7 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 	return nil
 }
 
-func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+func deductFees(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
 	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
@@ -206,7 +211,13 @@ func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fe
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	if err := acc.SetCoins(balance); err != nil {
+	// set coins and record innertx
+	err := acc.SetCoins(balance)
+	if !ctx.IsCheckTx() {
+		toAcc := sk.GetModuleAddress(types.FeeCollectorName)
+		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, fees, err)
+	}
+	if err != nil {
 		return err
 	}
 	ak.SetAccount(ctx, acc)
@@ -302,7 +313,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 
 		ctx.EnableAccountCache()
 		// account would be updated
-		err = ethGasConsume(&ctx, acc, getAccGasUsed, msgEthTx, simulate, avd.ak)
+		err = ethGasConsume(avd.evmKeeper, avd.ak, avd.sk, &ctx, acc, getAccGasUsed, msgEthTx, simulate)
 		acc = nil
 		acc, _ = ctx.GetFromAccountCacheData().(exported.Account)
 		ctx.DisableAccountCache()

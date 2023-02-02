@@ -52,7 +52,7 @@ func TestNewNoDbStorage_StorageVersionInDb_Success(t *testing.T) {
 	dbMock := mock.NewMockDB(ctrl)
 
 	dbMock.EXPECT().Get(gomock.Any()).Return([]byte(expectedVersion), nil).Times(1)
-	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(0)
 
 	ndb := newNodeDB(dbMock, 0, nil)
 	require.Equal(t, expectedVersion, ndb.storageVersion)
@@ -65,7 +65,7 @@ func TestNewNoDbStorage_ErrorInConstructor_DefaultSet(t *testing.T) {
 	dbMock := mock.NewMockDB(ctrl)
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(nil, errors.New("some db error")).Times(1)
-	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(0)
 
 	ndb := newNodeDB(dbMock, 0, nil)
 	require.Equal(t, expectedVersion, ndb.getStorageVersion())
@@ -78,7 +78,7 @@ func TestNewNoDbStorage_DoesNotExist_DefaultSet(t *testing.T) {
 	dbMock := mock.NewMockDB(ctrl)
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(nil, nil).Times(1)
-	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(0)
 
 	ndb := newNodeDB(dbMock, 0, nil)
 	require.Equal(t, expectedVersion, ndb.getStorageVersion())

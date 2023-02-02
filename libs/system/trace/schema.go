@@ -61,13 +61,21 @@ const (
 
 	Abci = "abci"
 	//SaveResp        = "saveResp"
-	Persist = "persist"
+	Persist        = "persist"
+	PersistDetails = "persistDetails"
+	PreChange      = "preChange"
+	FlushCache     = "flushCache"
+	CommitStores   = "commitStores"
+	FlushMeta      = "flushMeta"
+
 	//MempoolUpdate   = "mpUpdate"
 	//SaveState       = "saveState"
-	ApplyBlock      = "ApplyBlock"
-	Consensus       = "Consensus"
-	LastBlockTime   = "LastBlockTime"
-	TimeoutInterval = "TimeoutInterval"
+	ApplyBlock    = "ApplyBlock"
+	Consensus     = "Consensus"
+	LastBlockTime = "LastBlockTime"
+	BTInterval    = "BTInterval"
+	UpdateState   = "UpdateState"
+	Waiting       = "Waiting"
 
 	MempoolCheckTxCnt  = "CheckTx"
 	MempoolTxsCnt      = "MempoolTxs"
@@ -81,6 +89,7 @@ const (
 	BlockPartsP2P = "BlockPartsP2P"
 
 	Workload = "Workload"
+	ACOffset = "ACOffset"
 )
 
 const (

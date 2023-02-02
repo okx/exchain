@@ -2,15 +2,17 @@ package pendingtx
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/evm/watcher"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 type Watcher struct {
@@ -22,7 +24,8 @@ type Watcher struct {
 }
 
 type Sender interface {
-	Send(hash []byte, tx *watcher.Transaction) error
+	SendPending(hash []byte, tx *PendingTx) error
+	SendRmPending(hash []byte, tx *RmPendingTx) error
 }
 
 func NewWatcher(clientCtx context.CLIContext, log log.Logger, sender Sender) *Watcher {
@@ -36,43 +39,90 @@ func NewWatcher(clientCtx context.CLIContext, log log.Logger, sender Sender) *Wa
 }
 
 func (w *Watcher) Start() {
-	sub, _, err := w.events.SubscribePendingTxs()
+	pendingSub, _, err := w.events.SubscribePendingTxs()
 	if err != nil {
 		w.logger.Error("error creating block filter", "error", err.Error())
 	}
 
-	go func(txsCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+	rmPendingSub, _, err := w.events.SubscribeRmPendingTx()
+	if err != nil {
+		w.logger.Error("error creating block filter", "error", err.Error())
+	}
+
+	go func(pendingCh <-chan coretypes.ResultEvent, rmPendingdCh <-chan coretypes.ResultEvent) {
 		for {
 			select {
-			case ev := <-txsCh:
-				data, ok := ev.Data.(tmtypes.EventDataTx)
+			case re := <-pendingCh:
+				data, ok := re.Data.(tmtypes.EventDataTx)
 				if !ok {
-					w.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", ev.Data), "ID", sub.ID())
+					w.logger.Error(fmt.Sprintf("invalid pending tx data type %T, expected EventDataTx", re.Data))
 					continue
 				}
 				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
-				w.logger.Debug("receive tx from mempool", "txHash=", txHash.String())
+				w.logger.Debug("receive pending tx", "txHash=", txHash.String())
 
-				ethTx, err := rpctypes.RawTxToEthTx(w.clientCtx, data.Tx, data.Height)
+				tx, err := evmtypes.TxDecoder(w.clientCtx.Codec)(data.Tx, data.Height)
 				if err != nil {
-					w.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
+					w.logger.Error("failed to decode raw tx", "hash", txHash.String(), "error", err)
 					continue
 				}
 
-				tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
-				if err != nil {
-					w.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
-					continue
-				}
-
-				go func(hash []byte, tx *watcher.Transaction) {
-					w.logger.Debug("push pending tx to MQ", "txHash=", txHash.String())
-					err = w.sender.Send(hash, tx)
+				var input string
+				var value *big.Int
+				var to *common.Address
+				ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
+				if ok {
+					input = hexutil.Bytes(ethTx.Data.Payload).String()
+					value = ethTx.Data.Amount
+					to = ethTx.Data.Recipient
+				} else {
+					b, err := w.clientCtx.Codec.MarshalJSON(tx)
 					if err != nil {
-						w.logger.Error("failed to send pending tx", "hash", txHash.String(), "error", err)
+						w.logger.Error("failed to Marshal tx", "hash", txHash.String(), "error", err)
+						continue
 					}
-				}(txHash.Bytes(), tx)
+					input = string(b)
+				}
+
+				pendingTx := &PendingTx{
+					From:     tx.GetFrom(),
+					To:       to,
+					Hash:     txHash,
+					Nonce:    hexutil.Uint64(data.Nonce),
+					Value:    (*hexutil.Big)(value),
+					Gas:      hexutil.Uint64(tx.GetGas()),
+					GasPrice: (*hexutil.Big)(tx.GetGasPrice()),
+					Input:    input,
+				}
+
+				go func() {
+					w.logger.Debug("push pending tx to MQ", "txHash=", pendingTx.Hash.String())
+					err = w.sender.SendPending(pendingTx.Hash.Bytes(), pendingTx)
+					if err != nil {
+						w.logger.Error("failed to send pending tx", "hash", pendingTx.Hash.String(), "error", err)
+					}
+				}()
+			case re := <-rmPendingdCh:
+				data, ok := re.Data.(tmtypes.EventDataRmPendingTx)
+				if !ok {
+					w.logger.Error(fmt.Sprintf("invalid rm pending tx data type %T, expected EventDataTx", re.Data))
+					continue
+				}
+				txHash := common.BytesToHash(data.Hash).String()
+				go func() {
+					w.logger.Debug("push rm pending tx to MQ", "txHash=", txHash)
+					err = w.sender.SendRmPending(data.Hash, &RmPendingTx{
+						From:   data.From,
+						Hash:   txHash,
+						Nonce:  hexutil.Uint64(data.Nonce).String(),
+						Delete: true,
+						Reason: int(data.Reason),
+					})
+					if err != nil {
+						w.logger.Error("failed to send rm pending tx", "hash", txHash, "error", err)
+					}
+				}()
 			}
 		}
-	}(sub.Event(), sub.Err())
+	}(pendingSub.Event(), rmPendingSub.Event())
 }

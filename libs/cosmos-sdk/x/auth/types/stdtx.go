@@ -6,6 +6,9 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/tendermint/go-amino"
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -13,8 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/tendermint/go-amino"
-	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -148,6 +149,17 @@ func (tx *StdTx) ValidateBasic() error {
 	return nil
 }
 
+func (tx *StdTx) ValidWithHeight(h int64) error {
+	for _, msg := range tx.Msgs {
+		if v, ok := msg.(sdk.HeightSensitive); ok {
+			if err := v.ValidWithHeight(h); nil != err {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // CountSubKeys counts the total number of keys for a multi-sig public key.
 func CountSubKeys(pub crypto.PubKey) int {
 	v, ok := pub.(multisig.PubKeyMultisigThreshold)
@@ -246,6 +258,9 @@ func (tx *StdTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 
 // GetGasPrice return gas price
 func (tx *StdTx) GetGasPrice() *big.Int {
+	if tx.Fee.Gas == 0 {
+		return big.NewInt(0)
+	}
 	gasPrices := tx.Fee.GasPrices()
 	if len(gasPrices) == 0 {
 		return big.NewInt(0)
@@ -313,7 +328,7 @@ func (fee *StdFee) Bytes() []byte {
 // originally part of the submitted transaction because the fee is computed
 // as fee = ceil(gasWanted * gasPrices).
 func (fee *StdFee) GasPrices() sdk.DecCoins {
-	// todook
+	// NOTE: here fee.Gas must be greater than 0.
 	return sdk.NewDecCoinsFromCoins(fee.Amount...).QuoDec(sdk.NewDec(int64(fee.Gas)))
 	//return fee.Amount.QuoDec(sdk.NewDec(int64(fee.Gas)))
 }

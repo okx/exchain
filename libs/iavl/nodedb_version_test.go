@@ -17,7 +17,6 @@ func TestIsFastStorageStrategy_True_GenesisVersion(t *testing.T) {
 	rIter := mock.NewMockIterator(ctrl)
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIter, nil).Times(1)
 	rIter.EXPECT().Close()
-	rIter.EXPECT().Next()
 	rIter.EXPECT().Valid().Return(false)
 
 	isFss := IsFastStorageStrategy(dbMock)
@@ -32,7 +31,6 @@ func TestIsFastStorageStrategy_False_GetFssVersionFailed(t *testing.T) {
 	rIter := mock.NewMockIterator(ctrl)
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIter, nil).Times(1)
 	rIter.EXPECT().Close()
-	rIter.EXPECT().Next()
 	rIter.EXPECT().Valid().Return(true)
 	rIter.EXPECT().Key().Return(rootKeyFormat.Key(iavlVersion)).Times(1)
 
@@ -54,7 +52,6 @@ func TestIsFastStorageStrategy_False_IAVLNotEqualFSS(t *testing.T) {
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIter, nil).Times(1)
 	rIter.EXPECT().Close().Times(1)
 	rIter.EXPECT().Valid().Return(true).Times(1)
-	rIter.EXPECT().Next().Return().Times(1)
 	rIter.EXPECT().Key().Return(rootKeyFormat.Key(expectedVersion + 1)).Times(1)
 
 	isFss := IsFastStorageStrategy(dbMock)
@@ -73,7 +70,6 @@ func TestIsFastStorageStrategy_True_IAVLEqualFSS(t *testing.T) {
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIter, nil).Times(1)
 	rIter.EXPECT().Close().Times(1)
 	rIter.EXPECT().Valid().Return(true).Times(1)
-	rIter.EXPECT().Next().Return().Times(1)
 	rIter.EXPECT().Key().Return(rootKeyFormat.Key(expectedVersion)).Times(1)
 
 	isFss := IsFastStorageStrategy(dbMock)

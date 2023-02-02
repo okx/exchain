@@ -1,16 +1,13 @@
 package sanity
 
 import (
-	"fmt"
-
 	"github.com/spf13/viper"
 
+	"github.com/okex/exchain/app/config"
 	apptype "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -89,10 +86,16 @@ var (
 			configB: boolItem{name: watcher.FlagFastQuery, expect: true},
 		},
 		{
-			configA: boolItem{name: iavl.FlagIavlEnableFastStorage, expect: true},
-			configB: funcItem{name: "Upgraded to fast IAVL", expect: false, f: appstatus.IsFastStorageStrategy},
-			tips: fmt.Sprintf("Upgrade to IAVL fast storage may take several hours, "+
-				"you can use exchaind fss create command to upgrade, or unset --%v", iavl.FlagIavlEnableFastStorage),
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.RpcNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
+		},
+		{
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.InnertxNode)},
+			configB: boolItem{name: config.FlagEnablePGU, expect: true},
 		},
 	}
 

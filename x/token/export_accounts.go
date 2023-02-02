@@ -38,6 +38,7 @@ const (
 	ContractAccount
 	ModuleAccount
 	OtherAccount
+	WasmAccount
 )
 
 func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {

@@ -28,6 +28,7 @@ import (
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
+	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
@@ -62,6 +63,8 @@ const (
 
 	FlagFastQueryThreshold = "fast-query-threshold"
 
+	NameSpace = "eth"
+
 	EvmHookGasEstimate = uint64(60000)
 	EvmDefaultGasLimit = uint64(21000)
 )
@@ -81,7 +84,7 @@ type PublicEthereumAPI struct {
 	watcherBackend     *watcher.Watcher
 	evmFactory         simulation.EvmFactory
 	txPool             *TxPool
-	Metrics            map[string]*monitor.RpcMetrics
+	Metrics            *monitor.RpcMetrics
 	callCache          *lru.Cache
 	cdc                *codec.Codec
 	fastQueryThreshold uint64
@@ -102,7 +105,7 @@ func NewAPI(
 		ctx:                context.Background(),
 		clientCtx:          clientCtx,
 		chainIDEpoch:       epoch,
-		logger:             log.With("module", "json-rpc", "namespace", "eth"),
+		logger:             log.With("module", "json-rpc", "namespace", NameSpace),
 		backend:            backend,
 		keys:               keys,
 		nonceLock:          nonceLock,
@@ -132,6 +135,9 @@ func NewAPI(
 		go api.txPool.broadcastPeriod(api)
 	}
 
+	if viper.GetBool(monitor.FlagEnableMonitor) {
+		api.Metrics = monitor.MakeMonitorMetrics(NameSpace)
+	}
 	return api
 }
 
@@ -252,21 +258,63 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.CloseMode {
+	recommendGP := (*big.Int)(api.gasPrice)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
 		price := new(big.Int).Set(app.GlobalGp)
-		if price.Cmp((*big.Int)(api.gasPrice)) == -1 {
-			price.Set((*big.Int)(api.gasPrice))
+		if price.Cmp(gasprice.MinPrice) == -1 {
+			price.Set(gasprice.MinPrice)
 		}
 
 		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
 			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			gpRes := new(big.Int).Mul(price, coefficient)
-			return (*hexutil.Big)(gpRes)
+			recommendGP = new(big.Int).Mul(price, coefficient)
+		} else {
+			recommendGP = price
 		}
-		return (*hexutil.Big)(price)
+
+		if recommendGP.Cmp(gasprice.MaxPrice) == 1 {
+			recommendGP.Set(gasprice.MaxPrice)
+		}
 	}
 
-	return api.gasPrice
+	return (*hexutil.Big)(recommendGP)
+}
+
+func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
+	monitor := monitor.GetMonitor("eth_gasPriceIn3Gears", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd()
+
+	avgGP := (*big.Int)(api.gasPrice)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
+		price := new(big.Int).Set(app.GlobalGp)
+		if price.Cmp(gasprice.MinPrice) == -1 {
+			price.Set(gasprice.MinPrice)
+		}
+
+		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
+			avgGP = new(big.Int).Mul(price, coefficient)
+		} else {
+			avgGP = price
+		}
+
+		if avgGP.Cmp(gasprice.MaxPrice) == 1 {
+			avgGP.Set(gasprice.MaxPrice)
+		}
+	}
+	// safe low GP = average GP * 0.5, but it will not be less than the minimal GP.
+	safeGp := new(big.Int).Quo(avgGP, big.NewInt(2))
+	if safeGp.Cmp(gasprice.MinPrice) == -1 {
+		safeGp.Set(gasprice.MinPrice)
+	}
+	// fastest GP = average GP * 1.5, but it will not be greater than the max GP.
+	fastestGp := new(big.Int).Add(avgGP, new(big.Int).Quo(avgGP, big.NewInt(2)))
+	if fastestGp.Cmp(gasprice.MaxPrice) == 1 {
+		fastestGp.Set(gasprice.MaxPrice)
+	}
+
+	res := rpctypes.NewGPIn3Gears(safeGp, avgGP, fastestGp)
+	return &res
 }
 
 // Accounts returns the list of accounts available to this node.
@@ -410,12 +458,18 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber, directlyKey bool) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	useWatchBackend := api.useWatchBackend(blockNum)
+
+	qWatchdbKey := key
 	if useWatchBackend {
-		res, err := api.wrappedBackend.MustGetState(address, key)
+		if !directlyKey {
+			qWatchdbKey = evmtypes.GetStorageByAddressKey(address.Bytes(), key).Bytes()
+		}
+		res, err := api.wrappedBackend.MustGetState(address, qWatchdbKey)
 		if err == nil {
 			return res, nil
 		}
 	}
+
 	var queryStr = ""
 	if !directlyKey {
 		queryStr = fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key)
@@ -431,7 +485,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	if useWatchBackend {
-		api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
+		api.watcherBackend.CommitStateToRpcDb(address, qWatchdbKey, out.Value)
 	}
 	return out.Value, nil
 }
@@ -457,14 +511,14 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
 
-	var err error
-	blockNum := rpctypes.LatestBlockNumber
+	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
+
 	// do not support block number param when node is pruning everything
-	if !api.backend.PruneEverything() {
-		blockNum, err = api.backend.ConvertToBlockNumber(blockNrOrHash)
-		if err != nil {
-			return nil, err
-		}
+	if api.backend.PruneEverything() && blockNum != rpctypes.PendingBlockNumber {
+		blockNum = rpctypes.LatestBlockNumber
 	}
 
 	clientCtx := api.clientCtx
@@ -1017,6 +1071,11 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	}
 	maxGasLimitPerTx := params.MaxGasLimitPerTx
 
+	if args.GasPrice == nil || args.GasPrice.ToInt().Sign() <= 0 {
+		// set the default value for possible check of GasPrice
+		args.GasPrice = api.gasPrice
+	}
+
 	estimatedGas, err := api.simDoCall(args, maxGasLimitPerTx)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
@@ -1498,7 +1557,7 @@ func (api *PublicEthereumAPI) generateFromArgs(args rpctypes.SendTxArgs) (*evmty
 	if args.GasPrice == nil {
 		// Set default gas price
 		// TODO: Change to min gas price from context once available through server/daemon
-		gasPrice = ParseGasPrice().ToInt()
+		gasPrice = api.gasPrice.ToInt()
 	}
 
 	if args.Nonce != nil && (uint64)(*args.Nonce) > 0 {
