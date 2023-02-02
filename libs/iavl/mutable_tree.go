@@ -115,7 +115,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			historyStateNum:      MaxCommittedHeightNum,
 
 			commitCh:          make(chan commitEvent),
-			pruneCh:           make(chan pruneEvent, 10),
+			pruneCh:           make(chan pruneEvent, PruningChannelSize),
 			lastPersistHeight: initVersion,
 			upgradeVersion:    -1,
 

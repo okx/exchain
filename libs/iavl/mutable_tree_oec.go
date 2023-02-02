@@ -40,6 +40,7 @@ var (
 	enableFastStorage               = true
 	forceReadIavl                   = false
 	ignoreAutoUpgrade               = false
+	PruningChannelSize              = 10
 )
 
 type commitEvent struct {
