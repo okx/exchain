@@ -380,7 +380,6 @@ func (tree *MutableTree) updateCommittedStateHeightPool(version int64, versions 
 		delete(tree.committedHeightMap, oldVersion)
 
 		if EnablePruningHistoryState {
-
 			if err := tree.deleteVersionPreCheck(oldVersion, versions); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
