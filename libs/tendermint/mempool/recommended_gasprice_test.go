@@ -9,6 +9,7 @@ import (
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -347,11 +348,13 @@ func generateTxs(totalTxNum int, baseGP int64, gpOffset *int64, needDecreaseGP b
 }
 
 func setMocConfig(gpMode int, gpMaxTxNum int64, gpMaxGasUsed int64) {
-	moc := cfg.MockDynamicConfig{}
+	global.SetGlobalMinAndMaxGasPrice(big.NewInt(100000000))
 
+	moc := cfg.MockDynamicConfig{}
 	moc.SetDynamicGpMode(gpMode)
 	moc.SetDynamicGpMaxTxNum(gpMaxTxNum)
 	moc.SetDynamicGpMaxGasUsed(gpMaxGasUsed)
+	moc.SetDynamicGpCoefficient(1)
 
 	cfg.SetDynamicConfig(moc)
 }

@@ -33,6 +33,7 @@ type IDynamicConfig interface {
 	GetDynamicGpMode() int
 	GetDynamicGpMaxTxNum() int64
 	GetDynamicGpMaxGasUsed() int64
+	GetDynamicGpCoefficient() int
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -42,10 +43,11 @@ func SetDynamicConfig(c IDynamicConfig) {
 }
 
 type MockDynamicConfig struct {
-	enableDeleteMinGPTx bool
-	dynamicGpMode       int
-	dynamicGpMaxTxNum   int64
-	dynamicGpMaxGasUsed int64
+	enableDeleteMinGPTx  bool
+	dynamicGpMode        int
+	dynamicGpMaxTxNum    int64
+	dynamicGpMaxGasUsed  int64
+	dynamicGpCoefficient int
 }
 
 func (d MockDynamicConfig) GetMempoolRecheck() bool {
@@ -184,4 +186,17 @@ func (d *MockDynamicConfig) SetDynamicGpMaxGasUsed(value int64) {
 
 func (d MockDynamicConfig) GetDynamicGpMaxGasUsed() int64 {
 	return d.dynamicGpMaxGasUsed
+}
+
+func (d MockDynamicConfig) GetDynamicGpCoefficient() int {
+	return d.dynamicGpCoefficient
+}
+
+func (d *MockDynamicConfig) SetDynamicGpCoefficient(value int) {
+	if value <= 0 {
+		value = 1
+	} else if value > 100 {
+		value = 100
+	}
+	d.dynamicGpCoefficient = value
 }

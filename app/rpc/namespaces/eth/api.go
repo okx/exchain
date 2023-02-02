@@ -256,29 +256,11 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	globalMinGP := global.GetGlobalMinGasPrice()
-	globalMaxGP := global.GetGlobalMaxGasPrice()
-
-	recommendGP := (*big.Int)(api.gasPrice)
 	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
-		price := new(big.Int).Set(mempool.GlobalRecommendedGP)
-		if price.Cmp(globalMinGP) == -1 {
-			price.Set(globalMinGP)
-		}
-
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
-			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			recommendGP = new(big.Int).Mul(price, coefficient)
-		} else {
-			recommendGP = price
-		}
-
-		if recommendGP.Cmp(globalMaxGP) == 1 {
-			recommendGP.Set(globalMaxGP)
-		}
+		return (*hexutil.Big)(mempool.GlobalRecommendedGP)
 	}
 
-	return (*hexutil.Big)(recommendGP)
+	return api.gasPrice
 }
 
 func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
@@ -290,21 +272,7 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 
 	avgGP := (*big.Int)(api.gasPrice)
 	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
-		price := new(big.Int).Set(mempool.GlobalRecommendedGP)
-		if price.Cmp(globalMinGP) == -1 {
-			price.Set(globalMinGP)
-		}
-
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
-			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			avgGP = new(big.Int).Mul(price, coefficient)
-		} else {
-			avgGP = price
-		}
-
-		if avgGP.Cmp(globalMaxGP) == 1 {
-			avgGP.Set(globalMaxGP)
-		}
+		avgGP.Set(mempool.GlobalRecommendedGP)
 	}
 	// safe low GP = average GP * 0.5, but it will not be less than the minimal GP.
 	safeGp := new(big.Int).Quo(avgGP, big.NewInt(2))
