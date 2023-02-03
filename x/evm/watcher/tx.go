@@ -22,6 +22,14 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 	if !w.Enabled() {
 		return
 	}
+	// record ResultTx always
+	txResult := &ctypes.ResultTx{
+		Hash:     tx.TxHash(),
+		Height:   int64(w.height),
+		TxResult: *resp,
+		Tx:       tx.GetRaw(),
+	}
+	w.saveStdTxResponse(txResult)
 
 	realTx, err := w.getRealTx(tx, txDecoder)
 	if err != nil {
@@ -51,13 +59,6 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		}
 	case sdk.StdTxType:
 		w.blockStdTxs = append(w.blockStdTxs, common.BytesToHash(realTx.TxHash()))
-		txResult := &ctypes.ResultTx{
-			Hash:     tx.TxHash(),
-			Height:   int64(w.height),
-			TxResult: *resp,
-			Tx:       tx.GetRaw(),
-		}
-		w.saveStdTxResponse(txResult)
 	}
 }
 
@@ -156,6 +157,15 @@ func (w *Watcher) SaveParallelTx(realTx sdk.Tx, resultData *types.ResultData, re
 		return
 	}
 
+	// record ResultTx always
+	txResult := &ctypes.ResultTx{
+		Hash:     realTx.TxHash(),
+		Height:   int64(w.height),
+		TxResult: resp,
+		Tx:       realTx.GetRaw(),
+	}
+	w.saveStdTxResponse(txResult)
+
 	switch realTx.GetType() {
 	case sdk.EvmTxType:
 		msgs := realTx.GetMsgs()
@@ -178,12 +188,5 @@ func (w *Watcher) SaveParallelTx(realTx sdk.Tx, resultData *types.ResultData, re
 		}
 	case sdk.StdTxType:
 		w.blockStdTxs = append(w.blockStdTxs, common.BytesToHash(realTx.TxHash()))
-		txResult := &ctypes.ResultTx{
-			Hash:     realTx.TxHash(),
-			Height:   int64(w.height),
-			TxResult: resp,
-			Tx:       realTx.GetRaw(),
-		}
-		w.saveStdTxResponse(txResult)
 	}
 }

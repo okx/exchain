@@ -330,7 +330,8 @@ func RawTxResultToEthReceipt(chainID *big.Int, tr *ctypes.ResultTx, realTx sdk.T
 		return nil, err
 	}
 
-	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), Receipt: &receipt, EthTx: rpcTx}, nil
+	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt),
+		Receipt: &receipt, EthTx: rpcTx, EthTxLog: tr.TxResult.Log}, nil
 }
 
 func GetEthSender(tr *ctypes.ResultTx) (string, error) {
