@@ -23,13 +23,15 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		return
 	}
 	// record ResultTx always
-	txResult := &ctypes.ResultTx{
-		Hash:     tx.TxHash(),
-		Height:   int64(w.height),
-		TxResult: *resp,
-		Tx:       tx.GetRaw(),
+	if resp != nil {
+		txResult := &ctypes.ResultTx{
+			Hash:     tx.TxHash(),
+			Height:   int64(w.height),
+			TxResult: *resp,
+			Tx:       tx.GetRaw(),
+		}
+		w.saveStdTxResponse(txResult)
 	}
-	w.saveStdTxResponse(txResult)
 
 	realTx, err := w.getRealTx(tx, txDecoder)
 	if err != nil {
