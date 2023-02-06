@@ -240,16 +240,14 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
-	// Events are fired after runAbci.
 	// publish event
 	if types.EnableEventBlockTime {
 		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), true)
-	}
-	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	if !blockExec.isNullIndexer {
-		blockExec.eventsChan <- event{
-			block:   block,
-			abciRsp: abciResponses,
+		if !blockExec.isNullIndexer {
+			blockExec.eventsChan <- event{
+				block:   block,
+				abciRsp: abciResponses,
+			}
 		}
 	}
 
