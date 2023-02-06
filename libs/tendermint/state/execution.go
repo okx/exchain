@@ -240,16 +240,14 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	abciResponses, duration, err := blockExec.runAbci(block, deltaInfo)
 
-	// Events are fired after runAbci.
 	// publish event
 	if types.EnableEventBlockTime {
 		blockExec.FireBlockTimeEvents(block.Height, len(block.Txs), true)
-	}
-	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	if !blockExec.isNullIndexer {
-		blockExec.eventsChan <- event{
-			block:   block,
-			abciRsp: abciResponses,
+		if !blockExec.isNullIndexer {
+			blockExec.eventsChan <- event{
+				block:   block,
+				abciRsp: abciResponses,
+			}
 		}
 	}
 
@@ -315,6 +313,17 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	fail.Fail() // XXX
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
+
+	// Events are fired after everything else.
+	// NOTE: if we crash between Commit and Save, events wont be fired during replay
+	if !types.EnableEventBlockTime {
+		if !blockExec.isNullIndexer {
+			blockExec.eventsChan <- event{
+				block:   block,
+				abciRsp: abciResponses,
+			}
+		}
+	}
 
 	return state, retainHeight, nil
 }
