@@ -314,6 +314,17 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
+	// Events are fired after everything else.
+	// NOTE: if we crash between Commit and Save, events wont be fired during replay
+	if !types.EnableEventBlockTime {
+		if !blockExec.isNullIndexer {
+			blockExec.eventsChan <- event{
+				block:   block,
+				abciRsp: abciResponses,
+			}
+		}
+	}
+
 	return state, retainHeight, nil
 }
 
