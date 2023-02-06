@@ -100,6 +100,6 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	if price.Cmp(maxGP) == 1 {
 		price.Set(maxGP)
 	}
-	trace.GetElapsedInfo().AddInfo(trace.RecommendedGP, fmt.Sprintf("%sWei", GlobalRecommendedGP.String()))
+	trace.GetElapsedInfo().AddInfo(trace.RecommendedGP, fmt.Sprintf("%sWei", price.String()))
 	return price
 }
