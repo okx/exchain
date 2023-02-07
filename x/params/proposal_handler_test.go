@@ -213,7 +213,7 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("upgrade-name-%d", i), tt.expectHeight, "")
 		msg := govtypes.NewMsgSubmitProposal(upgradeProposal, tt.proposalInitDeposit, tt.proposer)
 		if tt.nameHasExist {
-			suite.NoError(suite.paramsKeeper.writeUpgradeInfoToStore(ctx, upgradeProposal.UpgradeInfo, false))
+			suite.NoError(suite.paramsKeeper.writeUpgradeInfo(ctx, upgradeProposal.UpgradeInfo, false))
 		}
 
 		err = suite.paramsKeeper.CheckMsgSubmitProposal(ctx, msg)

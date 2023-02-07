@@ -26,9 +26,7 @@ type Keeper struct {
 
 	logger log.Logger
 
-	storeKey         *sdk.KVStoreKey
-	upgradeReadyMap  map[string]func(types.UpgradeInfo)
-	upgradeInfoCache map[string]types.UpgradeInfo
+	upgradeCache *types.UpgradeCache
 }
 
 // NewKeeper creates a new instance of params keeper
@@ -40,9 +38,7 @@ func NewKeeper(cdc *codec.Codec, key *sdk.KVStoreKey, tkey *sdk.TransientStoreKe
 
 		logger: logger.With("module", fmt.Sprintf("x/%s", ModuleName)),
 
-		storeKey:         key,
-		upgradeReadyMap:  make(map[string]func(types.UpgradeInfo)),
-		upgradeInfoCache: make(map[string]types.UpgradeInfo),
+		upgradeCache: types.NewUpgreadeCache(key, logger, cdc),
 	}
 	k.cdc = cdc
 	k.paramSpace = k.Subspace(DefaultParamspace).WithKeyTable(types.ParamKeyTable())

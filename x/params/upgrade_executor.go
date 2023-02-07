@@ -37,7 +37,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 	}
 
 	// proposal will be confirmed right now, check if ready.
-	cb, ready := k.queryReadyForUpgrade(proposal.Name)
+	cbs, ready := k.queryReadyForUpgrade(proposal.Name)
 	if !ready {
 		// if no module claims that has ready for this upgrade,
 		// that probably means program's version is too low.
@@ -55,8 +55,10 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		return err
 	}
 
-	if cb != nil {
-		cb(storedInfo)
+	for _, cb := range cbs {
+		if cb != nil {
+			cb(storedInfo)
+		}
 	}
 	return nil
 }
