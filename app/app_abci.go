@@ -7,7 +7,6 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/wasm/watcher"
 )
 
@@ -32,10 +31,12 @@ func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
 }
 
 func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
-	store := app.GetCMS().GetKVStore(app.keys[params.StoreKey])
-	if app.ParamsKeeper.IsUpgradeEffective2(store, "UpgradeProposalTest") {
-		app.Logger().Debug("UpgradeProposal is effective")
-	}
+	/*
+		store := app.GetCMS().GetKVStore(app.keys[params.StoreKey])
+		if app.ParamsKeeper.IsUpgradeEffective2(store, "UpgradeProposalTest") {
+			app.Logger().Debug("UpgradeProposal is effective")
+		}
+	*/
 
 	trace.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)
