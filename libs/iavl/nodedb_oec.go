@@ -293,7 +293,12 @@ func (ndb *nodeDB) cleanPruningInDB() {
 	}
 	ndb.log(IavlErr, "start cleanPruningInDB", "name", ndb.name, "version", version)
 	ndb.deleteRoot(nil, version, false, true)
-	ndb.deleteOrphansFromDB(version)
+	batch := ndb.db.NewBatch()
+	defer batch.Close()
+	ndb.deleteOrphans(batch, version)
+	if err := batch.Write(); err != nil {
+		panic(err)
+	}
 	ndb.deletePruningRoot()
 	ndb.log(IavlErr, "cleanPruningInDB is done", "name", ndb.name, "version", version)
 }
