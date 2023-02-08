@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -53,6 +54,15 @@ func (uc *UpgradeCache) ReadUpgradeInfo(ctx sdk.Context, name string) (UpgradeIn
 	}
 
 	//uc.writeUpgradeInfo(info)
+	return info, nil
+}
+
+func (uc *UpgradeCache) ReadUpgradeInfo2(store store.KVStore, name string) (UpgradeInfo, error) {
+	info, err := readUpgradeInfoFromStore2(store, name, uc.storeKey, uc.cdc)
+	if err != nil {
+		return info, err
+	}
+
 	return info, nil
 }
 
@@ -150,6 +160,20 @@ func readUpgradeInfoFromStore(ctx sdk.Context, name string, skey *sdk.KVStoreKey
 	return info, nil
 }
 
+func readUpgradeInfoFromStore2(_store store.KVStore, name string, skey *sdk.KVStoreKey, cdc *codec.Codec) (UpgradeInfo, sdk.Error) {
+	store := getUpgradeStore2(_store)
+
+	data := store.Get([]byte(name))
+	if len(data) == 0 {
+		err := fmt.Errorf("upgrade '%s' is not exist", name)
+		return UpgradeInfo{}, err
+	}
+
+	var info UpgradeInfo
+	cdc.MustUnmarshalJSON(data, &info)
+	return info, nil
+}
+
 func writeUpgradeInfoToStore(ctx sdk.Context, info UpgradeInfo, forceCover bool, skey *sdk.KVStoreKey, cdc *codec.Codec, logger log.Logger) sdk.Error {
 	key := []byte(info.Name)
 
@@ -167,6 +191,10 @@ func writeUpgradeInfoToStore(ctx sdk.Context, info UpgradeInfo, forceCover bool,
 
 func getUpgradeStore(ctx sdk.Context, skey *sdk.KVStoreKey) sdk.KVStore {
 	return prefix.NewStore(ctx.KVStore(skey), upgradeInfoPreifx)
+}
+
+func getUpgradeStore2(store store.KVStore) sdk.KVStore {
+	return prefix.NewStore(store, upgradeInfoPreifx)
 }
 
 func readReadyFromStore(ctx sdk.Context, name string, skey *sdk.KVStoreKey) ([]byte, bool) {

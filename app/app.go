@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"io"
 	"math/big"
 	"os"
@@ -106,6 +107,7 @@ import (
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	paramstypes "github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
@@ -791,7 +793,28 @@ func NewOKExChainApp(
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
 
+	cdc := codec.New()
+	cdc.RegisterConcrete(paramstypes.UpgradeInfo{}, "okexchain/params/types/UpgradeInfo", nil)
+	cdc.Seal()
+	store := bApp.GetCMS().GetKVStore(app.keys[params.StoreKey])
+	writeUpgradeInfoToStore(store, paramstypes.UpgradeInfo{
+		Name:            "UpgradeProposalTest",
+		ExpectHeight:    10000,
+		Config:          "",
+		EffectiveHeight: 10000,
+		Status:          paramstypes.UpgradeStatusEffective,
+	}, cdc)
+
 	return app
+}
+
+func writeUpgradeInfoToStore(st store.KVStore, info paramstypes.UpgradeInfo, cdc *codec.Codec) sdk.Error {
+	key := []byte(info.Name)
+
+	data := cdc.MustMarshalJSON(info)
+	st.Set(key, data)
+
+	return nil
 }
 
 func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
@@ -818,9 +841,6 @@ func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker updates every begin block
 func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	if app.ParamsKeeper.IsUpgradeEffective(ctx, "UpgradeProposalTest") {
-		app.Logger().Error("UpgradeProposalTest is effective")
-	}
 	return app.mm.BeginBlock(ctx, req)
 }
 
