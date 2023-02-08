@@ -291,9 +291,11 @@ func (ndb *nodeDB) cleanPruningInDB() {
 	if !exist {
 		return
 	}
+	ndb.log(IavlErr, "start cleanPruningInDB", "name", ndb.name, "version", version)
 	ndb.deleteRoot(nil, version, false, true)
 	ndb.deleteOrphansFromDB(version)
 	ndb.deletePruningRoot()
+	ndb.log(IavlErr, "cleanPruningInDB is done", "name", ndb.name, "version", version)
 }
 
 func (ndb *nodeDB) setPruningRoot(version int64, checkLatestVersion bool) {
