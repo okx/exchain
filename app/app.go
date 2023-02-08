@@ -818,6 +818,9 @@ func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker updates every begin block
 func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+	if app.ParamsKeeper.IsUpgradeEffective(ctx, "UpgradeProposalTest") {
+		app.Logger().Error("UpgradeProposalTest is effective")
+	}
 	return app.mm.BeginBlock(ctx, req)
 }
 
