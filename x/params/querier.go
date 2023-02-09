@@ -48,7 +48,7 @@ func queryUpgrade(ctx sdk.Context, name string, keeper Keeper) ([]byte, sdk.Erro
 			return nil, err
 		}
 	} else {
-		info, err := keeper.readUpgradeInfo(ctx, name)
+		info, err := keeper.readUpgradeInfoFromStore(ctx, name)
 		if err != nil {
 			return nil, sdk.ErrInternal(err.Error())
 		}

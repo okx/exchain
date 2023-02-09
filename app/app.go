@@ -800,7 +800,6 @@ func NewOKExChainApp(
 	writeUpgradeInfoToStore(store, paramstypes.UpgradeInfo{
 		Name:            "UpgradeProposalTest",
 		ExpectHeight:    10000,
-		Config:          "",
 		EffectiveHeight: 10000,
 		Status:          paramstypes.UpgradeStatusEffective,
 	}, cdc)

@@ -25,7 +25,6 @@ type UpgradeProposalJSON struct {
 
 	Name         string `json:"name" yaml:"name"`
 	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
-	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 func ParseUpgradeProposalJSON(cdc *codec.Codec, proposalFile string) (UpgradeProposalJSON, error) {
@@ -73,8 +72,7 @@ Where proposal.json contains:
     }
   ],
   "name": "YourUpgradeName",
-  "expectHeight": "1000",
-  "config": "your config string or empty"
+  "expectHeight": "1000"
 }
 `,
 				version.ClientName, sdk.DefaultBondDenom,
@@ -97,7 +95,6 @@ Where proposal.json contains:
 				proposal.Description,
 				proposal.Name,
 				proposal.ExpectHeight,
-				proposal.Config,
 			)
 
 			msg := govTypes.NewMsgSubmitProposal(content, proposal.Deposit, from)

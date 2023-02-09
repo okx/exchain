@@ -19,9 +19,9 @@ const (
 
 	maxNameLength = 140
 
-	UpgradeStatusPreparing        = 0
-	UpgradeStatusWaitingEffective = 1
-	UpgradeStatusEffective        = 2
+	UpgradeStatusPreparing        = UpgradeStatus(0)
+	UpgradeStatusWaitingEffective = UpgradeStatus(1)
+	UpgradeStatusEffective        = UpgradeStatus(2)
 )
 
 // Assert ParameterChangeProposal implements govtypes.Content at compile-time
@@ -43,21 +43,19 @@ type UpgradeProposal struct {
 type UpgradeInfo struct {
 	Name         string `json:"name" yaml:"name"`
 	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
-	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 
-	// only used in store
+	// not be set by proposer
 	EffectiveHeight uint64        `json:"effectiveHeight,omitempty" yaml:"effectiveHeight,omitempty"`
 	Status          UpgradeStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
-func NewUpgradeProposal(title, description, name string, expectHeight uint64, config string) UpgradeProposal {
+func NewUpgradeProposal(title, description, name string, expectHeight uint64) UpgradeProposal {
 	return UpgradeProposal{
 		Title:       title,
 		Description: description,
 		UpgradeInfo: UpgradeInfo{
 			Name:         name,
 			ExpectHeight: expectHeight,
-			Config:       config,
 
 			EffectiveHeight: 0,
 		},
@@ -108,8 +106,7 @@ func (up UpgradeProposal) String() string {
   Description: %s
   Name:        %s
   Height:      %d
-  Config:      %s
-`, up.Title, up.Description, up.Name, up.ExpectHeight, up.Config))
+`, up.Title, up.Description, up.Name, up.ExpectHeight))
 
 	return b.String()
 }
