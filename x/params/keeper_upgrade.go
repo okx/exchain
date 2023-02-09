@@ -1,8 +1,6 @@
 package params
 
 import (
-	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/params/types"
 )
@@ -16,31 +14,19 @@ func (keeper *Keeper) ClaimReadyForUpgrade(name string, cb func(types.UpgradeInf
 }
 
 func (keeper *Keeper) IsUpgradeEffective(ctx sdk.Context, name string) bool {
-	_, err := keeper.GetEffectiveUpgradeInfo(ctx, name)
-	return err == nil
-}
-
-func (keeper *Keeper) GetEffectiveUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
-	info, err := keeper.readUpgradeInfo(ctx, name)
+	b, err := keeper.upgradeCache.IsUpgradeEffective(ctx, name)
 	if err != nil {
-		return types.UpgradeInfo{}, err
+		return false
 	}
-
-	if !isUpgradeEffective(ctx, info) {
-		keeper.Logger(ctx).Debug("upgrade is not effective", "name", name)
-		return types.UpgradeInfo{}, fmt.Errorf("upgrade '%s' is not effective", name)
-	}
-
-	keeper.Logger(ctx).Debug("upgrade is effective", "name", name)
-	return info, nil
+	return b
 }
 
 func (keeper *Keeper) queryReadyForUpgrade(name string) ([]func(types.UpgradeInfo), bool) {
 	return keeper.upgradeCache.QueryReadyForUpgrade(name)
 }
 
-func (keeper *Keeper) readUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
-	return keeper.upgradeCache.ReadUpgradeInfo(ctx, name)
+func (keeper *Keeper) readUpgradeInfoFromStore(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
+	return keeper.upgradeCache.ReadUpgradeInfoFromStore(ctx, name)
 }
 
 func (keeper Keeper) iterateAllUpgradeInfo(ctx sdk.Context, cb func(info types.UpgradeInfo) (stop bool)) sdk.Error {
@@ -53,8 +39,4 @@ func (keeper *Keeper) writeUpgradeInfo(ctx sdk.Context, info types.UpgradeInfo, 
 
 func (keeper *Keeper) isUpgradeExist(ctx sdk.Context, name string) bool {
 	return keeper.upgradeCache.IsUpgradeExist(ctx, name)
-}
-
-func isUpgradeEffective(ctx sdk.Context, info types.UpgradeInfo) bool {
-	return info.Status == types.UpgradeStatusEffective && uint64(ctx.BlockHeight()) >= info.EffectiveHeight
 }

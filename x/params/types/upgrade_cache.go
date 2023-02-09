@@ -37,21 +37,27 @@ func NewUpgreadeCache(storeKey *sdk.KVStoreKey, logger log.Logger, cdc *codec.Co
 	}
 }
 
-func (uc *UpgradeCache) ReadUpgradeInfo(ctx sdk.Context, name string) (UpgradeInfo, error) {
-	if ctx.UseParamCache() {
-		info, exist := uc.readUpgradeInfo(name)
-		if exist {
-			return info, nil
+func (uc *UpgradeCache) IsUpgradeEffective(ctx sdk.Context, name string) (bool, error) {
+	// NOTE: using map cache directly, no matter parallel execution or not.
+	// PRECONDITION: upgrade will never be effective at the block which write it to store.
+	// For this precondition, while parallel execution the tx sequence doesn't affect the result
+	// of "the upgrade is effective", which is the result of this function to return.
+	info, exist := uc.readUpgradeInfo(name)
+	if !exist {
+		var err error
+		info, err = readUpgradeInfoFromStore(ctx, name, uc.storeKey, uc.cdc)
+		if err != nil {
+			return false, err
 		}
+
+		uc.writeUpgradeInfo(info)
 	}
 
-	info, err := readUpgradeInfoFromStore(ctx, name, uc.storeKey, uc.cdc)
-	if err != nil {
-		return info, err
-	}
+	return isUpgradeEffective(ctx, info), nil
+}
 
-	uc.writeUpgradeInfo(info)
-	return info, nil
+func (uc *UpgradeCache) ReadUpgradeInfoFromStore(ctx sdk.Context, name string) (UpgradeInfo, error) {
+	return readUpgradeInfoFromStore(ctx, name, uc.storeKey, uc.cdc)
 }
 
 func (uc *UpgradeCache) ClaimReadyForUpgrade(name string, cb func(UpgradeInfo)) {
@@ -69,6 +75,8 @@ func (uc *UpgradeCache) WriteUpgradeInfo(ctx sdk.Context, info UpgradeInfo, forc
 
 	// store is updated, remove the info from cache so
 	// makeing ReadUpgradeInfo to re-read from store.
+	// remove but not update cache: For the tx may be execute failed
+	// and the store may be rollback.
 	uc.removeUpgradeInfo(info.Name)
 	return nil
 }
@@ -185,4 +193,8 @@ func writeReadyToStore(ctx sdk.Context, name string, skey *sdk.KVStoreKey) {
 
 func getReadyStore(ctx sdk.Context, skey *sdk.KVStoreKey) sdk.KVStore {
 	return prefix.NewStore(ctx.KVStore(skey), readyPrefix)
+}
+
+func isUpgradeEffective(ctx sdk.Context, info UpgradeInfo) bool {
+	return info.Status == UpgradeStatusEffective && uint64(ctx.BlockHeight()) >= info.EffectiveHeight
 }

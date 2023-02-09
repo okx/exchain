@@ -23,7 +23,6 @@ type UpgradeProposalReq struct {
 
 	Name         string `json:"name" yaml:"name"`
 	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
-	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 func ProposalUpgradeRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
@@ -45,7 +44,7 @@ func postUpgradeProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		content := types.NewUpgradeProposal(req.Title, req.Description, req.Name, req.ExpectHeight, req.Config)
+		content := types.NewUpgradeProposal(req.Title, req.Description, req.Name, req.ExpectHeight)
 
 		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
 		if err := msg.ValidateBasic(); err != nil {
