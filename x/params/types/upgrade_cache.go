@@ -21,10 +21,10 @@ type UpgradeCache struct {
 	logger   log.Logger
 	cdc      *codec.Codec
 
-	readyLock       sync.Mutex
-	upgradeReadyMap map[string][]func(UpgradeInfo)
-	//infoLock         sync.Mutex
-	//upgradeInfoCache map[string]UpgradeInfo
+	readyLock        sync.Mutex
+	upgradeReadyMap  map[string][]func(UpgradeInfo)
+	infoLock         sync.Mutex
+	upgradeInfoCache map[string]UpgradeInfo
 }
 
 func NewUpgreadeCache(storeKey *sdk.KVStoreKey, logger log.Logger, cdc *codec.Codec) *UpgradeCache {
@@ -33,27 +33,25 @@ func NewUpgreadeCache(storeKey *sdk.KVStoreKey, logger log.Logger, cdc *codec.Co
 		logger:   logger,
 		cdc:      cdc,
 
-		upgradeReadyMap: make(map[string][]func(UpgradeInfo)),
-		//upgradeInfoCache: make(map[string]UpgradeInfo),
+		upgradeReadyMap:  make(map[string][]func(UpgradeInfo)),
+		upgradeInfoCache: make(map[string]UpgradeInfo),
 	}
 }
 
 func (uc *UpgradeCache) ReadUpgradeInfo(ctx sdk.Context, name string) (UpgradeInfo, error) {
-	/*
-		if ctx.UseParamCache() {
-			info, exist := uc.readUpgradeInfo(name)
-			if exist {
-				return info, nil
-			}
+	if ctx.UseParamCache() {
+		info, exist := uc.readUpgradeInfo(name)
+		if exist {
+			return info, nil
 		}
-	*/
+	}
 
 	info, err := readUpgradeInfoFromStore(ctx, name, uc.storeKey, uc.cdc)
 	if err != nil {
 		return info, err
 	}
 
-	//uc.writeUpgradeInfo(info)
+	uc.writeUpgradeInfo(info)
 	return info, nil
 }
 
@@ -79,7 +77,9 @@ func (uc *UpgradeCache) WriteUpgradeInfo(ctx sdk.Context, info UpgradeInfo, forc
 		return err
 	}
 
-	//uc.writeUpgradeInfo(info)
+	// store is updated, remove the info from cache so
+	// makeing ReadUpgradeInfo to re-read from store.
+	uc.removeUpgradeInfo(info.Name)
 	return nil
 }
 
@@ -107,7 +107,6 @@ func (uc *UpgradeCache) IterateAllUpgradeInfo(ctx sdk.Context, cb func(info Upgr
 	return nil
 }
 
-/*
 func (uc *UpgradeCache) readUpgradeInfo(name string) (UpgradeInfo, bool) {
 	uc.infoLock.Lock()
 	defer uc.infoLock.Unlock()
@@ -115,16 +114,20 @@ func (uc *UpgradeCache) readUpgradeInfo(name string) (UpgradeInfo, bool) {
 	info, ok := uc.upgradeInfoCache[name]
 	return info, ok
 }
-*/
 
-/*
+func (uc *UpgradeCache) removeUpgradeInfo(name string) {
+	uc.infoLock.Lock()
+	defer uc.infoLock.Unlock()
+
+	delete(uc.upgradeInfoCache, name)
+}
+
 func (uc *UpgradeCache) writeUpgradeInfo(info UpgradeInfo) {
 	uc.infoLock.Lock()
 	defer uc.infoLock.Unlock()
 
 	uc.upgradeInfoCache[info.Name] = info
 }
-*/
 
 func (uc *UpgradeCache) readClaim(name string) ([]func(UpgradeInfo), bool) {
 	uc.readyLock.Lock()
