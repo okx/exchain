@@ -21,9 +21,9 @@ type UpgradeCache struct {
 	logger   log.Logger
 	cdc      *codec.Codec
 
-	readyLock        sync.Mutex
-	upgradeReadyMap  map[string][]func(UpgradeInfo)
-	infoLock         sync.Mutex
+	readyLock       sync.Mutex
+	upgradeReadyMap map[string][]func(UpgradeInfo)
+	//infoLock         sync.Mutex
 	upgradeInfoCache map[string]UpgradeInfo
 }
 
@@ -122,23 +122,23 @@ func (uc *UpgradeCache) IterateAllUpgradeInfo(ctx sdk.Context, cb func(info Upgr
 }
 
 func (uc *UpgradeCache) readUpgradeInfo(name string) (UpgradeInfo, bool) {
-	uc.infoLock.Lock()
-	defer uc.infoLock.Unlock()
+	//uc.infoLock.Lock()
+	//defer uc.infoLock.Unlock()
 
 	info, ok := uc.upgradeInfoCache[name]
 	return info, ok
 }
 
 func (uc *UpgradeCache) removeUpgradeInfo(name string) {
-	uc.infoLock.Lock()
-	defer uc.infoLock.Unlock()
+	//uc.infoLock.Lock()
+	//defer uc.infoLock.Unlock()
 
 	delete(uc.upgradeInfoCache, name)
 }
 
 func (uc *UpgradeCache) writeUpgradeInfo(info UpgradeInfo) {
-	uc.infoLock.Lock()
-	defer uc.infoLock.Unlock()
+	//uc.infoLock.Lock()
+	//defer uc.infoLock.Unlock()
 
 	uc.upgradeInfoCache[info.Name] = info
 }
