@@ -234,6 +234,8 @@ type OKExChainApp struct {
 
 	invCheckPeriod uint
 
+	ParamsStore store.KVStore
+
 	// keys to access the substores
 	keys  map[string]*sdk.KVStoreKey
 	tkeys map[string]*sdk.TransientStoreKey
@@ -803,6 +805,7 @@ func NewOKExChainApp(
 		EffectiveHeight: 10000,
 		Status:          paramstypes.UpgradeStatusEffective,
 	}, cdc)
+	app.ParamsStore = app.GetCMS().GetKVStore(app.keys[params.StoreKey])
 
 	return app
 }
