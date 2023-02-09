@@ -17,7 +17,7 @@ var _ govKeeper.ProposalHandler = (*Keeper)(nil)
 func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDeposit sdk.SysCoins) {
 	switch content.(type) {
 	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal,
-		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal:
+		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal, types.ManageContractByteCodeProposal:
 		minDeposit = k.govKeeper.GetDepositParams(ctx).MinDeposit
 	}
 
@@ -28,7 +28,7 @@ func (k Keeper) GetMinDeposit(ctx sdk.Context, content sdkGov.Content) (minDepos
 func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (maxDepositPeriod time.Duration) {
 	switch content.(type) {
 	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal,
-		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal:
+		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal, types.ManageContractByteCodeProposal:
 		maxDepositPeriod = k.govKeeper.GetDepositParams(ctx).MaxDepositPeriod
 	}
 
@@ -39,7 +39,7 @@ func (k Keeper) GetMaxDepositPeriod(ctx sdk.Context, content sdkGov.Content) (ma
 func (k Keeper) GetVotingPeriod(ctx sdk.Context, content sdkGov.Content) (votingPeriod time.Duration) {
 	switch content.(type) {
 	case types.ManageContractDeploymentWhitelistProposal, types.ManageContractBlockedListProposal,
-		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal:
+		types.ManageContractMethodBlockedListProposal, types.ManageSysContractAddressProposal, types.ManageContractByteCodeProposal:
 		votingPeriod = k.govKeeper.GetVotingParams(ctx).VotingPeriod
 	}
 
@@ -81,6 +81,18 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 			return types.ErrNotContracAddress(fmt.Errorf(content.ContractAddr.String()))
 		}
 		return nil
+	case types.ManageContractByteCodeProposal:
+		if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
+			return types.ErrCodeProposerMustBeValidator()
+		}
+		if !k.IsContractAccount(ctx, content.Contract) {
+			return types.ErrNotContracAddress(fmt.Errorf(content.Contract.String()))
+		}
+		if !k.IsContractAccount(ctx, content.SubstituteContract) {
+			return types.ErrNotContracAddress(fmt.Errorf(content.SubstituteContract.String()))
+		}
+		return nil
+
 	default:
 		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))
 	}

@@ -40,6 +40,7 @@ var (
 	enableFastStorage               = true
 	forceReadIavl                   = false
 	ignoreAutoUpgrade               = false
+	PruningChannelSize              = 10
 )
 
 type commitEvent struct {
@@ -52,6 +53,11 @@ type commitEvent struct {
 	fnc        *fastNodeChanges
 	orphans    []commitOrphan
 	isStop     bool
+}
+
+type pruneEvent struct {
+	version int64
+	wg      *sync.WaitGroup
 }
 
 type commitOrphan struct {
@@ -164,15 +170,20 @@ func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byt
 	}
 	treeMap.updatePpnc(version)
 
-	tree.removedVersions.Range(func(k, v interface{}) bool {
-		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
-		tree.removeVersion(k.(int64))
-		tree.removedVersions.Delete(k)
-		return true
-	})
+	tree.updatePruningVersion()
 
 	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
 	return rootHash, version, nil
+}
+
+func (tree *MutableTree) updatePruningVersion() {
+	tree.removedVersions.Range(func(k, v interface{}) bool {
+		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
+		tree.removeVersion(k.(int64))
+		tree.pruneCh <- pruneEvent{version: k.(int64)}
+		tree.removedVersions.Delete(k)
+		return true
+	})
 }
 
 func (tree *MutableTree) removeVersion(version int64) {
@@ -250,7 +261,7 @@ func (tree *MutableTree) commitSchedule() {
 		}
 
 		trc.Pin("Pruning")
-		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions, noBatch)
+		tree.updateCommittedStateHeightPool(event.version, event.versions)
 
 		tree.ndb.persistTpp(&event, noBatch, trc)
 		if event.wg != nil {
@@ -259,6 +270,36 @@ func (tree *MutableTree) commitSchedule() {
 		}
 	}
 }
+
+func (tree *MutableTree) pruningSchedule() {
+	for event := range tree.pruneCh {
+		if event.version >= 0 {
+			trc := trace.NewTracer("pruningSchedule")
+			batch := tree.ndb.NewBatch()
+			trc.Pin("deleteVersion")
+			tree.ndb.deleteVersion(batch, event.version, true)
+			trc.Pin("Commit")
+			if err := tree.ndb.Commit(batch); err != nil {
+				panic(err)
+			}
+			tree.ndb.log(IavlInfo, "PruningSchedule", "Height", event.version,
+				"Tree", tree.ndb.name,
+				"trc", trc.Format())
+		}
+
+		if event.wg != nil {
+			event.wg.Done()
+		}
+	}
+}
+
+func (tree *MutableTree) waitCurrentPruningScheduleDone() {
+	pruneWg := &sync.WaitGroup{}
+	pruneWg.Add(1)
+	tree.pruneCh <- pruneEvent{-1, pruneWg}
+	pruneWg.Wait()
+}
+
 func (tree *MutableTree) GetVersions() ([]int64, error) {
 	versions, err := tree.ndb.getRoots()
 	if err != nil {
@@ -317,6 +358,9 @@ func (tree *MutableTree) StopTreeWithVersion(version int64) {
 
 	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges, nil, true}
 	wg.Wait()
+
+	tree.updatePruningVersion()
+	tree.waitCurrentPruningScheduleDone()
 }
 func (tree *MutableTree) StopTree() {
 	tree.StopTreeWithVersion(tree.version)
@@ -326,7 +370,7 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool, writeToDB bool) {
+func (tree *MutableTree) updateCommittedStateHeightPool(version int64, versions map[int64]bool) {
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
 	tree.committedHeightMap[version] = true
@@ -337,19 +381,11 @@ func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version
 		delete(tree.committedHeightMap, oldVersion)
 
 		if EnablePruningHistoryState {
-			if writeToDB {
-				batch = tree.ndb.db.NewBatch()
-			}
-			if err := tree.deleteVersion(batch, oldVersion, versions); err != nil {
+			if err := tree.deleteVersionPreCheck(oldVersion, versions); err != nil {
 				tree.log(IavlErr, "Failed to delete", "height", oldVersion, "error", err.Error())
 			} else {
 				tree.log(IavlDebug, "History state removed", "version", oldVersion)
 				tree.removedVersions.Store(oldVersion, nil)
-			}
-			if writeToDB {
-				if err := tree.ndb.Commit(batch); err != nil {
-					panic(err)
-				}
 			}
 		}
 	}
