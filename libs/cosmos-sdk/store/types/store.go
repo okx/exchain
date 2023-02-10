@@ -196,6 +196,9 @@ type CommitMultiStore interface {
 	LoadVersion(ver int64) error
 	GetCommitVersion() (int64, error)
 
+	// SetIAVLLazyLoading enable/disable lazy loading on iavl.
+	SetLazyLoading(lazyLoading bool)
+
 	// Set an inter-block (persistent) cache that maintains a mapping from
 	// StoreKeys to CommitKVStores.
 	SetInterBlockCache(MultiStorePersistentCache)

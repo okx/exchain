@@ -63,6 +63,7 @@ const (
 	FlagEvmImportPath     = "evm-import-path"
 	FlagEvmImportMode     = "evm-import-mode"
 	FlagGoroutineNum      = "goroutine-num"
+	FlagIAVLLazyLoading   = "iavl-lazy-loading"
 
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
 	FlagExportKeystore  = "export-keystore"

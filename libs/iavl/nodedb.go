@@ -762,6 +762,21 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 	}
 }
 
+// getFirstVersion returns the first version in the iavl tree, returns 0 if it's empty.
+func (ndb *nodeDB) getFirstVersion() (int64, error) {
+	itr, err := dbm.IteratePrefix(ndb.db, rootKeyFormat.Key())
+	if err != nil {
+		return 0, err
+	}
+	defer itr.Close()
+	if itr.Valid() {
+		var version int64
+		rootKeyFormat.Scan(itr.Key(), &version)
+		return version, nil
+	}
+	return 0, nil
+}
+
 // Get iterator for fast prefix and error, if any
 func (ndb *nodeDB) getFastIterator(start, end []byte, ascending bool) (dbm.Iterator, error) {
 	var startFormatted, endFormatted []byte

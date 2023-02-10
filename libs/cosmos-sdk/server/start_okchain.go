@@ -208,6 +208,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().Int(tmiavl.FlagIavlMaxCommittedHeightNum, 30, "Max committed version to cache in memory")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, true, "Enable async commit")
+	cmd.Flags().Bool(FlagIAVLLazyLoading, false, "Enable iavl lazy loading")
 	cmd.Flags().Bool(tmiavl.FlagIavlDiscardFastStorage, false, "Discard fast storage")
 	cmd.Flags().MarkHidden(tmiavl.FlagIavlDiscardFastStorage)
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableFastStorage, false, "Enable fast storage")

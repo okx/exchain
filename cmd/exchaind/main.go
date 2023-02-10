@@ -165,6 +165,7 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
+		baseapp.SetIAVLLazyLoading(viper.GetBool(server.FlagIAVLLazyLoading)),
 	)
 }
 
