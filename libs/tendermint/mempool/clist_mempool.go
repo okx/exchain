@@ -36,6 +36,7 @@ type TxInfoParser interface {
 var (
 	// GlobalRecommendedGP is initialized to 0.1GWei
 	GlobalRecommendedGP = big.NewInt(100000000)
+	IsCongested         = false
 )
 
 //--------------------------------------------------------------------------------
@@ -1036,7 +1037,7 @@ func (mem *CListMempool) Update(
 	if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
 		currentBlockGPsCopy := mem.gpo.CurrentBlockGPs.Copy()
 		_ = mem.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
-		GlobalRecommendedGP = mem.gpo.RecommendGP()
+		GlobalRecommendedGP, IsCongested = mem.gpo.RecommendGP()
 		mem.gpo.CurrentBlockGPs.Clear()
 	}
 

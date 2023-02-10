@@ -9,7 +9,6 @@ import (
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -29,8 +28,9 @@ func NewRGPTX(gu uint64, gp *big.Int) RGPTX {
 
 func TestCListMempool_RecommendGP(t *testing.T) {
 	testCases := []struct {
-		title       string
-		curBlockRGP *big.Int
+		title               string
+		curBlockRGP         *big.Int
+		isCurBlockCongested bool
 
 		gpMaxTxNum   int64
 		gpMaxGasUsed int64
@@ -303,7 +303,8 @@ func TestCListMempool_RecommendGP(t *testing.T) {
 					currentBlockGPsCopy := mempool.gpo.CurrentBlockGPs.Copy()
 					err := mempool.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
 					require.Nil(tt, err)
-					tc.curBlockRGP = mempool.gpo.RecommendGP()
+					tc.curBlockRGP, tc.isCurBlockCongested = mempool.gpo.RecommendGP()
+					tc.curBlockRGP = postProcessGP(tc.curBlockRGP, tc.isCurBlockCongested)
 					mempool.gpo.CurrentBlockGPs.Clear()
 				}
 				//fmt.Println("current recommended GP: ", tc.curBlockRGP)
@@ -348,13 +349,33 @@ func generateTxs(totalTxNum int, baseGP int64, gpOffset *int64, needDecreaseGP b
 }
 
 func setMocConfig(gpMode int, gpMaxTxNum int64, gpMaxGasUsed int64) {
-	global.SetGlobalMinAndMaxGasPrice(big.NewInt(100000000))
-
 	moc := cfg.MockDynamicConfig{}
 	moc.SetDynamicGpMode(gpMode)
 	moc.SetDynamicGpMaxTxNum(gpMaxTxNum)
 	moc.SetDynamicGpMaxGasUsed(gpMaxGasUsed)
-	moc.SetDynamicGpCoefficient(1)
 
 	cfg.SetDynamicConfig(moc)
+}
+
+func postProcessGP(recommendedGP *big.Int, isCongested bool) *big.Int {
+	// minGP for test is 0.1GWei
+	minGP := big.NewInt(100000000)
+	maxGP := new(big.Int).Mul(minGP, big.NewInt(5000))
+
+	rgp := new(big.Int).Set(minGP)
+	if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
+		// If current block is not congested, rgp == minimal gas price.
+		if isCongested {
+			rgp.Set(recommendedGP)
+		}
+
+		if rgp.Cmp(minGP) == -1 {
+			rgp.Set(minGP)
+		}
+
+		if rgp.Cmp(maxGP) == 1 {
+			rgp.Set(maxGP)
+		}
+	}
+	return rgp
 }

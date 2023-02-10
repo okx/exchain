@@ -7,7 +7,6 @@ import (
 
 	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -56,10 +55,7 @@ func NewOracle(params GPOConfig) *Oracle {
 	}
 }
 
-func (gpo *Oracle) RecommendGP() *big.Int {
-
-	minGP := global.GetGlobalMinGasPrice()
-	maxGP := global.GetGlobalMaxGasPrice()
+func (gpo *Oracle) RecommendGP() (*big.Int, bool) {
 
 	gasUsedThreshold := cfg.DynamicConfig.GetDynamicGpMaxGasUsed()
 	txNumThreshold := cfg.DynamicConfig.GetDynamicGpMaxTxNum()
@@ -78,28 +74,12 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 
 	price := new(big.Int).Set(gpo.lastPrice)
 
-	// If the block is not congested, set the minimal gas price
-	if !isCongested {
-		price.Set(minGP)
-	} else if len(txPrices) > 0 {
+	if len(txPrices) > 0 {
 		sort.Sort(types.BigIntArray(txPrices))
 		price.Set(txPrices[(len(txPrices)-1)*gpo.weight/100])
 	}
 	gpo.lastPrice.Set(price)
 
-	// post process
-	if price.Cmp(minGP) == -1 {
-		price.Set(minGP)
-	}
-
-	if cfg.DynamicConfig.GetDynamicGpCoefficient() > 1 {
-		coefficient := big.NewInt(int64(cfg.DynamicConfig.GetDynamicGpCoefficient()))
-		price = new(big.Int).Mul(price, coefficient)
-	}
-
-	if price.Cmp(maxGP) == 1 {
-		price.Set(maxGP)
-	}
 	trace.GetElapsedInfo().AddInfo(trace.RecommendedGP, fmt.Sprintf("%sWei", price.String()))
-	return price
+	return price, isCongested
 }
