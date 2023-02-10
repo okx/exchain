@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/tendermint/go-amino"
 
@@ -128,7 +129,9 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 	}
 
 	if EnableAsyncCommit {
+		st := time.Now()
 		treeMap.addNewTree(tree)
+		fmt.Println("addNewTree:", time.Since(st).String())
 	}
 
 	return tree, nil
@@ -445,6 +448,7 @@ func (tree *MutableTree) Load() (int64, error) {
 // performs a no-op. Otherwise, if the root does not exist, an error will be
 // returned.
 func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
+	fmt.Println("触发 LazyLoadVersion")
 	firstVersion, err := tree.ndb.getFirstVersion()
 	if err != nil {
 		return 0, err
@@ -868,7 +872,9 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 	}
 
 	if EnableAsyncCommit {
+		st := time.Now()
 		h, v, err := tree.SaveVersionAsync(version, useDeltas)
+		fmt.Println("SaveVersionAsync:", time.Since(st).String())
 		return h, v, *tree.deltas, err
 	}
 	h, v, err := tree.SaveVersionSync(version, useDeltas)
@@ -1201,7 +1207,9 @@ func (tree *MutableTree) balance(node *Node, orphans *[]*Node) (newSelf *Node) {
 
 func (tree *MutableTree) addOrphans(orphans []*Node) {
 	if EnableAsyncCommit {
+		st := time.Now()
 		tree.addOrphansOptimized(orphans)
+		fmt.Println("addOrphansOptimized:", time.Since(st).String())
 	} else {
 		for _, node := range orphans {
 			if !node.persisted {

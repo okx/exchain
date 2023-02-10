@@ -254,7 +254,9 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []c
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
+		st := time.Now()
 		root, ok := ndb.findRootHash(version)
+		fmt.Println("findRootHash:", time.Since(st).String())
 		if ok {
 			return root, nil
 		}

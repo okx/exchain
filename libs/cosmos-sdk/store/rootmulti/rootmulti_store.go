@@ -927,10 +927,13 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 			prefixDB = dbm.NewPrefixDB(rs.flatKVDB, []byte(prefix))
 		}
 		if params.initialVersion == 0 && params.upgradeVersion != 0 {
+			fmt.Println("-------------")
 			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, uint64(tmtypes.GetStartBlockHeight()), params.upgradeVersion)
 		} else if params.initialVersion == 0 {
+			fmt.Println("++++++++++++")
 			store, err = iavl.LoadStore(db, prefixDB, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())
 		} else {
+			fmt.Println(")))))))))))))")
 			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, params.initialVersion, params.upgradeVersion)
 		}
 
@@ -1200,7 +1203,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 
 	// updata commit gap height
 	if iavltree.EnableAsyncCommit {
+		st := time.Now()
 		iavltree.UpdateCommitGapHeight(config.DynamicConfig.GetCommitGapHeight())
+		fmt.Println("UpdateCommitGapHeight:", time.Since(st).String())
 	}
 	for key, store := range storeMap {
 		sName := key.Name()
