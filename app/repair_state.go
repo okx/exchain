@@ -178,6 +178,8 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 		map[int64]bool{},
 		0,
 		baseapp.SetPruning(pruningOpts),
+		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
+		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
 	)}
 }
 
