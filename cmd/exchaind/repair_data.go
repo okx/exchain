@@ -53,6 +53,13 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(tmiavl.FlagIavlDiscardFastStorage, false, "Discard fast storage")
 	cmd.Flags().MarkHidden(tmiavl.FlagIavlDiscardFastStorage)
 
+
+	cmd.Flags().Bool(tmtypes.FlagUploadDDS, false, "Upload delta")
+	cmd.Flags().String(tmtypes.FlagRedisUrl, "localhost:6379", "redis url")
+	cmd.Flags().String(tmtypes.FlagRedisAuth, "", "redis auth")
+	cmd.Flags().Int(tmtypes.FlagRedisExpire, 300, "delta expiration time. unit is second")
+	cmd.Flags().Int(tmtypes.FlagRedisDB, 0, "delta db num")
+
 	return cmd
 }
 
