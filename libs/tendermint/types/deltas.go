@@ -41,7 +41,7 @@ var (
 var (
 	FastQuery     = false
 	DownloadDelta = false
-	UploadDelta   = false
+	UploadDelta   = true
 )
 
 type DeltasMessage struct {
