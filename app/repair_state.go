@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"io"
 	"log"
 	"path/filepath"
@@ -165,6 +166,10 @@ func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
 }
 
 func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairApp {
+	pruningOpts, err := server.GetPruningOptionsFromFlags()
+	if err != nil {
+		panic(err)
+	}
 	return &repairApp{db, NewOKExChainApp(
 		logger,
 		db,
@@ -172,6 +177,7 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 		false,
 		map[int64]bool{},
 		0,
+		baseapp.SetPruning(pruningOpts),
 	)}
 }
 
