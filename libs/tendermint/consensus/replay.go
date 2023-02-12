@@ -472,7 +472,7 @@ func (h *Handshaker) replayBlocks(
 func (h *Handshaker) replayBlock(state sm.State, height int64, proxyApp proxy.AppConnConsensus) (sm.State, error) {
 	block := h.store.LoadBlock(height)
 	meta := h.store.LoadBlockMeta(height)
-
+	h.logger.Error("debug replay block", "height", height, "stateHeight", state.LastBlockHeight)
 	blockExec := sm.NewBlockExecutor(h.stateDB, h.logger, proxyApp, mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetEventBus(h.eventBus)
 
