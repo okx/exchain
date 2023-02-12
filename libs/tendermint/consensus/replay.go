@@ -239,7 +239,7 @@ func (h *Handshaker) NBlocks() int {
 
 // TODO: retry the handshake/replay if it fails ?
 func (h *Handshaker) Handshake(proxyApp proxy.AppConns) error {
-
+	return nil
 	// Handshake is done via ABCI Info on the query conn.
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	if err != nil {
