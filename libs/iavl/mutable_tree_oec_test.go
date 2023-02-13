@@ -287,7 +287,7 @@ func TestPruningHistoryState(t *testing.T) {
 	batchSaveVersion(t, tree, minHistoryStateNum*int(CommitIntervalHeight)-2)
 
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil, false}
-
+	tree.waitCurrentPruningScheduleDone()
 	iTree, err := tree.GetImmutable(CommitIntervalHeight * (minHistoryStateNum - 1))
 	require.NoError(t, err)
 	require.NotNil(t, iTree)
@@ -351,7 +351,7 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 	}
 
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil, nil, false}
-
+	tree.waitCurrentPruningScheduleDone()
 	nodeCount := 0
 	tree.ndb.traverseNodes(func(hash []byte, node *Node) {
 		nodeCount++
@@ -371,6 +371,8 @@ func TestPruningHistoryStateRandom(t *testing.T) {
 		_, _, _, err := tree.SaveVersion(false)
 		require.NoError(t, err)
 	}
+
+	tree.waitCurrentPruningScheduleDone()
 
 	nodeCount = 0
 	tree.ndb.traverseNodes(func(hash []byte, node *Node) {
