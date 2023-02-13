@@ -803,7 +803,7 @@ func NewOKExChainApp(
 		Name:            "UpgradeProposalTest",
 		ExpectHeight:    10000,
 		EffectiveHeight: 10000,
-		Status:          paramstypes.UpgradeStatusEffective,
+		Status:          paramstypes.UpgradeStatusWaitingEffective,
 	}, cdc)
 	app.ParamsStore = app.GetCMS().GetKVStore(app.keys[params.StoreKey])
 
