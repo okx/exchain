@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"io"
 	"math/big"
@@ -796,9 +797,9 @@ func NewOKExChainApp(
 	trace.EnableAnalyzer(enableAnalyzer)
 
 	cdc := codec.New()
-	cdc.RegisterConcrete(paramstypes.UpgradeInfo{}, "okexchain/params/types/UpgradeInfo", nil)
+	cdc.RegisterConcrete(paramstypes.UpgradeInfo{}, "okexchain/params/UpgradeInfo", nil)
 	cdc.Seal()
-	store := bApp.GetCMS().GetKVStore(app.keys[params.StoreKey])
+	store := prefix.NewStore(bApp.GetCMS().GetKVStore(app.keys[params.StoreKey]), []byte("upgrade"))
 	writeUpgradeInfoToStore(store, paramstypes.UpgradeInfo{
 		Name:            "UpgradeProposalTest",
 		ExpectHeight:    10000,

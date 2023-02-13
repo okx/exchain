@@ -31,9 +31,9 @@ func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
 }
 
 func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
-	//if app.ParamsKeeper.IsUpgradeEffective2(app.ParamsStore, "UpgradeProposalTest") {
-	//app.Logger().Debug("UpgradeProposal is effective")
-	//}
+	if app.ParamsKeeper.IsUpgradeEffective2(app.ParamsStore, "UpgradeProposalTest") {
+		app.Logger().Debug("UpgradeProposal is effective")
+	}
 
 	trace.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)
