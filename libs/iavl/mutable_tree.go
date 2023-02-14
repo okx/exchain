@@ -71,6 +71,7 @@ type MutableTree struct {
 	historyStateNum      int
 
 	commitCh          chan commitEvent
+	pruneCh           chan pruneEvent
 	lastPersistHeight int64
 	//for ibc module upgrade version
 	upgradeVersion int64
@@ -114,6 +115,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			historyStateNum:      MaxCommittedHeightNum,
 
 			commitCh:          make(chan commitEvent),
+			pruneCh:           make(chan pruneEvent, PruningChannelSize),
 			lastPersistHeight: initVersion,
 			upgradeVersion:    -1,
 
@@ -900,6 +902,16 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 }
 
 func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions map[int64]bool) error {
+	if err := tree.deleteVersionPreCheck(version, versions); err != nil {
+		return err
+	}
+
+	tree.ndb.deleteVersion(batch, version, true)
+
+	return nil
+}
+
+func (tree *MutableTree) deleteVersionPreCheck(version int64, versions map[int64]bool) error {
 	if version == 0 {
 		return errors.New("version must be greater than 0")
 	}
@@ -915,10 +927,10 @@ func (tree *MutableTree) deleteVersion(batch dbm.Batch, version int64, versions 
 		return errors.Wrap(ErrVersionDoesNotExist, fmt.Sprintf("%d", version))
 	}
 
-	if err := tree.ndb.DeleteVersion(batch, version, true); err != nil {
+	err := tree.ndb.checkoutVersionReaders(version)
+	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
