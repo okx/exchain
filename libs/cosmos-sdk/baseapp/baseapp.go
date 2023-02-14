@@ -117,6 +117,10 @@ func (m runTxMode) String() (res string) {
 	return res
 }
 
+type ParamsKeeper interface {
+	IsUpgradeEffective(ctx sdk.Context, name string) bool
+}
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
 	// initialized on creation
@@ -226,6 +230,8 @@ type BaseApp struct { // nolint: maligned
 	watcherCollector sdk.EvmWatcherCollector
 
 	tmClient client.Client
+
+	BParamsKeeper ParamsKeeper
 }
 
 type recordHandle func(string)
@@ -886,6 +892,9 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		}
 		msgRoute := msg.Route()
 
+		if app.BParamsKeeper.IsUpgradeEffective(ctx, "UpgradeProposalTest") {
+			app.Logger().Debug("UpgradeProposal is effective")
+		}
 		var isConvert bool
 
 		if app.JudgeEvmConvert(ctx, msg) {
