@@ -43,8 +43,12 @@ func (uc *UpgradeCache) IsUpgradeEffective(ctx sdk.Context, name string) (bool, 
 	// PRECONDITION: upgrade will never be effective at the block which write it to store.
 	// For this precondition, while parallel execution the tx sequence doesn't affect the result
 	// of "the upgrade is effective", which is the result of this function to return.
-	info, exist := uc.readUpgradeInfo(name)
-	exist = false
+	exist := false
+	var info UpgradeInfo
+
+	if ctx.UseParamCache() {
+		info, exist = uc.readUpgradeInfo(name)
+	}
 	if !exist {
 		var err error
 		info, err = readUpgradeInfoFromStore(ctx, name, uc.storeKey, uc.cdc)
