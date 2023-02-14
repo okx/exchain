@@ -419,7 +419,15 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 				return nil, err
 			}
 
-			r := &TransactionResult{TxType: hexutil.Uint64(EthReceipt), EthTx: tx, Receipt: receipt}
+			// Get tx Response
+			var txLog string
+			txResult, err := q.GetTransactionResponse(txHash)
+			if err == nil {
+				txLog = txResult.TxResult.Log
+			}
+
+			r := &TransactionResult{TxType: hexutil.Uint64(EthReceipt), EthTx: tx, Receipt: receipt,
+				EthTxLog: txLog}
 			results = append(results, r)
 		}
 	}
