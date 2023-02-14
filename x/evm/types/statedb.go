@@ -1084,7 +1084,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 // updateStateObject writes the given state object to the store.
 func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
-	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
+	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
 		return fmt.Errorf("invalid balance %s", newBalance)
 	}
@@ -1303,7 +1303,7 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
-		newobj.setBalance(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
+		newobj.setBalance(sdk.DefaultBondDenom(), sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
 	}
 }
 

@@ -36,22 +36,22 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 
 	valCommission := sdk.DecCoins{
 		sdk.NewDecCoinFromDec("mytoken", sdk.NewDec(5).Quo(sdk.NewDec(4))),
-		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(3).Quo(sdk.NewDec(2))),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDec(3).Quo(sdk.NewDec(2))),
 	}
 
 	// set module account coins
 	distrAcc := keeper.GetDistributionAccount(ctx)
 	distrAcc.SetCoins(sdk.NewCoins(
 		sdk.NewCoin("mytoken", sdk.NewInt(2)),
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(2)),
+		sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(2)),
 	))
 	keeper.supplyKeeper.SetModuleAccount(ctx, distrAcc)
 
 	// check initial balance
 	balance := ak.GetAccount(ctx, sdk.AccAddress(valOpAddr3)).GetCoins()
 	expTokens := sdk.TokensFromConsensusPower(1000)
-	subMsdCoin := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sk.ParamsMinSelfDelegation(ctx))
-	expCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, expTokens).Sub(subMsdCoin))
+	subMsdCoin := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sk.ParamsMinSelfDelegation(ctx))
+	expCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), expTokens).Sub(subMsdCoin))
 	require.Equal(t, expCoins, balance)
 
 	// withdraw commission error
@@ -72,14 +72,14 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 	balance = ak.GetAccount(ctx, sdk.AccAddress(valOpAddr3)).GetCoins()
 	require.Equal(t, sdk.NewCoins(
 		sdk.NewCoin("mytoken", sdk.NewInt(1)),
-		sdk.NewCoin(sdk.DefaultBondDenom, expTokens.AddRaw(1)).Sub(subMsdCoin),
+		sdk.NewCoin(sdk.DefaultBondDenom(), expTokens.AddRaw(1)).Sub(subMsdCoin),
 	), balance)
 
 	// check remainder
 	remainder := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr3)
 	require.Equal(t, sdk.DecCoins{
 		sdk.NewDecCoinFromDec("mytoken", sdk.NewDec(1).Quo(sdk.NewDec(4))),
-		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1).Quo(sdk.NewDec(2))),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDec(1).Quo(sdk.NewDec(2))),
 	}, remainder)
 
 	require.True(t, true)

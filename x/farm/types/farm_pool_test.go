@@ -27,7 +27,7 @@ func TestFarmPools(t *testing.T) {
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()),
+			depositAmount:    sdk.NewDecCoin(common.NativeToken(), sdk.ZeroInt()),
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(100)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
@@ -41,7 +41,7 @@ func TestFarmPools(t *testing.T) {
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()),
+			depositAmount:    sdk.NewDecCoin(common.NativeToken(), sdk.ZeroInt()),
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{
@@ -55,7 +55,7 @@ func TestFarmPools(t *testing.T) {
 			owner:            sdk.AccAddress{0x1},
 			name:             "pool",
 			lockedSymbol:     "xxb",
-			depositAmount:    sdk.NewDecCoin(common.NativeToken, sdk.ZeroInt()),
+			depositAmount:    sdk.NewDecCoin(common.NativeToken(), sdk.ZeroInt()),
 			totalValueLocked: sdk.NewDecCoinFromDec("wwb", sdk.NewDec(0)),
 			yieldedTokenInfos: YieldedTokenInfos{
 				{

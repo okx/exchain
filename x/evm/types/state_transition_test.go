@@ -339,7 +339,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 			func() {
 				suite.stateDB.SetParams(types.DefaultParams())
 				invalidGas := sdk.DecCoins{
-					{Denom: ethermint.NativeToken},
+					{Denom: ethermint.NativeToken()},
 				}
 				suite.ctx.SetMinGasPrices(invalidGas)
 			},

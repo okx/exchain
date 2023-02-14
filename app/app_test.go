@@ -39,10 +39,10 @@ import (
 )
 
 var (
-	txCoin10    = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom, 10)
-	txCoin1000  = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom, 1000)
+	txCoin10    = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom(), 10)
+	txCoin1000  = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom(), 1000)
 	txFees      = auth.NewStdFee(21000, cosmossdk.NewCoins(txCoin10))
-	txFeesError = auth.NewStdFee(100000000000000, cosmossdk.NewCoins(cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom, 1000000000000000000)))
+	txFeesError = auth.NewStdFee(100000000000000, cosmossdk.NewCoins(cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom(), 1000000000000000000)))
 
 	cosmosChainId = "ethermint-3"
 	checkTx       = false

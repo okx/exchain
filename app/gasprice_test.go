@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	txCoin100000 = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom, 100000)
+	txCoin100000 = cosmossdk.NewInt64Coin(cosmossdk.DefaultBondDenom(), 100000)
 	nonce        = uint64(0)
 )
 

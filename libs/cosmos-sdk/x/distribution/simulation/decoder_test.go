@@ -32,7 +32,7 @@ func makeTestCodec() (cdc *codec.Codec) {
 func TestDecodeDistributionStore(t *testing.T) {
 	cdc := makeTestCodec()
 
-	decCoins := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.OneDec())}
+	decCoins := sdk.DecCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.OneDec())}
 	feePool := types.InitialFeePool()
 	feePool.CommunityPool = decCoins
 	info := types.NewDelegatorStartingInfo(2, sdk.OneDec(), 200)

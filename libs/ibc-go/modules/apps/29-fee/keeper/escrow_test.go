@@ -41,7 +41,7 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 
 				// check if the reverse relayer is paid
 				expectedReverseAccBal := reverseRelayerBal.Add(defaultAckFee.ToCoins()[0]).Add(defaultAckFee.ToCoins()[0])
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), reverseRelayer, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), reverseRelayer, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedReverseAccBal, balance)
 
 				// check if the forward relayer is paid
@@ -49,17 +49,17 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 				suite.Require().NoError(err)
 
 				expectedForwardAccBal := forwardRelayerBal.Add(defaultRecvFee.ToCoins()[0]).Add(defaultRecvFee.ToCoins()[0])
-				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), forward, sdk.DefaultBondDenom)
+				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), forward, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedForwardAccBal, balance)
 
 				// check if the refund acc has been refunded the timeoutFee
 				expectedRefundAccBal := refundAccBal.Add(defaultTimeoutFee.ToCoins()[0].Add(defaultTimeoutFee.ToCoins()[0]))
-				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedRefundAccBal, balance)
 
 				// check the module acc wallet is now empty
-				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
-				suite.Require().Equal(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)), balance)
+				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
+				suite.Require().Equal(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(0)), balance)
 			},
 		},
 		{
@@ -72,14 +72,14 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 
 				// fund mock account
 				err := suite.chainA.GetSimApp().SupplyKeeper.SendCoinsFromAccountToModule(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), mock.ModuleName, packetFee.Fee.Total().Add(packetFee.Fee.Total()...).ToCoins())
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				fmt.Println(balance.String())
 				suite.Require().NoError(err)
 			},
 			func() {
 				// check if the refund acc has been refunded the timeoutFee
 				expectedRefundAccBal := refundAccBal.Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultTimeoutFee.ToCoins()[0])
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				fmt.Println(expectedRefundAccBal.String())
 				fmt.Println(balance.String())
 				suite.Require().Equal(expectedRefundAccBal, balance)
@@ -116,7 +116,7 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 			func() {
 				// check if the refund acc has been refunded the timeoutFee & recvFee
 				expectedRefundAccBal := refundAccBal.Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultRecvFee.ToCoins()[0]).Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultRecvFee.ToCoins()[0])
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedRefundAccBal, balance)
 			},
 		},
@@ -131,7 +131,7 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 			func() {
 				// check if the refund acc has been refunded the timeoutFee & recvFee
 				expectedRefundAccBal := refundAccBal.Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultRecvFee.ToCoins()[0]).Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultRecvFee.ToCoins()[0])
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedRefundAccBal, balance)
 			},
 		},
@@ -146,7 +146,7 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 			func() {
 				// check if the refund acc has been refunded the timeoutFee & ackFee
 				expectedRefundAccBal := refundAccBal.Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultAckFee.ToCoins()[0]).Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultAckFee.ToCoins()[0])
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedRefundAccBal, balance)
 			},
 		},
@@ -162,7 +162,7 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 			func() {
 				// check if the module acc contains the timeoutFee
 				expectedModuleAccBal := sdk.NewCoinAdapter(sdk.DefaultIbcWei, defaultTimeoutFee.Add(defaultTimeoutFee...).AmountOf(sdk.DefaultIbcWei))
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
 				fmt.Println(expectedModuleAccBal.String(), balance.String())
 				suite.Require().Equal(expectedModuleAccBal.ToCoin(), balance)
 			},
@@ -193,9 +193,9 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 
 			// fetch the account balances before fee distribution (forward, reverse, refund)
 			forwardAccAddress, _ := sdk.AccAddressFromBech32(forwardRelayer)
-			forwardRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), forwardAccAddress, sdk.DefaultBondDenom)
-			reverseRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), reverseRelayer, sdk.DefaultBondDenom)
-			refundAccBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+			forwardRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), forwardAccAddress, sdk.DefaultBondDenom())
+			reverseRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), reverseRelayer, sdk.DefaultBondDenom())
+			refundAccBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 
 			suite.chainA.GetSimApp().IBCFeeKeeper.DistributePacketFeesOnAcknowledgement(suite.chainA.GetContext(), forwardRelayer, reverseRelayer, packetFees, packetID)
 			tc.expResult()
@@ -223,17 +223,17 @@ func (suite *KeeperTestSuite) TestDistributePacketFeesOnTimeout() {
 			func() {
 				// check if the timeout relayer is paid
 				expectedTimeoutAccBal := timeoutRelayerBal.Add(defaultTimeoutFee.ToCoins()[0]).Add(defaultTimeoutFee.ToCoins()[0])
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), timeoutRelayer, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), timeoutRelayer, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedTimeoutAccBal, balance)
 
 				// check if the refund acc has been refunded the recv/ack fees
 				expectedRefundAccBal := refundAccBal.Add(defaultAckFee.ToCoins()[0]).Add(defaultAckFee.ToCoins()[0]).Add(defaultRecvFee.ToCoins()[0]).Add(defaultRecvFee.ToCoins()[0])
-				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedRefundAccBal, balance)
 
 				// check the module acc wallet is now empty
-				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
-				suite.Require().Equal(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(0)), balance)
+				balance = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
+				suite.Require().Equal(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(0)), balance)
 			},
 		},
 		{
@@ -262,7 +262,7 @@ func (suite *KeeperTestSuite) TestDistributePacketFeesOnTimeout() {
 			func() {
 				// check if the refund acc has been refunded the all the fees
 				expectedRefundAccBal := sdk.Coins{refundAccBal}.Add(packetFee.Fee.Total().ToCoins()...).Add(packetFee.Fee.Total().ToCoins()...)[0]
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedRefundAccBal, balance)
 			},
 		},
@@ -275,7 +275,7 @@ func (suite *KeeperTestSuite) TestDistributePacketFeesOnTimeout() {
 			func() {
 				// check if the module acc contains the timeoutFee
 				expectedModuleAccBal := sdk.NewCoinAdapter(sdk.DefaultIbcWei, defaultRecvFee.Add(defaultRecvFee[0]).Add(defaultAckFee[0]).Add(defaultAckFee[0]).AmountOf(sdk.DefaultIbcWei))
-				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
+				balance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
 				suite.Require().Equal(expectedModuleAccBal.ToCoin(), balance)
 			},
 		},
@@ -306,8 +306,8 @@ func (suite *KeeperTestSuite) TestDistributePacketFeesOnTimeout() {
 			tc.malleate()
 
 			// fetch the account balances before fee distribution (forward, reverse, refund)
-			timeoutRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), timeoutRelayer, sdk.DefaultBondDenom)
-			refundAccBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)
+			timeoutRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), timeoutRelayer, sdk.DefaultBondDenom())
+			refundAccBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom())
 
 			suite.chainA.GetSimApp().IBCFeeKeeper.DistributePacketFeesOnTimeout(suite.chainA.GetContext(), timeoutRelayer, packetFees, packetID)
 

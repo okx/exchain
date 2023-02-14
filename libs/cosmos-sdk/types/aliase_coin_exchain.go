@@ -87,18 +87,18 @@ func (r *EnvRegexp) FindStringSubmatch(coinStr string) []string {
 }
 
 func GetSystemFee() Coin {
-	return NewDecCoinFromDec(DefaultBondDenom, NewDecWithPrec(125, 4))
+	return NewDecCoinFromDec(DefaultBondDenom(), NewDecWithPrec(125, 4))
 }
 
 func ZeroFee() Coin {
-	return NewCoin(DefaultBondDenom, ZeroInt())
+	return NewCoin(DefaultBondDenom(), ZeroInt())
 }
 
 // ValidateDenom validates a denomination string returning an error if it is
 // invalid.
 func ValidateDenom(denom string) error {
 	// TODO ,height
-	if denom == DefaultBondDenom {
+	if denom == DefaultBondDenom() {
 		return nil
 	}
 	if !reDnm.MatchString(denom) && !rePoolTokenDnm.MatchString(denom) {

@@ -10,7 +10,7 @@ import (
 
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
-	require.True(t, sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0.0000000001")).IsEqual(cfg.GetMinGasPrices()))
+	require.True(t, sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.MustNewDecFromStr("0.0000000001")).IsEqual(cfg.GetMinGasPrices()))
 }
 
 func TestSetMinimumFees(t *testing.T) {

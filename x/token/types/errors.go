@@ -43,6 +43,7 @@ const (
 	CodeTotalsupplyExceedsTheUpperLimit            uint32 = 61032
 	CodeBlockedContractRecipient                   uint32 = 61033
 	CodeSendCoinsFromAccountToAccountFailed        uint32 = 61034
+	CodeUnknownProposalType                        uint32 = 61035
 )
 
 var (
@@ -81,6 +82,7 @@ var (
 	errCodeConfirmOwnershipAddressNotEqualsMsgAddress = sdkerrors.Register(DefaultCodespace, CodeConfirmOwnershipAddressNotEqualsMsgAddress, "input address is not equal confirm ownership address")
 	errCodeGetDecimalFromDecimalStringFailed          = sdkerrors.Register(DefaultCodespace, CodeGetDecimalFromDecimalStringFailed, "create a decimal from an input decimal string failed")
 	errCodeTotalsupplyExceedsTheUpperLimit            = sdkerrors.Register(DefaultCodespace, CodeTotalsupplyExceedsTheUpperLimit, "total-supply exceeds the upper limit")
+	errCodeUnknownProposalType                        = sdkerrors.Register(DefaultCodespace, CodeUnknownProposalType, "unknown proposal type")
 )
 
 // ErrBlockedContractRecipient returns an error when a transfer is tried on a blocked contract recipient
@@ -212,4 +214,8 @@ func ErrGetDecimalFromDecimalStringFailed(msg string) sdk.EnvelopedErr {
 
 func ErrCodeTotalsupplyExceedsTheUpperLimit(totalSupplyAfterMint sdk.Dec, TotalSupplyUpperbound int64) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeTotalsupplyExceedsTheUpperLimit, fmt.Sprintf("total-supply(%s) exceeds the upper limit(%d)", totalSupplyAfterMint, TotalSupplyUpperbound))}
+}
+
+func ErrUnknownProposaType() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeUnknownProposalType, "unknown proposal type")}
 }

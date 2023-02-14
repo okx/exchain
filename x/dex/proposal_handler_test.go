@@ -55,7 +55,7 @@ func TestProposal_NewProposalHandler(t *testing.T) {
 	require.Error(t, err)
 
 	// save right tokenpair
-	tokenPair.Deposits = sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50))
+	tokenPair.Deposits = sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50))
 	saveErr = mApp.dexKeeper.SaveTokenPair(ctx, tokenPair)
 	require.Nil(t, saveErr)
 

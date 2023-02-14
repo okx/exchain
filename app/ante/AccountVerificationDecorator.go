@@ -51,7 +51,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 		)
 	}
 
-	evmDenom := sdk.DefaultBondDenom
+	evmDenom := sdk.DefaultBondDenom()
 
 	// validate sender has enough funds to pay for gas cost
 	balance := acc.GetCoins().AmountOf(evmDenom)

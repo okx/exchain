@@ -49,6 +49,11 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 
 	// 3.update delegator
 	delegator.Tokens = delegator.Tokens.Add(delQuantity)
+	// TODO zhujianguo
+	if token.Denom == "okb" {
+		delegator.TokenName = token.Denom
+	}
+
 	k.SetDelegator(ctx, delegator)
 
 	if delegator.HasProxy() {
@@ -71,6 +76,12 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 	if !found {
 		return time.Time{}, types.ErrNoDelegationToAddShares(delAddr.String())
 	}
+	if delegator.TokenName == "okb" {
+		token.Denom = "okb"
+	} else {
+		token.Denom = "okt"
+	}
+
 	quantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
 	if quantity.LT(minDelLimit) {
 		return time.Time{}, types.ErrInsufficientQuantity(quantity.String(), minDelLimit.String())
@@ -120,7 +131,11 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 	completionTime := ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
 	undelegation, found := k.GetUndelegating(ctx, delAddr)
 	if !found {
-		undelegation = types.NewUndelegationInfo(delAddr, quantity, completionTime)
+		name := ""
+		if sdk.DefaultBondDenom() == "okb" {
+			name = "okb"
+		}
+		undelegation = types.NewUndelegationInfo(delAddr, quantity, completionTime, name)
 	} else {
 		k.DeleteAddrByTimeKey(ctx, undelegation.CompletionTime, delAddr)
 		undelegation.Quantity = undelegation.Quantity.Add(quantity)
@@ -162,8 +177,12 @@ func (k Keeper) CompleteUndelegation(ctx sdk.Context, delAddr sdk.AccAddress) (s
 	if !found {
 		return sdk.NewDec(0), types.ErrNotInDelegating(delAddr.String())
 	}
+	name := "okt"
+	if ud.TokenName == "okb" {
+		name = "okb"
+	}
 
-	coin := sdk.SysCoins{sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, ud.Quantity)}
+	coin := sdk.SysCoins{sdk.NewDecCoinFromDec(name, ud.Quantity)}
 
 	err := k.supplyKeeper.UndelegateCoinsFromModuleToAccount(ctx, types.NotBondedPoolName, ud.DelegatorAddress, coin)
 	if err != nil {

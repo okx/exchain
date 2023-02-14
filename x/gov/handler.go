@@ -183,7 +183,7 @@ func handleProposalAfterTally(
 }
 
 func hasOnlyDefaultBondDenom(decCoins sdk.SysCoins) sdk.Error {
-	if len(decCoins) != 1 || decCoins[0].Denom != sdk.DefaultBondDenom || !decCoins.IsValid() {
+	if len(decCoins) != 1 || decCoins[0].Denom != sdk.DefaultBondDenom() || !decCoins.IsValid() {
 		return types.ErrInvalidCoins()
 	}
 	return nil

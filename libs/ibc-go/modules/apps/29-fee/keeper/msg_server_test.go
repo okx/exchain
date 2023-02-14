@@ -204,7 +204,7 @@ func (suite *KeeperTestSuite) TestPayPacketFee() {
 			func() {
 				msg.Signer = suite.chainA.GetSimApp().SupplyKeeper.GetModuleAddress(ibcmock.ModuleName).String()
 				addr := suite.chainA.GetSimApp().SupplyKeeper.GetModuleAccount(suite.chainA.GetContext(), ibcmock.ModuleName)
-				suite.chainA.GetSimApp().SupplyKeeper.SendCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), addr.GetAddress(), sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))))
+				suite.chainA.GetSimApp().SupplyKeeper.SendCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), addr.GetAddress(), sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))))
 				expPacketFee := types.NewPacketFee(fee, msg.Signer, nil)
 				expFeesInEscrow = []types.PacketFee{expPacketFee}
 			},
@@ -302,12 +302,12 @@ func (suite *KeeperTestSuite) TestPayPacketFee() {
 				suite.Require().True(found)
 				suite.Require().Equal(expFeesInEscrow, feesInEscrow.PacketFees)
 
-				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
-				suite.Require().Equal(expEscrowBalance.AmountOf(sdk.DefaultBondDenom), escrowBalance.Amount)
+				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
+				suite.Require().Equal(expEscrowBalance.AmountOf(sdk.DefaultBondDenom()), escrowBalance.Amount)
 			} else {
 				suite.Require().Error(err)
 
-				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
+				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
 				suite.Require().Equal(sdk.NewInt(0), escrowBalance.Amount.TruncateInt())
 			}
 		})
@@ -488,12 +488,12 @@ func (suite *KeeperTestSuite) TestPayPacketFeeAsync() {
 				suite.Require().True(found)
 				suite.Require().Equal(expFeesInEscrow, feesInEscrow.PacketFees)
 
-				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
-				suite.Require().Equal(expEscrowBalance.ToCoins().AmountOf(sdk.DefaultBondDenom), escrowBalance.Amount)
+				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
+				suite.Require().Equal(expEscrowBalance.ToCoins().AmountOf(sdk.DefaultBondDenom()), escrowBalance.Amount)
 			} else {
 				suite.Require().Error(err)
 
-				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
+				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom())
 				fmt.Println(escrowBalance.String())
 				suite.Require().Equal(sdk.NewInt(0), escrowBalance.Amount.TruncateInt())
 			}

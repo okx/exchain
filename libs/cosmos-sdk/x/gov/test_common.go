@@ -30,8 +30,8 @@ import (
 var (
 	valTokens  = sdk.TokensFromConsensusPower(42)
 	initTokens = sdk.TokensFromConsensusPower(100000)
-	valCoins   = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, valTokens))
-	initCoins  = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens))
+	valCoins   = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), valTokens))
+	initCoins  = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens))
 )
 
 type testInput struct {
@@ -129,7 +129,7 @@ func getInitChainer(mapp *mock.App, keeper Keeper, stakingKeeper staking.Keeper,
 
 		stakingGenesis := staking.DefaultGenesisState()
 
-		totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens.MulRaw(int64(len(mapp.GenesisAccounts)))))
+		totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens.MulRaw(int64(len(mapp.GenesisAccounts)))))
 		supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 		// set module accounts
@@ -228,7 +228,7 @@ func createValidators(t *testing.T, stakingHandler sdk.Handler, ctx sdk.Context,
 
 		valTokens := sdk.TokensFromConsensusPower(powerAmt[i])
 		valCreateMsg := staking.NewMsgCreateValidator(
-			addrs[i], pubkeys[i], sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
+			addrs[i], pubkeys[i], sdk.NewCoin(sdk.DefaultBondDenom(), valTokens),
 			keep.TestDescription, keep.TestCommissionRates, sdk.OneInt(),
 		)
 

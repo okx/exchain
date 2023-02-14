@@ -228,6 +228,22 @@ func ValidateDurationPositive(param string) subspace.ValueValidatorFn {
 	}
 }
 
+func ValidateDefaultBondDenom(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		//v, ok := i.(string)
+		//if !ok {
+		//	return fmt.Errorf("invalid parameter type: %T", i)
+		//}
+		//
+		////TODO magic num 10
+		//if len(v) <= 0 || len(v) > 10 {
+		//	return fmt.Errorf("%s must be positive: %d", param, v)
+		//}
+
+		return nil
+	}
+}
+
 func ValidateBool(param string) subspace.ValueValidatorFn {
 	return func(i interface{}) error {
 		_, ok := i.(bool)

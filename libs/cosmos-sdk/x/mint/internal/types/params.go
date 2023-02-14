@@ -21,6 +21,7 @@ var (
 	KeyDeflationRate  = []byte("DeflationRate")
 	KeyDeflationEpoch = []byte("DeflationEpoch")
 	KeyFarmProportion = []byte("YieldFarmingProportion")
+	KeyIsMintReward   = []byte("IsMintReward")
 )
 
 // mint parameters
@@ -35,6 +36,7 @@ type Params struct {
 	DeflationRate  sdk.Dec `json:"deflation_rate" yaml:"deflation_rate"`   // deflation rate every DeflationEpoch
 	DeflationEpoch uint64  `json:"deflation_epoch" yaml:"deflation_epoch"` // block number to deflate
 	FarmProportion sdk.Dec `json:"farm_proportion" yaml:"farm_proportion"` // proportion of minted for farm
+	IsMintReward   bool    `json:"is_mint_reward" yaml:"is_mint_reward"`
 }
 
 // ParamTable for minting module.
@@ -53,13 +55,14 @@ func NewParams(
 		DeflationRate:  deflationRateChange,
 		DeflationEpoch: deflationEpoch,
 		FarmProportion: farmPropotion,
+		IsMintReward:   true,
 	}
 }
 
 // default minting module parameters
 func DefaultParams() Params {
 	return Params{
-		MintDenom: sdk.DefaultBondDenom,
+		MintDenom: sdk.DefaultBondDenom(),
 		//InflationRateChange: sdk.NewDecWithPrec(13, 2),
 		//InflationMax:        sdk.NewDecWithPrec(20, 2),
 		//InflationMin:        sdk.NewDecWithPrec(7, 2),
@@ -68,6 +71,7 @@ func DefaultParams() Params {
 		DeflationRate:  sdk.NewDecWithPrec(5, 1),
 		DeflationEpoch: 3,                        // 3 years
 		FarmProportion: sdk.NewDecWithPrec(5, 1), // 0.5
+		IsMintReward:   true,
 	}
 }
 
@@ -98,8 +102,9 @@ func (p Params) String() string {
   Deflation Rate Every %d Years:  %s
   Blocks Per Year:                %d
   Farm Proportion:                %s
+  IsMintReward: 				  %t
 `,
-		p.MintDenom, p.DeflationEpoch, p.DeflationRate, p.BlocksPerYear, p.FarmProportion,
+		p.MintDenom, p.DeflationEpoch, p.DeflationRate, p.BlocksPerYear, p.FarmProportion, p.IsMintReward,
 	)
 }
 
@@ -111,6 +116,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(KeyDeflationRate, &p.DeflationRate, validateDeflationRate),
 		params.NewParamSetPair(KeyDeflationEpoch, &p.DeflationEpoch, validateDeflationEpoch),
 		params.NewParamSetPair(KeyFarmProportion, &p.FarmProportion, validateFarmProportion),
+		params.NewParamSetPair(KeyIsMintReward, &p.IsMintReward, validateIsMintReward),
 	}
 }
 
@@ -218,6 +224,15 @@ func validateFarmProportion(i interface{}) error {
 	}
 	if v.GT(sdk.OneDec()) {
 		return fmt.Errorf("Farm Proportion too large: %s", v)
+	}
+
+	return nil
+}
+
+func validateIsMintReward(i interface{}) error {
+	_, ok := i.(bool)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
 	}
 
 	return nil

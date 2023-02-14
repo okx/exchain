@@ -22,9 +22,10 @@ func (k Keeper) WithdrawMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddres
 	}
 
 	// 2.unbond msd
-	k.bondedTokensToNotBonded(ctx, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, validator.MinSelfDelegation))
+	k.bondedTokensToNotBonded(ctx, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), validator.MinSelfDelegation))
 	completionTime = ctx.BlockHeader().Time.Add(k.UnbondingTime(ctx))
-	minSelfUndelegation := types.NewUndelegationInfo(delAddr, validator.MinSelfDelegation, completionTime)
+
+	minSelfUndelegation := types.NewUndelegationInfo(delAddr, validator.MinSelfDelegation, completionTime, validator.TokenName)
 	k.SetUndelegating(ctx, minSelfUndelegation)
 	k.SetAddrByTimeKeyWithNilValue(ctx, minSelfUndelegation.CompletionTime, minSelfUndelegation.DelegatorAddress)
 

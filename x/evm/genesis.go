@@ -46,7 +46,7 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 			)
 		}
 
-		evmBalance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom)
+		evmBalance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom())
 		csdb.SetNonce(address, acc.GetSequence())
 		csdb.SetBalance(address, evmBalance.BigInt())
 

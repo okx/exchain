@@ -127,7 +127,7 @@ func getMockAppWithBalance(t *testing.T, numGenAccs int, balance int64) (mockApp
 		[]exported.ModuleAccountI{feeCollector}))
 
 	decCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
-		balance, common.NativeToken, balance, common.TestToken))
+		balance, common.NativeToken(), balance, common.TestToken))
 	require.Nil(t, err)
 	coins := decCoins
 

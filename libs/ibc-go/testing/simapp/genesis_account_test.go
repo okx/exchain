@@ -22,7 +22,7 @@ func TestSimGenesisAccountValidate(t *testing.T) {
 	vestingStart := time.Now().UTC()
 
 	coins := sdk.NewCoins(sdk.NewInt64Coin("test", 1000))
-	//balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, 1000))
+	//balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), 1000))
 	baseAcc := authtypes.NewBaseAccount(addr, coins, pubkey, 0, 0)
 
 	testCases := []struct {

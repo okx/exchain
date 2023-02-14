@@ -771,7 +771,7 @@ func TestConvertWei2OKT(t *testing.T) {
 		cm39StrOut string
 		cm40StrOut string
 	}{
-		{"invalid coin", NewCoinAdapter(DefaultBondDenom, NewInt(1)), false, "", ""},
+		{"invalid coin", NewCoinAdapter(DefaultBondDenom(), NewInt(1)), false, "", ""},
 		{"valid coin with specific output", NewCoinAdapter(DefaultIbcWei, NewInt(1)), true, "0.000000000000000001okt", "1okt"},
 	}
 	for _, ca := range testCases {
@@ -783,7 +783,7 @@ func TestConvertWei2OKT(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				cm40Coin := coins[0]
-				require.Equal(t, cm40Coin.Denom, DefaultBondDenom)
+				require.Equal(t, cm40Coin.Denom, DefaultBondDenom())
 				require.Equal(t, ca.cm40StrOut, cm40Coin.String())
 				cm39Coin := cm40Coin.ToCoin()
 				require.Equal(t, ca.cm39StrOut, cm39Coin.String())

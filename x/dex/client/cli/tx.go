@@ -99,7 +99,7 @@ $ exchaincli tx dex list --base-asset mytoken --quote-asset okt --from mykey
 	}
 
 	cmd.Flags().StringP(FlagBaseAsset, "", "", FlagBaseAsset+" should be issued before listed to opendex")
-	cmd.Flags().StringP(FlagQuoteAsset, "", common.NativeToken, FlagQuoteAsset+" should be issued before listed to opendex")
+	cmd.Flags().StringP(FlagQuoteAsset, "", common.NativeToken(), FlagQuoteAsset+" should be issued before listed to opendex")
 	cmd.Flags().StringP(FlagInitPrice, "", "0.01", FlagInitPrice+" should be valid price")
 
 	return cmd
@@ -271,7 +271,7 @@ Where proposal.json contains:
    }
  ]
 }
-`, version.ClientName, sdk.DefaultBondDenom, sdk.DefaultBondDenom, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(), sdk.DefaultBondDenom(), sdk.DefaultBondDenom(),
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()

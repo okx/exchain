@@ -97,7 +97,7 @@ func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
 	feeInt := new(big.Int)
 	feeInt = msg.CalcFee(feeInt)
-	fee[0] = sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithBigIntAndPrec(feeInt, sdk.Precision))
+	fee[0] = sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDecWithBigIntAndPrec(feeInt, sdk.Precision))
 	return fee
 }
 

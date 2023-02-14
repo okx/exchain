@@ -119,7 +119,7 @@ func SignCheckDeliver(
 
 	tx := helpers.GenTx(
 		msgs,
-		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 0)},
 		helpers.DefaultGenTxGas,
 		"",
 		accNums,
@@ -167,7 +167,7 @@ func GenSequenceOfTxs(msgs []sdk.Msg, accNums []uint64, initSeqNums []uint64, nu
 	for i := 0; i < numToGenerate; i++ {
 		txs[i] = helpers.GenTx(
 			msgs,
-			sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
+			sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 0)},
 			helpers.DefaultGenTxGas,
 			"",
 			accNums,

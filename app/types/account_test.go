@@ -60,10 +60,10 @@ func (suite *AccountTestSuite) TestEthAccount_Balance() {
 		initialCoins sdk.Coins
 		amount       sdk.Int
 	}{
-		{"positive diff", NativeToken, sdk.Coins{}, sdk.OneInt()},
-		{"zero diff, same coin", NativeToken, sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"zero diff, other coin", sdk.DefaultBondDenom, sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
-		{"negative diff", NativeToken, sdk.NewCoins(NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
+		{"positive diff", NativeToken(), sdk.Coins{}, sdk.OneInt()},
+		{"zero diff, same coin", NativeToken(), sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
+		{"zero diff, other coin", sdk.DefaultBondDenom(), sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt())), sdk.ZeroInt()},
+		{"negative diff", NativeToken(), sdk.NewCoins(NewPhotonCoin(sdk.NewInt(10))), sdk.NewInt(1)},
 	}
 
 	for _, tc := range testCases {
@@ -128,7 +128,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
   account_number: 10
   sequence: 50
   code_hash: "0102"
-`, suite.account.Address, suite.account.EthAddress().String(), sdk.DefaultBondDenom, bech32pubkey)
+`, suite.account.Address, suite.account.EthAddress().String(), sdk.DefaultBondDenom(), bech32pubkey)
 
 	suite.Require().Equal(accountStr, suite.account.String())
 

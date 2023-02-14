@@ -34,7 +34,7 @@ func (suite *KeeperTestSuite) TestSendTx() {
 				msg := &banktypes.MsgSendAdapter{
 					FromAddress: interchainAccountAddr,
 					ToAddress:   suite.chainB.SenderAccount().GetAddress().String(),
-					Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewInt(100))},
+					Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom(), sdk.NewInt(100))},
 				}
 
 				data, err := icatypes.SerializeCosmosTx(suite.chainB.GetSimApp().AppCodec(), []sdk.MsgAdapter{msg})
@@ -57,12 +57,12 @@ func (suite *KeeperTestSuite) TestSendTx() {
 					&banktypes.MsgSendAdapter{
 						FromAddress: interchainAccountAddr,
 						ToAddress:   suite.chainB.SenderAccount().GetAddress().String(),
-						Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewInt(100))},
+						Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom(), sdk.NewInt(100))},
 					},
 					&banktypes.MsgSendAdapter{
 						FromAddress: interchainAccountAddr,
 						ToAddress:   suite.chainB.SenderAccount().GetAddress().String(),
-						Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewInt(100))},
+						Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom(), sdk.NewInt(100))},
 					},
 				}
 
@@ -135,7 +135,7 @@ func (suite *KeeperTestSuite) TestSendTx() {
 				msg := &banktypes.MsgSendAdapter{
 					FromAddress: interchainAccountAddr,
 					ToAddress:   suite.chainB.SenderAccount().GetAddress().String(),
-					Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewInt(100))},
+					Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom(), sdk.NewInt(100))},
 				}
 
 				data, err := icatypes.SerializeCosmosTx(suite.chainB.GetSimApp().AppCodec(), []sdk.MsgAdapter{msg})

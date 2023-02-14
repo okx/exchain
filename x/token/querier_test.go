@@ -19,13 +19,13 @@ func TestQueryOrder(t *testing.T) {
 
 	_, testAccounts := CreateGenAccounts(2,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 
 	token := types.Token{
 		Description:         "okblockchain coin",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		OriginalTotalSupply: sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
@@ -42,7 +42,7 @@ func TestQueryOrder(t *testing.T) {
 	res, err := querier(ctx, path, abci.RequestQuery{})
 	require.NotNil(t, err)
 	require.Equal(t, []byte(nil), res)
-	path = []string{types.QueryInfo, common.NativeToken}
+	path = []string{types.QueryInfo, common.NativeToken()}
 	res, err = querier(ctx, path, abci.RequestQuery{})
 	require.Nil(t, err)
 
@@ -58,13 +58,13 @@ func TestQueryTokens(t *testing.T) {
 
 	_, testAccounts := CreateGenAccounts(2,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 
 	token := types.Token{
 		Description:         "okblockchain coin",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		OriginalTotalSupply: sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
@@ -90,7 +90,7 @@ func TestQueryTokens(t *testing.T) {
 	require.EqualValues(t, originTokens, tokens)
 
 	//token V2
-	path = []string{types.QueryTokenV2, common.NativeToken}
+	path = []string{types.QueryTokenV2, common.NativeToken()}
 	res, err = querier(ctx, path, abci.RequestQuery{})
 	require.Nil(t, err)
 	require.Panics(t, func() { keeper.cdc.MustUnmarshalJSON(res, &tokens) })
@@ -121,8 +121,8 @@ func TestQueryTokens(t *testing.T) {
 	//query with invalid address
 	token = types.Token{
 		Description:         "okblockchain coin",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		OriginalTotalSupply: sdk.NewDec(1000000000),
 		//TotalSupply:         sdk.NewDec(1000000000),
 		Owner:    []byte("abc"),
@@ -144,13 +144,13 @@ func TestQueryUserTokens(t *testing.T) {
 
 	_, testAccounts := CreateGenAccounts(2,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 
 	token := types.Token{
 		Description:         "okblockchain coin",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		OriginalTotalSupply: sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
@@ -183,26 +183,26 @@ func TestQueryCurrency(t *testing.T) {
 
 	_, testAccounts := CreateGenAccounts(2,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 
 	token := types.Token{
 		Description:         "okblockchain coin",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		OriginalTotalSupply: sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
 	}
 
 	keeper.NewToken(ctx, token)
-	keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, sdk.NewDecCoinsFromDec(common.NativeToken, sdk.NewDec(1000000000)))
+	keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, sdk.NewDecCoinsFromDec(common.NativeToken(), sdk.NewDec(1000000000)))
 
 	//var originTokens []types.Token
 	originalTokens := []types.Currency{
 		{
 			Description: "okblockchain coin",
-			Symbol:      common.NativeToken,
+			Symbol:      common.NativeToken(),
 			TotalSupply: sdk.NewDec(1000000000),
 		},
 	}
@@ -224,14 +224,14 @@ func TestQueryAccount(t *testing.T) {
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	token := types.Token{
 		Description:         "okblockchain coin",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		OriginalTotalSupply: sdk.NewDec(1000000000),
 		Owner:               testAccounts[0].baseAccount.Address,
 		Mintable:            true,
@@ -239,7 +239,7 @@ func TestQueryAccount(t *testing.T) {
 
 	originalCoinsInfo := types.CoinsInfo{
 		types.CoinInfo{
-			Symbol:    common.NativeToken,
+			Symbol:    common.NativeToken(),
 			Available: "1000000000.000000000000000000",
 			Locked:    "0",
 		},
@@ -250,7 +250,7 @@ func TestQueryAccount(t *testing.T) {
 	querier := NewQuerier(keeper)
 	path := []string{types.QueryAccount, testAccounts[0].baseAccount.Address.String()}
 	var accountParam types.AccountParam
-	accountParam.Symbol = common.NativeToken
+	accountParam.Symbol = common.NativeToken()
 	accountParam.Show = "partial"
 
 	bz, err := keeper.cdc.MarshalJSON(accountParam)
@@ -294,7 +294,7 @@ func TestQueryAccount(t *testing.T) {
 	_, err = querier(ctx, path, abci.RequestQuery{Data: bz})
 	require.Nil(t, err)
 
-	param.Currency = common.NativeToken
+	param.Currency = common.NativeToken()
 	param.HideZero = "no"
 	bz = keeper.cdc.MustMarshalJSON(param)
 	_, err = querier(ctx, path, abci.RequestQuery{Data: bz})
@@ -313,15 +313,15 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	tokens := []types.Token{
 		{
 			Description:         "okblockchain coin",
-			Symbol:              common.NativeToken,
-			OriginalSymbol:      common.NativeToken,
+			Symbol:              common.NativeToken(),
+			OriginalSymbol:      common.NativeToken(),
 			OriginalTotalSupply: sdk.NewDec(1000000000),
 			Owner:               testAccounts[0].baseAccount.Address,
 			Mintable:            true,
@@ -341,7 +341,7 @@ func TestQueryAccount_ShowAll(t *testing.T) {
 
 	originalCoinsInfo := types.CoinsInfo{
 		types.CoinInfo{
-			Symbol:    common.NativeToken,
+			Symbol:    common.NativeToken(),
 			Available: "1000000000.000000000000000000",
 			Locked:    "0",
 		},
@@ -375,7 +375,7 @@ func TestQueryParameters(t *testing.T) {
 
 	genAccs, _ := CreateGenAccounts(1,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
@@ -403,7 +403,7 @@ func TestQueryKeysNum(t *testing.T) {
 
 	genAccs, _ := CreateGenAccounts(1,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 

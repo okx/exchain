@@ -208,7 +208,7 @@ func (suite *KeeperTestSuite) TestIbcTransferVouchers() {
 		//	"Correct address with too small amount EVM token",
 		//	addr1Bech.String(),
 		//	"to",
-		//	sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(123))),
+		//	sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(123))),
 		//	func() {},
 		//	nil,
 		//	func() {},
@@ -217,7 +217,7 @@ func (suite *KeeperTestSuite) TestIbcTransferVouchers() {
 		//	"Correct address with not enough EVM token",
 		//	addr1Bech.String(),
 		//	"to",
-		//	sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1230000000000))),
+		//	sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(1230000000000))),
 		//	func() {},
 		//	errors.New("0aphoton is smaller than 1230000000000aphoton: insufficient funds"),
 		//	func() {},
@@ -226,16 +226,16 @@ func (suite *KeeperTestSuite) TestIbcTransferVouchers() {
 		//	"Correct address with enough EVM token : Should receive IBC evm token",
 		//	addr1Bech.String(),
 		//	"to",
-		//	sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1230000000000))),
+		//	sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(1230000000000))),
 		//	func() {
 		//		// Mint Coin to user and module
-		//		suite.MintCoins(addr1Bech, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1230000000000))))
+		//		suite.MintCoins(addr1Bech, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(1230000000000))))
 		//		suite.MintCoinsToModule(types.ModuleName, sdk.NewCoins(sdk.NewCoin(types.IbcDenomDefaultValue, sdk.NewInt(123))))
 		//		// Verify balance IBC coin pre operation
 		//		ibcCoin := suite.GetBalance(addr1Bech, types.IbcDenomDefaultValue)
 		//		suite.Require().Equal(sdk.NewInt(0), ibcCoin.Amount)
 		//		// Verify balance EVM coin pre operation
-		//		evmCoin := suite.GetBalance(addr1Bech, sdk.DefaultBondDenom)
+		//		evmCoin := suite.GetBalance(addr1Bech, sdk.DefaultBondDenom())
 		//		suite.Require().Equal(sdk.NewInt(1230000000000), evmCoin.Amount)
 		//	},
 		//	nil,
@@ -244,7 +244,7 @@ func (suite *KeeperTestSuite) TestIbcTransferVouchers() {
 		//		ibcCoin := suite.GetBalance(addr1Bech, types.IbcDenomDefaultValue)
 		//		suite.Require().Equal(sdk.NewInt(123), ibcCoin.Amount)
 		//		// Verify balance EVM coin post operation
-		//		evmCoin := suite.GetBalance(addr1Bech, sdk.DefaultBondDenom)
+		//		evmCoin := suite.GetBalance(addr1Bech, sdk.DefaultBondDenom())
 		//		suite.Require().Equal(sdk.NewInt(0), evmCoin.Amount)
 		//	},
 		//},

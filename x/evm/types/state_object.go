@@ -236,7 +236,7 @@ func (so *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 
-	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Add(amt)
+	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom()).Add(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -247,7 +247,7 @@ func (so *stateObject) SubBalance(amount *big.Int) {
 	if amt.IsZero() {
 		return
 	}
-	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom).Sub(amt)
+	newBalance := so.account.GetCoins().AmountOf(sdk.DefaultBondDenom()).Sub(amt)
 	so.SetBalance(newBalance.BigInt())
 }
 
@@ -257,10 +257,10 @@ func (so *stateObject) SetBalance(amount *big.Int) {
 
 	so.stateDB.journal.append(balanceChange{
 		account: &so.address,
-		prev:    so.account.GetCoins().AmountOf(sdk.DefaultBondDenom), // int2dec
+		prev:    so.account.GetCoins().AmountOf(sdk.DefaultBondDenom()), // int2dec
 	})
 
-	so.setBalance(sdk.DefaultBondDenom, amt)
+	so.setBalance(sdk.DefaultBondDenom(), amt)
 }
 
 func (so *stateObject) setBalance(denom string, amount sdk.Dec) {
@@ -386,7 +386,7 @@ func (so *stateObject) Address() ethcmn.Address {
 
 // Balance returns the state object's current balance.
 func (so *stateObject) Balance() *big.Int {
-	balance := so.account.Balance(sdk.DefaultBondDenom).BigInt()
+	balance := so.account.Balance(sdk.DefaultBondDenom()).BigInt()
 	if balance == nil {
 		return zeroBalance
 	}
@@ -540,7 +540,7 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 
 // empty returns whether the account is considered empty.
 func (so *stateObject) empty() bool {
-	balace := so.account.Balance(sdk.DefaultBondDenom)
+	balace := so.account.Balance(sdk.DefaultBondDenom())
 	return so.account == nil ||
 		(so.account != nil &&
 			so.account.Sequence == 0 &&

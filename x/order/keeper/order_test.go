@@ -39,12 +39,12 @@ func TestTryPlaceOrder(t *testing.T) {
 	require.Nil(t, err)
 
 	order.RecordOrderNewFee(fee)
-	require.Equal(t, "0.259200000000000000"+common.NativeToken, order.GetExtraInfoWithKey(types.OrderExtraInfoKeyNewFee))
+	require.Equal(t, "0.259200000000000000"+common.NativeToken(), order.GetExtraInfoWithKey(types.OrderExtraInfoKeyNewFee))
 
 	order = mockOrder("", types.TestTokenPair, types.BuyOrder, "1.0", "9")
 	order.Sender = testInput.TestAddrs[0]
 	_, err = keeper.TryPlaceOrder(ctx, order)
-	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("9")}}, token.LockCoinsTypeQuantity)
+	keeper.UnlockCoins(ctx, testInput.TestAddrs[0], sdk.SysCoins{{Denom: common.NativeToken(), Amount: sdk.MustNewDecFromStr("9")}}, token.LockCoinsTypeQuantity)
 	require.Error(t, err)
 }
 
@@ -68,7 +68,7 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	// check account balance
 	acc := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	expectCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.7408")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("89.7408")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -92,7 +92,7 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	ctx.SetBlockHeight(11)
 	fee := keeper.CancelOrder(ctx, order, ctx.Logger())
 	// check result
-	require.Equal(t, "0.000001000000000000"+common.NativeToken, fee.String())
+	require.Equal(t, "0.000001000000000000"+common.NativeToken(), fee.String())
 	// check order status
 	require.EqualValues(t, types.OrderStatusCancelled, order.Status)
 	require.Equal(t, "", order.GetExtraInfoWithKey(types.OrderExtraInfoKeyCancelFee))
@@ -100,14 +100,14 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	acc = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	expectCoins = sdk.SysCoins{
 		// 100 - 0.002
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.999999")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.999999")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 	// check fee pool
 	feeCollector := testInput.SupplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
-	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String())
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken(), collectedFees.String())
 	// check depth book
 	depthBook = keeper.GetDepthBookCopy(types.TestTokenPair)
 	require.EqualValues(t, 0, len(depthBook.Items))
@@ -149,7 +149,7 @@ func TestPlaceOrderAndExpireOrder(t *testing.T) {
 	// check account balance
 	acc := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	expectCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.7408")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("89.7408")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -179,14 +179,14 @@ func TestPlaceOrderAndExpireOrder(t *testing.T) {
 	acc = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	expectCoins = sdk.SysCoins{
 		// 100 - 0.002
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.999999")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.999999")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
 	// check fee pool
 	feeCollector := testInput.SupplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	collectedFees := feeCollector.GetCoins()
-	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String())
+	require.EqualValues(t, "0.000001000000000000"+common.NativeToken(), collectedFees.String())
 	// check depth book
 	depthBook = keeper.GetDepthBookCopy(types.TestTokenPair)
 	require.EqualValues(t, 0, len(depthBook.Items))

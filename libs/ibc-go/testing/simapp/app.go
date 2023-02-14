@@ -127,6 +127,7 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+	tokenclient "github.com/okex/exchain/x/token/client"
 	wasmclient "github.com/okex/exchain/x/wasm/client"
 )
 
@@ -177,6 +178,8 @@ var (
 			evmclient.ManageSysContractAddressProposalHandler,
 			evmclient.ManageContractByteCodeProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
+			tokenclient.ModifyDefaultBondDenomProposalHandler,
+			govclient.StopMintProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
 			wasmclient.MigrateContractProposalHandler,
@@ -533,6 +536,7 @@ func NewSimApp(
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
 		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
+		AddRoute(token.RouterKey, token.NewTokenProposalHandler(app.TokenKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).

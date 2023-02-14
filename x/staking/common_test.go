@@ -480,9 +480,9 @@ func (action delegatorsWithdrawAction) apply(ctx sdk.Context, vaStatus IValidato
 
 		dlg, _ := resultCtx.tc.mockKeeper.Keeper.GetDelegator(ctx, v.DelegatorAddress)
 
-		coins := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, dlg.Tokens)
+		coins := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), dlg.Tokens)
 		if !action.unbondAllTokens {
-			coins = sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, dlg.Tokens.QuoInt64(2))
+			coins = sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), dlg.Tokens.QuoInt64(2))
 		}
 
 		subAction := delegatorWithdrawAction{action.baseAction,
@@ -1289,11 +1289,11 @@ func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator 
 	// two delegators
 	handler := NewHandler(tc.mockKeeper.Keeper)
 
-	handler(ctx, NewMsgDeposit(ValidDelegator1, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DelegatedToken1)))
+	handler(ctx, NewMsgDeposit(ValidDelegator1, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), DelegatedToken1)))
 	delegator1, _ := tc.mockKeeper.Keeper.GetDelegator(ctx, ValidDelegator1)
 	tc.originDlgSet[delegator1.DelegatorAddress.String()] = &delegator1
 
-	handler(ctx, NewMsgDeposit(ValidDelegator2, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DelegatedToken2)))
+	handler(ctx, NewMsgDeposit(ValidDelegator2, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), DelegatedToken2)))
 	delegator2, _ := tc.mockKeeper.Keeper.GetDelegator(ctx, ValidDelegator2)
 	tc.originDlgSet[delegator2.DelegatorAddress.String()] = &delegator2
 

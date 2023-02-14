@@ -25,7 +25,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractDeploymentWhitelistProp
 	)
 
 	minDeposit := suite.app.EvmKeeper.GetMinDeposit(suite.ctx, proposal)
-	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}, minDeposit)
 
 	maxDepositPeriod := suite.app.EvmKeeper.GetMaxDepositPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)
@@ -86,7 +86,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractBlockedListProposal() {
 	)
 
 	minDeposit := suite.app.EvmKeeper.GetMinDeposit(suite.ctx, proposal)
-	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}, minDeposit)
 
 	maxDepositPeriod := suite.app.EvmKeeper.GetMaxDepositPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)
@@ -165,7 +165,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractMethodBlockedListPropos
 	)
 
 	minDeposit := suite.app.EvmKeeper.GetMinDeposit(suite.ctx, proposal)
-	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}, minDeposit)
 
 	maxDepositPeriod := suite.app.EvmKeeper.GetMaxDepositPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)
@@ -242,7 +242,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
 	suite.app.StakingKeeper.SetValidatorByPowerIndex(suite.ctx, validator)
 
 	minDeposit := suite.app.EvmKeeper.GetMinDeposit(suite.ctx, proposal)
-	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}, minDeposit)
 
 	maxDepositPeriod := suite.app.EvmKeeper.GetMaxDepositPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)

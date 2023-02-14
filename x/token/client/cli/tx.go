@@ -4,6 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	"github.com/okex/exchain/x/gov"
+	utils2 "github.com/okex/exchain/x/token/client/utils"
 	"io/ioutil"
 	"strings"
 
@@ -459,4 +463,40 @@ func getCmdConfirmOwnership(cdc *codec.Codec) *cobra.Command {
 	}
 	cmd.Flags().StringP("symbol", "s", "", "symbol of the token to be transferred")
 	return cmd
+}
+
+// GetCmdModifyDefaultBondDenomProposal implements a command handler for  stop minting proposal transaction
+func GetCmdModifyDefaultBondDenomProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return &cobra.Command{
+		Use:   "modify-default-bond-denom",
+		Args:  cobra.ExactArgs(1),
+		Short: "",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(``, version.ClientName, sdk.DefaultBondDenom())),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := utils2.ParseModifyDefaultBondDenomProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewModifyDefaultBondDenomProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.DenomName,
+			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
 }

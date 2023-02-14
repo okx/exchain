@@ -25,7 +25,7 @@ type GenesisState struct {
 
 // DefaultGenesisState get raw genesis raw message for testing
 func DefaultGenesisState() GenesisState {
-	var minDeposit = sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
+	var minDeposit = sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}
 	return GenesisState{
 		StartingProposalID: 1,
 		Proposals:          []types.Proposal{},

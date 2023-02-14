@@ -17,8 +17,8 @@ func TestDeposits(t *testing.T) {
 	require.NoError(t, err)
 	proposalID := proposal.ProposalID
 
-	fourStake := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(4)))
-	fiveStake := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(5)))
+	fourStake := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.TokensFromConsensusPower(4)))
+	fiveStake := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.TokensFromConsensusPower(5)))
 
 	addr0Initial := ak.GetAccount(ctx, TestAddrs[0]).GetCoins()
 	addr1Initial := ak.GetAccount(ctx, TestAddrs[1]).GetCoins()

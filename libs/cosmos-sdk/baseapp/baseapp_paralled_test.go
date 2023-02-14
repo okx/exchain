@@ -65,7 +65,7 @@ func NewChain(env *Env) *Chain {
 	chain.chainIdStr = "ethermint-3"
 	chain.chainIdInt = big.NewInt(3)
 
-	chain.app = simapp2.SetupWithGenesisAccounts(genAccs, sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(1000000, 0))))
+	chain.app = simapp2.SetupWithGenesisAccounts(genAccs, sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(1000000, 0))))
 	//header := abci.Header{Height: app.LastBlockHeight() + 1, ChainID: chainIdStr}
 
 	chain.app.BaseApp.Commit(abci.RequestCommit{})
@@ -160,7 +160,7 @@ func createCosmosTx(t *testing.T, chain *Chain, i int) []byte {
 
 	tx := helpers.GenTx(
 		[]sdk.Msg{msg},
-		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1)},
 		helpers.DefaultGenTxGas,
 		chain.chainIdStr,
 		[]uint64{chain.num[i]},

@@ -117,11 +117,11 @@ func SetupWithGenesisValSet(t *testing.T, chainId string, valSet *tmtypes.Valida
 	totalSupply := sdk.NewCoins()
 	for _, b := range balances {
 		//add genesis acc tokens and delegated tokens to total supply
-		totalSupply = totalSupply.Add(b.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))...)
+		totalSupply = totalSupply.Add(b.Add(sdk.NewCoin(sdk.DefaultBondDenom(), bondAmt))...)
 	}
 
 	balances = append(balances, sdk.Coins{
-		sdk.NewInt64Coin(sdk.DefaultBondDenom, 1000000),
+		sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1000000),
 	})
 
 	bankGenesis := bank.DefaultGenesisState()

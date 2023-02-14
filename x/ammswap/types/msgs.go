@@ -194,7 +194,7 @@ func (msg MsgCreateExchange) GetSwapTokenPairName() string {
 	return GetSwapTokenPairName(msg.Token0Name, msg.Token1Name)
 }
 
-// MsgTokenToToken define the message for swap between token and DefaultBondDenom
+// MsgTokenToToken define the message for swap between token and DefaultBondDenom()
 type MsgTokenToToken struct {
 	SoldTokenAmount      sdk.SysCoin    `json:"sold_token_amount"`       // Amount of Tokens sold.
 	MinBoughtTokenAmount sdk.SysCoin    `json:"min_bought_token_amount"` // Minimum token purchased.

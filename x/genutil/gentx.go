@@ -23,7 +23,7 @@ func ValidateAccountInGenesis(appGenesisState map[string]json.RawMessage,
 	accountIsInGenesis := false
 
 	// TODO: refactor out bond denom to common state area
-	bondDenom := sdk.DefaultBondDenom
+	bondDenom := sdk.DefaultBondDenom()
 
 	genUtilDataBz := appGenesisState[stakingtypes.ModuleName]
 	var genesisState GenesisState

@@ -28,7 +28,7 @@ func TestNewOrder(t *testing.T) {
 	require.Equal(t, sdk.ZeroDec().String(), order1.RemainLocked.String())
 
 	// test order string
-	expected := `{"txhash":"hash1","order_id":"","sender":"","product":"xxb_` + common.NativeToken + `","side":"SELL","price":"1.100000000000000000","quantity":"10.000000000000000000","status":0,"filled_avg_price":"0","remain_quantity":"10.000000000000000000","remain_locked":"0.000000000000000000","timestamp":123,"order_expire_blocks":259200,"fee_per_block":{"denom":"` + common.NativeToken + `","amount":"0.000001000000000000"},"extra_info":""}`
+	expected := `{"txhash":"hash1","order_id":"","sender":"","product":"xxb_` + common.NativeToken() + `","side":"SELL","price":"1.100000000000000000","quantity":"10.000000000000000000","status":0,"filled_avg_price":"0","remain_quantity":"10.000000000000000000","remain_locked":"0.000000000000000000","timestamp":123,"order_expire_blocks":259200,"fee_per_block":{"denom":"` + common.NativeToken() + `","amount":"0.000001000000000000"},"extra_info":""}`
 
 	require.Equal(t, expected, order1.String())
 
@@ -38,13 +38,13 @@ func TestNewOrder(t *testing.T) {
 
 func TestOrderUpdateExtraInfo(t *testing.T) {
 	order := MockOrder("", "", SellOrder, "0.1", "10.0")
-	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, "0.002"+common.NativeToken)
-	expectExtra := `{"cancelFee":"0.002` + common.NativeToken + `"}`
+	order.setExtraInfoWithKeyValue(OrderExtraInfoKeyCancelFee, "0.002"+common.NativeToken())
+	expectExtra := `{"cancelFee":"0.002` + common.NativeToken() + `"}`
 	require.EqualValues(t, expectExtra, order.ExtraInfo)
-	require.EqualValues(t, "0.002"+common.NativeToken, order.GetExtraInfoWithKey(OrderExtraInfoKeyCancelFee))
+	require.EqualValues(t, "0.002"+common.NativeToken(), order.GetExtraInfoWithKey(OrderExtraInfoKeyCancelFee))
 
 	// Record deal fee
-	fee := sdk.SysCoins{{Denom: common.NativeToken, Amount: sdk.MustNewDecFromStr("0.01")}}
+	fee := sdk.SysCoins{{Denom: common.NativeToken(), Amount: sdk.MustNewDecFromStr("0.01")}}
 	order.RecordOrderDealFee(fee)
 	require.EqualValues(t, fee.String(), order.GetExtraInfoWithKey(OrderExtraInfoKeyDealFee))
 
@@ -133,7 +133,7 @@ func TestOrderExpire(t *testing.T) {
 func TestOrderNeedLockCoins(t *testing.T) {
 	order := MockOrder("", TestTokenPair, BuyOrder, "0.1", "10.0")
 	decCoins := order.NeedLockCoins()
-	require.EqualValues(t, "1.000000000000000000"+common.NativeToken, decCoins.String())
+	require.EqualValues(t, "1.000000000000000000"+common.NativeToken(), decCoins.String())
 
 	order2 := MockOrder("", TestTokenPair, SellOrder, "0.1", "10.0")
 	decCoins = order2.NeedLockCoins()
@@ -143,10 +143,10 @@ func TestOrderNeedLockCoins(t *testing.T) {
 func TestOrderNeedUnlockCoins(t *testing.T) {
 	order := MockOrder("", TestTokenPair, BuyOrder, "0.1", "10.0")
 	decCoins := order.NeedUnlockCoins()
-	require.EqualValues(t, "1.000000000000000000"+common.NativeToken, decCoins.String())
+	require.EqualValues(t, "1.000000000000000000"+common.NativeToken(), decCoins.String())
 	order.Fill(sdk.MustNewDecFromStr("0.05"), sdk.MustNewDecFromStr("5"))
 	decCoins = order.NeedUnlockCoins()
-	require.EqualValues(t, "0.750000000000000000"+common.NativeToken, decCoins.String()) // 0.1 * 10 - 0.05 * 5
+	require.EqualValues(t, "0.750000000000000000"+common.NativeToken(), decCoins.String()) // 0.1 * 10 - 0.05 * 5
 
 	order2 := MockOrder("", TestTokenPair, SellOrder, "0.1", "10.0")
 	decCoins = order2.NeedUnlockCoins()

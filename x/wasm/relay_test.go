@@ -96,9 +96,9 @@ package wasm_test
 //			coordinator.SetupConnections(path)
 //			coordinator.CreateChannels(path)
 //
-//			originalChainABalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom)
+//			originalChainABalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom())
 //			// when transfer via sdk transfer from A (module) -> B (contract)
-//			coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom, transferAmount)
+//			coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom(), transferAmount)
 //			timeoutHeight := clienttypes.NewHeight(1, 110)
 //			msg := ibctransfertypes.NewMsgTransfer(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, coinToSendToB, chainA.SenderAccount.GetAddress().String(), chainB.SenderAccount.GetAddress().String(), timeoutHeight, 0)
 //			_, err := chainA.SendMsgs(msg)
@@ -118,7 +118,7 @@ package wasm_test
 //			require.Equal(t, 0, len(chainB.PendingSendPackets))
 //
 //			// and source chain balance was decreased
-//			newChainABalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom)
+//			newChainABalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom())
 //			assert.Equal(t, originalChainABalance.Amount.Add(spec.expChainABalanceDiff), newChainABalance.Amount)
 //
 //			// and dest chain balance contains voucher
@@ -165,7 +165,7 @@ package wasm_test
 //
 //	// when contract is triggered to send IBCTransferMsg
 //	receiverAddress := chainB.SenderAccount.GetAddress()
-//	coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+//	coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))
 //
 //	// start transfer from chainA to chainB
 //	startMsg := &types.MsgExecuteContract{
@@ -237,7 +237,7 @@ package wasm_test
 //	// when contract is triggered to send the ibc package to chain B
 //	timeout := uint64(chainB.LastHeader.Header.Time.Add(time.Hour).UnixNano()) // enough time to not timeout
 //	receiverAddress := chainB.SenderAccount.GetAddress()
-//	coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+//	coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))
 //
 //	// start transfer from chainA to chainB
 //	startMsg := &types.MsgExecuteContract{
@@ -314,9 +314,9 @@ package wasm_test
 //	// when contract is triggered to send the ibc package to chain B
 //	timeout := uint64(chainB.LastHeader.Header.Time.Add(time.Nanosecond).UnixNano()) // will timeout
 //	receiverAddress := chainB.SenderAccount.GetAddress()
-//	coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
-//	initialContractBalance := chainA.Balance(myContractAddr, sdk.DefaultBondDenom)
-//	initialSenderBalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom)
+//	coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))
+//	initialContractBalance := chainA.Balance(myContractAddr, sdk.DefaultBondDenom())
+//	initialSenderBalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom())
 //
 //	// custom payload data to be transferred into a proper ICS20 ibc packet
 //	startMsg := &types.MsgExecuteContract{
@@ -337,7 +337,7 @@ package wasm_test
 //	// then
 //	require.Equal(t, 1, len(chainA.PendingSendPackets))
 //	require.Equal(t, 0, len(chainB.PendingSendPackets))
-//	newContractBalance := chainA.Balance(myContractAddr, sdk.DefaultBondDenom)
+//	newContractBalance := chainA.Balance(myContractAddr, sdk.DefaultBondDenom())
 //	assert.Equal(t, initialContractBalance.Add(coinToSendToB), newContractBalance) // hold in escrow
 //
 //	// when timeout packet send (by the relayer)
@@ -350,9 +350,9 @@ package wasm_test
 //	require.Equal(t, 0, len(chainB.PendingSendPackets))
 //
 //	// and then verify account balances restored
-//	newContractBalance = chainA.Balance(myContractAddr, sdk.DefaultBondDenom)
+//	newContractBalance = chainA.Balance(myContractAddr, sdk.DefaultBondDenom())
 //	assert.Equal(t, initialContractBalance.String(), newContractBalance.String())
-//	newSenderBalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom)
+//	newSenderBalance := chainA.Balance(chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom())
 //	assert.Equal(t, initialSenderBalance.String(), newSenderBalance.String())
 //}
 //

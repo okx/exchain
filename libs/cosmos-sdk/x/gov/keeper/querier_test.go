@@ -145,8 +145,8 @@ func TestQueries(t *testing.T) {
 	ctx, _, keeper, _, _ := createTestInput(t, false, 1000)
 	querier := NewQuerier(keeper)
 
-	oneCoins := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 1))
-	consCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(10)))
+	oneCoins := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1))
+	consCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.TokensFromConsensusPower(10)))
 
 	tp := TestProposal
 

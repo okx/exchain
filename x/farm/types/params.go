@@ -62,8 +62,8 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 func DefaultParams() Params {
 	return Params{
 		QuoteSymbol:       defaultQuoteSymbol,
-		CreatePoolFee:     sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultCreatePoolFee)),
-		CreatePoolDeposit: sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultCreatePoolDeposit)),
+		CreatePoolFee:     sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(defaultCreatePoolFee)),
+		CreatePoolDeposit: sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(defaultCreatePoolDeposit)),
 		YieldNativeToken:  false,
 	}
 }

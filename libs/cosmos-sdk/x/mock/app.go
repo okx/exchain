@@ -220,7 +220,7 @@ func SetGenesis(app *App, accs []authexported.Account) {
 func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) *auth.StdTx {
 	// Make the transaction free
 	fee := auth.StdFee{
-		Amount: sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)),
+		Amount: sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1)),
 		Gas:    100000,
 	}
 

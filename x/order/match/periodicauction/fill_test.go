@@ -52,11 +52,11 @@ func TestFillDepthBook(t *testing.T) {
 	acc0 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
 	expectCoins0 := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.5816")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("79.5816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	expectCoins1 := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.4816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.8")),
 	}
 	require.EqualValues(t, expectCoins0, acc0.GetCoins())
@@ -112,12 +112,12 @@ func TestFillDepthBook(t *testing.T) {
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
 	expectCoins0 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.8408")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("79.8408")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")), // 100 + 1 * (1 - 0.001)
 	}
 	expectCoins1 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("109.4716")), // 100 + 10 * (1 - 0.001) - 0.004
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.8")),       // no change
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("109.4716")), // 100 + 10 * (1 - 0.001) - 0.004
+		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.8")),         // no change
 	}
 	require.EqualValues(t, expectCoins0, acc0.GetCoins())
 	require.EqualValues(t, expectCoins1, acc1.GetCoins())
@@ -159,11 +159,11 @@ func TestFillDepthBookSecondCase(t *testing.T) {
 	acc0 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
 	expectCoins0 := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.5816")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("79.5816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	expectCoins1 := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.4816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.9")),
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
@@ -218,12 +218,12 @@ func TestFillDepthBookSecondCase(t *testing.T) {
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
 	expectCoins0 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.9408")), // 80.1 + 0.1 - 0.004
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")),   // 100 + 1 * (1 - 0.001)
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("79.9408")), // 80.1 + 0.1 - 0.004
+		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")),     // 100 + 1 * (1 - 0.001)
 	}
 	expectCoins1 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("109.7308")), // 100 + 10 * (1 - 0.001) - 0.004
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.9")),       // no change
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("109.7308")), // 100 + 10 * (1 - 0.001) - 0.004
+		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("97.9")),         // no change
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
 	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
@@ -265,11 +265,11 @@ func TestPartialFillDepthBook(t *testing.T) {
 	acc0 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 := testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
 	expectCoins0 := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("69.1816")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("69.1816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 	}
 	expectCoins1 := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.4816")),
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
@@ -320,12 +320,12 @@ func TestPartialFillDepthBook(t *testing.T) {
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
 	expectCoins0 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("69.5408")), // 69.7 + 0.1 - 0.004
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")),   // 100 + 1 * (1 - 0.001)
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("69.5408")), // 69.7 + 0.1 - 0.004
+		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100.999")),     // 100 + 1 * (1 - 0.001)
 	}
 	expectCoins1 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.4816")), // no change
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),        // no change
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.4816")), // no change
+		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),          // no change
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
 	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
@@ -345,12 +345,12 @@ func TestPartialFillDepthBook(t *testing.T) {
 	acc0 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[0])
 	acc1 = testInput.AccountKeeper.GetAccount(ctx, testInput.TestAddrs[1])
 	expectCoins0 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("70")),    // 69.7 + (0.1 - 0.004) * 3
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("70")),  // 69.7 + (0.1 - 0.004) * 3
 		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("102.997")), // 100.999 + 2 * (1 - 0.001)
 	}
 	expectCoins1 = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("129.7108")), // 99.4816 + 0.2592 + 30 * (1 - 0.001)
-		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),         // no change
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("129.7108")), // 99.4816 + 0.2592 + 30 * (1 - 0.001)
+		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("96")),           // no change
 	}
 	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
 	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())

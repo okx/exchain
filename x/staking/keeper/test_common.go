@@ -178,8 +178,8 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bk), maccPerms)
 
 	initTokens := sdk.NewInt(initBalance)
-	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens))
-	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens.MulRaw(int64(len(Addrs)))))
+	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens))
+	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens.MulRaw(int64(len(Addrs)))))
 
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
@@ -288,7 +288,7 @@ func ValidatorByPowerIndexExists(ctx sdk.Context, keeper MockStakingKeeper, powe
 }
 
 func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, msdAmt sdk.Dec) types.MsgCreateValidator {
-	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, msdAmt)
+	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), msdAmt)
 
 	return types.NewMsgCreateValidator(address, pubKey,
 		types.NewDescription("my moniker", "my identity", "my website", "my details"), msd,
@@ -296,7 +296,7 @@ func NewTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, msd
 }
 
 func NewTestMsgDeposit(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Dec) types.MsgDeposit {
-	amount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, amt)
+	amount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), amt)
 	return types.NewMsgDeposit(delAddr, amount)
 }
 

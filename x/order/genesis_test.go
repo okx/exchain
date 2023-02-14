@@ -44,7 +44,7 @@ func TestExportGenesis(t *testing.T) {
 		sdk.NewDec(456),
 		time.Now().Unix(),
 		5,
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1)))
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1)))
 	order1.OrderID = types.FormatOrderID(10, 1)
 	order1.FilledAvgPrice = sdk.ZeroDec()
 
@@ -86,7 +86,7 @@ func TestExportGenesis(t *testing.T) {
 	require.Equal(t, order1, exportGenesis.OpenOrders[0])
 
 	params.MaxDealsPerBlock = 1
-	params.FeePerBlock = sdk.NewDecCoinFromDec(common.NativeToken, sdk.OneDec())
+	params.FeePerBlock = sdk.NewDecCoinFromDec(common.NativeToken(), sdk.OneDec())
 	params.TradeFeeRate = sdk.NewDecWithPrec(5, 2)
 	params.OrderExpireBlocks = 3333
 	orderKeeper.SetParams(ctx, &params)

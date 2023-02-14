@@ -51,7 +51,7 @@ var (
 // require duplicate accounts fails validation
 func TestValidateGenesisDuplicateAccounts(t *testing.T) {
 	acc1 := NewBaseAccountWithAddress(sdk.AccAddress(addr1))
-	acc1.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))
+	acc1.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom(), 150))
 
 	genAccs := make(exported.GenesisAccounts, 2)
 	genAccs[0] = &acc1
@@ -62,10 +62,10 @@ func TestValidateGenesisDuplicateAccounts(t *testing.T) {
 
 func TestGenesisAccountIterator(t *testing.T) {
 	acc1 := NewBaseAccountWithAddress(sdk.AccAddress(addr1))
-	acc1.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))
+	acc1.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom(), 150))
 
 	acc2 := NewBaseAccountWithAddress(sdk.AccAddress(addr2))
-	acc2.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))
+	acc2.Coins = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom(), 150))
 
 	genAccounts := exported.GenesisAccounts{&acc1, &acc2}
 

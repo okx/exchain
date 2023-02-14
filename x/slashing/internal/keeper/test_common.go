@@ -45,7 +45,7 @@ var (
 		sdk.ValAddress(Pks[2].Address()),
 	}
 	InitTokens = sdk.TokensFromConsensusPower(200)
-	initCoins  = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, InitTokens))
+	initCoins  = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), InitTokens))
 )
 
 func createTestCodec() *codec.Codec {
@@ -108,7 +108,7 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bk), maccPerms)
 
-	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, InitTokens.MulRaw(int64(len(Addrs)))))
+	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), InitTokens.MulRaw(int64(len(Addrs)))))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	sk := staking.NewKeeper(pro, keyStaking, nil, paramsKeeper.Subspace(staking.DefaultParamspace))

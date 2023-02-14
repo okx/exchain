@@ -55,12 +55,12 @@ func TestMsgCreateExchangeInvalid(t *testing.T) {
 		addr             sdk.AccAddress
 		exceptResultCode uint32
 	}{
-		{"success", "aaa", common.NativeToken, addr, sdk.CodeOK},
+		{"success", "aaa", common.NativeToken(), addr, sdk.CodeOK},
 		{"success", "aaa", "bbb", addr, sdk.CodeOK},
 		{"success", "bbb", "aaa", addr, sdk.CodeOK},
-		{"nil addr", "aaa", common.NativeToken, nil, sdk.CodeInvalidAddress},
-		{"invalid token", "1ab", common.NativeToken, addr, sdk.CodeInvalidCoins},
-		{"invalid token", common.NativeToken, common.NativeToken, addr, sdk.CodeInvalidCoins},
+		{"nil addr", "aaa", common.NativeToken(), nil, sdk.CodeInvalidAddress},
+		{"invalid token", "1ab", common.NativeToken(), addr, sdk.CodeInvalidCoins},
+		{"invalid token", common.NativeToken(), common.NativeToken(), addr, sdk.CodeInvalidCoins},
 		//{"The lexicographic order of BaseTokenName must be less than QuoteTokenName", "xxb", addr, sdk.CodeUnknownRequest},
 
 	}

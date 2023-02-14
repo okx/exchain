@@ -62,7 +62,7 @@ Where proposal.json contains:
   "height": "1000"
 }
 `,
-				version.ClientName, sdk.DefaultBondDenom,
+				version.ClientName, sdk.DefaultBondDenom(),
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -53,7 +53,7 @@ func (suite *TransferTestSuite) TestHandleMsgTransfer() {
 	pathA2B := NewTransferPath(suite.chainA, suite.chainB)
 	suite.coordinator.Setup(pathA2B)
 
-	//	originalBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), sdk.DefaultBondDenom)
+	//	originalBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), sdk.DefaultBondDenom())
 	timeoutHeight := clienttypes.NewHeight(0, 110)
 
 	amount, ok := sdk.NewIntFromString("92233720368547758080") // 2^63 (one above int64)

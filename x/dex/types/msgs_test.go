@@ -18,11 +18,11 @@ func TestMsg(t *testing.T) {
 	common.InitConfig()
 	addr, err := sdk.AccAddressFromBech32(TestTokenPairOwner)
 	require.Nil(t, err)
-	product := common.TestToken + "_" + common.NativeToken
+	product := common.TestToken + "_" + common.NativeToken()
 
-	msgList := NewMsgList(addr, common.TestToken, common.NativeToken, sdk.NewDec(10))
-	msgDeposit := NewMsgDeposit(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(100)), addr)
-	msgWithdraw := NewMsgWithdraw(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(100)), addr)
+	msgList := NewMsgList(addr, common.TestToken, common.NativeToken(), sdk.NewDec(10))
+	msgDeposit := NewMsgDeposit(product, sdk.NewDecCoin(common.NativeToken(), sdk.NewInt(100)), addr)
+	msgWithdraw := NewMsgWithdraw(product, sdk.NewDecCoin(common.NativeToken(), sdk.NewInt(100)), addr)
 	msgTransferOwnership := NewMsgTransferOwnership(addr, addr, product)
 
 	// test msg.Route()、msg.Type()、msg.GetSigners()、GetSignBytes()
@@ -83,9 +83,9 @@ func TestMsg(t *testing.T) {
 		{"msgWithdraw", msgWithdraw, true},
 
 		{"deposit-invalid-amount", NewMsgDeposit(product, sdk.SysCoin{"", sdk.NewDec(1)}, addr), false},
-		{"deposit-no-depositor", NewMsgDeposit(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1)), nil), false},
+		{"deposit-no-depositor", NewMsgDeposit(product, sdk.NewDecCoin(common.NativeToken(), sdk.NewInt(1)), nil), false},
 		{"withdraw-invalid-amount", NewMsgWithdraw(product, sdk.SysCoin{"", sdk.NewDec(1)}, addr), false},
-		{"withdraw-no-depositor", NewMsgWithdraw(product, sdk.NewDecCoin(common.NativeToken, sdk.NewInt(1)), nil), false},
+		{"withdraw-no-depositor", NewMsgWithdraw(product, sdk.NewDecCoin(common.NativeToken(), sdk.NewInt(1)), nil), false},
 
 		{"transfer-no-from", NewMsgTransferOwnership(nil, toAddr, product), false},
 		{"transfer-no-to", NewMsgTransferOwnership(fromAddr, nil, product), false},

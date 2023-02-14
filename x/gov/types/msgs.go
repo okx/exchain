@@ -51,10 +51,10 @@ func (msg MsgSubmitProposal) ValidateBasic() sdk.Error {
 		return ErrInvalidCoins()
 	}
 
-	if len(msg.InitialDeposit) != 1 || msg.InitialDeposit[0].Denom != sdk.DefaultBondDenom || !msg.InitialDeposit.IsValid() {
-		return sdk.ErrInvalidCoins(fmt.Sprintf("must deposit %s but got %s", sdk.DefaultBondDenom,
-			msg.InitialDeposit.String()))
-	}
+	//if len(msg.InitialDeposit) != 1 || msg.InitialDeposit[0].Denom != sdk.DefaultBondDenom() || !msg.InitialDeposit.IsValid() {
+	//	return sdk.ErrInvalidCoins(fmt.Sprintf("must deposit %s but got %s", sdk.DefaultBondDenom(),
+	//		msg.InitialDeposit.String()))
+	//}
 
 	if !IsValidProposalType(msg.Content.ProposalType()) {
 		return ErrInvalidProposalType(msg.Content.ProposalType())

@@ -54,7 +54,7 @@ package order
 ////	}
 ////	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 ////	expectCoins := sdk.SysCoins{
-////		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")), // 100
+////		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("100")), // 100
 ////		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 ////	}
 ////	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -67,7 +67,7 @@ package order
 ////	// multi fee 7958528000
 ////	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 ////	expectCoins = sdk.SysCoins{
-////		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.79264")), // 100 - 10  - 0.20736
+////		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("89.79264")), // 100 - 10  - 0.20736
 ////		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 ////	}
 ////	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -91,7 +91,7 @@ package order
 ////	handler := NewOrderHandler(mapp.orderKeeper)
 ////
 ////	// not-exist product
-////	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
+////	msg := types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken(), types.BuyOrder, "10.0", "1.0")
 ////	res, err := handler(ctx, msg)
 ////	require.Nil(t, res)
 ////	require.EqualValues(t, "all order items failed to execute", err.Error())
@@ -141,9 +141,9 @@ package order
 //	require.Nil(t, err)
 //
 //	// not-exist product
-//	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
+//	msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, "nobb_"+common.NativeToken(), types.BuyOrder, "10.0", "1.0")
 //	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
-//	require.EqualValues(t, fmt.Sprintf("token pair nobb_%s doesn't exist", sdk.DefaultBondDenom), err.Error())
+//	require.EqualValues(t, fmt.Sprintf("token pair nobb_%s doesn't exist", sdk.DefaultBondDenom()), err.Error())
 //
 //	// invalid price precision
 //	//msg = types.NewMsgNewOrder(addrKeysSlice[0].Address, types.TestTokenPair, types.BuyOrder, "10.01", "1.0")
@@ -195,7 +195,7 @@ package order
 //	require.Nil(t, err)
 //
 //	// subtract all okb of addr0
-//	err = keeper.LockCoins(ctx, addrKeysSlice[0].Address, sdk.SysCoins{{Denom: common.NativeToken,
+//	err = keeper.LockCoins(ctx, addrKeysSlice[0].Address, sdk.SysCoins{{Denom: common.NativeToken(),
 //		Amount: sdk.MustNewDecFromStr("99.7408")}}, tokentypes.LockCoinsTypeQuantity)
 //	require.NoError(t, err)
 //
@@ -227,18 +227,18 @@ package order
 //	require.Nil(t, err)
 //	orderRes := parseOrderResult(result)
 //	require.NotNil(t, orderRes)
-//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, orderRes[0].Message)
+//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken(), orderRes[0].Message)
 //	// check account balance
 //	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins0 = sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.259199000000000000")), // no change
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("0.259199000000000000")), // no change
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),                    // 100 - 0.000001
 //	}
 //	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
 //	// check fee pool
 //	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 //	collectedFees := feeCollector.GetCoins()
-//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String())
+//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken(), collectedFees.String())
 //}
 //
 //func TestHandleMsgCancelOrderInvalid(t *testing.T) {
@@ -292,14 +292,14 @@ package order
 //	require.Nil(t, err)
 //	orderRes = parseOrderResult(result)
 //	require.NotNil(t, orderRes)
-//	require.EqualValues(t, "0.000000000000000000"+common.NativeToken, orderRes[0].Message)
+//	require.EqualValues(t, "0.000000000000000000"+common.NativeToken(), orderRes[0].Message)
 //	// check order status
 //	order = keeper.GetOrder(ctx, order.OrderID)
 //	require.EqualValues(t, types.OrderStatusCancelled, order.Status)
 //	// check account balance
 //	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins0 := sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")),
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("100")),
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
@@ -433,7 +433,7 @@ package order
 //	// check account balance
 //	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins := sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.58528")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("79.58528")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -466,7 +466,7 @@ package order
 //	// check account balance
 //	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins = sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("79.32608")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("79.32608")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99")),
 //	}
 //	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -486,7 +486,7 @@ package order
 //	// check account balance
 //	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins = sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("78.80768")), // 79.32608 - 0.2592 * 2
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("78.80768")), // 79.32608 - 0.2592 * 2
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("98")),         // 99 - 1
 //	}
 //	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -498,7 +498,7 @@ package order
 //	// check account balance
 //	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins = sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("78.80768")), // 78.80768
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("78.80768")), // 78.80768
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("98")),
 //	}
 //	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -547,7 +547,7 @@ package order
 //	// check account balance
 //	acc := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins := sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("69.37792")), // 100 - 10*6 - 0.2592 * 6 * 0.8
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("69.37792")), // 100 - 10*6 - 0.2592 * 6 * 0.8
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -576,7 +576,7 @@ package order
 //	// check account balance
 //	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins = sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.79264")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("89.79264")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -596,7 +596,7 @@ package order
 //	// check account balance
 //	acc = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins = sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("100")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("100")), // 100 - 10 - 10 - 0.2592 * 2 * 0.8 - 0.2592
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //	require.EqualValues(t, expectCoins.String(), acc.GetCoins().String())
@@ -628,7 +628,7 @@ package order
 //	require.Nil(t, err)
 //
 //	// not-exist product
-//	orderItem = types.NewOrderItem("nobb_"+common.NativeToken, types.BuyOrder, "10.0", "1.0")
+//	orderItem = types.NewOrderItem("nobb_"+common.NativeToken(), types.BuyOrder, "10.0", "1.0")
 //	msg = types.NewMsgNewOrders(addrKeysSlice[0].Address, append(orderItems, orderItem))
 //	_, err = ValidateMsgNewOrders(ctx, keeper, msg)
 //	require.NotNil(t, err)
@@ -738,12 +738,12 @@ package order
 //	acc0 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	acc1 := mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
 //	expectCoins0 := sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("89.9408")), // 100 - 9.8 - 0.2592
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("89.9408")), // 100 - 9.8 - 0.2592
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //	expectCoins1 := sdk.SysCoins{
 //		// 100 + 10 * 0.5 * (1 - 0.001) - 0.2592
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.7358")),
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("104.7358")),
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99")),
 //	}
 //	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
@@ -778,7 +778,7 @@ package order
 //	orderRes := parseOrderResult(result)
 //	// check result
 //	require.Nil(t, err)
-//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, orderRes[0].Message)
+//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken(), orderRes[0].Message)
 //	// check order status
 //	orders[0] = keeper.GetOrder(ctx, orders[0].OrderID)
 //	require.EqualValues(t, types.OrderStatusCancelled, orders[0].Status)
@@ -786,14 +786,14 @@ package order
 //	acc0 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[0].Address)
 //	expectCoins0 = sdk.SysCoins{
 //		// 100 - 0.002
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.999999")), // 100 - 9.8 + 9.8 - 0.000001
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.999999")), // 100 - 9.8 + 9.8 - 0.000001
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //	require.EqualValues(t, expectCoins0.String(), acc0.GetCoins().String())
 //	// check fee pool
 //	feeCollector := mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 //	collectedFees := feeCollector.GetCoins()
-//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken, collectedFees.String()) // 0.002+0.002
+//	require.EqualValues(t, "0.000001000000000000"+common.NativeToken(), collectedFees.String()) // 0.002+0.002
 //	// check depth book
 //	depthBook = keeper.GetDepthBookCopy(types.TestTokenPair)
 //	require.EqualValues(t, 1, len(depthBook.Items))
@@ -822,14 +822,14 @@ package order
 //	// check account balance
 //	acc1 = mapp.AccountKeeper.GetAccount(ctx, addrKeysSlice[1].Address)
 //	expectCoins1 = sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("104.994999")), // 99.999999 + 5 * (1 - 0.001)
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("104.994999")), // 99.999999 + 5 * (1 - 0.001)
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("99.5")),
 //	}
 //	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
 //	// check fee pool, partially cancel, no fees
 //	feeCollector = mapp.supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 //	collectedFees = feeCollector.GetCoins()
-//	require.EqualValues(t, "0.000002000000000000"+common.NativeToken, collectedFees.String())
+//	require.EqualValues(t, "0.000002000000000000"+common.NativeToken(), collectedFees.String())
 //	// check order ids
 //	key = types.FormatOrderIDsKey(types.TestTokenPair, sdk.MustNewDecFromStr("10"), types.SellOrder)
 //	orderIDs = keeper.GetProductPriceOrderIDs(key)
@@ -845,18 +845,18 @@ package order
 //		types.MockOrder(types.FormatOrderID(10, 2), types.TestTokenPair, types.SellOrder, "10.0", "2"),
 //	}
 //	expectCoins0 := sdk.SysCoins{
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("169.98")), // 200 - 10 -20 - 0.2592*10000/259200*2
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("169.98")), // 200 - 10 -20 - 0.2592*10000/259200*2
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("202.997")),  // 200 + (3 - 3*0.001)
 //	}
 //
 //	//test btc-b19_okt
 //	orders1 := []*types.Order{
-//		types.MockOrder(types.FormatOrderID(10, 1), "btc-b19_"+common.NativeToken, types.BuyOrder, "10", "1"),
-//		types.MockOrder(types.FormatOrderID(10, 2), "btc-b19_"+common.NativeToken, types.SellOrder, "10", "1"),
+//		types.MockOrder(types.FormatOrderID(10, 1), "btc-b19_"+common.NativeToken(), types.BuyOrder, "10", "1"),
+//		types.MockOrder(types.FormatOrderID(10, 2), "btc-b19_"+common.NativeToken(), types.SellOrder, "10", "1"),
 //	}
 //	expectCoins1 := sdk.SysCoins{
 //		sdk.NewDecCoinFromDec("btc-b19", sdk.MustNewDecFromStr("100.999")),         //100 + (1 - 1*0.0001)
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("189.99")), // 200 - 10 - 0.2592*10000/259200
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("189.99")), // 200 - 10 - 0.2592*10000/259200
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("100")),
 //	}
 //
@@ -867,14 +867,14 @@ package order
 //	}
 //	expectCoins2 := sdk.SysCoins{
 //		sdk.NewDecCoinFromDec("btc-b19", sdk.MustNewDecFromStr("100.999")),        //100 + (1 - 1*0.0001)
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.99")), // 100 - 0.2592*10000/259200
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.99")), // 100 - 0.2592*10000/259200
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("189")),     //200 - 11
 //	}
 //
 //	//test btc-b19_xxb match order on 800 block
 //	expectCoins3 := sdk.SysCoins{
 //		sdk.NewDecCoinFromDec("btc-b19", sdk.MustNewDecFromStr("100.999")),          //100 + (1 - 1*0.0001)
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.9992")), // 100 - 0.2592*800/259200
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.9992")), // 100 - 0.2592*800/259200
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("189")),       //200 - 11
 //	}
 //
@@ -887,7 +887,7 @@ package order
 //	}
 //	expectCoins4 := sdk.SysCoins{
 //		sdk.NewDecCoinFromDec("btc-a8a", sdk.MustNewDecFromStr("102.997")),        //100 +(2 - 2 * 0.001) + (1 - 1*0.0001)
-//		sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("99.98")), // 100 - 0.2592*10000/259200*2
+//		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("99.98")), // 100 - 0.2592*10000/259200*2
 //		sdk.NewDecCoinFromDec(common.TestToken, sdk.MustNewDecFromStr("167")),     //200 - 11 - 11*2
 //	}
 //
@@ -898,8 +898,8 @@ package order
 //		balance     sdk.SysCoins
 //		blockheight int64
 //	}{
-//		{common.TestToken, common.NativeToken, orders0, expectCoins0, 10000},
-//		{"btc-b19", common.NativeToken, orders1, expectCoins1, 10000},
+//		{common.TestToken, common.NativeToken(), orders0, expectCoins0, 10000},
+//		{"btc-b19", common.NativeToken(), orders1, expectCoins1, 10000},
 //		{"btc-b19", "xxb", orders2, expectCoins2, 10000},
 //		{"btc-b19", "xxb", orders2, expectCoins3, 800},
 //		{"btc-a8a", "xxb", orders4, expectCoins4, 10000},
@@ -942,7 +942,7 @@ package order
 //		MaxQuantityDigit: 8,
 //		MinQuantity:      sdk.MustNewDecFromStr("0"),
 //		Owner:            addr,
-//		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(0)),
+//		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(0)),
 //	}
 //
 //	err = mapp.dexKeeper.SaveTokenPair(ctx, &tokenPair)

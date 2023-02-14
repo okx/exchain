@@ -160,7 +160,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		// add sender account
 		//balance := banktypes.Balance{
 		//	Address: acc.GetAddress().String(),
-		//	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
+		//	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), amount)),
 		//}
 
 		//genAccs = append(genAccs, acc)
@@ -205,7 +205,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	//fmt.Println(account)
 	//// balance := banktypes.Balance{
 	//// 	Address: acc.GetAddress().String(),
-	//// 	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
+	//// 	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), amount)),
 	//// }
 
 	app := SetupWithGenesisValSet(t, chainID, valSet, []authtypes.GenesisAccount{genesisAcc}, balance)

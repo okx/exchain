@@ -223,7 +223,7 @@ func TestKeeper_IterateVotes(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 150)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 150)}, "")
 	require.Nil(t, err)
 
 	err, voteFee := keeper.AddVote(ctx, proposalID, Addrs[1], types.OptionYes)
@@ -254,11 +254,11 @@ func TestKeeper_IterateDeposits(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 10)}, "")
 	require.Nil(t, err)
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[1],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 10)}, "")
 	require.Nil(t, err)
 
 	var findDeposit types.Deposit
@@ -282,11 +282,11 @@ func TestKeeper_IterateAllDeposits(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 10)}, "")
 	require.Nil(t, err)
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[1],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 10)}, "")
 	require.Nil(t, err)
 
 	// proposal 2
@@ -296,11 +296,11 @@ func TestKeeper_IterateAllDeposits(t *testing.T) {
 	proposalID = proposal.ProposalID
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 10)}, "")
 	require.Nil(t, err)
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[1],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 10)}, "")
 	require.Nil(t, err)
 
 	var findDeposit types.Deposit
@@ -358,7 +358,7 @@ func TestKeeper_CheckMsgSubmitProposal(t *testing.T) {
 	content := types.ContentFromProposalType("text", "text", types.ProposalTypeText)
 
 	// not satisfy initial deposit
-	amount, err := sdk.ParseDecCoins(fmt.Sprintf("1.0%s", sdk.DefaultBondDenom))
+	amount, err := sdk.ParseDecCoins(fmt.Sprintf("1.0%s", sdk.DefaultBondDenom()))
 	require.Nil(t, err)
 	msg := types.NewMsgSubmitProposal(content, amount, Addrs[0])
 	err = keeper.CheckMsgSubmitProposal(ctx, msg)

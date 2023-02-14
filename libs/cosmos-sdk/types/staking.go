@@ -8,7 +8,8 @@ import (
 const (
 
 	// default bond denomination
-	DefaultBondDenom = "okt"
+	//DefaultBondDenom   = "okt"
+	RawDefaultBondDenom = "okt"
 
 	// Delay, in blocks, between when validator updates are returned to the
 	// consensus-engine and when they are applied. For example, if
@@ -21,6 +22,16 @@ const (
 	// https://tendermint.com/docs/spec/abci/apps.html#endblock
 	ValidatorUpdateDelay int64 = 1
 )
+
+var defaultBondDenom string = RawDefaultBondDenom
+
+func SetDefaultBondDenom(denom string) {
+	defaultBondDenom = denom
+}
+
+func DefaultBondDenom() string {
+	return defaultBondDenom
+}
 
 // PowerReduction is the amount of staking tokens required for 1 unit of consensus-engine power
 var PowerReduction = NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(Precision), nil))

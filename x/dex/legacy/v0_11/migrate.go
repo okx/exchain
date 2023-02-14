@@ -14,7 +14,7 @@ func Migrate(oldGenState v0_10.GenesisState) GenesisState {
 		DelistMinDeposit:       oldGenState.Params.DelistMinDeposit,
 		DelistVotingPeriod:     oldGenState.Params.DelistVotingPeriod,
 		WithdrawPeriod:         oldGenState.Params.WithdrawPeriod,
-		RegisterOperatorFee:    sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec()),
+		RegisterOperatorFee:    sdk.NewDecCoinFromDec(common.NativeToken(), sdk.ZeroDec()),
 	}
 
 	operatorMap := make(map[string]struct{})

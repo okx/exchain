@@ -24,17 +24,17 @@ func TestQuerier_ProductsAndMatchOrder(t *testing.T) {
 	require.Nil(t, err)
 	tokenPair0 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken0",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            addr,
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      8,
 	}
 
 	tokenPair1 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken1",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            addr,
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100)),
 		BlockHeight:      10,
 	}
 
@@ -96,17 +96,17 @@ func TestQuerier_Deposits(t *testing.T) {
 	require.Nil(t, err)
 	tokenPair0 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken0",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            addr,
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      8,
 	}
 
 	tokenPair1 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken1",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            addr,
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100)),
 		BlockHeight:      10,
 	}
 
@@ -118,7 +118,7 @@ func TestQuerier_Deposits(t *testing.T) {
 	querier := NewQuerier(testInput.DexKeeper)
 	path := types.QueryDeposits
 	// successful case
-	queryParams := types.NewQueryDepositParams(types.TestTokenPairOwner, "", common.NativeToken, 1, 50)
+	queryParams := types.NewQueryDepositParams(types.TestTokenPairOwner, "", common.NativeToken(), 1, 50)
 	bz, err := amino.MarshalJSON(queryParams)
 	require.Nil(t, err)
 	data, err := querier(ctx, []string{path}, abci.RequestQuery{Data: bz})

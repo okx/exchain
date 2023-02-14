@@ -58,13 +58,13 @@ func ParamKeyTable() params.KeyTable {
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() *Params {
-	defaultListFee := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultFeeList))
-	defaultTransferOwnershipFee := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultFeeTransferOwnership))
-	defaultDelistMinDeposit := sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(defaultDelistMinDeposit))
+	defaultListFee := sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(defaultFeeList))
+	defaultTransferOwnershipFee := sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(defaultFeeTransferOwnership))
+	defaultDelistMinDeposit := sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(defaultDelistMinDeposit))
 	return &Params{
 		ListFee:                defaultListFee,
 		TransferOwnershipFee:   defaultTransferOwnershipFee,
-		RegisterOperatorFee:    sdk.NewDecCoinFromDec(common.NativeToken, sdk.ZeroDec()),
+		RegisterOperatorFee:    sdk.NewDecCoinFromDec(common.NativeToken(), sdk.ZeroDec()),
 		DelistMaxDepositPeriod: time.Hour * 24,
 		DelistMinDeposit:       sdk.SysCoins{defaultDelistMinDeposit},
 		DelistVotingPeriod:     time.Hour * 72,

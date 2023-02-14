@@ -83,7 +83,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		// Cost calculates the fees paid to validators based on gas limit and price
 		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
 
-		evmDenom := sdk.DefaultBondDenom
+		evmDenom := sdk.DefaultBondDenom()
 
 		feeAmt := sdk.NewCoins(
 			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec

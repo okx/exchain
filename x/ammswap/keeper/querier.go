@@ -94,7 +94,7 @@ func queryBuyAmount(
 		}
 		buyAmount = CalculateTokenToBuy(tokenPair, queryParams.SoldToken, queryParams.TokenToBuy, params).Amount
 	} else {
-		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom)
+		tokenPairName1 := types.GetSwapTokenPairName(queryParams.SoldToken.Denom, sdk.DefaultBondDenom())
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
 			return nil, err
@@ -102,7 +102,7 @@ func queryBuyAmount(
 		if tokenPair1.BasePooledCoin.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
 			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
-		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom)
+		tokenPairName2 := types.GetSwapTokenPairName(queryParams.TokenToBuy, sdk.DefaultBondDenom())
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
 			return nil, err
@@ -110,7 +110,7 @@ func queryBuyAmount(
 		if tokenPair2.BasePooledCoin.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
 			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
-		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom, params)
+		nativeToken := CalculateTokenToBuy(tokenPair1, queryParams.SoldToken, sdk.DefaultBondDenom(), params)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.TokenToBuy, params).Amount
 	}
 
@@ -194,7 +194,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		// calculate fee
 		fee = sdk.NewDecCoinFromDec(sellAmount.Denom, sellAmount.Amount.Mul(swapParams.FeeRate))
 	} else {
-		tokenPairName1 := types.GetSwapTokenPairName(sellAmount.Denom, common.NativeToken)
+		tokenPairName1 := types.GetSwapTokenPairName(sellAmount.Denom, common.NativeToken())
 		tokenPair1, err := keeper.GetSwapTokenPair(ctx, tokenPairName1)
 		if err != nil {
 			return nil, err
@@ -202,7 +202,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		if tokenPair1.BasePooledCoin.Amount.IsZero() || tokenPair1.QuotePooledCoin.IsZero() {
 			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
-		tokenPairName2 := types.GetSwapTokenPairName(queryParams.BuyToken, common.NativeToken)
+		tokenPairName2 := types.GetSwapTokenPairName(queryParams.BuyToken, common.NativeToken())
 		tokenPair2, err := keeper.GetSwapTokenPair(ctx, tokenPairName2)
 		if err != nil {
 			return nil, err
@@ -210,7 +210,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		if tokenPair2.BasePooledCoin.Amount.IsZero() || tokenPair2.QuotePooledCoin.IsZero() {
 			return nil, types.ErrIsZeroValue("base pooled coin or quote pooled coin")
 		}
-		nativeToken := CalculateTokenToBuy(tokenPair1, sellAmount, common.NativeToken, swapParams)
+		nativeToken := CalculateTokenToBuy(tokenPair1, sellAmount, common.NativeToken(), swapParams)
 		buyAmount = CalculateTokenToBuy(tokenPair2, nativeToken, queryParams.BuyToken, swapParams).Amount
 
 		// calculate market price
@@ -221,7 +221,7 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 		} else {
 			sellTokenMarketPrice = tokenPair1.BasePooledCoin.Amount.Quo(tokenPair1.QuotePooledCoin.Amount)
 		}
-		if tokenPair2.BasePooledCoin.Denom == common.NativeToken {
+		if tokenPair2.BasePooledCoin.Denom == common.NativeToken() {
 			routeTokenMarketPrice = tokenPair2.QuotePooledCoin.Amount.Quo(tokenPair2.BasePooledCoin.Amount)
 		} else {
 			routeTokenMarketPrice = tokenPair2.BasePooledCoin.Amount.Quo(tokenPair2.QuotePooledCoin.Amount)
@@ -232,12 +232,12 @@ func querySwapQuoteInfo(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) (
 
 		// calculate fee
 		fee1 := sdk.NewDecCoinFromDec(sellAmount.Denom, sellAmount.Amount.Mul(swapParams.FeeRate))
-		routeTokenFee := sdk.NewDecCoinFromDec(common.NativeToken, nativeToken.Amount.Mul(swapParams.FeeRate))
+		routeTokenFee := sdk.NewDecCoinFromDec(common.NativeToken(), nativeToken.Amount.Mul(swapParams.FeeRate))
 		fee2 := CalculateTokenToBuy(tokenPair1, routeTokenFee, sellAmount.Denom, swapParams)
 		fee = fee1.Add(fee2)
 
 		// swap by route
-		route = common.NativeToken
+		route = common.NativeToken()
 	}
 
 	// calculate price

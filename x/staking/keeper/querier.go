@@ -311,7 +311,7 @@ func queryParams4IBC(ctx sdk.Context, k Keeper) ([]byte, error) {
 			MaxValidators:     uint32(params.MaxValidators),
 			MaxEntries:        uint32(params.MaxValsToAddShares),
 			HistoricalEntries: params.HistoricalEntries,
-			BondDenom:         sdk.DefaultBondDenom,
+			BondDenom:         sdk.DefaultBondDenom(),
 		},
 	}
 	res, err := k.cdcMarshl.GetProtocMarshal().MarshalBinaryBare(ret)

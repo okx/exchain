@@ -46,8 +46,8 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 		keeper.SetProxyBinding(ctx, proxyDelegatorKeyExported.ProxyAddr, proxyDelegatorKeyExported.DelAddr, false)
 	}
 
-	checkPools(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, bondedTokens),
-		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, notBondedTokens), data.Exported)
+	checkPools(ctx, keeper, sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), bondedTokens),
+		sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), notBondedTokens), data.Exported)
 
 	// don't need to run Tendermint updates if we exported
 	if data.Exported {

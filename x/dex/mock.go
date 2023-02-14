@@ -197,7 +197,7 @@ func newMockApp(tokenKeeper TokenKeeper, supplyKeeper SupplyKeeper, accountsInGe
 	initQuantity := 10000000
 	var decCoins sdk.SysCoins
 	decCoins, err = sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
-		initQuantity, common.NativeToken, initQuantity, common.TestToken))
+		initQuantity, common.NativeToken(), initQuantity, common.TestToken))
 	if err != nil {
 		return nil, nil, err
 	}

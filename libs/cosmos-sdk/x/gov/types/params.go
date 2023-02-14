@@ -54,7 +54,7 @@ func NewDepositParams(minDeposit sdk.Coins, maxDepositPeriod time.Duration) Depo
 // DefaultDepositParams default parameters for deposits
 func DefaultDepositParams() DepositParams {
 	return NewDepositParams(
-		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, DefaultMinDepositTokens)),
+		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), DefaultMinDepositTokens)),
 		DefaultPeriod,
 	)
 }

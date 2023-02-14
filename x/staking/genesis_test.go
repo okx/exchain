@@ -67,7 +67,7 @@ func TestInitGenesis(t *testing.T) {
 	genesisState.UnbondingDelegations = unbondingDelegations
 	// for the token sum check in staking init-genesis
 	//coinsToModuleAcc := sdk.SysCoins{sdk.NewDecCoinFromDec("okt", sdk.NewDec(100))}.ToCoins()
-	coinsToModuleAcc := sdk.NewCoin(common.NativeToken, sdk.NewInt(100)).ToCoins()
+	coinsToModuleAcc := sdk.NewCoin(common.NativeToken(), sdk.NewInt(100)).ToCoins()
 	_ = supplyKeeper.SendCoinsFromAccountToModule(ctx, Addrs[11], types.NotBondedPoolName, coinsToModuleAcc)
 	vals := InitGenesis(ctx, keeper, nil, supplyKeeper, genesisState)
 
@@ -180,7 +180,7 @@ func TestInitGenesis(t *testing.T) {
 
 func clearNotBondedPool(t *testing.T, ctx sdk.Context, supplyKeeper supply.Keeper) {
 	notBondedPool := supplyKeeper.GetModuleAccount(ctx, types.NotBondedPoolName)
-	zeroCoins := sdk.NewCoins(sdk.NewInt64Coin(common.NativeToken, 0))
+	zeroCoins := sdk.NewCoins(sdk.NewInt64Coin(common.NativeToken(), 0))
 	require.NoError(t, notBondedPool.SetCoins(zeroCoins))
 	supplyKeeper.SetModuleAccount(ctx, notBondedPool)
 }

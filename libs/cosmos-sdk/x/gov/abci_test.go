@@ -29,7 +29,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 
 	newProposalMsg := NewMsgSubmitProposal(
 		ContentFromProposalType("test", "test", ProposalTypeText),
-		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 5)},
 		input.addrs[0],
 	)
 
@@ -79,7 +79,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 
 	newProposalMsg := NewMsgSubmitProposal(
 		ContentFromProposalType("test", "test", ProposalTypeText),
-		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 5)},
 		input.addrs[0],
 	)
 
@@ -101,7 +101,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 
 	newProposalMsg2 := NewMsgSubmitProposal(
 		ContentFromProposalType("test2", "test2", ProposalTypeText),
-		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 5)},
 		input.addrs[0],
 	)
 
@@ -152,7 +152,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 
 	newProposalMsg := NewMsgSubmitProposal(
 		ContentFromProposalType("test2", "test2", ProposalTypeText),
-		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 5)},
 		input.addrs[0],
 	)
 
@@ -174,7 +174,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 	require.False(t, inactiveQueue.Valid())
 	inactiveQueue.Close()
 
-	newDepositMsg := NewMsgDeposit(input.addrs[1], proposalID, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 5)})
+	newDepositMsg := NewMsgDeposit(input.addrs[1], proposalID, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 5)})
 
 	res, err = govHandler(ctx, newDepositMsg)
 	require.NoError(t, err)
@@ -202,7 +202,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	require.False(t, activeQueue.Valid())
 	activeQueue.Close()
 
-	proposalCoins := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(5))}
+	proposalCoins := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom(), sdk.TokensFromConsensusPower(5))}
 	newProposalMsg := NewMsgSubmitProposal(keep.TestProposal, proposalCoins, input.addrs[0])
 
 	res, err := govHandler(ctx, newProposalMsg)
@@ -269,7 +269,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 	proposal, err := input.keeper.SubmitProposal(ctx, keep.TestProposal)
 	require.NoError(t, err)
 
-	proposalCoins := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(10))}
+	proposalCoins := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom(), sdk.TokensFromConsensusPower(10))}
 	newDepositMsg := NewMsgDeposit(input.addrs[0], proposal.ProposalID, proposalCoins)
 
 	res, err := handler(ctx, newDepositMsg)
@@ -320,7 +320,7 @@ func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 	proposal, err := input.keeper.SubmitProposal(ctx, keep.TestProposal)
 	require.NoError(t, err)
 
-	proposalCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(10)))
+	proposalCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.TokensFromConsensusPower(10)))
 	newDepositMsg := NewMsgDeposit(input.addrs[0], proposal.ProposalID, proposalCoins)
 
 	res, err := handler(ctx, newDepositMsg)

@@ -11,4 +11,6 @@ var (
 		cli.GetCmdManageTreasuresProposal,
 		rest.ManageTreasuresProposalRESTHandler,
 	)
+
+	StopMintProposalHandler = govcli.NewProposalHandler(cli.GetCmdStopMintProposal, rest.StopMintProposalRESTHandler)
 )

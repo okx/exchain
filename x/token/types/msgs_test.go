@@ -60,7 +60,7 @@ func TestNewMsgTokenBurn(t *testing.T) {
 	priKey := secp256k1.GenPrivKey()
 	pubKey := priKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
-	decCoin := sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100))
+	decCoin := sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100))
 
 	decCoin0 := decCoin
 	decCoin0.Denom = ""
@@ -106,7 +106,7 @@ func TestNewMsgTokenMint(t *testing.T) {
 	pubKey := priKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
 
-	decCoin := sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000))
+	decCoin := sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000))
 	decCoin0 := decCoin
 	decCoin0.Denom = ""
 
@@ -161,7 +161,7 @@ func TestNewTokenMsgSend(t *testing.T) {
 	toAddr := sdk.AccAddress(toPubKey.Address())
 
 	coins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100)),
 	}
 
 	Errorcoins := sdk.SysCoins{
@@ -220,14 +220,14 @@ func TestNewTokenMultiSend(t *testing.T) {
 	fromAddr := sdk.AccAddress(fromPubKey.Address())
 
 	// correct message
-	coinStr := `[{"to":"ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz","amount":"1` + common.NativeToken + `"}]`
+	coinStr := `[{"to":"ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz","amount":"1` + common.NativeToken() + `"}]`
 	transfers, err := StrToTransfers(coinStr)
 	require.Nil(t, err)
 
 	// coins not positive
 	toAddr0, err := sdk.AccAddressFromBech32("ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz")
 	require.Nil(t, err)
-	decCoin0 := sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(0))
+	decCoin0 := sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(0))
 	transfers0 := []TransferUnit{
 		{
 			To:    toAddr0,
@@ -294,8 +294,8 @@ func TestNewMsgTransferOwnership(t *testing.T) {
 		transferOwnershipMsg MsgTransferOwnership
 		err                  sdk.Error
 	}{
-		{NewMsgTransferOwnership(fromAddr, sdk.AccAddress{}, common.NativeToken), ErrAddressIsRequired()},
-		{NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken), ErrAddressIsRequired()},
+		{NewMsgTransferOwnership(fromAddr, sdk.AccAddress{}, common.NativeToken()), ErrAddressIsRequired()},
+		{NewMsgTransferOwnership(sdk.AccAddress{}, toAddr, common.NativeToken()), ErrAddressIsRequired()},
 		{NewMsgTransferOwnership(fromAddr, toAddr, ""), ErrMsgSymbolIsEmpty()},
 		{NewMsgTransferOwnership(fromAddr, toAddr, "1okb-ads"), ErrConfirmOwnershipNotExistOrBlockTimeAfter()},
 	}

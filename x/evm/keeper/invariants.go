@@ -37,7 +37,7 @@ func (k Keeper) BalanceInvariant() sdk.Invariant {
 				return false
 			}
 
-			accountBalance := ethAccount.GetCoins().AmountOf(sdk.DefaultBondDenom)
+			accountBalance := ethAccount.GetCoins().AmountOf(sdk.DefaultBondDenom())
 			evmBalance := csdb.GetBalance(ethAccount.EthAddress())
 
 			if evmBalance.Cmp(accountBalance.BigInt()) != 0 {

@@ -38,14 +38,14 @@ func TestCurrency(t *testing.T) {
 	}{
 		{Currency{
 			Description: "my currency",
-			Symbol:      common.NativeToken,
+			Symbol:      common.NativeToken(),
 			TotalSupply: sdk.NewDec(10000000),
-		}, `{"description":"my currency","symbol":"` + common.NativeToken + `","total_supply":"10000000.000000000000000000"}`},
+		}, `{"description":"my currency","symbol":"` + common.NativeToken() + `","total_supply":"10000000.000000000000000000"}`},
 		{Currency{
-			Description: common.NativeToken,
-			Symbol:      common.NativeToken,
+			Description: common.NativeToken(),
+			Symbol:      common.NativeToken(),
 			TotalSupply: sdk.NewDec(10000),
-		}, `{"description":"` + common.NativeToken + `","symbol":"` + common.NativeToken + `","total_supply":"10000.000000000000000000"}`},
+		}, `{"description":"` + common.NativeToken() + `","symbol":"` + common.NativeToken() + `","total_supply":"10000.000000000000000000"}`},
 	}
 	for _, currencyCase := range testCase {
 		b, err := json.Marshal(currencyCase.currency)
@@ -67,24 +67,24 @@ func TestToken(t *testing.T) {
 	}{
 		{Token{
 			Description:         "my token",
-			Symbol:              common.NativeToken,
-			OriginalSymbol:      common.NativeToken,
+			Symbol:              common.NativeToken(),
+			OriginalSymbol:      common.NativeToken(),
 			WholeName:           "btc",
 			OriginalTotalSupply: sdk.NewDec(1000000),
 			Type:                0,
 			Owner:               nil,
 			Mintable:            false,
-		}, `{"description":"my token","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"btc","original_total_supply":"1000000.000000000000000000","type":0,"owner":"","mintable":false}`},
+		}, `{"description":"my token","symbol":"` + common.NativeToken() + `","original_symbol":"` + common.NativeToken() + `","whole_name":"btc","original_total_supply":"1000000.000000000000000000","type":0,"owner":"","mintable":false}`},
 		{Token{
 			Description:         "okblockchain coin",
-			Symbol:              common.NativeToken,
-			OriginalSymbol:      common.NativeToken,
+			Symbol:              common.NativeToken(),
+			OriginalSymbol:      common.NativeToken(),
 			WholeName:           "ok coin",
 			OriginalTotalSupply: sdk.NewDec(1000000000),
 			Type:                0,
 			Owner:               addr,
 			Mintable:            true,
-		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken + `","original_symbol":"` + common.NativeToken + `","whole_name":"ok coin","original_total_supply":"1000000000.000000000000000000","type":0,"owner":"ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz","mintable":true}`},
+		}, `{"description":"okblockchain coin","symbol":"` + common.NativeToken() + `","original_symbol":"` + common.NativeToken() + `","whole_name":"ok coin","original_total_supply":"1000000000.000000000000000000","type":0,"owner":"ex1jedas2n0pq2c68pelztgel8ht8pz50rh7s7vfz","mintable":true}`},
 	}
 	for _, tokenCase := range testCase {
 		b, err := json.Marshal(tokenCase.token)
@@ -95,7 +95,7 @@ func TestToken(t *testing.T) {
 }
 
 func TestKeys(t *testing.T) {
-	symbol := common.NativeToken
+	symbol := common.NativeToken()
 	b := GetTokenAddress(symbol)
 	require.EqualValues(t, b, append(TokenKey, []byte(symbol)...))
 

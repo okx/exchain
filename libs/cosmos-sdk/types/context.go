@@ -296,6 +296,16 @@ func (c *Context) SetMinGasPrices(gasPrices DecCoins) *Context {
 	return c
 }
 
+//func (c *Context) UpdateMinGasPrices(denmo string) *Context {
+//	//c.minGasPrice = gasPrices
+//	for i, v := range c.minGasPrice {
+//		if v.Denom == "okt" {
+//			c.minGasPrice[i].Denom = denmo
+//		}
+//	}
+//	return c
+//}
+
 func (c *Context) SetIsCheckTx(isCheckTx bool) *Context {
 	c.checkTx = isCheckTx
 	return c

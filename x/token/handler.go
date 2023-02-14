@@ -2,13 +2,13 @@ package token
 
 import (
 	"fmt"
-
 	"github.com/okex/exchain/x/common"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/common/perf"
 	"github.com/okex/exchain/x/common/version"
+	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/token/types"
 )
 
@@ -110,13 +110,13 @@ func handleMsgTokenIssue(ctx sdk.Context, keeper Keeper, msg types.MsgTokenIssue
 		Mintable:            msg.Mintable,
 	}
 
-	// generate a random symbol
-	newName, valid := addTokenSuffix(ctx, keeper, msg.OriginalSymbol)
-	if !valid {
-		return types.ErrInvalidCoins(msg.OriginalSymbol).Result()
-	}
+	// generate a random symbol  TODO zhujianguo
+	//newName, valid := addTokenSuffix(ctx, keeper, msg.OriginalSymbol)
+	//if !valid {
+	//	return types.ErrInvalidCoins(msg.OriginalSymbol).Result()
+	//}
 
-	token.Symbol = newName
+	token.Symbol = msg.OriginalSymbol
 
 	coins := sdk.MustParseCoins(token.Symbol, msg.TotalSupply)
 	// set supply
@@ -463,4 +463,23 @@ func handleMsgTokenModify(ctx sdk.Context, keeper Keeper, msg types.MsgTokenModi
 		),
 	)
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+}
+
+func NewTokenProposalHandler(k Keeper) govtypes.Handler {
+	return func(ctx sdk.Context, content *govtypes.Proposal) error {
+		switch c := content.Content.(type) {
+		case types.ModifyDefaultBondDenomProposal:
+			return HandleModifyDefaultBondDenomProposal(ctx, k, c)
+		default:
+			return types.ErrUnknownProposaType()
+		}
+	}
+}
+
+// HandleModifyDefaultBondDenomProposal is a handler for executing a passed community spend proposal
+func HandleModifyDefaultBondDenomProposal(ctx sdk.Context, k Keeper, p types.ModifyDefaultBondDenomProposal) error {
+	k.SetDefaultBondDenom(ctx, p.DenomName)
+	sdk.SetDefaultBondDenom(p.DenomName)
+	//ctx.UpdateMinGasPrices(p.DenomName)
+	return nil
 }

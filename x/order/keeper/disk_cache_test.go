@@ -77,7 +77,7 @@ func TestKeeper_StoreOrderIDsMap(t *testing.T) {
 
 	orderIDs := []string{"ID0000000010-1", "ID0000000010-2", "ID0000000010-3"}
 	//key xxb_okt:10.00000000:BUY
-	keeper.StoreOrderIDsMap(ctx, "xxb_"+common.NativeToken+":10.00000000:BUY", orderIDs)
+	keeper.StoreOrderIDsMap(ctx, "xxb_"+common.NativeToken()+":10.00000000:BUY", orderIDs)
 
 	require.EqualValues(t, 0, len(keeper.diskCache.orderIDsMap.Data))
 }
@@ -108,7 +108,7 @@ func TestFlushCache(t *testing.T) {
 	require.EqualValues(t, sdk.MustNewDecFromStr("0"), dcache.getLastPrice(types.TestTokenPair+"a"))
 	require.EqualValues(t, 1, len(dcache.GetUpdatedOrderIDKeys()))
 	require.EqualValues(t, 1, len(dcache.GetUpdatedDepthbookKeys()))
-	require.EqualValues(t, 1, len(dcache.getOrderIDs("xxb_"+common.NativeToken+":8.000000000000000000:BUY")))
+	require.EqualValues(t, 1, len(dcache.getOrderIDs("xxb_"+common.NativeToken()+":8.000000000000000000:BUY")))
 	dcache.removeOrder(order)
 	require.EqualValues(t, 6, dcache.openNum)
 

@@ -160,7 +160,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 
 	bk := bank.NewBaseKeeper(ak, pk.Subspace(bank.DefaultParamspace), blacklistedAddrs)
 	// fill all the addresses with some coins
-	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1000)))
+	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(1000)))
 	for _, addr := range Addrs {
 		_, err := bk.AddCoins(ctx, addr, initCoins)
 		if err != nil {
@@ -178,7 +178,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 		govtypes.ModuleName:       nil,
 	}
 	sk := supply.NewKeeper(cdc, keySupply, ak, bank.NewBankKeeperAdapter(bk), maccPerms)
-	sk.SetSupply(ctx, supply.NewSupply(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000000000))))
+	sk.SetSupply(ctx, supply.NewSupply(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.NewDec(1000000000))))
 	sk.SetModuleAccount(ctx, feeCollectorAcc)
 	sk.SetModuleAccount(ctx, farmAcc)
 	sk.SetModuleAccount(ctx, yieldFarmingAccount)
@@ -205,7 +205,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	govProposalHandlerRouter.AddRoute(params.RouterKey, pk)
 	govKeeper := gov.NewKeeper(cdc, keyGov, pk, govSubspace, sk, nil,
 		types.DefaultCodespace, gov.NewRouter(), bk, govProposalHandlerRouter, auth.FeeCollectorName)
-	minDeposit := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(100))
+	minDeposit := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.NewDec(100))
 	depositParams := govtypes.DepositParams{
 		MinDeposit:       minDeposit,
 		MaxDepositPeriod: time.Hour * 24,
@@ -310,12 +310,12 @@ func initPoolsAndLockInfos(
 	pools = types.FarmPools{
 		types.NewFarmPool(
 			Addrs[2], pool1Name, sdk.NewDecCoinFromDec(pool1LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+			sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100)),
 			pool1LockedAmount.Add(pool1LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 		types.NewFarmPool(
 			Addrs[3], pool2Name, sdk.NewDecCoinFromDec(pool2LockedAmount.Denom, sdk.ZeroDec()),
-			sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(200)),
+			sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(200)),
 			pool2LockedAmount.Add(pool2LockedAmount), poolYieldedInfos, sdk.SysCoins(nil),
 		),
 	}

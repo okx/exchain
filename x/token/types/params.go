@@ -25,6 +25,7 @@ var (
 	KeyFeeModify              = []byte("FeeModify")
 	KeyFeeChown               = []byte("FeeChown")
 	KeyOwnershipConfirmWindow = []byte("OwnershipConfirmWindow")
+	KeyDefaultBondDenom       = []byte("DefaultBondDenom")
 )
 
 var _ params.ParamSet = &Params{}
@@ -37,6 +38,7 @@ type Params struct {
 	FeeModify              sdk.SysCoin   `json:"modify_fee"`
 	FeeChown               sdk.SysCoin   `json:"transfer_ownership_fee"`
 	OwnershipConfirmWindow time.Duration `json:"ownership_confirm_window"`
+	DefaultBondDenom       string        `json:"default_bond_denom"`
 }
 
 // ParamKeyTable for auth module
@@ -59,18 +61,20 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{KeyFeeModify, &p.FeeModify, common.ValidateSysCoin("modify fee")},
 		{KeyFeeChown, &p.FeeChown, common.ValidateSysCoin("change ownership fee")},
 		{KeyOwnershipConfirmWindow, &p.OwnershipConfirmWindow, common.ValidateDurationPositive("confirm ownership window")},
+		{KeyDefaultBondDenom, &p.DefaultBondDenom, common.ValidateDefaultBondDenom("default bond denom")},
 	}
 }
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
 	return Params{
-		FeeIssue:               sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeIssue)),
-		FeeMint:                sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeMint)),
-		FeeBurn:                sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeBurn)),
-		FeeModify:              sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeModify)),
-		FeeChown:               sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr(DefaultFeeChown)),
+		FeeIssue:               sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(DefaultFeeIssue)),
+		FeeMint:                sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(DefaultFeeMint)),
+		FeeBurn:                sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(DefaultFeeBurn)),
+		FeeModify:              sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(DefaultFeeModify)),
+		FeeChown:               sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr(DefaultFeeChown)),
 		OwnershipConfirmWindow: DefaultOwnershipConfirmWindow,
+		DefaultBondDenom:       sdk.RawDefaultBondDenom,
 	}
 }
 
@@ -84,5 +88,6 @@ func (p Params) String() string {
 	sb.WriteString(fmt.Sprintf("FeeModify: %s\n", p.FeeModify))
 	sb.WriteString(fmt.Sprintf("FeeChown: %s\n", p.FeeChown))
 	sb.WriteString(fmt.Sprintf("OwnershipConfirmWindow: %s\n", p.OwnershipConfirmWindow))
+	sb.WriteString(fmt.Sprintf("DefaultBondDenom: %s\n", p.DefaultBondDenom))
 	return sb.String()
 }

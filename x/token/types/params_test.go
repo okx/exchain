@@ -14,11 +14,11 @@ func TestParams(t *testing.T) {
 
 	param := DefaultParams()
 	expectedString := `Params: 
-FeeIssue: 2500.000000000000000000` + common.NativeToken + `
-FeeMint: 10.000000000000000000` + common.NativeToken + `
-FeeBurn: 10.000000000000000000` + common.NativeToken + `
-FeeModify: 0.000000000000000000` + common.NativeToken + `
-FeeChown: 10.000000000000000000` + common.NativeToken + `
+FeeIssue: 2500.000000000000000000` + common.NativeToken() + `
+FeeMint: 10.000000000000000000` + common.NativeToken() + `
+FeeBurn: 10.000000000000000000` + common.NativeToken() + `
+FeeModify: 0.000000000000000000` + common.NativeToken() + `
+FeeChown: 10.000000000000000000` + common.NativeToken() + `
 OwnershipConfirmWindow: 24h0m0s
 `
 

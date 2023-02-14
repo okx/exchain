@@ -84,8 +84,8 @@ func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
 	msgSend.Amount = m.Amount.Copy()
 	for i, amount := range msgSend.Amount {
 		if amount.Denom == sdk.DefaultIbcWei {
-			msgSend.Amount[i].Denom = sdk.DefaultBondDenom
-		} else if amount.Denom == sdk.DefaultBondDenom {
+			msgSend.Amount[i].Denom = sdk.DefaultBondDenom()
+		} else if amount.Denom == sdk.DefaultBondDenom() {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support okt denom")
 		}
 	}
@@ -95,8 +95,8 @@ func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
 func (m *MsgSend) Swap(ctx sdk.Context) (sdk.Msg, error) {
 	for i, amount := range m.Amount {
 		if amount.Denom == sdk.DefaultIbcWei {
-			m.Amount[i].Denom = sdk.DefaultBondDenom
-		} else if amount.Denom == sdk.DefaultBondDenom {
+			m.Amount[i].Denom = sdk.DefaultBondDenom()
+		} else if amount.Denom == sdk.DefaultBondDenom() {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support okt denom")
 		}
 	}

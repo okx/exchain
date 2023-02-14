@@ -48,6 +48,13 @@ func (mfd MempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	// is only ran on check tx.
 	if ctx.IsCheckTx() && !simulate {
 		minGasPrices := ctx.MinGasPrices()
+		for i, v := range minGasPrices {
+			if v.Denom != sdk.DefaultBondDenom() {
+				minGasPrices[i].Denom = sdk.DefaultBondDenom()
+			}
+		}
+
+		ctx.SetMinGasPrices(minGasPrices)
 		if !minGasPrices.IsZero() {
 			requiredFees := make(sdk.Coins, len(minGasPrices))
 

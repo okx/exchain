@@ -64,7 +64,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	// lock LockCoinsTypeQuantity
-	lockCoins := sdk.MustParseCoins(sdk.DefaultBondDenom, "1")
+	lockCoins := sdk.MustParseCoins(sdk.DefaultBondDenom(), "1")
 	err = keeper.tokenKeeper.LockCoins(ctx, testInput.TestAddrs[1], lockCoins, token.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 	msg, broken = invariant(ctx)
@@ -85,7 +85,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	// error case
-	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, testInput.TestAddrs[1], token.ModuleName, sdk.MustParseCoins(sdk.DefaultBondDenom, "11.11"))
+	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, testInput.TestAddrs[1], token.ModuleName, sdk.MustParseCoins(sdk.DefaultBondDenom(), "11.11"))
 	require.NoError(t, err)
 	_, broken = invariant(ctx)
 	require.True(t, broken)

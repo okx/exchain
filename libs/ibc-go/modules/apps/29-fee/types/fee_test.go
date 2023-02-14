@@ -12,13 +12,13 @@ import (
 
 var (
 	// defaultRecvFee is the default packet receive fee used for testing purposes
-	defaultRecvFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom, Amount: sdk.NewInt(100)}}
+	defaultRecvFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewInt(100)}}
 
 	// defaultAckFee is the default packet acknowledgement fee used for testing purposes
-	defaultAckFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom, Amount: sdk.NewInt(200)}}
+	defaultAckFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewInt(200)}}
 
 	// defaultTimeoutFee is the default packet timeout fee used for testing purposes
-	defaultTimeoutFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom, Amount: sdk.NewInt(300)}}
+	defaultTimeoutFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewInt(300)}}
 
 	// invalidFee is an invalid coin set used to trigger error cases for testing purposes
 	invalidFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: "invalid-denom", Amount: sdk.NewInt(-2)}}
@@ -31,7 +31,7 @@ func TestFeeTotal(t *testing.T) {
 	fee := types.NewFee(defaultRecvFee, defaultAckFee, defaultTimeoutFee)
 
 	total := fee.Total()
-	require.Equal(t, sdk.NewInt(600), total.AmountOf(sdk.DefaultBondDenom))
+	require.Equal(t, sdk.NewInt(600), total.AmountOf(sdk.DefaultBondDenom()))
 }
 
 func TestPacketFeeValidation(t *testing.T) {

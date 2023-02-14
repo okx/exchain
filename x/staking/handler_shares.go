@@ -166,6 +166,14 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 		return types.ErrExceedValidatorAddrs(maxValsToAddShares).Result()
 	}
 
+	{
+		//TODO zhujianguo
+		delegator, found := k.GetDelegator(ctx, msg.DelAddr)
+		if found && sdk.DefaultBondDenom() == "okb" && delegator.TokenName == "" {
+			return nil, types.ErrTempError()
+		}
+	}
+
 	// 0. check whether the delegator has delegation
 	delegator, found := k.GetDelegator(ctx, msg.DelAddr)
 	if !found || delegator.Tokens.IsZero() {
@@ -265,8 +273,20 @@ func buildEventForHandlerAddShares(delegator types.Delegator) sdk.Event {
 }
 
 func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*sdk.Result, error) {
-	if msg.Amount.Denom != k.BondDenom(ctx) {
-		return ErrBadDenom().Result()
+	//if msg.Amount.Denom != k.BondDenom(ctx) {
+	//	return ErrBadDenom().Result()
+	//}
+	msg.Amount.Denom = sdk.DefaultBondDenom()
+
+	//TODO zhujianguo
+	delegator, found := k.GetDelegator(ctx, msg.DelegatorAddress)
+	if found && sdk.DefaultBondDenom() == "okb" && delegator.TokenName == "" {
+		return nil, types.ErrTempError()
+	}
+
+	undelegation, found := k.GetUndelegating(ctx, msg.DelegatorAddress)
+	if found && sdk.DefaultBondDenom() == "okb" && undelegation.TokenName != "" {
+		return nil, types.ErrTempError()
 	}
 
 	err := k.Delegate(ctx, msg.DelegatorAddress, msg.Amount)
@@ -285,9 +305,12 @@ func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*
 }
 
 func handleMsgWithdraw(ctx sdk.Context, msg types.MsgWithdraw, k keeper.Keeper) (*sdk.Result, error) {
-	if msg.Amount.Denom != k.BondDenom(ctx) {
-		return ErrBadDenom().Result()
-	}
+	// TODO zhujianguo
+	//if msg.Amount.Denom != k.BondDenom(ctx) {
+	//	return ErrBadDenom().Result()
+	//}
+
+	msg.Amount.Denom = sdk.DefaultBondDenom()
 
 	completionTime, err := k.Withdraw(ctx, msg.DelegatorAddress, msg.Amount)
 	if err != nil {

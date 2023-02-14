@@ -46,7 +46,7 @@ func accountVerification(ctx *sdk.Context, acc exported.Account, tx *evmtypes.Ms
 		)
 	}
 
-	const evmDenom = sdk.DefaultBondDenom
+	evmDenom := sdk.DefaultBondDenom()
 
 	feeInts := feeIntsPool.Get().(*[2]big.Int)
 	defer feeIntsPool.Put(feeInts)
@@ -171,7 +171,9 @@ func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types
 		cost := (&feeInts[0]).SetUint64(gasLimit)
 		cost = cost.Mul(msgEthTx.Data.Price, cost)
 
-		const evmDenom = sdk.DefaultBondDenom
+		//const evmDenom = sdk.RawDefaultBondDenom
+
+		evmDenom := sdk.DefaultBondDenom()
 
 		feeAmt := sdk.NewDecCoinsFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(cost, sdk.Precision))
 

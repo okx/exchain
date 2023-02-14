@@ -139,7 +139,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 
 var (
 //defaultTokens                  = sdk.TokensFromConsensusPower(100)
-//defaultAmount                  = defaultTokens.String() + sdk.DefaultBondDenom
+//defaultAmount                  = defaultTokens.String() + sdk.DefaultBondDenom()
 //defaultCommissionRate          = "0.1"
 //defaultCommissionMaxRate       = "0.2"
 //defaultCommissionMaxChangeRate = "0.01"
@@ -226,7 +226,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	)
 
 	// get the initial validator min self delegation
-	minSelfDelegation := sdk.NewDecCoinFromDec(common.NativeToken, types.DefaultMinSelfDelegation)
+	minSelfDelegation := sdk.NewDecCoinFromDec(common.NativeToken(), types.DefaultMinSelfDelegation)
 
 	msg := types.NewMsgCreateValidator(
 		sdk.ValAddress(valAddr),

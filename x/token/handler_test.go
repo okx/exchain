@@ -25,7 +25,7 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 	okexapp := initApp(true)
 	ctx := okexapp.BaseApp.NewContext(true, abci.Header{Height: 1})
 	gAcc := CreateEthAccounts(3, sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(10000)),
 	})
 	okexapp.AccountKeeper.SetAccount(ctx, gAcc[0])
 	okexapp.AccountKeeper.SetAccount(ctx, gAcc[1])
@@ -33,15 +33,15 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 	okexapp.AccountKeeper.SetAccount(ctx, gAcc[2])
 
 	// multi send
-	multiSendStr := `[{"to":"` + gAcc[1].Address.String() + `","amount":" 10` + common.NativeToken + `"}]`
+	multiSendStr := `[{"to":"` + gAcc[1].Address.String() + `","amount":" 10` + common.NativeToken() + `"}]`
 	transfers, err := types.StrToTransfers(multiSendStr)
 	require.Nil(t, err)
-	multiSendStr2 := `[{"to":"` + gAcc[2].Address.String() + `","amount":" 10` + common.NativeToken + `"}]`
+	multiSendStr2 := `[{"to":"` + gAcc[2].Address.String() + `","amount":" 10` + common.NativeToken() + `"}]`
 	transfers2, err := types.StrToTransfers(multiSendStr2)
 	require.Nil(t, err)
 
-	successfulSendMsg := types.NewMsgTokenSend(gAcc[0].Address, gAcc[1].Address, sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1))})
-	sendToContractMsg := types.NewMsgTokenSend(gAcc[0].Address, gAcc[2].Address, sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1))})
+	successfulSendMsg := types.NewMsgTokenSend(gAcc[0].Address, gAcc[1].Address, sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1))})
+	sendToContractMsg := types.NewMsgTokenSend(gAcc[0].Address, gAcc[2].Address, sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1))})
 	successfulMultiSendMsg := types.NewMsgMultiSend(gAcc[0].Address, transfers)
 	multiSendToContractMsg := types.NewMsgMultiSend(gAcc[0].Address, transfers2)
 	handler := token.NewTokenHandler(okexapp.TokenKeeper, version.CurrentProtocolVersion)

@@ -76,7 +76,7 @@ func NewCoinAdapter(denom string, amount Int) CoinAdapter {
 }
 func (cs CoinAdapter) ToCoin() Coin {
 	if cs.Denom == DefaultIbcWei {
-		cs.Denom = DefaultBondDenom
+		cs.Denom = DefaultBondDenom()
 	}
 	return CoinAdapterToCoin(cs)
 }
@@ -316,8 +316,8 @@ func ConvWei2TOkt(adapters CoinAdapters) (CoinAdapters, error) {
 	copyAdapters := adapters.Copy()
 	for index, _ := range copyAdapters {
 		if copyAdapters[index].Denom == DefaultIbcWei {
-			copyAdapters[index].Denom = DefaultBondDenom
-		} else if strings.ToLower(copyAdapters[index].Denom) == DefaultBondDenom {
+			copyAdapters[index].Denom = DefaultBondDenom()
+		} else if strings.ToLower(copyAdapters[index].Denom) == DefaultBondDenom() {
 			return nil, errors.Wrap(errors.ErrInvalidCoins, "not support okt denom")
 		}
 	}

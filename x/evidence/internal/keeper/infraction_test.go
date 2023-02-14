@@ -15,7 +15,7 @@ const EPOCH = 252
 
 func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) stakingtypes.MsgCreateValidator {
 	//	commission := staking.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
-	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(10000))
+	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDec(10000))
 	return staking.NewMsgCreateValidator(address, pubKey,
 		staking.NewDescription("my moniker", "my identity", "my website", "my details"), msd,
 	)
@@ -39,7 +39,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
-		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt.Sub(amt))),
+		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initAmt.Sub(amt))),
 	)
 
 	// handle a signature to set signing info
@@ -93,7 +93,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 	staking.EndBlocker(ctx, suite.app.StakingKeeper)
 	suite.Equal(
 		suite.app.BankKeeper.GetCoins(ctx, sdk.AccAddress(operatorAddr)),
-		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt.Sub(amt))),
+		sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initAmt.Sub(amt))),
 	)
 
 	evidence := types.Equivocation{

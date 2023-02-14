@@ -53,7 +53,7 @@ func TestParamsString(t *testing.T) {
 	expectString := `Order Params:
   OrderExpireBlocks: 259200
   MaxDealsPerBlock: 1000
-  FeePerBlock: 0.000000000000000000` + common.NativeToken + `
+  FeePerBlock: 0.000000000000000000` + common.NativeToken() + `
   TradeFeeRate: 0.001000000000000000
   NewOrderMsgGasUnit: 40000
   CancelOrderMsgGasUnit: 30000`

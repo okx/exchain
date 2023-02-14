@@ -364,7 +364,7 @@ func TestDuplicateWatchMessage(t *testing.T) {
 	pubKey := privKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
 
-	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
+	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(1)))
 	a1 := &ethermint.EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
@@ -395,7 +395,7 @@ func TestWriteLatestMsg(t *testing.T) {
 	pubKey := privKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
 
-	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
+	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(1)))
 	a1 := &ethermint.EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),

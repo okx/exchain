@@ -40,7 +40,7 @@ func TestBeginBlocker(t *testing.T) {
 			name: "no pools",
 			run: func(ctx sdk.Context, k keeper.Keeper) {
 				// mint native token
-				coins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(10000))
+				coins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.NewDec(10000))
 				k.SupplyKeeper().MintCoins(ctx, MintFarmingAccount, coins)
 				require.NotPanics(t, func() {
 					BeginBlocker(ctx, abci.RequestBeginBlock{Header: abci.Header{Height: 1}}, k)
@@ -51,10 +51,10 @@ func TestBeginBlocker(t *testing.T) {
 			name: "MintFarmingAccount balance:10000, and three pools:poolA(50%),poolB(30%),poolC(20%)",
 			run: func(ctx sdk.Context, k keeper.Keeper) {
 				// mint native token
-				coins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(10000))
+				coins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.NewDec(10000))
 				k.SupplyKeeper().MintCoins(ctx, MintFarmingAccount, coins)
 				moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount)
-				yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
+				yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom())
 
 				// init swap pair
 				lockSymbol := "xxb"
@@ -103,13 +103,13 @@ func TestBeginBlocker(t *testing.T) {
 				var found bool
 				poolA, found = k.GetFarmPool(ctx, poolA.Name)
 				require.True(t, found)
-				require.True(t, poolA.TotalAccumulatedRewards.IsEqual(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, valueLockedPoolA)))
+				require.True(t, poolA.TotalAccumulatedRewards.IsEqual(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), valueLockedPoolA)))
 				poolB, found = k.GetFarmPool(ctx, poolB.Name)
 				require.True(t, found)
-				require.True(t, poolB.TotalAccumulatedRewards.IsEqual(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, valueLockedPoolB)))
+				require.True(t, poolB.TotalAccumulatedRewards.IsEqual(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), valueLockedPoolB)))
 				poolC, found = k.GetFarmPool(ctx, poolC.Name)
 				require.True(t, found)
-				require.True(t, poolC.TotalAccumulatedRewards.IsEqual(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, valueLockedPoolC)))
+				require.True(t, poolC.TotalAccumulatedRewards.IsEqual(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), valueLockedPoolC)))
 
 			},
 		},
@@ -126,7 +126,7 @@ func TestYieldNativeTokenDisabled(t *testing.T) {
 	ctx, mk := keeper.GetKeeper(t)
 	k := mk.Keeper
 
-	coins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(10000))
+	coins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.NewDec(10000))
 	err := k.SupplyKeeper().MintCoins(ctx, MintFarmingAccount, coins)
 	require.NoError(t, err)
 	retCoins := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount).GetCoins()

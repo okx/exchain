@@ -111,8 +111,8 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().String(flagStartingIPAddress, "192.168.0.1", "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:46656, ID1@192.168.0.2:46656, ...)")
 	cmd.Flags().StringSlice(flagIPAddrs, []string{}, "List of IP addresses to use (i.e. `192.168.0.1,172.168.0.1` results in persistent peers list ID0@192.168.0.1:46656, ID1@172.168.0.1)")
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
-	cmd.Flags().String(flagCoinDenom, ethermint.NativeToken, "Coin denomination used for staking, governance, mint, crisis and evm parameters")
-	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", ethermint.NativeToken), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
+	cmd.Flags().String(flagCoinDenom, ethermint.NativeToken(), "Coin denomination used for staking, governance, mint, crisis and evm parameters")
+	cmd.Flags().String(server.FlagMinGasPrices, fmt.Sprintf("0.000006%s", ethermint.NativeToken()), "Minimum gas prices to accept for transactions; All fees in a tx must meet this minimum (e.g. 0.01aphoton,0.001stake)")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(flagKeyAlgo, string(hd.EthSecp256k1), "Key signing algorithm to generate keys for")
 	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
@@ -289,7 +289,7 @@ func InitTestnet(
 		msgCreateVal := stakingtypes.NewMsgCreateValidator(
 			sdk.ValAddress(addr), valPubKeys[i],
 			stakingtypes.NewDescription(nodeDirName, "", "", ""),
-			sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
+			sdk.NewDecCoinFromDec(common.NativeToken(), stakingtypes.DefaultMinSelfDelegation),
 		)
 		if err := makeTxAndWriteFile(msgCreateVal, inBuf, chainID, kb, nodeDirName, sequence, memo, cdc, gentxsDir, outputDir); err != nil {
 			return err
@@ -298,7 +298,7 @@ func InitTestnet(
 		if !isEqualVotingPower {
 			//make and save deposit tx
 			sequence++
-			msgDeposit := stakingtypes.NewMsgDeposit(addr, sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000*int64(i+1))))
+			msgDeposit := stakingtypes.NewMsgDeposit(addr, sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(10000*int64(i+1))))
 			if err := makeTxAndWriteFile(msgDeposit, inBuf, chainID, kb, nodeDirName, sequence, "", cdc, gentxsDir, outputDir); err != nil {
 				return err
 			}

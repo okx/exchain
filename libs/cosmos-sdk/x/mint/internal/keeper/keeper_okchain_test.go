@@ -152,7 +152,7 @@ func (suite *TreasuresTestSuite) TestGetSetTreasures() {
 }
 
 func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
-	input := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(5, 1)))
+	input := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(5, 1)))
 	testCases := []struct {
 		msg        string
 		treasures  func() []types.Treasure
@@ -171,11 +171,11 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			},
 			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
 				suite.Require().NoError(err, msg)
-				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2))), remain, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(50, 2))), remain, msg)
 				for i, _ := range trs {
 					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
-					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))).String(), acc.GetCoins().String(), msg)
-					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))).String(), acc.GetCoins().String(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
 					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 				}
@@ -193,11 +193,11 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			},
 			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
 				suite.Require().NoError(err, msg)
-				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(25, 2))), remain, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(25, 2))), remain, msg)
 				for i, _ := range trs {
 					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
-					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(25, 2))), acc.GetCoins(), msg)
-					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(25, 2))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
 					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 				}
@@ -218,11 +218,11 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			},
 			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
 				suite.Require().NoError(err, msg)
-				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(25, 2))), remain, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(25, 2))), remain, msg)
 				for i, _ := range trs {
 					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
-					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
-					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
 					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 				}
@@ -243,11 +243,11 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			},
 			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
 				suite.Require().NoError(err, msg)
-				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(20, 2))), remain, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(20, 2))), remain, msg)
 				for i, _ := range trs {
 					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
-					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
-					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
 					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 				}
@@ -268,11 +268,11 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			},
 			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
 				suite.Require().NoError(err, msg)
-				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(0, 2))).String(), remain.String(), msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(0, 2))).String(), remain.String(), msg)
 				for i, _ := range trs {
 					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
-					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
-					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(50, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
 					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 				}
@@ -287,18 +287,18 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 				}
 			},
 			prepare: func(trs []types.Treasure) {
-				input = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(7, 1)))
+				input = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(7, 1)))
 				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
 				suite.Require().NoError(err)
 				suite.app.MintKeeper.SetTreasures(suite.ctx, trs)
 			},
 			expectfunc: func(trs []types.Treasure, remain sdk.Coins, err error, msg string) {
 				suite.Require().NoError(err, msg)
-				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(28, 2))), remain, msg)
+				suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(28, 2))), remain, msg)
 				for i, _ := range trs {
 					acc := suite.app.AccountKeeper.GetAccount(suite.ctx, trs[i].Address)
-					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(70, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
-					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroDec())))
+					suite.Require().Equal(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(70, 2).MulTruncate(trs[i].Proportion))), acc.GetCoins(), msg)
+					err := acc.SetCoins(sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.ZeroDec())))
 					suite.Require().NoError(err, msg)
 					suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 				}
@@ -307,7 +307,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 	}
 
 	for _, tc := range testCases {
-		input = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecWithPrec(5, 1)))
+		input = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(5, 1)))
 		//prepare environment
 		treasuresInput := tc.treasures()
 		tc.prepare(treasuresInput)

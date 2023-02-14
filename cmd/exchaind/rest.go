@@ -12,6 +12,7 @@ import (
 	erc20client "github.com/okex/exchain/x/erc20/client"
 	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
 	evmclient "github.com/okex/exchain/x/evm/client"
+	tokenclient "github.com/okex/exchain/x/token/client"
 
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/types"
@@ -94,6 +95,8 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			evmclient.ManageSysContractAddressProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractByteCodeProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
+			tokenclient.ModifyDefaultBondDenomProposalHandler.RESTHandler(rs.CliCtx),
+			mintclient.StopMintProposalHandler.RESTHandler(rs.CliCtx),
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)

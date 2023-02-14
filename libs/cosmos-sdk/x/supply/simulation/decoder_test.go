@@ -24,7 +24,7 @@ func makeTestCodec() (cdc *codec.Codec) {
 func TestDecodeStore(t *testing.T) {
 	cdc := makeTestCodec()
 
-	totalSupply := types.NewSupply(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 1000)))
+	totalSupply := types.NewSupply(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1000)))
 
 	kvPairs := tmkv.Pairs{
 		tmkv.Pair{Key: keeper.SupplyKey, Value: cdc.MustMarshalBinaryLengthPrefixed(totalSupply)},

@@ -109,7 +109,7 @@ func TestValidatorSMNormalFullLifeCircle(t *testing.T) {
 
 		endBlockAction{bAction},
 		// clear the shares on the startUpValidator
-		delegatorWithdrawAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator1, DelegatedToken1, sdk.DefaultBondDenom()},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},
 		endBlockAction{bAction},
@@ -408,8 +408,8 @@ func TestValidatorSMReRankPowerIndex(t *testing.T) {
 		delegatorsAddSharesAction{bAction, false, true, 0, []sdk.AccAddress{ValidDelegator2}},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
-		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
-		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom},
+		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom()},
+		delegatorWithdrawAction{bAction, ValidDelegator2, DelegatedToken2, sdk.DefaultBondDenom()},
 		endBlockAction{bAction},
 		endBlockAction{bAction},
 		waitUntilUnbondingTimeExpired{bAction},

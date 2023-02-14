@@ -84,7 +84,7 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		}
 
 		//account.SpendableCoins()
-		oktBalance := account.GetCoins().AmountOf(sdk.DefaultBondDenom)
+		oktBalance := account.GetCoins().AmountOf(sdk.DefaultBondDenom())
 		if !oktBalance.GT(sdk.ZeroDec()) {
 			return false
 		}

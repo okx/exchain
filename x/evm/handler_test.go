@@ -696,7 +696,7 @@ func (suite *EvmTestSuite) TestEvmParamsAndContractDeploymentWhitelistControllin
 
 			// reset FeeCollector
 			feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
+			feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.OneDec()))
 			suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 			// set account sufficient balance for sender
@@ -823,7 +823,7 @@ func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 
 	// fill the fee collector for mock refunding
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
-	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.OneDec()))
+	feeCollectorAcc.Coins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.OneDec()))
 	suite.app.SupplyKeeper.SetModuleAccount(suite.ctx, feeCollectorAcc)
 
 	// init contracts for test environment

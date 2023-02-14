@@ -428,6 +428,7 @@ func newTestOkcChainApp(
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
 		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
+		AddRoute(token.RouterKey, token.NewTokenProposalHandler(app.TokenKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).

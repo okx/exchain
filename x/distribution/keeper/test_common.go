@@ -144,7 +144,7 @@ func NewTestSysCoins(i int64, precison int64) sdk.SysCoins {
 
 // NewTestSysCoin returns one dec coin
 func NewTestSysCoin(i int64, precison int64) sdk.SysCoin {
-	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(i, precison))
+	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(i, precison))
 }
 
 // MakeTestCodec creates a codec used only for testing

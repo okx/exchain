@@ -556,7 +556,7 @@ func TestHandlerMsgProvide(t *testing.T) {
 			verification: verification,
 			expectedErr: errors.New(fmt.Sprintf("failed. send coins from account to module failed insufficient funds: insufficient account funds; "+
 				"89900.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
-				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000000.000000000000000000aab", sdk.DefaultBondDenom)),
+				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000000.000000000000000000aab", sdk.DefaultBondDenom())),
 		},
 	}
 
@@ -680,7 +680,7 @@ func TestHandlerMsgLock(t *testing.T) {
 			verification: verification,
 			expectedErr: errors.New(fmt.Sprintf("failed. send coins from account to module failed insufficient funds: insufficient account funds; "+
 				"89890.000000000000000000aab,101.000000000000000000ammswap_aab_ccb,89900.000000000000000000ccb,"+
-				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
+				"100000.000000000000000000ddb,990.000000000000000000%s < 1000000.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom())),
 		},
 	}
 
@@ -822,7 +822,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 			},
 			getMsg:       normalGetUnlockMsg,
 			verification: verification,
-			expectedErr:  errors.New(fmt.Sprintf("failed. send coins from module to account failed insufficient funds: insufficient account funds; "+"10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom)),
+			expectedErr:  errors.New(fmt.Sprintf("failed. send coins from module to account failed insufficient funds: insufficient account funds; "+"10.000000000000000000%s < 1.000000000000000000ammswap_aab_ccb", sdk.DefaultBondDenom())),
 		},
 		{
 			caseName: "success. lock and unlock without provide before",

@@ -24,7 +24,7 @@ func TestHandleMsgDeposit(t *testing.T) {
 	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
 	govHandler := NewHandler(gk)
 
-	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
+	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 50)}
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, initialDeposit, keeper.Addrs[0])
 	res, err := govHandler(ctx, newProposalMsg)
@@ -33,19 +33,19 @@ func TestHandleMsgDeposit(t *testing.T) {
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
 
 	newDepositMsg := NewMsgDeposit(keeper.Addrs[0], proposalID,
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 100)})
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 100)})
 	res, err = govHandler(ctx, newDepositMsg)
 	require.Nil(t, err)
 
 	// nil address deposit on proposal
 	newDepositMsg = NewMsgDeposit(sdk.AccAddress{}, proposalID,
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 1000)})
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 1000)})
 	res, err = govHandler(ctx, newDepositMsg)
 	require.NotNil(t, err)
 
 	// deposit on proposal whose proposal id is 0
 	newDepositMsg = NewMsgDeposit(keeper.Addrs[0], 0,
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 1000)})
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 1000)})
 	res, err = govHandler(ctx, newDepositMsg)
 	require.NotNil(t, err)
 }
@@ -54,7 +54,7 @@ func TestHandleMsgVote(t *testing.T) {
 	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
 	govHandler := NewHandler(gk)
 
-	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
+	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 500)}
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, proposalCoins, keeper.Addrs[0])
 	res, err := govHandler(ctx, newProposalMsg)
@@ -79,7 +79,7 @@ func TestHandleMsgVote2(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
+	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 500)}
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, proposalCoins, keeper.Addrs[0])
 	res, err := govHandler(ctx, newProposalMsg)
@@ -110,7 +110,7 @@ func TestHandleMsgVote3(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
+	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 500)}
 	content := types.NewTextProposal("Test", "description")
 	newProposalMsg := NewMsgSubmitProposal(content, proposalCoins, keeper.Addrs[0])
 	res, err := govHandler(ctx, newProposalMsg)
@@ -148,14 +148,14 @@ func TestHandleMsgSubmitProposal(t *testing.T) {
 	_, err = handler(ctx, newProposalMsg)
 	require.NotNil(t, err)
 
-	proposalCoins = sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
+	proposalCoins = sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 500)}
 	content = types.NewTextProposal("Test", "description")
 	newProposalMsg = NewMsgSubmitProposal(content, proposalCoins, sdk.AccAddress{})
 	_, err = handler(ctx, newProposalMsg)
 	require.NotNil(t, err)
 
 	//content = tokenTypes.NewDexListProposal("Test", "", keeper.Addrs[0],
-	//	"btc-123", common.NativeToken, sdk.NewDec(1000), 0,
+	//	"btc-123", common.NativeToken(), sdk.NewDec(1000), 0,
 	//	4, 4, sdk.NewDec(1))
 	//newProposalMsg = NewMsgSubmitProposal(content, proposalCoins, keeper.Addrs[0])
 	//res = handler(ctx, newProposalMsg)

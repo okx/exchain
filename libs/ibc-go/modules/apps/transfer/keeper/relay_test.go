@@ -264,8 +264,8 @@ func (suite *KeeperTestSuite) TestOnAcknowledgementPacket() {
 		}, true, true},
 		{"successful refund from source chain", failedAck, func() {
 			escrow := types.GetEscrowAddress(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
-			trace = types.ParseDenomTrace(sdk.DefaultBondDenom)
-			coin := sdk.NewCoin(sdk.DefaultBondDenom, amount)
+			trace = types.ParseDenomTrace(sdk.DefaultBondDenom())
+			coin := sdk.NewCoin(sdk.DefaultBondDenom(), amount)
 
 			suite.Require().NoError(simapp.FundAccount(suite.chainA.GetSimApp(), suite.chainA.GetContext(), escrow, sdk.NewCoins(coin)))
 		}, false, true},
@@ -343,7 +343,7 @@ func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
 		{"successful timeout from sender as source chain",
 			func() {
 				escrow := types.GetEscrowAddress(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
-				trace = types.ParseDenomTrace(sdk.DefaultBondDenom)
+				trace = types.ParseDenomTrace(sdk.DefaultBondDenom())
 				coin := sdk.NewCoin(trace.IBCDenom(), amount)
 
 				suite.Require().NoError(simapp.FundAccount(suite.chainA.GetSimApp(), suite.chainA.GetContext(), escrow, sdk.NewCoins(coin)))

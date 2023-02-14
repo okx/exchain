@@ -23,13 +23,13 @@ func getTestTokenPair() *types.TokenPair {
 	}
 	return &types.TokenPair{
 		BaseAssetSymbol:  "testToken",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		InitPrice:        sdk.MustNewDecFromStr("10.0"),
 		MaxPriceDigit:    8,
 		MaxQuantityDigit: 8,
 		MinQuantity:      sdk.MustNewDecFromStr("0"),
 		Owner:            addr,
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(0)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(0)),
 	}
 }
 
@@ -166,7 +166,7 @@ func TestDeposit(t *testing.T) {
 
 	// Deposit successful
 	product := tokenPair.Name()
-	amount, err := sdk.ParseDecCoin("30" + sdk.DefaultBondDenom)
+	amount, err := sdk.ParseDecCoin("30" + sdk.DefaultBondDenom())
 	require.Nil(t, err)
 	err = keeper.Deposit(ctx, product, owner, amount)
 	require.Nil(t, err)
@@ -206,7 +206,7 @@ func TestWithdraw(t *testing.T) {
 
 	// Deposit successful
 	product := tokenPair.Name()
-	depositAmount, err := sdk.ParseDecCoin("30" + sdk.DefaultBondDenom)
+	depositAmount, err := sdk.ParseDecCoin("30" + sdk.DefaultBondDenom())
 	require.Nil(t, err)
 	err = keeper.Deposit(ctx, product, owner, depositAmount)
 	require.Nil(t, err)
@@ -215,7 +215,7 @@ func TestWithdraw(t *testing.T) {
 	require.Equal(t, getTokenPair.Deposits, initDeposit.Add(depositAmount))
 
 	// Withdraw successful
-	withdrawAmount, err := sdk.ParseDecCoin("10" + sdk.DefaultBondDenom)
+	withdrawAmount, err := sdk.ParseDecCoin("10" + sdk.DefaultBondDenom())
 	require.Nil(t, err)
 	err = keeper.Withdraw(ctx, product, owner, withdrawAmount)
 	require.Nil(t, err)
@@ -248,33 +248,33 @@ func TestGetTokenPairsOrdered(t *testing.T) {
 
 	tokenPair0 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken0",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      8,
 	}
 
 	tokenPair1 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken1",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100)),
 		BlockHeight:      10,
 	}
 
 	tokenPair2 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken2",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      9,
 	}
 
 	tokenPair3 := &types.TokenPair{
 		BaseAssetSymbol:  "aToken0",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      9,
 	}
 
@@ -306,33 +306,33 @@ func TestSortProducts(t *testing.T) {
 
 	tokenPair0 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken0",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      8,
 	}
 
 	tokenPair1 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken1",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100)),
 		BlockHeight:      10,
 	}
 
 	tokenPair2 := &types.TokenPair{
 		BaseAssetSymbol:  "bToken2",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      9,
 	}
 
 	tokenPair3 := &types.TokenPair{
 		BaseAssetSymbol:  "aToken0",
-		QuoteAssetSymbol: common.NativeToken,
+		QuoteAssetSymbol: common.NativeToken(),
 		Owner:            testInput.TestAddrs[0],
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(50)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(50)),
 		BlockHeight:      9,
 	}
 
@@ -363,7 +363,7 @@ func Test_IterateWithdrawInfo(t *testing.T) {
 	owner := testInput.TestAddrs[0]
 	keeper.SetParams(ctx, *types.DefaultParams())
 
-	withdrawAmount, err := sdk.ParseDecCoin("10" + sdk.DefaultBondDenom)
+	withdrawAmount, err := sdk.ParseDecCoin("10" + sdk.DefaultBondDenom())
 	require.Nil(t, err)
 	withdrawInfo := types.WithdrawInfo{
 		Owner:        owner,

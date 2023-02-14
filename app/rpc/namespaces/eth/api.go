@@ -362,7 +362,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	if useWatchBackend {
 		acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 		if err == nil {
-			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
+			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom()).BigInt()
 			if balance == nil {
 				return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
 			}
@@ -396,7 +396,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 		return nil, err
 	}
 
-	val := account.Balance(sdk.DefaultBondDenom).BigInt()
+	val := account.Balance(sdk.DefaultBondDenom()).BigInt()
 	if useWatchBackend {
 		api.watcherBackend.CommitAccountToRpcDb(account)
 	}
@@ -1692,7 +1692,7 @@ func getAccountFromChain(clientCtx clientcontext.CLIContext, address common.Addr
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
 	zeroAccount := ethermint.EthAccount{BaseAccount: &auth.BaseAccount{}}
 	zeroAccount.SetAddress(address.Bytes())
-	zeroAccount.SetBalance(sdk.DefaultBondDenom, sdk.ZeroDec())
+	zeroAccount.SetBalance(sdk.DefaultBondDenom(), sdk.ZeroDec())
 	api.watcherBackend.CommitAccountToRpcDb(zeroAccount)
 }
 

@@ -14,6 +14,8 @@ func NewManageTreasuresProposalHandler(k *Keeper) govTypes.Handler {
 		switch content := proposal.Content.(type) {
 		case types.ManageTreasuresProposal:
 			return handleManageTreasuresProposal(ctx, k, proposal)
+		//case types.ModifyDefaultBondDenomProposal:
+		//	return handleStopMintProposal(ctx, k, proposal)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -41,3 +43,25 @@ func handleManageTreasuresProposal(ctx sdk.Context, k *Keeper, proposal *govType
 	}
 	return nil
 }
+
+//func handleStopMintProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+//	// check
+//	stopMintProposal, ok := proposal.Content.(types.ModifyDefaultBondDenomProposal)
+//	if !ok {
+//		return types.ErrUnexpectedProposalType
+//	}
+//
+//	if stopMintProposal.IsStopped {
+//		// add/update treasures into state
+//		if err := k.UpdateTreasures(ctx, stopMintProposal.Treasures); err != nil {
+//			return types.ErrTreasuresInternal(err)
+//		}
+//		return nil
+//	}
+//
+//	// delete treasures into state
+//	if err := k.DeleteTreasures(ctx, stopMintProposal.Treasures); err != nil {
+//		return types.ErrTreasuresInternal(err)
+//	}
+//	return nil
+//}

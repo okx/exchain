@@ -162,13 +162,13 @@ func TestRewards(t *testing.T) {
 	require.True(t, rewards.IsZero())
 	initial := int64(1000000)
 	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}
+	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial)}}
 	sdk.NewDec(initial)
 
 	keeper.AllocateTokensToValidator(ctx, val, tokens)
 	rewards = getQueriedDelegationRewards(t, ctx, querier, dAddr1, TestValAddrs[0])
-	require.True(t, rewards.AmountOf(sdk.DefaultBondDenom).LT(sdk.NewDec(initial/2)))
-	require.True(t, rewards.AmountOf(sdk.DefaultBondDenom).GT(sdk.NewDec(initial/2-1)))
+	require.True(t, rewards.AmountOf(sdk.DefaultBondDenom()).LT(sdk.NewDec(initial/2)))
+	require.True(t, rewards.AmountOf(sdk.DefaultBondDenom()).GT(sdk.NewDec(initial/2-1)))
 
 	// test delegator's total rewards query
 	delRewards = getQueriedDelegatorTotalRewards(t, ctx, querier, dAddr1)

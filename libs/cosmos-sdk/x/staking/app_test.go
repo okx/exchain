@@ -118,8 +118,8 @@ func TestStakingMsgs(t *testing.T) {
 
 	genTokens := sdk.NewInt(42)
 	bondTokens := sdk.NewInt(10)
-	genCoin := sdk.NewCoin(sdk.DefaultBondDenom, genTokens)
-	bondCoin := sdk.NewCoin(sdk.DefaultBondDenom, bondTokens)
+	genCoin := sdk.NewCoin(sdk.DefaultBondDenom(), genTokens)
+	bondCoin := sdk.NewCoin(sdk.DefaultBondDenom(), bondTokens)
 
 	acc1 := &auth.BaseAccount{
 		Address: addr1,
@@ -147,7 +147,7 @@ func TestStakingMsgs(t *testing.T) {
 
 	header := abci.Header{Height: mApp.LastBlockHeight() + 1}
 	mock.SignCheckDeliver(t, mApp.Cdc.GetCdc(), mApp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
-	mock.CheckBalance(t, mApp, addr1, sdk.Coins{genCoin.Sub(bondCoin)}.Sub(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.OneDec())))
+	mock.CheckBalance(t, mApp, addr1, sdk.Coins{genCoin.Sub(bondCoin)}.Sub(sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.OneDec())))
 
 	header = abci.Header{Height: mApp.LastBlockHeight() + 1}
 	mApp.BeginBlock(abci.RequestBeginBlock{Header: header})
@@ -176,7 +176,7 @@ func TestStakingMsgs(t *testing.T) {
 
 	header = abci.Header{Height: mApp.LastBlockHeight() + 1}
 	mock.SignCheckDeliver(t, mApp.Cdc.GetCdc(), mApp.BaseApp, header, []sdk.Msg{delegateMsg}, []uint64{1}, []uint64{0}, true, true, priv2)
-	mock.CheckBalance(t, mApp, addr2, sdk.Coins{genCoin.Sub(bondCoin).Sub(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))})
+	mock.CheckBalance(t, mApp, addr2, sdk.Coins{genCoin.Sub(bondCoin).Sub(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(1)))})
 	checkDelegation(t, mApp, keeper, addr2, sdk.ValAddress(addr1), true, bondTokens.ToDec())
 
 	// begin unbonding
@@ -188,5 +188,5 @@ func TestStakingMsgs(t *testing.T) {
 	checkDelegation(t, mApp, keeper, addr2, sdk.ValAddress(addr1), false, sdk.Dec{})
 
 	// balance should be the same because bonding not yet complete
-	mock.CheckBalance(t, mApp, addr2, sdk.Coins{genCoin.Sub(bondCoin).Sub(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(2)))})
+	mock.CheckBalance(t, mApp, addr2, sdk.Coins{genCoin.Sub(bondCoin).Sub(sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(2)))})
 }

@@ -363,7 +363,7 @@ func resolveEthAccount(ctx sdk.Context, k Keeper, addr ethcmn.Address) (*types.Q
 	}
 
 	// get balance
-	balance := ethAccount.Balance(sdk.DefaultBondDenom).BigInt()
+	balance := ethAccount.Balance(sdk.DefaultBondDenom()).BigInt()
 	if balance == nil {
 		balance = sdk.ZeroInt().BigInt()
 	}

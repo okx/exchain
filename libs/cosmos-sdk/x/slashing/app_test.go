@@ -118,8 +118,8 @@ func TestSlashingMsgs(t *testing.T) {
 
 	genTokens := sdk.TokensFromConsensusPower(42)
 	bondTokens := sdk.TokensFromConsensusPower(10)
-	genCoin := sdk.NewCoin(sdk.DefaultBondDenom, genTokens)
-	bondCoin := sdk.NewCoin(sdk.DefaultBondDenom, bondTokens)
+	genCoin := sdk.NewCoin(sdk.DefaultBondDenom(), genTokens)
+	bondCoin := sdk.NewCoin(sdk.DefaultBondDenom(), bondTokens)
 
 	acc1 := &auth.BaseAccount{
 		Address: addr1,
@@ -140,7 +140,7 @@ func TestSlashingMsgs(t *testing.T) {
 
 	header := abci.Header{Height: mapp.LastBlockHeight() + 1}
 	mock.SignCheckDeliver(t, mapp.Cdc.GetCdc(), mapp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
-	mock.CheckBalance(t, mapp, addr1, sdk.Coins{genCoin.Sub(bondCoin).Sub(sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.OneInt()))})
+	mock.CheckBalance(t, mapp, addr1, sdk.Coins{genCoin.Sub(bondCoin).Sub(sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.OneInt()))})
 
 	header = abci.Header{Height: mapp.LastBlockHeight() + 1}
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: header})

@@ -295,10 +295,10 @@ func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {
 		for _, fee := range coins {
 			amount := fee.Amount.BigInt()
 			denom := fee.Denom
-			// convert ibc denom to DefaultBondDenom
+			// convert ibc denom to DefaultBondDenom()
 			if denom == sdk.DefaultIbcWei {
 				decCoins = append(decCoins, sdk.DecCoin{
-					Denom:  sdk.DefaultBondDenom,
+					Denom:  sdk.DefaultBondDenom(),
 					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
 				})
 			} else {

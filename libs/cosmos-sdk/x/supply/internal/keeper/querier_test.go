@@ -18,7 +18,7 @@ func TestNewQuerier(t *testing.T) {
 	cdc := app.Codec()
 
 	supplyCoins := sdk.NewCoins(
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+		sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(100)),
 		sdk.NewCoin("photon", sdk.NewInt(50)),
 		sdk.NewCoin("atom", sdk.NewInt(2000)),
 		sdk.NewCoin("btc", sdk.NewInt(21000000)),
@@ -47,7 +47,7 @@ func TestNewQuerier(t *testing.T) {
 	_, err = querier(ctx, []string{types.QueryTotalSupply}, query)
 	require.Nil(t, err)
 
-	querySupplyParams := types.NewQuerySupplyOfParams(sdk.DefaultBondDenom)
+	querySupplyParams := types.NewQuerySupplyOfParams(sdk.DefaultBondDenom())
 	bz, errRes = cdc.MarshalJSON(querySupplyParams)
 	require.Nil(t, errRes)
 
@@ -64,7 +64,7 @@ func TestQuerySupply(t *testing.T) {
 	cdc := app.Codec()
 
 	supplyCoins := sdk.NewCoins(
-		sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100)),
+		sdk.NewCoin(sdk.DefaultBondDenom(), sdk.NewInt(100)),
 		sdk.NewCoin("photon", sdk.NewInt(50)),
 		sdk.NewCoin("atom", sdk.NewInt(2000)),
 		sdk.NewCoin("btc", sdk.NewInt(21000000)),
@@ -94,7 +94,7 @@ func TestQuerySupply(t *testing.T) {
 	require.Nil(t, errRes)
 	require.Equal(t, supplyCoins, totalCoins)
 
-	querySupplyParams := types.NewQuerySupplyOfParams(sdk.DefaultBondDenom)
+	querySupplyParams := types.NewQuerySupplyOfParams(sdk.DefaultBondDenom())
 	bz, errRes = cdc.MarshalJSON(querySupplyParams)
 	require.Nil(t, errRes)
 

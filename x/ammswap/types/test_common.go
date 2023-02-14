@@ -14,8 +14,10 @@ import (
 const TestBasePooledToken = "aab"
 const TestBasePooledToken2 = "ccb"
 const TestBasePooledToken3 = "ddb"
-const TestQuotePooledToken = common.NativeToken
-const TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
+
+var TestQuotePooledToken = common.NativeToken()
+
+var TestSwapTokenPairName = TestBasePooledToken + "_" + TestQuotePooledToken
 
 // GetTestSwapTokenPair just for test
 func GetTestSwapTokenPair() SwapTokenPair {

@@ -23,7 +23,7 @@ var (
 	randomPermAcc = types.NewEmptyModuleAccount(randomPerm, "random")
 
 	initTokens = sdk.TokensFromConsensusPower(initialPower)
-	initCoins  = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens))
+	initCoins  = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens))
 )
 
 func getCoinsByName(ctx sdk.Context, sk keep.Keeper, ak types.AccountKeeper, moduleName string) sdk.Coins {
@@ -173,7 +173,7 @@ func Test_SendCoinsAdapter(t *testing.T) {
 	transferAmount, ok := sdk.NewIntFromString("0")
 	require.Equal(t, ok, true)
 	transferAmountDec := sdk.NewDecFromIntWithPrec(transferAmount, sdk.Precision)
-	token := sdk.NewCoin(sdk.DefaultBondDenom, transferAmountDec)
+	token := sdk.NewCoin(sdk.DefaultBondDenom(), transferAmountDec)
 	sk := supply.NewSupplyKeeperAdapter(keeper)
 	err := sk.SendCoins(ctx, from.GetAddress(), to.GetAddress(), token.ToCoins())
 	require.NoError(t, err)

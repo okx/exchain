@@ -21,8 +21,8 @@ var (
 	depositedCoinsAccAddr     = types.AccAddress(crypto.AddressHash([]byte("govDepositedCoins")))
 	burnedDepositCoinsAccAddr = types.AccAddress(crypto.AddressHash([]byte("govBurnedDepositCoins")))
 
-	coins     = types.Coins{types.NewInt64Coin(types.DefaultBondDenom, 10)}
-	halfCoins = types.Coins{types.NewInt64Coin(types.DefaultBondDenom, 5)}
+	coins     = types.Coins{types.NewInt64Coin(types.DefaultBondDenom(), 10)}
+	halfCoins = types.Coins{types.NewInt64Coin(types.DefaultBondDenom(), 5)}
 
 	accountDeposited = v034accounts.GenesisAccount{
 		Address:       depositedCoinsAccAddr,
@@ -87,7 +87,7 @@ func TestMigrateEmptyRecord(t *testing.T) {
 					v034staking.Validators{},
 					[]v034staking.UnbondingDelegation{},
 					[]v034distr.ValidatorOutstandingRewardsRecord{},
-					types.DefaultBondDenom,
+					types.DefaultBondDenom(),
 					v034distr.ModuleName,
 					v034gov.ModuleName,
 				)
@@ -118,7 +118,7 @@ func TestMigrateWrongDeposit(t *testing.T) {
 			v034staking.Validators{},
 			[]v034staking.UnbondingDelegation{},
 			[]v034distr.ValidatorOutstandingRewardsRecord{},
-			types.DefaultBondDenom,
+			types.DefaultBondDenom(),
 			v034distr.ModuleName,
 			v034gov.ModuleName,
 		)

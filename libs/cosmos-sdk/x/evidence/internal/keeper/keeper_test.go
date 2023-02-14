@@ -32,7 +32,7 @@ var (
 	}
 
 	initAmt   = sdk.TokensFromConsensusPower(200)
-	initCoins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initAmt))
+	initCoins = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initAmt))
 )
 
 func newPubKey(pk string) (res crypto.PubKey) {
@@ -110,7 +110,7 @@ func (suite *KeeperTestSuite) populateEvidence(ctx sdk.Context, numEvidence int)
 func (suite *KeeperTestSuite) populateValidators(ctx sdk.Context) {
 	// add accounts and set total supply
 	totalSupplyAmt := initAmt.MulRaw(int64(len(valAddresses)))
-	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalSupplyAmt))
+	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), totalSupplyAmt))
 	suite.app.SupplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
 	for _, addr := range valAddresses {

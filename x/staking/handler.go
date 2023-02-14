@@ -113,6 +113,8 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	if _, found := k.GetValidator(ctx, msg.ValidatorAddress); found {
 		return nil, ErrValidatorOwnerExists()
 	}
+	//TODO zhujianguo
+	msg.MinSelfDelegation.Denom = sdk.DefaultBondDenom()
 	if _, found := k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(msg.PubKey)); found {
 		return nil, ErrValidatorPubKeyExists()
 	}
@@ -132,7 +134,12 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	}
 
 	minSelfDelegation := k.ParamsMinSelfDelegation(ctx)
-	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description, minSelfDelegation)
+	tokenName := ""
+	if sdk.DefaultBondDenom() == "okb" {
+		tokenName = "okb"
+	}
+
+	validator := NewValidator(msg.ValidatorAddress, msg.PubKey, msg.Description, minSelfDelegation, tokenName)
 	commission := NewCommission(sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(0))
 	validator, err := validator.SetInitialCommission(commission)
 	if err != nil {

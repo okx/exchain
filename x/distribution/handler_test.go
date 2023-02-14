@@ -130,7 +130,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
 				feeCollector := supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 				require.NotNil(suite.T(), feeCollector)
-				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}})
+				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(int64(100))}})
 				require.NoError(suite.T(), err)
 				ak.SetAccount(ctx, feeCollector)
 				allocationParam := allocationParam{
@@ -158,7 +158,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
 				feeCollector := supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 				require.NotNil(suite.T(), feeCollector)
-				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}})
+				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(int64(100))}})
 				require.NoError(suite.T(), err)
 				ak.SetAccount(ctx, feeCollector)
 				allocationParam := allocationParam{
@@ -194,7 +194,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
 				feeCollector := supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 				require.NotNil(suite.T(), feeCollector)
-				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}})
+				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(int64(100))}})
 				require.NoError(suite.T(), err)
 				ak.SetAccount(ctx, feeCollector)
 				allocationParam := allocationParam{

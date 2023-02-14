@@ -13,7 +13,7 @@ import (
 func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) staking.MsgCreateValidator {
 	commission := staking.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
 	return staking.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt),
+		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom(), amt),
 		staking.Description{}, commission, sdk.OneInt(),
 	)
 }

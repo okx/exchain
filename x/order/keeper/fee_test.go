@@ -37,7 +37,7 @@ func (k MockGetFeeKeeper) GetLastPrice(ctx sdk.Context, product string) sdk.Dec 
 func TestGetOrderNewFee(t *testing.T) {
 	order := mockOrder("ID0000001970-1", types.TestTokenPair, types.BuyOrder, "10.0", "1.0")
 	orderExpireBlocks := sdk.NewDec(order.OrderExpireBlocks)
-	exceptFee := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, order.FeePerBlock.Amount.Mul(orderExpireBlocks))}
+	exceptFee := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken(), order.FeePerBlock.Amount.Mul(orderExpireBlocks))}
 	require.EqualValues(t, exceptFee, GetOrderNewFee(order))
 }
 
@@ -54,12 +54,12 @@ func TestGetOrderCostFee(t *testing.T) {
 	ctx := testInput.Ctx
 	ctx.SetLogger(log)
 	ctx.SetBlockHeight(currentHeight)
-	exceptFee := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, order.FeePerBlock.Amount.Mul(sdk.NewDec(diffHeight)))}
+	exceptFee := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken(), order.FeePerBlock.Amount.Mul(sdk.NewDec(diffHeight)))}
 	require.EqualValues(t, exceptFee, GetOrderCostFee(order, ctx))
 
 	ctx.SetBlockHeight(currentHeight + types.DefaultOrderExpireBlocks)
 	fee := GetOrderCostFee(order, ctx)
-	exceptFee = sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.MustNewDecFromStr("0.2592"))}
+	exceptFee = sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken(), sdk.MustNewDecFromStr("0.2592"))}
 	require.EqualValues(t, exceptFee, fee)
 
 	currentHeight = 0
@@ -95,7 +95,7 @@ func TestOrderDealFee(t *testing.T) {
 		Quantity: sdk.MustNewDecFromStr("100.0"),
 	}
 	keeper.priceMap["xxb_yyb"] = sdk.MustNewDecFromStr("20.0")
-	keeper.priceMap["yyb_"+common.NativeToken] = sdk.MustNewDecFromStr("0.6")
+	keeper.priceMap["yyb_"+common.NativeToken()] = sdk.MustNewDecFromStr("0.6")
 
 	feeOther = GetDealFee(order, sdk.MustNewDecFromStr("100.0"), ctx, keeper, &feeParams)
 	// 100 * 0.001

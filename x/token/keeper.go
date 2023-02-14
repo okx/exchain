@@ -447,3 +447,16 @@ func (k Keeper) DeleteConfirmOwnership(ctx sdk.Context, symbol string) {
 	key := types.GetConfirmOwnershipKey(symbol)
 	store.Delete(key)
 }
+
+func (k Keeper) SetDefaultBondDenom(ctx sdk.Context, name string) {
+	k.paramSpace.Set(ctx, types.KeyDefaultBondDenom, &name)
+}
+
+func (k Keeper) GetDefaultBondDenom(ctx sdk.Context) (name string) {
+	name = "okt"
+	if k.paramSpace.Has(ctx, types.KeyDefaultBondDenom) {
+		k.paramSpace.Get(ctx, types.KeyDefaultBondDenom, &name)
+	}
+
+	return name
+}

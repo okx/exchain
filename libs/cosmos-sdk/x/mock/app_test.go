@@ -17,7 +17,7 @@ const msgRoute = "testMsg"
 
 var (
 	numAccts                 = 2
-	genCoins                 = sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 77)}
+	genCoins                 = sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom(), 77)}
 	accs, addrs, _, privKeys = CreateGenAccounts(numAccts, genCoins)
 )
 

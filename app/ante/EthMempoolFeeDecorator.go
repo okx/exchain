@@ -45,14 +45,23 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	const evmDenom = sdk.DefaultBondDenom
+	//const evmDenom = sdk.RawDefaultBondDenom
 
+	evmDenom := sdk.DefaultBondDenom()
 	feeInts := feeIntsPool.Get().(*[2]big.Int)
 
 	// fee = gas price * gas limit
 	fee := sdk.NewDecCoinFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(msgEthTx.CalcFee(&feeInts[0]), sdk.Precision))
 
 	minGasPrices := ctx.MinGasPrices()
+	for i, v := range minGasPrices {
+		if v.Denom != sdk.DefaultBondDenom() {
+			minGasPrices[i].Denom = sdk.DefaultBondDenom()
+		}
+	}
+
+	ctx.SetMinGasPrices(minGasPrices)
+
 	// minFees := minGasPrices.AmountOf(evmDenom).MulInt64(int64(msgEthTx.Data.GasLimit))
 	var minFees = sdk.Dec{&feeInts[1]}
 	minGasPrices.AmountOf(evmDenom).MulInt64To(int64(msgEthTx.Data.GasLimit), &minFees)

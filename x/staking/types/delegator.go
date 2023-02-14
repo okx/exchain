@@ -17,6 +17,7 @@ type Delegator struct {
 	IsProxy              bool             `json:"is_proxy" yaml:"is_proxy"`
 	TotalDelegatedTokens sdk.Dec          `json:"total_delegated_tokens" yaml:"total_delegated_tokens"` // total tokens delegated by other delegators
 	ProxyAddress         sdk.AccAddress   `json:"proxy_address" yaml:"proxy_address"`
+	TokenName            string           `json:"token_name" yaml:"token_name"`
 }
 
 // NewDelegator creates a new Delegator object
@@ -29,6 +30,7 @@ func NewDelegator(delAddr sdk.AccAddress) Delegator {
 		false,
 		sdk.ZeroDec(),
 		nil,
+		"",
 	}
 }
 

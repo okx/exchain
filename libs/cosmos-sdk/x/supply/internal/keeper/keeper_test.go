@@ -14,7 +14,7 @@ func TestSupply(t *testing.T) {
 	initTokens := sdk.TokensFromConsensusPower(initialPower)
 
 	app, ctx := createTestApp(false)
-	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens))
+	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens))
 	app.SupplyKeeper.SetSupply(ctx, types.NewSupply(totalSupply))
 
 	total := app.SupplyKeeper.GetSupply(ctx).GetTotal()

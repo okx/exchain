@@ -276,7 +276,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 		sdk.SysCoins{msg.SoldTokenAmount}); err != nil {
 		return common.ErrInsufficientCoins(DefaultParamspace, err.Error()).Result()
 	}
-	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom)
+	tokenPairOne := types.GetSwapTokenPairName(msg.SoldTokenAmount.Denom, sdk.DefaultBondDenom())
 	swapTokenPairOne, err := k.GetSwapTokenPair(ctx, tokenPairOne)
 	if err != nil {
 		return nil, types.ErrNonExistSwapTokenPair(msg.GetSwapTokenPairName())
@@ -284,7 +284,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 	if swapTokenPairOne.BasePooledCoin.IsZero() || swapTokenPairOne.QuotePooledCoin.IsZero() {
 		return types.ErrIsZeroValue("base pooled coin or quote pooled coin").Result()
 	}
-	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom)
+	tokenPairTwo := types.GetSwapTokenPairName(msg.MinBoughtTokenAmount.Denom, sdk.DefaultBondDenom())
 	swapTokenPairTwo, err := k.GetSwapTokenPair(ctx, tokenPairTwo)
 	if err != nil {
 		return nil, types.ErrNonExistSwapTokenPair(msg.GetSwapTokenPairName())
@@ -293,7 +293,7 @@ func swapTokenByRouter(ctx sdk.Context, k Keeper, msg types.MsgTokenToToken) (*s
 		return types.ErrIsZeroValue("base pooled coin or quote pooled coin").Result()
 	}
 
-	nativeAmount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0"))
+	nativeAmount := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.MustNewDecFromStr("0"))
 	params := k.GetParams(ctx)
 	msgOne := msg
 	msgOne.MinBoughtTokenAmount = nativeAmount

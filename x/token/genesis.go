@@ -40,8 +40,8 @@ func defaultGenesisStateOKT() types.Token {
 	totalSupply := sdk.NewDec(1000000000)
 	return types.Token{
 		Description:         "OK Group Global Utility Token",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		WholeName:           "OKT",
 		OriginalTotalSupply: totalSupply,
 		Owner:               addr,
@@ -78,6 +78,7 @@ func initGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) {
 
 	// set params
 	keeper.SetParams(ctx, data.Params)
+	sdk.SetDefaultBondDenom(data.Params.DefaultBondDenom)
 
 	for _, token := range data.Tokens {
 		keeper.NewToken(ctx, token)

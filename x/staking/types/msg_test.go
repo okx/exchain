@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	coinPos  = sdk.NewInt64Coin(sdk.DefaultBondDenom, 1000)
-	coinZero = sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)
+	coinPos  = sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1000)
+	coinZero = sdk.NewInt64Coin(sdk.DefaultBondDenom(), 0)
 )
 
 // test ValidateBasic for MsgCreateValidator
@@ -40,7 +40,7 @@ func TestMsgCreateValidator(t *testing.T) {
 
 	for _, tc := range tests {
 		description := NewDescription(tc.moniker, tc.identity, tc.website, tc.details)
-		coin := sdk.NewDecCoin(sdk.DefaultBondDenom, tc.minSelfDelegation)
+		coin := sdk.NewDecCoin(sdk.DefaultBondDenom(), tc.minSelfDelegation)
 
 		msg := MsgCreateValidator{
 			Description:       description,
@@ -83,7 +83,7 @@ func TestMsgDestroyValidator(t *testing.T) {
 
 func TestMsgCreateValidator_Smoke(t *testing.T) {
 
-	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(2000))
+	msd := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDec(2000))
 
 	msg := NewMsgCreateValidator(valAddr1, pk1,
 		NewDescription("my moniker", "my identity", "my website", "my details"), msd,
@@ -139,8 +139,8 @@ func checkMsg(t *testing.T, msg sdk.Msg, expType string) {
 // test ValidateBasic for MsgDeposit
 func TestMsgDeposit(t *testing.T) {
 
-	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
-	coinZero := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.ZeroDec())
+	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDec(1000))
+	coinZero := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.ZeroDec())
 
 	tests := []struct {
 		name          string
@@ -167,8 +167,8 @@ func TestMsgDeposit(t *testing.T) {
 // test ValidateBasic for MsgWithdraw
 func TestMsgWithdraw(t *testing.T) {
 
-	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDec(1000))
-	coinNeg := sdk.SysCoin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(-1)}
+	coinPos := sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDec(1000))
+	coinNeg := sdk.SysCoin{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(-1)}
 
 	tests := []struct {
 		name          string
@@ -302,11 +302,11 @@ func TestMsgAddShares(t *testing.T) {
 //		amount           sdk.Coin
 //		expectPass       bool
 //	}{
-//		{"regular", sdk.AccAddress(addr1), addr2, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), true},
-//		{"zero amount", sdk.AccAddress(addr1), addr2, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom, 0), false},
-//		{"empty delegator", sdk.AccAddress(emptyAddr), addr1, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), false},
-//		{"empty source validator", sdk.AccAddress(addr1), emptyAddr, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), false},
-//		{"empty destination validator", sdk.AccAddress(addr1), addr2, emptyAddr, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), false},
+//		{"regular", sdk.AccAddress(addr1), addr2, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1), true},
+//		{"zero amount", sdk.AccAddress(addr1), addr2, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 0), false},
+//		{"empty delegator", sdk.AccAddress(emptyAddr), addr1, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1), false},
+//		{"empty source validator", sdk.AccAddress(addr1), emptyAddr, addr3, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1), false},
+//		{"empty destination validator", sdk.AccAddress(addr1), addr2, emptyAddr, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1), false},
 //	}
 //
 //	for _, tc := range tests {
@@ -328,10 +328,10 @@ func TestMsgAddShares(t *testing.T) {
 //		amount        sdk.Coin
 //		expectPass    bool
 //	}{
-//		{"regular", sdk.AccAddress(addr1), addr2, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), true},
-//		{"zero amount", sdk.AccAddress(addr1), addr2, sdk.NewInt64Coin(sdk.DefaultBondDenom, 0), false},
-//		{"empty delegator", sdk.AccAddress(emptyAddr), addr1, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), false},
-//		{"empty validator", sdk.AccAddress(addr1), emptyAddr, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1), false},
+//		{"regular", sdk.AccAddress(addr1), addr2, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1), true},
+//		{"zero amount", sdk.AccAddress(addr1), addr2, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 0), false},
+//		{"empty delegator", sdk.AccAddress(emptyAddr), addr1, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1), false},
+//		{"empty validator", sdk.AccAddress(addr1), emptyAddr, sdk.NewInt64Coin(sdk.DefaultBondDenom(), 1), false},
 //	}
 //
 //	for _, tc := range tests {

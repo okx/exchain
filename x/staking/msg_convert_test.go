@@ -18,7 +18,7 @@ func testMustAccAddressFromBech32(addr string) sdk.AccAddress {
 }
 
 func newTestSysCoin(i int64, precison int64) sdk.SysCoin {
-	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(i, precison))
+	return sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), sdk.NewDecWithPrec(i, precison))
 }
 
 func TestConvertDepositMsg(t *testing.T) {

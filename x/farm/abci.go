@@ -15,15 +15,15 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	logger := k.Logger(ctx)
 
 	moduleAcc := k.SupplyKeeper().GetModuleAccount(ctx, MintFarmingAccount)
-	yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom)
+	yieldedNativeTokenAmt := moduleAcc.GetCoins().AmountOf(sdk.DefaultBondDenom())
 	logger.Debug(fmt.Sprintf("MintFarmingAccount [%s] balance: %s%s",
-		moduleAcc.GetAddress(), yieldedNativeTokenAmt, sdk.DefaultBondDenom))
+		moduleAcc.GetAddress(), yieldedNativeTokenAmt, sdk.DefaultBondDenom()))
 
 	if yieldedNativeTokenAmt.LTE(sdk.ZeroDec()) {
 		return
 	}
 
-	yieldedNativeToken := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, yieldedNativeTokenAmt)
+	yieldedNativeToken := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), yieldedNativeTokenAmt)
 	// 0. check the YieldNativeToken parameters
 	params := k.GetParams(ctx)
 	if !params.YieldNativeToken { // if it is false, only burn the minted native token
@@ -53,7 +53,7 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 		logger.Debug(
 			fmt.Sprintf("Pool %s allocate %s yielded native token", pool.Name, allocatedAmt.String()),
 		)
-		allocatedCoins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, allocatedAmt)
+		allocatedCoins := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), allocatedAmt)
 
 		current := k.GetPoolCurrentRewards(ctx, pool.Name)
 		current.Rewards = current.Rewards.Add2(allocatedCoins)

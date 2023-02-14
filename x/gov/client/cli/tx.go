@@ -109,7 +109,7 @@ Which is equivalent to:
 $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome proposal" --type="Text" \
 	--deposit="10%s" --from mykey
 `,
-				version.ClientName, sdk.DefaultBondDenom, version.ClientName, sdk.DefaultBondDenom,
+				version.ClientName, sdk.DefaultBondDenom(), version.ClientName, sdk.DefaultBondDenom(),
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {

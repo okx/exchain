@@ -18,6 +18,12 @@ func beginBlocker(ctx sdk.Context, k Keeper) {
 	logger := k.Logger(ctx)
 	// fetch stored minter & params
 	params := k.GetParams(ctx)
+	if !params.IsMintReward {
+		logger.Info("Stopped mint block reward")
+		return
+	}
+	logger.Info("Mint block reward..")
+
 	minter := k.GetMinterCustom(ctx)
 	if ctx.BlockHeight() == 0 || uint64(ctx.BlockHeight()) >= minter.NextBlockToUpdate {
 		k.UpdateMinterCustom(ctx, &minter, params)
@@ -45,19 +51,19 @@ func beginBlocker(ctx sdk.Context, k Keeper) {
 		panic(err)
 	}
 
-	logger.Debug(fmt.Sprintf(
-		"total supply <%v>, "+
-			"\nparams <%v>, "+
-			"\nminted amount<%v>, "+
-			"staking amount <%v>, "+
-			"yield farming amount <%v>, "+
-			"\nnext block to update minted per block <%v>, ",
-		sdk.NewDecCoinFromDec(params.MintDenom, k.StakingTokenSupply(ctx)),
-		params,
-		minter.MintedPerBlock,
-		minter.MintedPerBlock.Sub(farmingAmount),
-		farmingAmount,
-		minter.NextBlockToUpdate))
+	//logger.Info(fmt.Sprintf(
+	//	"total supply <%v>, "+
+	//		"\nparams <%v>, "+
+	//		"\nminted amount<%v>, "+
+	//		"staking amount <%v>, "+
+	//		"yield farming amount <%v>, "+
+	//		"\nnext block to update minted per block <%v>, ",
+	//	sdk.NewDecCoinFromDec(params.MintDenom, k.StakingTokenSupply(ctx)),
+	//	params,
+	//	minter.MintedPerBlock,
+	//	minter.MintedPerBlock.Sub(farmingAmount),
+	//	farmingAmount,
+	//	minter.NextBlockToUpdate))
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(

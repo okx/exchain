@@ -7,9 +7,13 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-const (
-	defaultMinGasPrices = "0.0000000001" + sdk.DefaultBondDenom
-)
+//const (
+//	defaultMinGasPrices = "0.0000000001" + sdk.RawDefaultBondDenom
+//)
+
+func getDefaultMinGasPrices() string {
+	return "0.0000000001" + sdk.DefaultBondDenom()
+}
 
 // BaseConfig defines the server's basic configuration
 type BaseConfig struct {
@@ -71,7 +75,7 @@ func (c *Config) GetMinGasPrices() sdk.DecCoins {
 func DefaultConfig() *Config {
 	return &Config{
 		BaseConfig: BaseConfig{
-			MinGasPrices:    defaultMinGasPrices,
+			MinGasPrices:    getDefaultMinGasPrices(),
 			InterBlockCache: true,
 		},
 	}

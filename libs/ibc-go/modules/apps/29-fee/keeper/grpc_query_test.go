@@ -145,9 +145,9 @@ func (suite *KeeperTestSuite) TestQueryIncentivizedPacketsForChannel() {
 	)
 
 	fee := types.Fee{
-		AckFee:     sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom, Amount: sdk.NewInt(100)}},
-		RecvFee:    sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom, Amount: sdk.NewInt(100)}},
-		TimeoutFee: sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom, Amount: sdk.NewInt(100)}},
+		AckFee:     sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewInt(100)}},
+		RecvFee:    sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewInt(100)}},
+		TimeoutFee: sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewInt(100)}},
 	}
 
 	testCases := []struct {

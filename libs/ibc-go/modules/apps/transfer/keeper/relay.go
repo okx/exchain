@@ -112,7 +112,7 @@ func (k Keeper) SendTransfer(
 
 		// escrow source tokens. It fails if balance insufficient.
 		if token.Denom == sdk.DefaultIbcWei {
-			token.Denom = sdk.DefaultBondDenom
+			token.Denom = sdk.DefaultBondDenom()
 		}
 		if err := k.bankKeeper.SendCoins(
 			ctx, sender, escrowAddress, sdk.NewCoins(token),
@@ -216,7 +216,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		}
 
 		if denom == sdk.DefaultIbcWei {
-			denom = sdk.DefaultBondDenom
+			denom = sdk.DefaultBondDenom()
 		}
 		token := sdk.NewCoin(denom, transferAmountDec)
 
@@ -341,7 +341,7 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 		// unescrow tokens back to sender
 		escrowAddress := types.GetEscrowAddress(packet.GetSourcePort(), packet.GetSourceChannel())
 		if token.Denom == sdk.DefaultIbcWei {
-			token.Denom = sdk.DefaultBondDenom
+			token.Denom = sdk.DefaultBondDenom()
 		}
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, sender, sdk.NewCoins(token)); err != nil {
 			// NOTE: this error is only expected to occur given an unexpected bug or a malicious

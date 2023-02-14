@@ -141,7 +141,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 
 	// init account tokens
 	decCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
-		initQuantity, common.NativeToken, initQuantity, common.TestToken))
+		initQuantity, common.NativeToken(), initQuantity, common.TestToken))
 	require.Nil(t, err)
 
 	initCoins := decCoins

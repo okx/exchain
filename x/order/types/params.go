@@ -15,12 +15,14 @@ const (
 	DefaultMaxDealsPerBlock  = 1000   // deals limit per block
 
 	// Fee param
-	DefaultFeeAmountPerBlock     = "0" // okt
-	DefaultFeeDenomPerBlock      = common.NativeToken
+	DefaultFeeAmountPerBlock = "0" // okt
+
 	DefaultFeeRateTrade          = "0.001" // percentage
 	DefaultNewOrderMsgGasUnit    = 40000
 	DefaultCancelOrderMsgGasUnit = 30000
 )
+
+var DefaultFeeDenomPerBlock = common.NativeToken()
 
 // nolint : Parameter keys
 var (

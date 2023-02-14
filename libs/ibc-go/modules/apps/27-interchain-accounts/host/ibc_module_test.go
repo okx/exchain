@@ -669,7 +669,7 @@ func (suite *InterchainAccountsTestSuite) TestControlAccountAfterChannelClose() 
 	icaAddr, err := sdk.AccAddressFromBech32(interchainAccountAddr)
 	suite.Require().NoError(err)
 
-	hasBalance := suite.chainB.GetSimApp().BankKeeper.HasBalance(suite.chainB.GetContext(), icaAddr, sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromInt(sdk.NewInt(5000))})
+	hasBalance := suite.chainB.GetSimApp().BankKeeper.HasBalance(suite.chainB.GetContext(), icaAddr, sdk.Coin{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDecFromInt(sdk.NewInt(5000))})
 	suite.Require().True(hasBalance)
 
 	// close the channel

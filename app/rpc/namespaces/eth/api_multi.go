@@ -57,7 +57,7 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []string, blockNrOrHash 
 			return nil, fmt.Errorf("addr:%s,err:%s", addr, err)
 		}
 		if acc, err := api.wrappedBackend.MustGetAccount(address); err == nil {
-			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
+			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom()).BigInt()
 			if balance == nil {
 				balances[addr] = accBalance{accountType(acc), (*hexutil.Big)(sdk.ZeroInt().BigInt())}
 			} else {
@@ -80,7 +80,7 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []string, blockNrOrHash 
 			return nil, err
 		}
 
-		val := account.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
+		val := account.GetCoins().AmountOf(sdk.DefaultBondDenom()).BigInt()
 		accType := accountType(account)
 		if accType == token.UserAccount || accType == token.ContractAccount {
 			api.watcherBackend.CommitAccountToRpcDb(account)

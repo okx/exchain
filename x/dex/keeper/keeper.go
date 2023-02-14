@@ -224,8 +224,8 @@ func (k Keeper) Deposit(ctx sdk.Context, product string, from sdk.AccAddress, am
 		return types.ErrMustTokenPairOwner(from.String(), product)
 	}
 
-	if amount.Denom != sdk.DefaultBondDenom {
-		return types.ErrDepositOnlySupportDenom(sdk.DefaultBondDenom)
+	if amount.Denom != sdk.DefaultBondDenom() {
+		return types.ErrDepositOnlySupportDenom(sdk.DefaultBondDenom())
 	}
 
 	depositCoins := amount.ToCoins()
@@ -250,8 +250,8 @@ func (k Keeper) Withdraw(ctx sdk.Context, product string, to sdk.AccAddress, amo
 		return types.ErrMustTokenPairOwner(to.String(), product)
 	}
 
-	if amount.Denom != sdk.DefaultBondDenom {
-		return types.ErrWithdrawOnlySupportDenom(sdk.DefaultBondDenom)
+	if amount.Denom != sdk.DefaultBondDenom() {
+		return types.ErrWithdrawOnlySupportDenom(sdk.DefaultBondDenom())
 	}
 
 	if tokenPair.Deposits.IsLT(amount) {

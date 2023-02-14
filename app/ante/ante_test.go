@@ -259,7 +259,7 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
 	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil, suite.app.WasmHandler, suite.app.IBCKeeper, suite.app.StakingKeeper)
-	suite.ctx.SetMinGasPrices(sdk.NewDecCoins(sdk.NewDecCoinFromDec(types.NativeToken, sdk.NewDecFromBigIntWithPrec(big.NewInt(500000), sdk.Precision))))
+	suite.ctx.SetMinGasPrices(sdk.NewDecCoins(sdk.NewDecCoinFromDec(types.NativeToken(), sdk.NewDecFromBigIntWithPrec(big.NewInt(500000), sdk.Precision))))
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 

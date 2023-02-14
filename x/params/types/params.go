@@ -35,7 +35,7 @@ type Params struct {
 
 // DefaultParams returns the instance of Params with default value
 func DefaultParams() Params {
-	minDeposit := sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
+	minDeposit := sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}
 	return Params{
 		MaxDepositPeriod: time.Hour * 24,
 		MinDeposit:       minDeposit,

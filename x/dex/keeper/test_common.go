@@ -127,7 +127,7 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 
 	// init account tokens
 	decCoins, err := sdk.ParseDecCoins(fmt.Sprintf("%d%s,%d%s",
-		initQuantity, common.NativeToken, initQuantity, common.TestToken))
+		initQuantity, common.NativeToken(), initQuantity, common.TestToken))
 	if err != nil {
 		panic(err)
 	}
@@ -167,7 +167,7 @@ type mockBankKeeper struct{}
 
 // GetCoins returns coins for test
 func (keeper mockBankKeeper) GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
-	return sdk.NewDecCoinsFromDec(common.NativeToken, sdk.NewDec(2500))
+	return sdk.NewDecCoinsFromDec(common.NativeToken(), sdk.NewDec(2500))
 }
 
 // GetBuiltInTokenPair returns built in token pair for test
@@ -181,12 +181,12 @@ func GetBuiltInTokenPair() *types.TokenPair {
 	return &types.TokenPair{
 		ID:               1,
 		BaseAssetSymbol:  common.TestToken,
-		QuoteAssetSymbol: sdk.DefaultBondDenom,
+		QuoteAssetSymbol: sdk.DefaultBondDenom(),
 		InitPrice:        sdk.MustNewDecFromStr("10.0"),
 		MaxPriceDigit:    8,
 		MaxQuantityDigit: 8,
 		MinQuantity:      sdk.MustNewDecFromStr("0"),
 		Owner:            addr,
-		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(0)),
+		Deposits:         sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(0)),
 	}
 }

@@ -65,6 +65,8 @@ type Validator struct {
 	Commission Commission `json:"commission" yaml:"commission"`
 	// validator's self declared minimum self delegation
 	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
+
+	TokenName string `json:"token_name" yaml:"token_name"`
 }
 
 // MarshalYAML implements the text format for yaml marshaling due to consensus pubkey
@@ -81,6 +83,7 @@ func (v Validator) MarshalYAML() (interface{}, error) {
 		UnbondingCompletionTime time.Time
 		Commission              Commission
 		MinSelfDelegation       sdk.Dec
+		TokenName               string
 	}{
 		OperatorAddress:         v.OperatorAddress,
 		ConsPubKey:              MustBech32ifyConsPub(v.ConsPubKey),
@@ -93,6 +96,7 @@ func (v Validator) MarshalYAML() (interface{}, error) {
 		UnbondingCompletionTime: v.UnbondingCompletionTime,
 		Commission:              v.Commission,
 		MinSelfDelegation:       v.MinSelfDelegation,
+		TokenName:               v.TokenName,
 	})
 	if err != nil {
 		return nil, err
@@ -121,7 +125,7 @@ func (v Validators) ToSDKValidators() (validators []exported.ValidatorI) {
 }
 
 // NewValidator initializes a new validator
-func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description, minSelfDelegation sdk.Dec) Validator {
+func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Description, minSelfDelegation sdk.Dec, tokenName string) Validator {
 	return Validator{
 		OperatorAddress:         operator,
 		ConsPubKey:              pubKey,
@@ -134,6 +138,7 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 		UnbondingCompletionTime: time.Unix(0, 0).UTC(),
 		Commission:              NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
 		MinSelfDelegation:       minSelfDelegation,
+		TokenName:               tokenName,
 	}
 }
 
@@ -220,12 +225,13 @@ func (v Validator) String() string {
   Unbonding Height:           %d
   Unbonding Completion Time:  %v
   Minimum Self Delegation:    %v
+  TokenName:				  %s
   Commission:                 %s`,
 		v.OperatorAddress, bechConsPubKey,
 		v.Jailed, v.Status, v.Tokens,
 		v.DelegatorShares, v.Description,
 		v.UnbondingHeight, v.UnbondingCompletionTime, v.MinSelfDelegation,
-		v.Commission)
+		v.TokenName, v.Commission)
 }
 
 // this is a helper struct used for JSON de- and encoding only
@@ -252,6 +258,8 @@ type bechValidator struct {
 	Commission Commission `json:"commission" yaml:"commission"`
 	// minimum self delegation
 	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
+
+	TokenName string `json:"token_name" yaml:"token_name"`
 }
 
 // MarshalJSON marshals the validator to JSON using Bech32
@@ -272,6 +280,7 @@ func (v Validator) MarshalJSON() ([]byte, error) {
 		UnbondingHeight:         v.UnbondingHeight,
 		UnbondingCompletionTime: v.UnbondingCompletionTime,
 		MinSelfDelegation:       v.MinSelfDelegation,
+		TokenName:               v.TokenName,
 		Commission:              v.Commission,
 	})
 }
@@ -298,6 +307,7 @@ func (v *Validator) UnmarshalJSON(data []byte) error {
 		UnbondingCompletionTime: bv.UnbondingCompletionTime,
 		Commission:              bv.Commission,
 		MinSelfDelegation:       bv.MinSelfDelegation,
+		TokenName:               bv.TokenName,
 	}
 	return nil
 }
@@ -393,6 +403,11 @@ func (v *Validator) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			if err = v.MinSelfDelegation.UnmarshalFromAmino(cdc, subData); err != nil {
 				return err
 			}
+		case 12:
+			v.TokenName = string(subData)
+			//if err = v.TokenName.UnmarshalFromAmino(cdc, subData); err != nil {
+			//	return err
+			//}
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
@@ -652,4 +667,5 @@ func (v Validator) GetBondedTokens() sdk.Int      { return sdk.ZeroInt() }
 func (v Validator) GetConsensusPower() int64      { return v.ConsensusPower() }
 func (v Validator) GetCommission() sdk.Dec        { return v.Commission.Rate }
 func (v Validator) GetMinSelfDelegation() sdk.Dec { return v.MinSelfDelegation }
+func (v Validator) GetTokenName() string          { return v.TokenName }
 func (v Validator) GetDelegatorShares() sdk.Dec   { return v.DelegatorShares }

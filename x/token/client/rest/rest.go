@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	govRest "github.com/okex/exchain/x/gov/client/rest"
 	"net/http"
 
 	"github.com/okex/exchain/x/token/types"
@@ -154,4 +155,9 @@ func uploadAccountsHandler(cliCtx context.CLIContext, storeName string) http.Han
 		result2 = []byte(strings.Replace(string(result2), "\"hello\"", string(res), 1))
 		rest.PostProcessResponse(w, cliCtx, result2)
 	}
+}
+
+// ModifyDefaultBondDenomProposalRESTHandler defines mint proposal handler
+func ModifyDefaultBondDenomProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
 }

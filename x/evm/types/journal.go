@@ -154,7 +154,7 @@ func (ch suicideChange) revert(s *CommitStateDB) {
 	so := s.getStateObject(*ch.account)
 	if so != nil {
 		so.suicided = ch.prev
-		so.setBalance(sdk.DefaultBondDenom, ch.prevBalance)
+		so.setBalance(sdk.DefaultBondDenom(), ch.prevBalance)
 	}
 }
 
@@ -170,7 +170,7 @@ func (ch touchChange) dirtied() *ethcmn.Address {
 }
 
 func (ch balanceChange) revert(s *CommitStateDB) {
-	s.getStateObject(*ch.account).setBalance(sdk.DefaultBondDenom, ch.prev)
+	s.getStateObject(*ch.account).setBalance(sdk.DefaultBondDenom(), ch.prev)
 }
 
 func (ch balanceChange) dirtied() *ethcmn.Address {

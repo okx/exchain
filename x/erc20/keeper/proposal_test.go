@@ -24,7 +24,7 @@ func (suite *KeeperTestSuite) TestProposal_TokenMappingProposal() {
 	)
 
 	minDeposit := suite.app.Erc20Keeper.GetMinDeposit(suite.ctx, proposal)
-	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}, minDeposit)
 
 	maxDepositPeriod := suite.app.Erc20Keeper.GetMaxDepositPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)
@@ -68,7 +68,7 @@ func (suite *KeeperTestSuite) TestProposal_ProxyContractRedirect() {
 	)
 
 	minDeposit := suite.app.Erc20Keeper.GetMinDeposit(suite.ctx, proposal)
-	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}, minDeposit)
 
 	maxDepositPeriod := suite.app.Erc20Keeper.GetMaxDepositPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)
@@ -108,7 +108,7 @@ func (suite *KeeperTestSuite) TestProposal_ContractTemplateProposal() {
 	)
 
 	minDeposit := suite.app.Erc20Keeper.GetMinDeposit(suite.ctx, proposal)
-	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(100))}, minDeposit)
 
 	maxDepositPeriod := suite.app.Erc20Keeper.GetMaxDepositPeriod(suite.ctx, proposal)
 	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)

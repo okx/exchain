@@ -21,7 +21,7 @@ killbyname() {
 
 
 run() {
-    LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info
+    LOG_LEVEL=main:info,x/supply:info,x/mint:info
 #--mempool.enable_delete_min_gp_tx false \
 #    exchaind start --pruning=nothing --rpc.unsafe \
     exchaind start --rpc.unsafe \

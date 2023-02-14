@@ -16,7 +16,7 @@ import (
 //
 //	// not registered router
 //	content := dexTypes.NewDexListProposal("Test", "", Addrs[0], "btc-123",
-//		common.NativeToken, sdk.NewDec(1000), 0, 4, 4,
+//		common.NativeToken(), sdk.NewDec(1000), 0, 4, 4,
 //		sdk.MustNewDecFromStr("0.0001"))
 //	proposal, err := keeper.SubmitProposal(ctx, content)
 //	require.NotNil(t, err)
@@ -53,7 +53,7 @@ func TestKeeper_GetProposalsFiltered(t *testing.T) {
 	require.Equal(t, 1, len(proposals))
 
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0],
-		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 100)}, "")
+		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), 100)}, "")
 	require.Nil(t, err)
 
 	proposals = keeper.GetProposalsFiltered(ctx, nil, nil,

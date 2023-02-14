@@ -31,17 +31,17 @@ func NewTestMsgCreateValidatorWithMinSelfDelegation(address sdk.ValAddress, pubK
 	amt sdk.Int, minSelfDelegation sdk.Int) MsgCreateValidator {
 
 	return types.NewMsgCreateValidator(
-		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom, amt), Description{}, commissionRates, minSelfDelegation,
+		address, pubKey, sdk.NewCoin(sdk.DefaultBondDenom(), amt), Description{}, commissionRates, minSelfDelegation,
 	)
 }
 
 func NewTestMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Int) MsgDelegate {
-	amount := sdk.NewCoin(sdk.DefaultBondDenom, amt)
+	amount := sdk.NewCoin(sdk.DefaultBondDenom(), amt)
 	return NewMsgDelegate(delAddr, valAddr, amount)
 }
 
 func NewTestMsgCreateValidator(valAddr sdk.ValAddress, pk crypto.PubKey, amt sdk.Int) MsgCreateValidator {
-	amount := sdk.NewCoin(sdk.DefaultBondDenom, amt)
+	amount := sdk.NewCoin(sdk.DefaultBondDenom(), amt)
 	commission := NewCommissionRates(sdk.NewDecWithPrec(5, 1), sdk.NewDecWithPrec(5, 1), sdk.NewDec(0))
 	return NewMsgCreateValidator(valAddr, pk, amount, Description{}, commission, sdk.OneInt())
 }

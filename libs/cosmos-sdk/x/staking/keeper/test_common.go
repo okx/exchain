@@ -143,8 +143,8 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bk), maccPerms)
 
 	initTokens := sdk.TokensFromConsensusPower(initPower)
-	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens))
-	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens.MulRaw(int64(len(Addrs)))))
+	initCoins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens))
+	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom(), initTokens.MulRaw(int64(len(Addrs)))))
 
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 

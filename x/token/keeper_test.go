@@ -27,8 +27,8 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 
 	token := types.Token{
 		Description:         "new token",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
 		Owner:               []byte("gyl"),
@@ -39,24 +39,24 @@ func TestKeeper_UpdateTokenSupply(t *testing.T) {
 	info := keeper.GetTokenInfo(ctx, "xxbToken")
 	require.EqualValues(t, "", info.Symbol)
 
-	info = keeper.GetTokenInfo(ctx, common.NativeToken)
-	require.EqualValues(t, common.NativeToken, info.Symbol)
+	info = keeper.GetTokenInfo(ctx, common.NativeToken())
+	require.EqualValues(t, common.NativeToken(), info.Symbol)
 	tokens := keeper.GetTokensInfo(ctx)
 	require.Equal(t, info, tokens[0])
 	require.Equal(t, len(tokens), len(keeper.GetCurrenciesInfo(ctx)))
 
-	name, flag := addTokenSuffix(ctx, keeper, common.NativeToken)
+	name, flag := addTokenSuffix(ctx, keeper, common.NativeToken())
 	require.Equal(t, true, flag)
-	require.NotEqual(t, common.NativeToken, name)
+	require.NotEqual(t, common.NativeToken(), name)
 
-	name, flag = addTokenSuffix(ctx, keeper, common.NativeToken+"@#$")
+	name, flag = addTokenSuffix(ctx, keeper, common.NativeToken()+"@#$")
 	require.Equal(t, false, flag)
 	require.Equal(t, "", name)
 
 	token = types.Token{
 		Description:         "new token",
-		Symbol:              common.NativeToken,
-		OriginalSymbol:      common.NativeToken,
+		Symbol:              common.NativeToken(),
+		OriginalSymbol:      common.NativeToken(),
 		WholeName:           "ok coin",
 		OriginalTotalSupply: sdk.NewDec(10000),
 		Owner:               []byte("gyl"),
@@ -74,7 +74,7 @@ func TestKeeper_AddFeeDetail(t *testing.T) {
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 	keeper.enableBackend = true
 
-	fee, err := sdk.ParseDecCoins(fmt.Sprintf("100%s", common.NativeToken))
+	fee, err := sdk.ParseDecCoins(fmt.Sprintf("100%s", common.NativeToken()))
 	require.Nil(t, err)
 
 	feeType := "test fee type"
@@ -97,12 +97,12 @@ func TestKeeper_LockCoins(t *testing.T) {
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	expectedLockedCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100)),
 	}
 
 	err := keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, expectedLockedCoins, types.LockCoinsTypeQuantity)
@@ -112,7 +112,7 @@ func TestKeeper_LockCoins(t *testing.T) {
 	err = keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, expectedLockedCoins, types.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 	BigCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100000000000)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100000000000)),
 	}
 	err = keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, BigCoins, types.LockCoinsTypeQuantity)
 	require.Error(t, err)
@@ -121,7 +121,7 @@ func TestKeeper_LockCoins(t *testing.T) {
 
 	locks := keeper.GetAllLockedCoins(ctx)
 	require.NotNil(t, locks)
-	require.EqualValues(t, common.NativeToken, locks[0].Coins[0].Denom)
+	require.EqualValues(t, common.NativeToken(), locks[0].Coins[0].Denom)
 }
 
 func TestKeeper_UnlockCoins(t *testing.T) {
@@ -133,19 +133,19 @@ func TestKeeper_UnlockCoins(t *testing.T) {
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	lockCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100)),
 	}
 
 	err := keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, lockCoins, types.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 
 	unlockCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(10)),
 	}
 
 	err = keeper.UnlockCoins(ctx, testAccounts[0].baseAccount.Address, unlockCoins, types.LockCoinsTypeQuantity)
@@ -154,20 +154,20 @@ func TestKeeper_UnlockCoins(t *testing.T) {
 	require.Error(t, err)
 
 	biglockCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(999999999)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(999999999)),
 	}
 
 	err = keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, biglockCoins, types.LockCoinsTypeQuantity)
 	require.Error(t, err)
 	bigunlockCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000000000000)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(10000000000000)),
 	}
 	err = keeper.UnlockCoins(ctx, testAccounts[0].baseAccount.Address, bigunlockCoins, types.LockCoinsTypeQuantity)
 	require.Error(t, err)
 
 	//expectedLockCoins
 	expectedCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(90)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(90)),
 	}
 	require.EqualValues(t, keeper.GetLockedCoins(ctx, testAccounts[0].baseAccount.Address), expectedCoins)
 
@@ -182,31 +182,31 @@ func TestKeeper_BurnLockedCoins(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
 
-	initCoins := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000000000))}
+	initCoins := sdk.SysCoins{sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000000000))}
 	genAccs, testAccounts := CreateGenAccounts(1, initCoins)
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(initCoins))
 
 	lockCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100)),
 	}
 	err := keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, lockCoins, types.LockCoinsTypeQuantity)
 	require.NoError(t, err)
 	burnLockCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(5)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(5)),
 	}
 	err = keeper.BalanceAccount(ctx, testAccounts[0].baseAccount.Address, burnLockCoins, sdk.ZeroFee().ToCoins())
 	require.Nil(t, err)
 
 	expectedCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(95)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(95)),
 	}
 	require.EqualValues(t, keeper.GetLockedCoins(ctx, testAccounts[0].baseAccount.Address), expectedCoins)
 	err = keeper.BalanceAccount(ctx, testAccounts[0].baseAccount.Address, expectedCoins, sdk.ZeroFee().ToCoins())
 	require.Nil(t, err)
 
 	expectedCoins = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000000000000)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(10000000000000)),
 	}
 	err = keeper.BalanceAccount(ctx, testAccounts[0].baseAccount.Address, expectedCoins, sdk.ZeroFee().ToCoins())
 	require.NotNil(t, err)
@@ -220,12 +220,12 @@ func TestKeeper_ReceiveLockedCoins(t *testing.T) {
 
 	genAccs, testAccounts := CreateGenAccounts(1,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	lockCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100)),
 	}
 	err := keeper.LockCoins(ctx, testAccounts[0].baseAccount.Address, lockCoins, types.LockCoinsTypeQuantity)
 	require.Nil(t, err)
@@ -235,7 +235,7 @@ func TestKeeper_ReceiveLockedCoins(t *testing.T) {
 	coins := keeper.GetCoins(ctx, testAccounts[0].baseAccount.Address)
 
 	expectedCoins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000)),
 	}
 	require.EqualValues(t, expectedCoins, coins)
 }
@@ -248,13 +248,13 @@ func TestKeeper_SetCoins(t *testing.T) {
 
 	genAccs, testAccounts := CreateGenAccounts(2,
 		sdk.SysCoins{
-			sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1000)),
+			sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1000)),
 		})
 	mock.SetGenesis(mapp.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	// issue raw token
 	coins := sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(100)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(100)),
 	}
 	err := keeper.bankKeeper.SetCoins(ctx, testAccounts[0].baseAccount.Address, coins)
 	require.Nil(t, err)
@@ -270,7 +270,7 @@ func TestKeeper_SetCoins(t *testing.T) {
 
 	//send coin
 	coins = sdk.SysCoins{
-		sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(1)),
+		sdk.NewDecCoinFromDec(common.NativeToken(), sdk.NewDec(1)),
 	}
 	err1 := keeper.SendCoinsFromAccountToAccount(ctx, testAccounts[0].baseAccount.Address,
 		testAccounts[1].baseAccount.Address, coins)

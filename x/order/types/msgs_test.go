@@ -23,7 +23,7 @@ func TestMsgNewOrder(t *testing.T) {
 
 	addr, err := hex.DecodeString("1212121212121212123412121212121212121234")
 	require.Nil(t, err)
-	orderMsg := NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg := NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	require.Nil(t, orderMsg.ValidateBasic())
 	require.Equal(t, "order", orderMsg.Route())
 	require.Equal(t, "new", orderMsg.Type())
@@ -40,12 +40,12 @@ func TestMsgNewOrderInvalid(t *testing.T) {
 	//nil sender
 	addr, err := hex.DecodeString("1212121212121212123412121212121212121234")
 	require.Nil(t, err)
-	orderMsg := NewMsgNewOrder(nil, "btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg := NewMsgNewOrder(nil, "btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//empty sender
-	orderMsg = NewMsgNewOrder([]byte{}, "btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder([]byte{}, "btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
@@ -55,37 +55,37 @@ func TestMsgNewOrderInvalid(t *testing.T) {
 	require.NotNil(t, err)
 
 	//invalid product
-	orderMsg = NewMsgNewOrder(addr, "btc"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//okb in the left
-	orderMsg = NewMsgNewOrder(addr, common.NativeToken+"_btc", BuyOrder, testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder(addr, common.NativeToken()+"_btc", BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.Nil(t, err)
 
 	//invalid side
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, "abc", testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), "abc", testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//zero price
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, "0", testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, "0", testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//zero quantity
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, testPrice, "0")
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, testPrice, "0")
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//negative price
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, "-1", testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, "-1", testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//negative quantity
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, testPrice, "-1")
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, testPrice, "-1")
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
@@ -134,7 +134,7 @@ func TestMsgCancelOrderInvalid(t *testing.T) {
 func TestMsgMultiNewOrder(t *testing.T) {
 	addr, err := hex.DecodeString("1212121212121212123412121212121212121234")
 	require.Nil(t, err)
-	orderItems := NewOrderItem("btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderItems := NewOrderItem("btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	orderMsg := NewMsgNewOrders(addr, []OrderItem{orderItems})
 	require.Nil(t, orderMsg.ValidateBasic())
 	require.Equal(t, "order", orderMsg.Route())
@@ -152,12 +152,12 @@ func TestMsgMultiNewOrderInvalid(t *testing.T) {
 	//nil sender
 	addr, err := hex.DecodeString("1212121212121212123412121212121212121234")
 	require.Nil(t, err)
-	orderMsg := NewMsgNewOrder(nil, "btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg := NewMsgNewOrder(nil, "btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//empty sender
-	orderMsg = NewMsgNewOrder([]byte{}, "btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder([]byte{}, "btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
@@ -167,42 +167,42 @@ func TestMsgMultiNewOrderInvalid(t *testing.T) {
 	require.NotNil(t, err)
 
 	//invalid product
-	orderMsg = NewMsgNewOrder(addr, "btc"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//okb in the left
-	orderMsg = NewMsgNewOrder(addr, common.NativeToken+"_btc", BuyOrder, testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder(addr, common.NativeToken()+"_btc", BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.Nil(t, err)
 
 	//invalid side
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, "abc", testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), "abc", testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//zero price
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, "0", testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, "0", testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//zero quantity
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, testPrice, "0")
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, testPrice, "0")
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//negative price
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, "-1", testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, "-1", testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	//negative quantity
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, testPrice, "-1")
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, testPrice, "-1")
 	err = orderMsg.ValidateBasic()
 	require.NotNil(t, err)
 
 	// true
-	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	orderMsg = NewMsgNewOrder(addr, "btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	err = orderMsg.ValidateBasic()
 	require.Nil(t, err)
 
@@ -218,7 +218,7 @@ func TestMsgMultiNewOrderInvalid(t *testing.T) {
 
 	// max limit
 	orderMsg.OrderItems = []OrderItem{}
-	item := NewOrderItem("btc_"+common.NativeToken, BuyOrder, testPrice, testQuantity)
+	item := NewOrderItem("btc_"+common.NativeToken(), BuyOrder, testPrice, testQuantity)
 	for i := 0; i < OrderItemLimit; i++ {
 		orderMsg.OrderItems = append(orderMsg.OrderItems, item)
 	}

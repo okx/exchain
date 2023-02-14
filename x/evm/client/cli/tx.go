@@ -49,7 +49,7 @@ Where proposal.json contains:
     }
   ]
 }
-`, version.ClientName, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(),
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()
@@ -111,7 +111,7 @@ Where proposal.json contains:
     }
   ]
 }
-`, version.ClientName, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(),
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()
@@ -197,7 +197,7 @@ Where proposal.json contains:
         }
     ]
 }
-`, version.ClientName, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(),
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()
@@ -256,7 +256,7 @@ Where proposal.json contains:
     }
   ]
 }
-`, version.ClientName, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(),
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()
@@ -341,7 +341,7 @@ Where proposal.json contains:
         }
     ]
 }
-`, version.ClientName, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(),
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()
@@ -399,7 +399,7 @@ Where proposal.json contains:
         }
     ]
 }
-`, version.ClientName, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(),
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()

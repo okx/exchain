@@ -55,8 +55,45 @@ Where proposal.json contains:
         }
     ]
 }
-`, version.ClientName, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom(),
 			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := utils2.ParseManageTreasuresProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewManageTreasuresProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.Treasures,
+				proposal.IsAdded,
+			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
+
+// GetCmdStopMintProposal implements a command handler for  stop minting proposal transaction
+func GetCmdStopMintProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return &cobra.Command{
+		Use:   "mint-stop",
+		Args:  cobra.ExactArgs(0),
+		Short: "",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(``, version.ClientName, sdk.DefaultBondDenom())),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())

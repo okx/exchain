@@ -84,7 +84,7 @@ func CreateValidators(
 		valCreateMsg := staking.NewMsgCreateValidator(
 			addrs[i], pubkeys[i],
 			testDescription,
-			sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, DefaultMSD),
+			sdk.NewDecCoinFromDec(sdk.DefaultBondDenom(), DefaultMSD),
 		)
 
 		_, err := stakingHandler(ctx, valCreateMsg)
@@ -170,8 +170,8 @@ func CreateTestInput(
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bk), maccPerms)
 
-	initCoins := sdk.NewCoins(sdk.NewInt64DecCoin(sdk.DefaultBondDenom, initBalance))
-	totalSupply := sdk.NewCoins(sdk.NewInt64DecCoin(sdk.DefaultBondDenom, initBalance*(int64(len(Addrs)))))
+	initCoins := sdk.NewCoins(sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), initBalance))
+	totalSupply := sdk.NewCoins(sdk.NewInt64DecCoin(sdk.DefaultBondDenom(), initBalance*(int64(len(Addrs)))))
 
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
@@ -209,7 +209,7 @@ func CreateTestInput(
 		types.DefaultCodespace, govRouter, bk, govProposalHandlerRouter, auth.FeeCollectorName)
 	pk.SetGovKeeper(keeper)
 
-	minDeposit := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.NewDec(100))
+	minDeposit := sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom(), sdk.NewDec(100))
 	depositParams := types.DepositParams{
 		MinDeposit:       minDeposit,
 		MaxDepositPeriod: time.Hour * 24,

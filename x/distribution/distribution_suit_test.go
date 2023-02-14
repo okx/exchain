@@ -21,7 +21,7 @@ var (
 	dk                     Keeper
 	sk                     staking.Keeper
 	supplyKeeper           types.SupplyKeeper
-	blockRewardValueTokens = sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}}
+	blockRewardValueTokens = sdk.SysCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(int64(100))}}
 	votes                  []abci.VoteInfo
 	depositCoin            = sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100))
 )
@@ -108,7 +108,7 @@ func getDecCoins(value string) sdk.SysCoins {
 	}
 
 	dec, _ := sdk.NewDecFromStr(value)
-	return sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: dec}}
+	return sdk.SysCoins{{Denom: sdk.DefaultBondDenom(), Amount: dec}}
 }
 
 func (suite *DistributionSuite) TestNormal() {
@@ -1633,7 +1633,7 @@ func (suite *DistributionSuite) TestUpgrade() {
 
 func allocateVariateTokens(t *testing.T, blockRewards string) {
 	feePoolBefore, _ := dk.GetFeePool(ctx).CommunityPool.TruncateDecimal()
-	VariateBlockRewards := sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.MustNewDecFromStr(blockRewards)}}
+	VariateBlockRewards := sdk.SysCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.MustNewDecFromStr(blockRewards)}}
 	setTestFees(t, ctx, ak, VariateBlockRewards)
 	dk.SetCommunityTax(ctx, sdk.MustNewDecFromStr("0"))
 	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes[0:1])

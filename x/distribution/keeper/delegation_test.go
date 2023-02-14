@@ -55,15 +55,15 @@ func TestCalculateRewardsBasic(t *testing.T) {
 
 	// allocate some rewards
 	initial := int64(10)
-	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}
+	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial)}}
 	dk.AllocateTokensToValidator(ctx, val, tokens)
 
 	// end period
 	dk.incrementValidatorPeriod(ctx, val)
 
 	// commission should be the other half
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial / 2)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}, dk.GetValidatorOutstandingRewards(ctx, valOpAddr1))
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial / 2)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
+	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial)}}, dk.GetValidatorOutstandingRewards(ctx, valOpAddr1))
 }
 
 func TestCalculateRewardsMultiDelegator(t *testing.T) {
@@ -96,7 +96,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 
 	// allocate some rewards
 	initial := int64(20)
-	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}
+	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial)}}
 	dk.AllocateTokensToValidator(ctx, val, tokens)
 
 	valOpAddrs := []sdk.ValAddress{valOpAddr1}
@@ -135,7 +135,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	require.True(t, rewards2[0].Amount.GT(sdk.NewDec((initial/4)-1)))
 
 	// commission should be equal to initial (50% twice)
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
 }
 
 func TestWithdrawDelegationRewardsBasic(t *testing.T) {
@@ -166,7 +166,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
 	DoEditValidator(t, ctx, sk, valOpAddr1, newRate)
 	staking.EndBlocker(ctx, sk)
-	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sk.ParamsMinSelfDelegation(ctx))}
+	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom(), sk.ParamsMinSelfDelegation(ctx))}
 	// assert correct initial balance
 	expTokens := balanceTokens.Sub(valTokens)
 	require.Equal(t, expTokens, ak.GetAccount(ctx, sdk.AccAddress(valOpAddr1)).GetCoins())
@@ -181,7 +181,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	val := sk.Validator(ctx, valOpAddr1)
 
 	initial := int64(20)
-	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}
+	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial)}}
 
 	dk.AllocateTokensToValidator(ctx, val, tokens)
 
@@ -229,7 +229,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
 	DoEditValidator(t, ctx, sk, valOpAddr1, newRate)
 	staking.EndBlocker(ctx, sk)
-	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sk.ParamsMinSelfDelegation(ctx))}
+	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom(), sk.ParamsMinSelfDelegation(ctx))}
 	// assert correct initial balance
 	expTokens := balanceTokens.Sub(valTokens)
 	require.Equal(t, expTokens, ak.GetAccount(ctx, sdk.AccAddress(valOpAddr1)).GetCoins())
@@ -245,7 +245,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 
 	// allocate some rewards
 	initial := int64(20)
-	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}
+	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial)}}
 	dk.AllocateTokensToValidator(ctx, val, tokens)
 
 	//historical count should be 1 (validator init)
@@ -337,7 +337,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/4)-1)))
 
 	// commission should be half initial
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial / 2)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
+	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(initial / 2)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
 
 	// next block
 	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
@@ -624,7 +624,7 @@ func TestRewardToCommunity(t *testing.T) {
 	val := sk.Validator(ctx, valOpAddr1)
 
 	// allocate some rewards
-	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(20))}}
+	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom(), Amount: sdk.NewDec(int64(20))}}
 	dk.AllocateTokensToValidator(ctx, val, tokens)
 
 	sk.SetValidator(ctx, stakingtypes.Validator{OperatorAddress: val.GetOperator(), DelegatorShares: sdk.NewDec(int64(0))})

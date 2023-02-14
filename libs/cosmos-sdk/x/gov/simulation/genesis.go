@@ -32,7 +32,7 @@ func GenDepositParamsDepositPeriod(r *rand.Rand) time.Duration {
 
 // GenDepositParamsMinDeposit randomized DepositParamsMinDeposit
 func GenDepositParamsMinDeposit(r *rand.Rand) sdk.Coins {
-	return sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, int64(simulation.RandIntBetween(r, 1, 1e3))))
+	return sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom(), int64(simulation.RandIntBetween(r, 1, 1e3))))
 }
 
 // GenVotingParamsVotingPeriod randomized VotingParamsVotingPeriod

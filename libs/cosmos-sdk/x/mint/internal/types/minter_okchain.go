@@ -25,7 +25,7 @@ func NewMinterCustom(nextBlockToUpdate uint64, mintedPerBlock sdk.DecCoins) Mint
 func InitialMinterCustom() MinterCustom {
 	return NewMinterCustom(
 		0,
-		sdk.DecCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.ZeroInt())},
+		sdk.DecCoins{sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.ZeroInt())},
 	)
 }
 
@@ -37,8 +37,8 @@ func DefaultInitialMinterCustom() MinterCustom {
 
 // ValidateMinterCustom validate minter
 func ValidateMinterCustom(minter MinterCustom) error {
-	if len(minter.MintedPerBlock) != 1 || minter.MintedPerBlock[0].Denom != sdk.DefaultBondDenom {
-		return fmt.Errorf(" MintedPerBlock must contain only %s", sdk.DefaultBondDenom)
+	if len(minter.MintedPerBlock) != 1 || minter.MintedPerBlock[0].Denom != sdk.DefaultBondDenom() {
+		return fmt.Errorf(" MintedPerBlock must contain only %s", sdk.DefaultBondDenom())
 	}
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // DefaultTokenPairDeposit defines default deposit of token pair
-var DefaultTokenPairDeposit = sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(0))
+var DefaultTokenPairDeposit = sdk.NewDecCoin(sdk.DefaultBondDenom(), sdk.NewInt(0))
 
 // TokenPair represents token pair object
 type TokenPair struct {

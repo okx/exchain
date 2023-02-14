@@ -92,7 +92,7 @@ func (k Keeper) PostTxProcessing(
 	if developerFee.LTE(sdk.ZeroDec()) {
 		return nil
 	}
-	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
+	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom(), Amount: developerFee}}
 
 	//distribute the fees to the contract deployer / withdraw address
 	f := ctx.GetFeeSplitInfo()

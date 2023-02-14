@@ -82,6 +82,7 @@ func (ve ValidatorExported) Import() Validator {
 		ve.UnbondingCompletionTime,
 		NewCommission(sdk.NewDec(1), sdk.NewDec(1), sdk.NewDec(0)),
 		ve.MinSelfDelegation,
+		"",
 	}
 }
 
