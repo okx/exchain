@@ -149,7 +149,12 @@ func (tree *MutableTree) VersionExists(version int64) bool {
 	if ok {
 		return true
 	}
-	return tree.versions.Get(version)
+	if tree.versions.Get(version) {
+		return true
+	}
+	has, _ := tree.ndb.HasRoot(version)
+	tree.versions.Set(version, has)
+	return has
 }
 
 func (tree *MutableTree) VersionExistsInDb(version int64) bool {
@@ -764,11 +769,13 @@ func (tree *MutableTree) GetImmutable(version int64) (*ImmutableTree, error) {
 	if rootHash == nil {
 		return nil, ErrVersionDoesNotExist
 	} else if len(rootHash) == 0 {
+		tree.versions.Set(version, true)
 		return &ImmutableTree{
 			ndb:     tree.ndb,
 			version: version,
 		}, nil
 	}
+	tree.versions.Set(version, true)
 	return &ImmutableTree{
 		root:    tree.ndb.GetNode(rootHash),
 		ndb:     tree.ndb,
