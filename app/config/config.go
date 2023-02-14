@@ -122,6 +122,7 @@ type OecConfig struct {
 
 	//
 	commitGapOffset int64
+	exportAccountHeight int
 }
 
 const (
@@ -159,6 +160,7 @@ const (
 	FlagEnableHasBlockPartMsg      = "enable-blockpart-ack"
 	FlagDebugGcInterval            = "debug.gc-interval"
 	FlagCommitGapOffset            = "commit-gap-offset"
+	FlagExportAccountHeight           = "export-account-height"
 )
 
 var (
@@ -308,6 +310,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
+	c.SetExportAccountHeight(viper.GetInt(FlagExportAccountHeight))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -658,6 +661,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetCommitGapOffset(r)
+	case FlagExportAccountHeight:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetExportAccountHeight(r)
 	}
 
 }
@@ -694,6 +703,17 @@ func (c *OecConfig) SetMempoolSize(value int) {
 		return
 	}
 	c.mempoolSize = value
+}
+
+func(c *OecConfig) GetExportAccountHeight() int {
+	return c.exportAccountHeight
+}
+
+func (c *OecConfig) SetExportAccountHeight(value int) {
+	if value < 0 {
+		return
+	}
+	c.exportAccountHeight = value
 }
 
 func (c *OecConfig) GetMempoolCacheSize() int {

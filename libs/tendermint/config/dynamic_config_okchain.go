@@ -28,6 +28,7 @@ type IDynamicConfig interface {
 	GetEnableHasBlockPartMsg() bool
 	GetCommitGapOffset() int64
 	GetIavlAcNoBatch() bool
+	GetExportAccountHeight() int
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -135,4 +136,7 @@ func (d MockDynamicConfig) GetCommitGapOffset() int64 {
 
 func (d MockDynamicConfig) GetIavlAcNoBatch() bool {
 	return false
+}
+func (d MockDynamicConfig) GetExportAccountHeight() int {
+	return 0
 }

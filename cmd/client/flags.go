@@ -137,4 +137,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
 	cmd.Flags().Int(websockets.FlagSubscribeLimit, 15, "Maximum subscription on a websocket connection")
 	wasm.AddModuleInitFlags(cmd)
+	cmd.Flags().Int(config.FlagExportAccountHeight, 0, "Block height at which to export account")
 }

@@ -42,6 +42,7 @@ const (
 )
 
 func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
+	fmt.Println("begin export accounts:", ctx.BlockHeight())
 	pt := time.Now().UTC().Format(time.RFC3339)
 	rootDir := viper.GetString(cli.HomeFlag)
 
@@ -89,14 +90,12 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 			return false
 		}
 
-		accType := UserAccount
-		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
-			accType = ContractAccount
+		if bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
+			return false
 		}
-
-		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
+		fmt.Printf("contract address:%s balance:%s\n", ethAcc.EthAddress().String(), oktBalance.String())
+		csvStr := fmt.Sprintf("%s,%s,%d,%s",
 			ethAcc.EthAddress().String(),
-			accType,
 			oktBalance.String(),
 			ctx.BlockHeight(),
 			pt,
@@ -107,6 +106,7 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	})
 	recodeLog(logWr, fmt.Sprintf("count: %d", count))
 	recodeLog(logWr, fmt.Sprintf("export duration: %s", time.Since(startTime).String()))
+	fmt.Println("end export accounts:", ctx.BlockHeight())
 	return path.Join(rootDir, accFileName)
 }
 
