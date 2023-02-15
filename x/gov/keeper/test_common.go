@@ -144,7 +144,7 @@ func CreateTestInput(
 	blacklistedAddrs[notBondedPool.String()] = true
 	blacklistedAddrs[bondPool.String()] = true
 
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams, ctx.Logger())
 	pk.SetParams(ctx, params.DefaultParams())
 
 	accountKeeper := auth.NewAccountKeeper(

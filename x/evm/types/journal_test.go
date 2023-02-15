@@ -119,7 +119,7 @@ func (suite *JournalTestSuite) setup() {
 
 	cdc := newTestCodec()
 
-	paramsKeeper := params.NewKeeper(cdc, paramsKey, paramsTKey)
+	paramsKeeper := params.NewKeeper(cdc, paramsKey, paramsTKey, tmlog.NewNopLogger())
 
 	authSubspace := paramsKeeper.Subspace(auth.DefaultParamspace)
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)

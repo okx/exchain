@@ -97,7 +97,7 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 	blacklistedAddrs[notBondedPool.GetAddress().String()] = true
 	blacklistedAddrs[bondPool.GetAddress().String()] = true
 
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, ctx.Logger())
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 
 	bk := bank.NewBaseKeeper(accountKeeper, paramsKeeper.Subspace(bank.DefaultParamspace), blacklistedAddrs)

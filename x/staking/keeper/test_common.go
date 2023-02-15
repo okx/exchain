@@ -154,7 +154,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 	blacklistedAddrs[bondPool.String()] = true
 
 	// init module keepers
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams, log.NewNopLogger())
 
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,    // amino codec
