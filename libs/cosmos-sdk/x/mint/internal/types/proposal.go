@@ -20,7 +20,7 @@ func init() {
 	govtypes.RegisterProposalType(proposalTypeManageTreasures)
 	govtypes.RegisterProposalType(proposalTypeStopMint)
 	govtypes.RegisterProposalTypeCodec(ManageTreasuresProposal{}, "okexchain/mint/ManageTreasuresProposal")
-	govtypes.RegisterProposalTypeCodec(StopMintProposal{}, "okexchain/mint/ModifyDefaultBondDenomProposal")
+	govtypes.RegisterProposalTypeCodec(StopMintProposal{}, "okexchain/mint/StopMintProposal")
 }
 
 var (
@@ -191,7 +191,7 @@ func (mp StopMintProposal) ValidateBasic() sdk.Error {
 func (mp StopMintProposal) String() string {
 	var builder strings.Builder
 	builder.WriteString(
-		fmt.Sprintf(`ModifyDefaultBondDenomProposal:
+		fmt.Sprintf(`StopMintProposal:
  Title:					%s
  Description:        	%s
  Type:                	%s

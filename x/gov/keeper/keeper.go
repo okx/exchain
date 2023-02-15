@@ -327,6 +327,14 @@ func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content types.Content) tim
 func (keeper Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg types.MsgSubmitProposal) sdk.Error {
 	// check initial deposit more than or equal to ratio of MinDeposit
 	initDeposit := keeper.GetDepositParams(ctx).MinDeposit.MulDec(sdk.NewDecWithPrec(1, 1))
+	//TODO zhujianguo
+	if sdk.DefaultBondDenom() == "okb" {
+		for i, _ := range initDeposit {
+			if initDeposit[i].Denom == "okt" {
+				initDeposit[i].Denom = "okb"
+			}
+		}
+	}
 	err := common.HasSufficientCoins(msg.Proposer, msg.InitialDeposit,
 		initDeposit)
 	if err != nil {

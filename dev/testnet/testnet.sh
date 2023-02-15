@@ -95,7 +95,7 @@ killbyname() {
 init() {
   killbyname ${BIN_NAME}
 
-  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
+  (cd ${OKCHAIN_TOP} && make install VenusHeight=1 Venus1Height=1 Venus2Height=1)
 
   rm -rf cache
 
@@ -109,7 +109,7 @@ init() {
 }
 recover() {
   killbyname ${BIN_NAME}
-  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
+  (cd ${OKCHAIN_TOP} && make install VenusHeight=1 Venus1Height=1 Venus2Height=1)
   rm -rf cache
   cp -rf nodecache cache
 }

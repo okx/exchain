@@ -160,6 +160,7 @@ var (
 			govclient.ManageTreasuresProposalHandler,
 			govclient.StopMintProposalHandler,
 			tokenclient.ModifyDefaultBondDenomProposalHandler,
+			tokenclient.OKT2OKBProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,

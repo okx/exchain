@@ -28,6 +28,15 @@ func tryEnterVotingPeriod(
 		minDeposit = phr.GetMinDeposit(ctx, proposal.Content)
 	}
 
+	//TODO zhujianguo
+	if sdk.DefaultBondDenom() == "okb" {
+		for i, _ := range minDeposit {
+			if minDeposit[i].Denom == "okt" {
+				minDeposit[i].Denom = "okb"
+			}
+		}
+	}
+
 	if proposal.Status == types.StatusDepositPeriod && proposal.TotalDeposit.IsAllGTE(minDeposit) {
 		keeper.activateVotingPeriod(ctx, proposal)
 		activatedVotingPeriod = true

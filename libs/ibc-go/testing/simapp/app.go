@@ -179,6 +179,7 @@ var (
 			evmclient.ManageContractByteCodeProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			tokenclient.ModifyDefaultBondDenomProposalHandler,
+			tokenclient.OKT2OKBProposalHandler,
 			govclient.StopMintProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,

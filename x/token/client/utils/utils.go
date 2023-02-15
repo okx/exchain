@@ -28,3 +28,22 @@ func ParseModifyDefaultBondDenomProposalJSON(cdc *codec.Codec, proposalFilePath 
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
 }
+
+type OKT2OKBProposalJSON struct {
+	Title       string       `json:"title" yaml:"title"`
+	Description string       `json:"description" yaml:"description"`
+	Address     string       `json:"address" yaml:"address"`
+	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
+}
+
+// ParseOKT2OKBProposalJSON parses json from proposal file to ModifyDefaultBondDenomProposalJSON struct
+func ParseOKT2OKBProposalJSON(cdc *codec.Codec, proposalFilePath string) (
+	proposal OKT2OKBProposalJSON, err error) {
+	contents, err := ioutil.ReadFile(proposalFilePath)
+	if err != nil {
+		return
+	}
+
+	cdc.MustUnmarshalJSON(contents, &proposal)
+	return
+}

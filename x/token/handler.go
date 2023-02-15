@@ -470,6 +470,8 @@ func NewTokenProposalHandler(k Keeper) govtypes.Handler {
 		switch c := content.Content.(type) {
 		case types.ModifyDefaultBondDenomProposal:
 			return HandleModifyDefaultBondDenomProposal(ctx, k, c)
+		case types.OKT2OKBProposal:
+			return HandleOKT2OKBProposal(ctx, k, c)
 		default:
 			return types.ErrUnknownProposaType()
 		}
@@ -482,4 +484,119 @@ func HandleModifyDefaultBondDenomProposal(ctx sdk.Context, k Keeper, p types.Mod
 	sdk.SetDefaultBondDenom(p.DenomName)
 	//ctx.UpdateMinGasPrices(p.DenomName)
 	return nil
+}
+
+// HandleOKT2OKBProposal is a handler for executing a passed community spend proposal
+func HandleOKT2OKBProposal(ctx sdk.Context, k Keeper, p types.OKT2OKBProposal) error {
+	fmt.Println("1234")
+	//ctx.UpdateMinGasPrices(p.DenomName)
+
+	address, err := sdk.AccAddressFromBech32(p.Address)
+	if err != nil {
+		return nil
+	}
+
+	var burn types.MsgTokenBurn
+	burn.Owner = address
+
+	var mint types.MsgTokenMint
+	mint.Owner = address
+
+	coins := k.bankKeeper.GetCoins(ctx, address)
+	for _, v := range coins {
+		if v.Denom == "okt" {
+			burn.Amount = v
+			mint.Amount = v
+			mint.Amount.Denom = "okb"
+		}
+	}
+
+	tokenBurn(ctx, k, burn)
+	tokenMint(ctx, k, mint)
+
+	return nil
+}
+
+func tokenBurn(ctx sdk.Context, keeper Keeper, msg types.MsgTokenBurn) (*sdk.Result, error) {
+	//token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
+
+	//// check owner
+	//if !token.Owner.Equals(msg.Owner) {
+	//	return types.ErrInputOwnerIsNotEqualTokenOwner(msg.Owner).Result()
+	//}
+
+	subCoins := msg.Amount.ToCoins()
+	// send coins to moduleAcc
+	err := keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, types.ModuleName, subCoins)
+	if err != nil {
+		return types.ErrSendCoinsFromAccountToModuleFailed(err.Error()).Result()
+	}
+
+	// set supply
+	err = keeper.supplyKeeper.BurnCoins(ctx, types.ModuleName, subCoins)
+	if err != nil {
+		return types.ErrBurnCoinsFailed(err.Error()).Result()
+	}
+
+	// deduction fee
+	feeDecCoins := keeper.GetParams(ctx).FeeBurn.ToCoins()
+	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
+	if err != nil {
+		return types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String()).Result()
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyFee, feeDecCoins.String()),
+		),
+	)
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+}
+
+func tokenMint(ctx sdk.Context, keeper Keeper, msg types.MsgTokenMint) (*sdk.Result, error) {
+	//token := keeper.GetTokenInfo(ctx, msg.Amount.Denom)
+	//// check owner
+	//if !token.Owner.Equals(msg.Owner) {
+	//	return types.ErrInputOwnerIsNotEqualTokenOwner(msg.Owner).Result()
+	//}
+	//
+	//// check whether token is mintable
+	//if !token.Mintable {
+	//	return types.ErrTokenIsNotMintable().Result()
+	//}
+
+	// check upper bound
+	totalSupplyAfterMint := keeper.supplyKeeper.GetSupplyByDenom(ctx, msg.Amount.Denom).Add(msg.Amount.Amount)
+	if totalSupplyAfterMint.GT(sdk.NewDec(types.TotalSupplyUpperbound)) {
+		return types.ErrCodeTotalsupplyExceedsTheUpperLimit(totalSupplyAfterMint, types.TotalSupplyUpperbound).Result()
+	}
+
+	mintCoins := msg.Amount.ToCoins()
+	// set supply
+	err := keeper.supplyKeeper.MintCoins(ctx, types.ModuleName, mintCoins)
+	if err != nil {
+		return types.ErrMintCoinsFailed(err.Error()).Result()
+	}
+
+	// send coins to acc
+	err = keeper.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, msg.Owner, mintCoins)
+	if err != nil {
+		return types.ErrSendCoinsFromModuleToAccountFailed(err.Error()).Result()
+	}
+
+	// deduction fee
+	feeDecCoins := keeper.GetParams(ctx).FeeMint.ToCoins()
+	err = keeper.supplyKeeper.SendCoinsFromAccountToModule(ctx, msg.Owner, keeper.feeCollectorName, feeDecCoins)
+	if err != nil {
+		return types.ErrSendCoinsFromAccountToModuleFailed(feeDecCoins.String()).Result()
+	}
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeyFee, feeDecCoins.String()),
+		),
+	)
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }

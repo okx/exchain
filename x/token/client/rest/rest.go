@@ -161,3 +161,8 @@ func uploadAccountsHandler(cliCtx context.CLIContext, storeName string) http.Han
 func ModifyDefaultBondDenomProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }
+
+// OKT2OKBProposalRESTHandler defines mint proposal handler
+func OKT2OKBProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
