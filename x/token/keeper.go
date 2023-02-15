@@ -183,9 +183,10 @@ func (k Keeper) SendCoinsFromAccountToAccount(ctx sdk.Context, from, to sdk.AccA
 		return types.ErrBlockedRecipient(to.String())
 	}
 
-	if k.IsContractAddress(ctx, to) {
-		return types.ErrBlockedContractRecipient(to.String())
-	}
+	//TODO zhujianguo
+	//if k.IsContractAddress(ctx, to) {
+	//	return types.ErrBlockedContractRecipient(to.String())
+	//}
 
 	return k.bankKeeper.SendCoins(ctx, from, to, amt)
 }

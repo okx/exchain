@@ -1,0 +1,12 @@
+
+{
+  "title": "Staking Param Change",
+  "description": "Update",
+  "denom_name":"okb",
+  "deposit": [
+    {
+      "denom": "okt",
+      "amount": "100"
+    }
+  ]
+}

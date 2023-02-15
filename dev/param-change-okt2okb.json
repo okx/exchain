@@ -1,0 +1,12 @@
+
+{
+  "title": "Staking Param Change",
+  "description": "Update",
+  "address":"ex1raf5qpu50at520y2f5c2ewlf6qs0gcc3cxhvds",
+  "deposit": [
+    {
+      "denom": "okb",
+      "amount": "100"
+    }
+  ]
+}

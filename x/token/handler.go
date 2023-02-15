@@ -490,12 +490,12 @@ func HandleModifyDefaultBondDenomProposal(ctx sdk.Context, k Keeper, p types.Mod
 func HandleOKT2OKBProposal(ctx sdk.Context, k Keeper, p types.OKT2OKBProposal) error {
 	fmt.Println("1234")
 	//ctx.UpdateMinGasPrices(p.DenomName)
+	logger := ctx.Logger().With("module", "token")
 
 	address, err := sdk.AccAddressFromBech32(p.Address)
 	if err != nil {
 		return nil
 	}
-
 	var burn types.MsgTokenBurn
 	burn.Owner = address
 
@@ -503,6 +503,7 @@ func HandleOKT2OKBProposal(ctx sdk.Context, k Keeper, p types.OKT2OKBProposal) e
 	mint.Owner = address
 
 	coins := k.bankKeeper.GetCoins(ctx, address)
+	logger.Info(fmt.Sprintf("address:%s, Coins:%s, mint:%s", address, coins, mint))
 	for _, v := range coins {
 		if v.Denom == "okt" {
 			burn.Amount = v
@@ -510,6 +511,9 @@ func HandleOKT2OKBProposal(ctx sdk.Context, k Keeper, p types.OKT2OKBProposal) e
 			mint.Amount.Denom = "okb"
 		}
 	}
+
+	logger.Info(fmt.Sprintf("burn:%s", burn))
+	logger.Info(fmt.Sprintf("mint:%s", mint))
 
 	tokenBurn(ctx, k, burn)
 	tokenMint(ctx, k, mint)
