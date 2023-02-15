@@ -21,6 +21,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 	queryCmd.AddCommand(flags.GetCommands(
 		GetCmdQueryParams(queryRoute, cdc),
+		GetCmdQueryUpgrade(queryRoute, cdc),
 	)...)
 
 	return queryCmd

@@ -445,7 +445,7 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 	return TypeOthers
 }
 
-//type WrappedResponseWithCodec
+// type WrappedResponseWithCodec
 type WrappedResponseWithCodec struct {
 	Response sdk.TxResponse
 	Codec    *codec.Codec `json:"-"`
@@ -454,6 +454,7 @@ type WrappedResponseWithCodec struct {
 type TransactionResult struct {
 	TxType   hexutil.Uint64            `json:"type"`
 	EthTx    *Transaction              `json:"ethTx"`
+	EthTxLog string                    `json:"ethTxLog"`
 	Receipt  *TransactionReceipt       `json:"receipt"`
 	Response *WrappedResponseWithCodec `json:"response"`
 }
