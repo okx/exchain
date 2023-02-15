@@ -104,6 +104,7 @@ func (s Subspace) LazyWithKeyTable(table KeyTable) Subspace {
 func (s Subspace) kvStore(ctx sdk.Context) sdk.KVStore {
 	// append here is safe, appends within a function won't cause
 	// weird side effects when its singlethreaded
+	fmt.Println(s.key.String(), s.Name())
 	return prefix.NewStore(ctx.KVStore(s.key), append(s.name, '/'))
 }
 
@@ -404,9 +405,12 @@ func (s Subspace) Update(ctx sdk.Context, key, value []byte) error {
 // retrieve the value and set it to the corresponding value pointer provided
 // in the ParamSetPair by calling Subspace#Get.
 func (s Subspace) GetParamSet(ctx sdk.Context, ps ParamSet) {
+	fmt.Println("-------GetParamSet-------")
 	for _, pair := range ps.ParamSetPairs() {
+		fmt.Println(s.Name(), string(pair.Key))
 		s.Get(ctx, pair.Key, pair.Value)
 	}
+	fmt.Println("-------end-------")
 }
 
 // GetParamSetForInitGenesis iterates through each ParamSetPair where for each pair, it will
