@@ -648,16 +648,11 @@ func (ndb *nodeDB) deleteOrphansFromDB(version int64) {
 	// TODO optimize.
 	ndb.traverseOrphansVersion(version, func(key, hash []byte) {
 		var fromVersion, toVersion int64
+		var err error
 
 		// See comment on `orphanKeyFmt`. Note that here, `version` and
 		// `toVersion` are always equal.
 		orphanKeyFormat.Scan(key, &toVersion, &fromVersion)
-
-		// Delete orphan key and reverse-lookup key.
-		err := ndb.db.Delete(key)
-		if err != nil {
-			panic(err)
-		}
 
 		// If there is no predecessor, or the predecessor is earlier than the
 		// beginning of the lifetime (ie: negative lifetime), or the lifetime
@@ -678,6 +673,12 @@ func (ndb *nodeDB) deleteOrphansFromDB(version int64) {
 			if err != nil {
 				panic(err)
 			}
+		}
+
+		// Delete orphan key and reverse-lookup key.
+		err = ndb.db.Delete(key)
+		if err != nil {
+			panic(err)
 		}
 	})
 }
