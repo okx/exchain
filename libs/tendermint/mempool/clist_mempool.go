@@ -846,7 +846,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// must be non-negative, it follows that this won't overflow.
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
-		if gasWanted >= maxGas {
+		if maxGas > -1 && gasWanted >= maxGas {
 			mem.logger.Error("tx gas overflow", "txHash", hex.EncodeToString(key[:]), "gasWanted", gasWanted, "isSim", memTx.isSim)
 		}
 		if maxGas > -1 && newTotalGas > maxGas && len(txs) > 0 {
@@ -1410,13 +1410,13 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	}
 	simuRes, err := mem.simulateTx(memTx.tx)
 	if err != nil {
-		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
+		mem.logger.Error("simulateTx", "error", err, "txHash", hex.EncodeToString(memTx.tx.Hash(mem.Height())))
 		return
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
-	if gas < atomic.LoadInt64(&memTx.gasWanted) {
-		atomic.StoreInt64(&memTx.gasWanted, gas)
-	}
+	mem.logger.Error("simulateTx", "txHash", hex.EncodeToString(memTx.tx.Hash(mem.Height())), "gas", gas, "old gas", atomic.LoadInt64(&memTx.gasWanted))
+	atomic.StoreInt64(&memTx.gasWanted, gas)
+
 	atomic.AddUint32(&memTx.isSim, 1)
 	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), gas)
 }
