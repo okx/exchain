@@ -104,7 +104,6 @@ func (s Subspace) LazyWithKeyTable(table KeyTable) Subspace {
 func (s Subspace) kvStore(ctx sdk.Context) sdk.KVStore {
 	// append here is safe, appends within a function won't cause
 	// weird side effects when its singlethreaded
-	fmt.Println(s.key.String(), s.Name())
 	return prefix.NewStore(ctx.KVStore(s.key), append(s.name, '/'))
 }
 
@@ -142,7 +141,7 @@ func (s Subspace) Validate(ctx sdk.Context, key []byte, value interface{}) error
 func (s Subspace) Get(ctx sdk.Context, key []byte, ptr interface{}) {
 	store := s.kvStore(ctx)
 	bz := store.Get(key)
-	fmt.Println("value=", string(bz), "len=", len(bz))
+
 	if err := tryParseJSON(bz, ptr, s.cdc); err != nil {
 		panic(err)
 	}
@@ -250,44 +249,36 @@ func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
 		return cdc.UnmarshalJSON(bz, ptr)
 	}
 	if isJsonString(bz) {
-		fmt.Println("isJsonString")
 		rawbz := bz[1 : len(bz)-1] // trim leading & trailing "
 		switch tptr := ptr.(type) {
 		case *string:
-			fmt.Println("string")
 			if getString(rawbz, tptr) {
 				return nil
 			}
 			return json.Unmarshal(bz, ptr)
 		case *uint64:
-			fmt.Println("uiint64")
 			if getUint64(rawbz, tptr) {
 				return nil
 			}
 			return json.Unmarshal(rawbz, ptr)
 		case *int64:
-			fmt.Println("int64")
 			if getInt64(rawbz, tptr) {
 				return nil
 			}
 			return json.Unmarshal(rawbz, ptr)
 		case *sdk.Dec:
-			fmt.Println("sdk.Dec")
 			if getDec(rawbz, tptr) {
 				return nil
 			}
 			return tptr.UnmarshalJSON(bz)
 		}
 	} else {
-		fmt.Println("not isJsonString")
 		switch tptr := ptr.(type) {
 		case *sdk.DecCoin:
-			fmt.Println("sdk.DecCoin")
 			if getDecCoin(bz, tptr) {
 				return nil
 			}
 		case *bool:
-			fmt.Println("bool")
 			switch amino.BytesToStr(bz) {
 			case "true":
 				*tptr = true
@@ -297,7 +288,6 @@ func tryParseJSON(bz []byte, ptr interface{}, cdc *amino.Codec) error {
 				return nil
 			}
 		case *[]int:
-			fmt.Println("[]int")
 			if amino.BytesToStr(bz) == "null" {
 				*tptr = nil
 				return nil
@@ -414,12 +404,9 @@ func (s Subspace) Update(ctx sdk.Context, key, value []byte) error {
 // retrieve the value and set it to the corresponding value pointer provided
 // in the ParamSetPair by calling Subspace#Get.
 func (s Subspace) GetParamSet(ctx sdk.Context, ps ParamSet) {
-	fmt.Println("-------GetParamSet-------")
 	for _, pair := range ps.ParamSetPairs() {
-		fmt.Println(s.Name(), string(pair.Key))
 		s.Get(ctx, pair.Key, pair.Value)
 	}
-	fmt.Println("-------end-------")
 }
 
 // GetParamSetForInitGenesis iterates through each ParamSetPair where for each pair, it will

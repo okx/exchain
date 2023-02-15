@@ -161,7 +161,6 @@ func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (*R
 
 // Get implements DB.
 func (db *RocksDB) Get(key []byte) ([]byte, error) {
-	fmt.Println("RocksDB.Get", key, string(key))
 	key = nonNilBytes(key)
 	res, err := db.db.Get(db.ro, key)
 	if err != nil {
@@ -171,7 +170,6 @@ func (db *RocksDB) Get(key []byte) ([]byte, error) {
 }
 
 func (db *RocksDB) GetUnsafeValue(key []byte, processor UnsafeValueProcessor) (interface{}, error) {
-	fmt.Println("RocksDB.GetUnsafeValue", key, string(key))
 	key = nonNilBytes(key)
 	res, err := db.db.Get(db.ro, key)
 	if err != nil {
