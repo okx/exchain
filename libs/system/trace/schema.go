@@ -74,6 +74,8 @@ const (
 	Consensus     = "Consensus"
 	LastBlockTime = "LastBlockTime"
 	BTInterval    = "BTInterval"
+	RecommendedGP = "RecommendedGP"
+	IsCongested   = "IsCongested"
 	UpdateState   = "UpdateState"
 	Waiting       = "Waiting"
 
