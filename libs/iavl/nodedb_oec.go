@@ -278,12 +278,12 @@ func (ndb *nodeDB) deleteVersion(batch dbm.Batch, version int64, checkLatestVers
 	if !writeToDB {
 		ndb.deleteOrphans(batch, version)
 		ndb.deleteRoot(batch, version, checkLatestVersion, writeToDB)
-	} else {
-		ndb.setPruningRoot(version, checkLatestVersion)
-		ndb.deleteRoot(batch, version, checkLatestVersion, writeToDB)
-		ndb.deleteOrphansFromDB(version)
-		ndb.deletePruningRoot()
+		return
 	}
+	ndb.setPruningRoot(version, checkLatestVersion)
+	ndb.deleteRoot(batch, version, checkLatestVersion, writeToDB)
+	ndb.deleteOrphansFromDB(version)
+	ndb.deletePruningRoot()
 }
 
 func (ndb *nodeDB) cleanPruningInDB() {
