@@ -676,6 +676,7 @@ func (ndb *nodeDB) deleteOrphansFromDB(version int64) {
 		}
 
 		// Delete orphan key and reverse-lookup key.
+		// we can't delete origin orphanKey before delete node or update orphanKey.
 		err = ndb.db.Delete(key)
 		if err != nil {
 			panic(err)
