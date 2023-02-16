@@ -15,6 +15,8 @@ import (
 	"github.com/VictoriaMetrics/fastcache"
 
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -23,7 +25,6 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/tendermint/go-amino"
 )
 
 type TxInfoParser interface {
@@ -31,6 +32,12 @@ type TxInfoParser interface {
 	GetTxHistoryGasUsed(tx types.Tx) int64
 	GetRealTxFromRawTx(rawTx types.Tx) abci.TxEssentials
 }
+
+var (
+	// GlobalRecommendedGP is initialized to 0.1GWei
+	GlobalRecommendedGP = big.NewInt(100000000)
+	IsCongested         = false
+)
 
 //--------------------------------------------------------------------------------
 
@@ -99,6 +106,8 @@ type CListMempool struct {
 	gasCache *lru.Cache
 
 	rmPendingTxChan chan types.EventDataRmPendingTx
+
+	gpo *Oracle
 }
 
 var _ Mempool = &CListMempool{}
@@ -124,6 +133,8 @@ func NewCListMempool(
 	if err != nil {
 		panic(err)
 	}
+	gpoConfig := NewGPOConfig(cfg.DynamicConfig.GetDynamicGpWeight(), cfg.DynamicConfig.GetDynamicGpCheckBlocks())
+	gpo := NewOracle(gpoConfig)
 	mempool := &CListMempool{
 		config:        config,
 		proxyAppConn:  proxyAppConn,
@@ -136,6 +147,7 @@ func NewCListMempool(
 		txs:           txQueue,
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
+		gpo:           gpo,
 	}
 
 	if config.PendingRemoveEvent {
@@ -980,14 +992,18 @@ func (mem *CListMempool) Update(
 		addr := ""
 		nonce := uint64(0)
 		txhash := tx.Hash(height)
+		gasUsedPerTx := deliverTxResponses[i].GasUsed
+		gasPricePerTx := big.NewInt(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			atomic.AddUint32(&(ele.Value.(*mempoolTx).isOutdated), 1)
 			addr = ele.Address
 			nonce = ele.Nonce
+			gasPricePerTx = ele.GasPrice
 			mem.logUpdate(ele.Address, ele.Nonce)
 		} else {
 			if mem.txInfoparser != nil {
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
+				gasPricePerTx = txInfo.GasPrice
 				addr = txInfo.Sender
 				nonce = txInfo.Nonce
 			}
@@ -998,8 +1014,14 @@ func (mem *CListMempool) Update(
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
-			gasUsed += uint64(deliverTxResponses[i].GasUsed)
+			gasUsed += uint64(gasUsedPerTx)
 		}
+
+		if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
+			// Collect gas price and gas used of txs in current block for gas price recommendation
+			mem.gpo.CurrentBlockGPs.Update(gasPricePerTx, uint64(gasUsedPerTx))
+		}
+
 		if mem.pendingPool != nil {
 			addressNonce[addr] = nonce
 		}
@@ -1011,6 +1033,14 @@ func (mem *CListMempool) Update(
 			mem.rmPendingTxChan <- types.EventDataRmPendingTx{txhash, addr, nonce, types.Confirmed}
 		}
 	}
+
+	if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
+		currentBlockGPsCopy := mem.gpo.CurrentBlockGPs.Copy()
+		_ = mem.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
+		GlobalRecommendedGP, IsCongested = mem.gpo.RecommendGP()
+		mem.gpo.CurrentBlockGPs.Clear()
+	}
+
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
 
