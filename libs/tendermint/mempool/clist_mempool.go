@@ -861,7 +861,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		// must be non-negative, it follows that this won't overflow.
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
-		if gasWanted >= maxGas {
+		if maxGas > -1 && gasWanted >= maxGas {
 			mem.logger.Error("tx gas overflow", "txHash", hex.EncodeToString(key[:]), "gasWanted", gasWanted, "isSim", memTx.isSim)
 		}
 		if maxGas > -1 && newTotalGas > maxGas && len(txs) > 0 {
