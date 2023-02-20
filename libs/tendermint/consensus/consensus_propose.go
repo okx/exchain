@@ -77,7 +77,9 @@ func (cs *State) isBlockProducer() (string, string) {
 
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
 // Enter (CreateEmptyBlocks, CreateEmptyBlocksInterval > 0 ):
-// 		after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
+//
+//	after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
+//
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
@@ -114,7 +116,8 @@ func (cs *State) enterPropose(height int64, round int) {
 		// else, we'll enterPrevote when the rest of the proposal is received (in AddProposalBlockPart),
 		// or else after timeoutPropose
 		if cs.isProposalComplete() {
-			cs.enterPrevote(height, cs.Round)
+			//cs.enterPrevote(height, cs.Round)
+			cs.enterPrecommit(height, cs.Round)
 		}
 	}()
 
@@ -385,10 +388,10 @@ func (cs *State) handleCompleteProposal(height int64) {
 
 	if cs.Step <= cstypes.RoundStepPropose && cs.isProposalComplete() {
 		// Move onto the next step
-		cs.enterPrevote(height, cs.Round)
-		if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
-			cs.enterPrecommit(height, cs.Round)
-		}
+		//cs.enterPrevote(height, cs.Round)
+		//if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
+		cs.enterPrecommit(height, cs.Round)
+		//}
 	}
 	if cs.HasVC && cs.Round == 0 {
 		blockID, hasTwoThirds := cs.Votes.Precommits(cs.Round).TwoThirdsMajority()
