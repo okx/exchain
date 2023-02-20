@@ -12,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/token/types"
@@ -48,7 +49,7 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 	RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 
-	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
+	pk := params.NewKeeper(cdc, keyParams, tkeyParams, log.NewNopLogger())
 
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,    // amino codec
