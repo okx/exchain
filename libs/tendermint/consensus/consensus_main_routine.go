@@ -267,7 +267,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
 		cs.eventBus.PublishEventTimeoutPropose(cs.RoundStateEvent())
-		cs.enterPrevote(ti.Height, ti.Round)
+		cs.enterPrecommit(ti.Height, ti.Round)
 	case cstypes.RoundStepPrevoteWait:
 		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
