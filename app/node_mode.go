@@ -56,7 +56,7 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
 	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
-	viper.SetDefault(watcher.FlagFastQuery, true)
+	viper.SetDefault(watcher.FlagFastQuery, false)
 	viper.SetDefault(backend.FlagApiBackendBlockLruCache, 30000)
 	viper.SetDefault(backend.FlagApiBackendTxLruCache, 100000)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, false)
@@ -66,7 +66,7 @@ func setRpcConfig(ctx *server.Context) {
 	ctx.Logger.Info(fmt.Sprintf(
 		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
-		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, false,
+		watcher.FlagFastQuery, false, iavl.FlagIavlEnableAsyncCommit, false,
 		flags.FlagMaxOpenConnections, 20000, mempool.FlagEnablePendingPool, true,
 		server.FlagCORS, "*"))
 }
