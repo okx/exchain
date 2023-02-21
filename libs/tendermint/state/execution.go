@@ -38,6 +38,14 @@ const (
 	FlagEnableConcurrency  = "enable-concurrency"
 )
 
+type BlockTxsSenderParser interface {
+	ParserBlockTxsSender(*types.Block)
+}
+
+func (blockExec *BlockExecutor) SetBlockTxsSenderParser(parser BlockTxsSenderParser) {
+	blockExec.txsSenderParser = parser
+}
+
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -74,6 +82,8 @@ type BlockExecutor struct {
 	// the owner is validator
 	isNullIndexer bool
 	eventsChan    chan event
+
+	txsSenderParser BlockTxsSenderParser
 }
 
 type event struct {
@@ -225,6 +235,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
 		blockExec.metrics.lastBlockTime = now
 	}()
+
+	if blockExec.txsSenderParser != nil {
+		blockExec.txsSenderParser.ParserBlockTxsSender(block)
+	}
 
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -117,6 +118,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				genAccount = okexchain.EthAccount{
 					BaseAccount: baseAccount,
 					CodeHash:    ethcrypto.Keccak256(nil),
+					StateRoot:   mpt.EmptyRootHash,
 				}
 			}
 

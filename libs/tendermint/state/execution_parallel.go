@@ -10,6 +10,12 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
+//TODO by yxq: check if these variables are necessary
+var (
+	FlagParaSender   = "para-sender"
+	EnableParaSender = false // TODO change to true?
+)
+
 func execBlockOnProxyAppAsync(
 	logger log.Logger,
 	proxyAppConn proxy.AppConnConsensus,
