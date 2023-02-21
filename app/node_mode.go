@@ -59,14 +59,14 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(watcher.FlagFastQuery, true)
 	viper.SetDefault(backend.FlagApiBackendBlockLruCache, 30000)
 	viper.SetDefault(backend.FlagApiBackendTxLruCache, 100000)
-	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
+	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, false)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(mempool.FlagEnablePendingPool, true)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
 		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
-		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, true,
+		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, false,
 		flags.FlagMaxOpenConnections, 20000, mempool.FlagEnablePendingPool, true,
 		server.FlagCORS, "*"))
 }
@@ -74,7 +74,7 @@ func setRpcConfig(ctx *server.Context) {
 func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode)
-	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
+	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, false)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
@@ -84,7 +84,7 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(config.FlagEnablePGU, true)
 
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
-		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, true,
+		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, false,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
 		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000,
 		mempool.FlagEnablePendingPool, false))
@@ -94,7 +94,7 @@ func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "nothing")
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
-	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
+	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, false)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(

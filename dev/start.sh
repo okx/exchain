@@ -31,7 +31,6 @@ run() {
       --dynamic-gp-mode=2 \
       --consensus.timeout_commit 2000ms \
       --enable-preruntx=1 \
-      --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
