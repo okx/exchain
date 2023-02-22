@@ -285,7 +285,7 @@ func (c MockClient) BroadcastTxSync(tx types.Tx) (*ctypes.ResultBroadcastTx, err
 		Data:      r.Data,
 		Log:       r.Log,
 		Codespace: r.Codespace,
-		Hash:      tx.Hash(c.env.BlockStore.Height()),
+		Hash:      tx.Hash(),
 	}, nil
 }
 

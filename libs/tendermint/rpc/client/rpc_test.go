@@ -384,7 +384,7 @@ func TestTx(t *testing.T) {
 	txHeight := bres.Height
 	txHash := bres.Hash
 
-	anotherTxHash := types.Tx("a different tx").Hash(txHeight)
+	anotherTxHash := types.Tx("a different tx").Hash()
 
 	cases := []struct {
 		valid bool
@@ -458,7 +458,7 @@ func TestTxSearch(t *testing.T) {
 
 	// pick out the last tx to have something to search for in tests
 	find := result.Txs[len(result.Txs)-1]
-	anotherTxHash := types.Tx("a different tx").Hash(0)
+	anotherTxHash := types.Tx("a different tx").Hash()
 
 	for i, c := range GetClients() {
 		t.Logf("client %d", i)

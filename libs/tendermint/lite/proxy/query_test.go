@@ -43,6 +43,7 @@ func kvstoreTx(k, v []byte) []byte {
 
 // TODO: enable it after general proof format has been adapted
 // in abci/examples/kvstore.go
+//
 //nolint:unused,deadcode
 func _TestAppProofs(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
@@ -144,13 +145,13 @@ func TestTxProofs(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 	// First let's make sure a bogus transaction hash returns a valid non-existence proof.
-	key := types.Tx([]byte("bogus")).Hash(brh)
+	key := types.Tx([]byte("bogus")).Hash()
 	_, err = cl.Tx(key, true)
 	require.NotNil(err)
 	require.Contains(err.Error(), "not found")
 
 	// Now let's check with the real tx root hash.
-	key = types.Tx(tx).Hash(brh)
+	key = types.Tx(tx).Hash()
 	res, err := cl.Tx(key, true)
 	require.NoError(err, "%#v", err)
 	require.NotNil(res)

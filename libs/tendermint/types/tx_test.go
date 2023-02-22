@@ -45,7 +45,7 @@ func TestTx_Hash(t *testing.T) {
 		{1500, 1000, etherhash.Sum(tx)},
 	} {
 		UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
-		assert.Equal(t, c.expected, tx.Hash(c.curHeight))
+		assert.Equal(t, c.expected, tx.Hash())
 	}
 }
 
@@ -68,11 +68,11 @@ func TestTxIndexByHash(t *testing.T) {
 		txs := makeTxs(15, 60)
 		for j := 0; j < len(txs); j++ {
 			tx := txs[j]
-			idx := txs.IndexByHash(tx.Hash(height), height)
+			idx := txs.IndexByHash(tx.Hash(), height)
 			assert.Equal(t, j, idx)
 		}
 		assert.Equal(t, -1, txs.IndexByHash(nil, height))
-		assert.Equal(t, -1, txs.IndexByHash(Tx("foodnwkf").Hash(height), height))
+		assert.Equal(t, -1, txs.IndexByHash(Tx("foodnwkf").Hash(), height))
 	}
 }
 
@@ -99,7 +99,7 @@ func TestValidTxProof(t *testing.T) {
 			assert.Equal(t, len(txs), proof.Proof.Total, "%d: %d", h, i)
 			assert.EqualValues(t, root, proof.RootHash, "%d: %d", h, i)
 			assert.EqualValues(t, tx, proof.Data, "%d: %d", h, i)
-			assert.EqualValues(t, txs[i].Hash(0), proof.Leaf(0), "%d: %d", h, i)
+			assert.EqualValues(t, txs[i].Hash(), proof.Leaf(0), "%d: %d", h, i)
 			assert.Nil(t, proof.Validate(root, 0), "%d: %d", h, i)
 			assert.NotNil(t, proof.Validate([]byte("foobar"), 0), "%d: %d", h, i)
 

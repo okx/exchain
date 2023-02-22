@@ -329,7 +329,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		}
 
 		if realTx != nil {
-			txHash := resBlock.Block.Txs[idx].Hash(resBlock.Block.Height)
+			txHash := resBlock.Block.Txs[idx].Hash()
 			queryTx, err := api.clientCtx.Client.Tx(txHash, false)
 			if err != nil {
 				// Return nil for transaction when not found

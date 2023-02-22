@@ -134,7 +134,7 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx *evmtype
 	}
 	blockHash := ethcommon.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
-	res, err := watcher.NewTransaction(ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
+	res, err := watcher.NewTransaction(ethTx, ethcommon.BytesToHash(resTx.Tx.Hash()), blockHash, height, uint64(resTx.Index))
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func GetBlockTxHashes(cliCtx context.CLIContext, height int64) ([]string, error)
 	txLen := len(txs)
 	txHashes := make([]string, txLen)
 	for i, txBytes := range txs {
-		txHashes[i] = fmt.Sprintf("%X", txBytes.Hash(height))
+		txHashes[i] = fmt.Sprintf("%X", txBytes.Hash())
 	}
 	return txHashes, nil
 }

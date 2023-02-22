@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/tendermint/go-amino"
 )
@@ -20,16 +20,14 @@ import (
 type Tx []byte
 
 func Bytes2Hash(txBytes []byte, height int64) string {
-	txHash := Tx(txBytes).Hash(height)
+	txHash := Tx(txBytes).Hash()
 	return ethcmn.BytesToHash(txHash).String()
 }
 
 // Hash computes the TMHASH hash of the wire encoded transaction.
-func (tx Tx) Hash(height int64) []byte {
-	if HigherThanVenus(height) {
-		return etherhash.Sum(tx)
-	}
-	return tmhash.Sum(tx)
+func (tx Tx) Hash() []byte {
+	return etherhash.Sum(tx)
+	// return tmhash.Sum(tx)
 }
 
 // String returns the hex-encoded transaction as a string.
@@ -47,7 +45,7 @@ func (txs Txs) Hash(height int64) []byte {
 	// ref #2603. This is because golang does not allow type casting slices without unsafe
 	txBzs := make([][]byte, len(txs))
 	for i := 0; i < len(txs); i++ {
-		txBzs[i] = txs[i].Hash(height)
+		txBzs[i] = txs[i].Hash()
 	}
 	return merkle.SimpleHashFromByteSlices(txBzs)
 }
@@ -65,7 +63,7 @@ func (txs Txs) Index(tx Tx) int {
 // IndexByHash returns the index of this transaction hash in the list, or -1 if not found
 func (txs Txs) IndexByHash(hash []byte, height int64) int {
 	for i := range txs {
-		if bytes.Equal(txs[i].Hash(height), hash) {
+		if bytes.Equal(txs[i].Hash(), hash) {
 			return i
 		}
 	}
@@ -79,7 +77,7 @@ func (txs Txs) Proof(i int, height int64) TxProof {
 	l := len(txs)
 	bzs := make([][]byte, l)
 	for i := 0; i < l; i++ {
-		bzs[i] = txs[i].Hash(height)
+		bzs[i] = txs[i].Hash()
 	}
 	root, proofs := merkle.SimpleProofsFromByteSlices(bzs)
 
@@ -99,7 +97,7 @@ type TxProof struct {
 
 // Leaf returns the hash(tx), which is the leaf in the merkle tree which this proof refers to.
 func (tp TxProof) Leaf(height int64) []byte {
-	return tp.Data.Hash(height)
+	return tp.Data.Hash()
 }
 
 // Validate verifies the proof. It returns nil if the RootHash matches the dataHash argument,

@@ -366,7 +366,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
+				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, gasUsed))
 			if gasUsed < r.CheckTx.GasWanted {
 				r.CheckTx.GasWanted = gasUsed
 			}
@@ -991,7 +991,7 @@ func (mem *CListMempool) Update(
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
-		txhash := tx.Hash(height)
+		txhash := tx.Hash()
 		gasUsedPerTx := deliverTxResponses[i].GasUsed
 		gasPricePerTx := big.NewInt(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
@@ -1322,7 +1322,7 @@ func (nopTxCache) RemoveKey(key [32]byte)    {}
 // --------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
-	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
+	copy(retHash[:], tx.Hash()[:sha256.Size])
 	return
 }
 
@@ -1341,12 +1341,12 @@ type txIDStringer struct {
 }
 
 func (txs txIDStringer) String() string {
-	return amino.HexEncodeToStringUpper(types.Tx(txs.tx).Hash(txs.height))
+	return amino.HexEncodeToStringUpper(types.Tx(txs.tx).Hash())
 }
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
 func txID(tx []byte, height int64) string {
-	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash(height))
+	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash())
 }
 
 // --------------------------------------------------------------------------------
@@ -1415,7 +1415,7 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	}
 	simuRes, err := mem.simulateTx(memTx.tx)
 	if err != nil {
-		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
+		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash())
 		return
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100

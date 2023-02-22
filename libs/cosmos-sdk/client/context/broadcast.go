@@ -55,7 +55,7 @@ func (ctx CLIContext) CheckTendermintError(err error, txBytes []byte) *sdk.TxRes
 	}
 
 	errStr := strings.ToLower(err.Error())
-	txHash := fmt.Sprintf("%X", types.Tx(txBytes).Hash(height))
+	txHash := fmt.Sprintf("%X", types.Tx(txBytes).Hash())
 
 	switch {
 	case strings.Contains(errStr, strings.ToLower(mempool.ErrTxInCache.Error())):

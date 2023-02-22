@@ -1712,7 +1712,7 @@ func (data *Data) StringIndented(indent string, height int64) string {
 			txStrings[i] = fmt.Sprintf("... (%v total)", len(data.Txs))
 			break
 		}
-		txStrings[i] = fmt.Sprintf("%X (%d bytes)", tx.Hash(height), len(tx))
+		txStrings[i] = fmt.Sprintf("%X (%d bytes)", tx.Hash(), len(tx))
 	}
 	return fmt.Sprintf(`Data{
 %s  %v
