@@ -27,6 +27,8 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		return
 	}
 
+	cs.Logger.Error("enterPrecommit--", height, round)
+
 	cs.initNewHeight()
 	cs.trc.Pin("Precommit-%d", round)
 
@@ -73,7 +75,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		return
 	}
 
-	// If +2/3 prevoted for proposal block, stage and precommit it
+	// If +2/3 prevoted for proposal block, staÎge and precommit it
 	logger.Info("enterPrecommit: +2/3 prevoted proposal block. Locking", "hash", blockID.Hash)
 	// Validate the block.
 	if err := cs.blockExec.ValidateBlock(cs.state, cs.ProposalBlock); err != nil {

@@ -5,6 +5,7 @@ import (
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"runtime/debug"
 )
 
 // Enter: `timeoutPropose` after entering Propose.
@@ -23,6 +24,8 @@ func (cs *State) enterPrevote(height int64, round int) {
 		return
 	}
 
+	cs.Logger.Error("enterPrevote--", height, round)
+	debug.PrintStack()
 	cs.initNewHeight()
 	cs.trc.Pin("Prevote-%d", round)
 

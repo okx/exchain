@@ -94,6 +94,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		return
 	}
 
+	cs.Logger.Error("enterPropose--", height, round)
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
 
