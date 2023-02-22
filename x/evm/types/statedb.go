@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/VictoriaMetrics/fastcache"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/go-amino"
 	"math/big"
@@ -48,6 +49,8 @@ type CommitStateDBParams struct {
 	// Amino codec
 	Cdc *codec.Codec
 
+	StateCache *fastcache.Cache
+
 	DB       ethstate.Database
 	Trie     ethstate.Trie
 	RootHash ethcmn.Hash
@@ -79,6 +82,7 @@ type CacheCode struct {
 // Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 type CommitStateDB struct {
 	db           ethstate.Database
+	StateCache   *fastcache.Cache
 	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
 	prefetcher   *mpt.TriePrefetcher
 	originalRoot ethcmn.Hash
@@ -192,6 +196,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
 		GuFactor:            DefaultGuFactor,
+		StateCache:          csdbParams.StateCache,
 	}
 
 	return csdb
@@ -201,6 +206,7 @@ func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx
 	csdb.db = csdbParams.DB
 	csdb.trie = csdbParams.Trie
 	csdb.originalRoot = csdbParams.RootHash
+	csdb.StateCache = csdbParams.StateCache
 
 	csdb.storeKey = csdbParams.StoreKey
 	csdb.paramSpace = csdbParams.ParamSpace
@@ -955,11 +961,12 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 						return ethcmn.Hash{}, err
 					}
 
-					csdb.UpdateAccountStorageInfo(obj)
-				} else {
-					csdb.DeleteAccountStorageInfo(obj)
+					accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
+					if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
+						ethermintAccount.StateRoot = obj.account.StateRoot
+						csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
+					}
 				}
-
 				usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 			}
 			if prefetcher != nil {
@@ -1368,7 +1375,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
-	newObj = newStateObject(csdb, acc, ethtypes.EmptyRootHash)
+	newObj = newStateObject(csdb, acc)
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
