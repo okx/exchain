@@ -709,10 +709,6 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	defer monitor.OnEnd("args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
-	height, err := api.BlockNumber()
-	if err != nil {
-		return common.Hash{}, err
-	}
 	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
 	if !exist {
 		api.logger.Debug("failed to find key in keyring", "key", args.From)
@@ -743,12 +739,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	var txEncoder sdk.TxEncoder
-	if tmtypes.HigherThanVenus(int64(height)) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
-	}
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 
 	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)
@@ -757,7 +748,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	}
 
 	// send chanData to txPool
-	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
+	if api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -780,14 +771,12 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
 	monitor := monitor.GetMonitor("eth_sendRawTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("data", data)
-	height, err := api.BlockNumber()
-	if err != nil {
-		return common.Hash{}, err
-	}
+
 	txBytes := data
 	var tx *evmtypes.MsgEthereumTx
 
-	if !tmtypes.HigherThanVenus(int64(height)) || api.txPool != nil {
+	// send chanData to txPool
+	if api.txPool != nil {
 		tx = new(evmtypes.MsgEthereumTx)
 
 		// RLP decode raw transaction bytes
@@ -795,17 +784,6 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 			// Return nil is for when gasLimit overflows uint64
 			return common.Hash{}, err
 		}
-
-		if !tmtypes.HigherThanVenus(int64(height)) {
-			txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
-			if err != nil {
-				return common.Hash{}, err
-			}
-		}
-	}
-
-	// send chanData to txPool
-	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -973,15 +951,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
-	var txEncoder sdk.TxEncoder
-
-	// get block height
-	height := global.GetGlobalHeight()
-	if tmtypes.HigherThanVenus(height) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
-	}
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 
 	// rlp encoder need pointer type, amino encoder will first dereference pointers.
 	txBytes, err := txEncoder(msg)
@@ -1717,11 +1687,6 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 	monitor := monitor.GetMonitor("eth_fillTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
 
-	height, err := api.BlockNumber()
-	if err != nil {
-		return nil, err
-	}
-
 	// Mutex lock the address' nonce to avoid assigning it to multiple requests
 	if args.Nonce == nil {
 		api.nonceLock.LockAddr(*args.From)
@@ -1740,12 +1705,7 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 		return nil, err
 	}
 
-	var txEncoder sdk.TxEncoder
-	if tmtypes.HigherThanVenus(int64(height)) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
-	}
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 
 	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)

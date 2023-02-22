@@ -264,18 +264,7 @@ func (pool *TxPool) dropTxs(index int, address common.Address) {
 }
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
-	// TODO: to delete after venus height
-	lastHeight, err := pool.clientCtx.Client.LatestBlockNumber()
-	if err != nil {
-		return err
-	}
-	var txEncoder sdk.TxEncoder
-	if types.HigherThanVenus(lastHeight) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(pool.clientCtx.Codec)
-	}
-
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err

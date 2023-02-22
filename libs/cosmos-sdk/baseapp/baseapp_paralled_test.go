@@ -2,6 +2,10 @@ package baseapp_test
 
 import (
 	"encoding/json"
+	"math/big"
+	"reflect"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -17,9 +21,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	types4 "github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"reflect"
-	"testing"
 )
 
 type Env struct {
@@ -39,7 +40,6 @@ type Chain struct {
 }
 
 func NewChain(env *Env) *Chain {
-	types2.UnittestOnlySetMilestoneVenusHeight(-1)
 	types2.UnittestOnlySetMilestoneVenus1Height(-1)
 	chain := new(Chain)
 	chain.acc = make([]*types3.EthAccount, 10)

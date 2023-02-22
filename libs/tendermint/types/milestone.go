@@ -18,8 +18,6 @@ var (
 	MILESTONE_MERCURY_HEIGHT string
 	milestoneMercuryHeight   int64
 
-	milestoneVenusHeight int64 = 1
-
 	MILESTONE_MARS_HEIGHT string
 	milestoneMarsHeight   int64
 
@@ -52,9 +50,6 @@ const (
 const (
 	MainNetVeneus1Height = 12988000
 	TestNetVeneus1Height = 12067000
-
-	MainNetVeneusHeight = 8200000
-	TestNetVeneusHeight = 8510000
 
 	MainNetMercuyHeight  = 5150000
 	TestNetMercuryHeight = 5300000
@@ -113,13 +108,6 @@ func HigherThanMercury(height int64) bool {
 	return height > milestoneMercuryHeight
 }
 
-func HigherThanVenus(height int64) bool {
-	if milestoneVenusHeight == 0 {
-		return false
-	}
-	return height >= milestoneVenusHeight
-}
-
 // use MPT storage model to replace IAVL storage model
 func HigherThanMars(height int64) bool {
 	if milestoneMarsHeight == 0 {
@@ -146,21 +134,12 @@ func GetNodePruneHeight() int64 {
 	return nodePruneHeight
 }
 
-func GetVenusHeight() int64 {
-	return milestoneVenusHeight
-}
-
 func GetMercuryHeight() int64 {
 	return milestoneMercuryHeight
 }
 
 func GetMarsHeight() int64 {
 	return milestoneMarsHeight
-}
-
-// can be used in unit test only
-func UnittestOnlySetMilestoneVenusHeight(height int64) {
-	milestoneVenusHeight = height
 }
 
 // can be used in unit test only

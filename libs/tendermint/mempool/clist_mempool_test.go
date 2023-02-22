@@ -970,10 +970,6 @@ func TestTxOrTxHashToKey(t *testing.T) {
 	var tx = make([]byte, 256)
 	rand.Read(tx)
 
-	old := types.GetVenusHeight()
-
-	types.UnittestOnlySetMilestoneVenusHeight(1)
-
 	txhash := types.Tx(tx).Hash()
 
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil))
@@ -981,8 +977,6 @@ func TestTxOrTxHashToKey(t *testing.T) {
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash))
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash()))
 	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash()))
-
-	types.UnittestOnlySetMilestoneVenusHeight(old)
 }
 
 func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
