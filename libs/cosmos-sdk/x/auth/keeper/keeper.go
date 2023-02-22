@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -117,4 +118,27 @@ func (ak AccountKeeper) decodeAccount(bz []byte) exported.Account {
 		panic(err)
 	}
 	return acc
+}
+
+func (ak AccountKeeper) RetrievalStateRoot(bz []byte) ethcmn.Hash {
+	var acc exported.Account
+	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
+	if err == nil {
+		acc = val.(exported.Account)
+		return acc.GetStateRoot()
+	}
+	err = ak.cdc.UnmarshalBinaryBare(bz, &acc)
+	if err == nil {
+		return acc.GetStateRoot()
+	}
+	return mpt.EmptyRootHash
+}
+
+func (ak AccountKeeper) EncodeAccount(acc exported.Account) ([]byte, error) {
+	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+	if err != nil {
+		bz, err = ak.cdc.MarshalBinaryBare(acc)
+	}
+
+	return bz, err
 }
