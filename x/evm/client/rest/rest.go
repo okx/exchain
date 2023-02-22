@@ -148,7 +148,7 @@ func ValidateTxResult(cliCtx context.CLIContext, resTx *ctypes.ResultTx) error {
 		if err != nil {
 			return err
 		}
-		err = resTx.Proof.Validate(check.Header.DataHash, resTx.Height)
+		err = resTx.Proof.Validate(check.Header.DataHash)
 		if err != nil {
 			return err
 		}

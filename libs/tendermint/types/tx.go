@@ -96,13 +96,13 @@ type TxProof struct {
 }
 
 // Leaf returns the hash(tx), which is the leaf in the merkle tree which this proof refers to.
-func (tp TxProof) Leaf(height int64) []byte {
+func (tp TxProof) Leaf() []byte {
 	return tp.Data.Hash()
 }
 
 // Validate verifies the proof. It returns nil if the RootHash matches the dataHash argument,
 // and if the proof is internally consistent. Otherwise, it returns a sensible error.
-func (tp TxProof) Validate(dataHash []byte, height int64) error {
+func (tp TxProof) Validate(dataHash []byte) error {
 	if !bytes.Equal(dataHash, tp.RootHash) {
 		return errors.New("proof matches different data hash")
 	}
@@ -112,7 +112,7 @@ func (tp TxProof) Validate(dataHash []byte, height int64) error {
 	if tp.Proof.Total <= 0 {
 		return errors.New("proof total must be positive")
 	}
-	valid := tp.Proof.Verify(tp.RootHash, tp.Leaf(height))
+	valid := tp.Proof.Verify(tp.RootHash, tp.Leaf())
 	if valid != nil {
 		return errors.New("proof is not internally consistent")
 	}

@@ -156,7 +156,7 @@ func TestTxProofs(t *testing.T) {
 	require.NoError(err, "%#v", err)
 	require.NotNil(res)
 	keyHash := merkle.SimpleHashFromByteSlices([][]byte{key})
-	err = res.Proof.Validate(keyHash, brh)
+	err = res.Proof.Validate(keyHash)
 	assert.NoError(err, "%#v", err)
 
 	commit, err := GetCertifiedCommit(br.Height, cl, cert)
