@@ -298,12 +298,8 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 		return nil, err
 	}
 
-	if len(execRes.Logs) == 0 {
-		execRes.Logs = []*ethtypes.Log{}
-	}
-
 	// Sometimes failed txs leave Logs which need to be cleared
-	if status == 0 {
+	if status == 0 && execRes.Logs != nil {
 		execRes.ClearLogsAndBloom()
 	}
 
