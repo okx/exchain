@@ -4,6 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
+
+	"google.golang.org/protobuf/encoding/protowire"
+
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
@@ -24,10 +30,38 @@ func Bytes2Hash(txBytes []byte) string {
 	return ethcmn.BytesToHash(txHash).String()
 }
 
+type ethTxData struct {
+	AccountNonce uint64          `json:"nonce"`
+	Price        *big.Int        `json:"gasPrice"`
+	GasLimit     uint64          `json:"gas"`
+	Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"`
+	Payload      []byte          `json:"input"`
+
+	// signature values
+	V *big.Int `json:"v"`
+	R *big.Int `json:"r"`
+	S *big.Int `json:"s"`
+
+	// hash is only used when marshaling to JSON
+	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
+}
+
 // Hash computes the TMHASH hash of the wire encoded transaction.
 func (tx Tx) Hash() []byte {
+	// if we can't get length-prefixed bytes, this tx should not be an amino-encoded tx
+	if _, err := amino.GetBinaryBareFromBinaryLengthPrefixed(tx); err != nil {
+		// if we can't get proto tag, this tx should not be a proto-encoded tx
+		_, _, length := protowire.ConsumeTag(tx)
+		if length < 0 {
+			return etherhash.Sum(tx)
+		}
+	}
+	var msg ethTxData
+	if err := rlp.DecodeBytes(tx, &msg); err != nil {
+		return tmhash.Sum(tx)
+	}
 	return etherhash.Sum(tx)
-	// return tmhash.Sum(tx)
 }
 
 // String returns the hex-encoded transaction as a string.

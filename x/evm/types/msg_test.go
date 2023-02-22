@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+
 	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
@@ -156,6 +158,7 @@ func TestMsgEthereumTxRLPEncode(t *testing.T) {
 	raw, err := rlp.EncodeToBytes(&msg)
 	require.NoError(t, err)
 	require.Equal(t, ethcmn.FromHex("E48080830186A0940000000000000000746573745F61646472657373808474657374808080"), raw)
+	require.Equal(t, tmtypes.Tx(raw).Hash(), keccak256(raw))
 }
 
 func TestMsgEthereumTxRLPDecode(t *testing.T) {
@@ -313,6 +316,8 @@ func TestMsgEthereumTx_Amino(t *testing.T) {
 	for _, msg := range testCases {
 		raw, err := ModuleCdc.MarshalBinaryBare(msg)
 		require.NoError(t, err)
+
+		require.Equal(t, tmhash.Sum(raw), tmtypes.Tx(raw).Hash())
 
 		var msg2 MsgEthereumTx
 		err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
