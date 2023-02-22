@@ -1,14 +1,13 @@
 package types
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
+	ethermint "github.com/okex/exchain/app/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
@@ -36,9 +35,11 @@ func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Has
 				return ethcmn.Hash{}, err
 			}
 
-			csdb.UpdateAccountStorageInfo(obj)
-		} else {
-			csdb.DeleteAccountStorageInfo(obj)
+			accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
+			if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
+				ethermintAccount.StateRoot = obj.account.StateRoot
+				csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
+			}
 		}
 
 		usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
@@ -83,26 +84,6 @@ func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value
 	}
 
 	return nil
-}
-
-func (csdb *CommitStateDB) UpdateAccountStorageInfo(so *stateObject) {
-	if bytes.Equal(so.CodeHash(), emptyCodeHash) {
-		return
-	}
-
-	// Encode the account and update the account trie
-	addr := so.Address()
-	if err := csdb.trie.TryUpdate(addr[:], so.stateRoot.Bytes()); err != nil {
-		csdb.SetError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
-	}
-}
-
-func (csdb *CommitStateDB) DeleteAccountStorageInfo(so *stateObject) {
-	// Delete the account from the trie
-	addr := so.Address()
-	if err := csdb.trie.TryDelete(addr[:]); err != nil {
-		csdb.SetError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
-	}
 }
 
 func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
@@ -178,44 +159,28 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 		return nil
 	}
 
-	storageRoot := types.EmptyRootHash
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || mpt.TrieWriteAhead {
-		root, err := csdb.loadContractStorageRoot(addr)
-		if err != nil {
-			csdb.SetError(err)
-			return nil
-		}
-		storageRoot = root
-	}
-
 	// insert the state object into the live set
-	so := newStateObject(csdb, acc, storageRoot)
+	so := newStateObject(csdb, acc)
 	csdb.setStateObject(so)
 
 	return so
-}
-
-func (csdb *CommitStateDB) loadContractStorageRoot(addr ethcmn.Address) (ethcmn.Hash, error) {
-	enc, err := csdb.trie.TryGet(addr.Bytes())
-	if err != nil {
-		return types.EmptyRootHash, err
-	}
-
-	var storageRoot ethcmn.Hash
-	if len(enc) == 0 {
-		// means the account is a normal account, not a contract account
-		storageRoot = types.EmptyRootHash
-	} else {
-		storageRoot.SetBytes(enc)
-	}
-
-	return storageRoot, nil
 }
 
 func (csdb *CommitStateDB) MarkUpdatedAcc(addList []ethcmn.Address) {
 	for _, addr := range addList {
 		csdb.updatedAccount[addr] = struct{}{}
 	}
+}
+
+// GetStorageProof returns the Merkle proof for given storage slot.
+func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([][]byte, error) {
+	var proof mpt.ProofList
+	addrTrie := csdb.StorageTrie(a)
+	if addrTrie == nil {
+		return proof, errors.New("storage trie for requested address does not exist")
+	}
+	err := addrTrie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	return proof, err
 }
 
 // ----------------------------------------------------------------------------
@@ -231,17 +196,6 @@ func (csdb *CommitStateDB) GetProof(addr ethcmn.Address) ([][]byte, error) {
 func (csdb *CommitStateDB) GetProofByHash(addrHash ethcmn.Hash) ([][]byte, error) {
 	var proof mpt.ProofList
 	err := csdb.trie.Prove(addrHash[:], 0, &proof)
-	return proof, err
-}
-
-// GetStorageProof returns the Merkle proof for given storage slot.
-func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([][]byte, error) {
-	var proof mpt.ProofList
-	addrTrie := csdb.StorageTrie(a)
-	if addrTrie == nil {
-		return proof, errors.New("storage trie for requested address does not exist")
-	}
-	err := addrTrie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
 	return proof, err
 }
 
