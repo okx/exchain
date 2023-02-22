@@ -542,7 +542,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 
 	// add tx to PendingPool
-	if err := mem.pendingPool.validate(memTx.from, memTx.tx, memTx.height); err != nil {
+	if err := mem.pendingPool.validate(memTx.from, memTx.tx); err != nil {
 		return err
 	}
 	pendingTx := memTx
