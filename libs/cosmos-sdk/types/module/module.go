@@ -30,6 +30,7 @@ package module
 
 import (
 	"encoding/json"
+	"fmt"
 
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
@@ -227,6 +228,9 @@ func NewManager(modules ...AppModule) *Manager {
 	for _, module := range modules {
 		moduleMap[module.Name()] = module
 		modulesStr = append(modulesStr, module.Name())
+		if module.Name() == "ibc" {
+			fmt.Println(1)
+		}
 	}
 
 	return &Manager{

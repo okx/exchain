@@ -13,12 +13,10 @@ import (
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/simulation"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +24,6 @@ var (
 	_ module.AppModuleAdapter      = AppModule{}
 	_ module.AppModuleBasicAdapter = AppModuleBasic{}
 	_ module.AppModuleSimulation   = AppModule{}
-	_ upgrade.UpgradeModule        = AppModule{}
 )
 
 // ----------------------------------------------------------------------------
@@ -99,7 +96,6 @@ func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *m
 // AppModule implements the AppModule interface for the capability module.
 type AppModule struct {
 	AppModuleBasic
-	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
 }
 
@@ -116,7 +112,6 @@ func NewAppModule(cdc *codec.CodecProxy, keeper keeper.Keeper) AppModule {
 		AppModuleBasic: NewAppModuleBasic(cdc),
 		keeper:         keeper,
 	}
-	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
 	return ret
 }
 
@@ -202,16 +197,4 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 // WeightedOperations returns the all the gov module operations with their respective weights.
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simulation2.WeightedOperation {
 	return nil
-}
-
-func (am AppModule) RegisterTask() upgrade.HeightTask {
-	return upgrade.NewHeightTask(
-		0, func(ctx sdk.Context) error {
-			if am.Sealed() {
-				return nil
-			}
-			data := ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
-			am.initGenesis(ctx, data)
-			return nil
-		})
 }
