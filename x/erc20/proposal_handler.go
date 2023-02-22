@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/erc20/types"
 	govTypes "github.com/okex/exchain/x/gov/types"
@@ -38,13 +37,12 @@ func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMapping
 	} else {
 		// update the mapping
 		contract := ethcmm.HexToAddress(p.Contract)
-		if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
-			// contract must already be deployed, to avoid empty contract
-			contractAccount, _ := k.GetEthAccount(ctx, contract)
-			if contractAccount == nil || !contractAccount.IsContract() {
-				return sdkerrors.Wrapf(types.ErrNoContractDeployed, "no contract code found at address %s", p.Contract)
-			}
+		// contract must already be deployed, to avoid empty contract
+		contractAccount, _ := k.GetEthAccount(ctx, contract)
+		if contractAccount == nil || !contractAccount.IsContract() {
+			return sdkerrors.Wrapf(types.ErrNoContractDeployed, "no contract code found at address %s", p.Contract)
 		}
+
 		if err := k.SetContractForDenom(ctx, p.Denom, contract); err != nil {
 			return err
 		}

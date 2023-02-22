@@ -1,14 +1,11 @@
 package feesplit
 
 import (
-	"fmt"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/feesplit/keeper"
 	"github.com/okex/exchain/x/feesplit/types"
 )
@@ -17,11 +14,6 @@ import (
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx.SetEventManager(sdk.NewEventManager())
-
-		if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
-			errMsg := fmt.Sprintf("feesplt module not support at height %d", ctx.BlockHeight())
-			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
-		}
 
 		params := k.GetParams(ctx)
 		if !params.EnableFeeSplit {
