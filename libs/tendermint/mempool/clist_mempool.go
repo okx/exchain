@@ -644,7 +644,7 @@ func (mem *CListMempool) resCbFirstTime(
 		if r.CheckTx != nil && r.CheckTx.Tx != nil {
 			txHash = r.CheckTx.Tx.TxHash()
 		}
-		txkey := txOrTxHashToKey(tx, txHash, mem.height)
+		txkey := txOrTxHashToKey(tx, txHash)
 
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
 			// Check mempool isn't full again to reduce the chance of exceeding the
@@ -842,7 +842,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
-		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash())
 		if _, ok := txFilter[key]; ok {
 			// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
 			mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
@@ -1130,7 +1130,7 @@ func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clis
 			txHash = realTx.TxHash()
 		}
 	}
-	txKey := txOrTxHashToKey(tx, txHash, height)
+	txKey := txOrTxHashToKey(tx, txHash)
 	// CodeTypeOK means tx was successfully executed.
 	// CodeTypeNonceInc means tx fails but the nonce of the account increases,
 	// e.g., the transaction gas has been consumed.
@@ -1326,8 +1326,8 @@ func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	return
 }
 
-func txOrTxHashToKey(tx types.Tx, txHash []byte, height int64) (retHash [sha256.Size]byte) {
-	if len(txHash) == sha256.Size && types.HigherThanVenus(height) {
+func txOrTxHashToKey(tx types.Tx, txHash []byte) (retHash [sha256.Size]byte) {
+	if len(txHash) == sha256.Size {
 		copy(retHash[:], txHash)
 		return
 	} else {
@@ -1438,7 +1438,7 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 			removeMemTxHash = removeMemTx.realTx.TxHash()
 		}
 		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
-		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash))
 
 		if mem.config.PendingRemoveEvent {
 			mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}

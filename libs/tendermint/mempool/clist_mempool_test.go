@@ -974,14 +974,13 @@ func TestTxOrTxHashToKey(t *testing.T) {
 
 	types.UnittestOnlySetMilestoneVenusHeight(1)
 
-	venus := types.GetVenusHeight()
 	txhash := types.Tx(tx).Hash()
 
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil, venus))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(), venus-1))
-	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(), venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash()))
+	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash()))
 
 	types.UnittestOnlySetMilestoneVenusHeight(old)
 }
