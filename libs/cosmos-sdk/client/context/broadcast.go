@@ -51,7 +51,7 @@ func (ctx CLIContext) CheckTendermintError(err error, txBytes []byte) *sdk.TxRes
 		height = lastHeight
 	} else {
 		// default new tx hash
-		height = types.GetMilestoneVenusHeight()
+		height = types.GetVenusHeight()
 	}
 
 	errStr := strings.ToLower(err.Error())

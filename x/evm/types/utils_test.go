@@ -136,7 +136,7 @@ func TestTxDecoder(t *testing.T) {
 	_, err = txDecoder(txbytes[1:])
 	require.Error(t, err)
 
-	oldHeight := types.GetMilestoneVenusHeight()
+	oldHeight := types.GetVenusHeight()
 	defer types.UnittestOnlySetMilestoneVenusHeight(oldHeight)
 	rlpBytes, err := rlp.EncodeToBytes(&expectedEthMsg)
 	require.Nil(t, err)

@@ -18,8 +18,7 @@ var (
 	MILESTONE_MERCURY_HEIGHT string
 	milestoneMercuryHeight   int64
 
-	MILESTONE_VENUS_HEIGHT string
-	milestoneVenusHeight   int64
+	milestoneVenusHeight int64 = 1
 
 	MILESTONE_MARS_HEIGHT string
 	milestoneMarsHeight   int64
@@ -71,7 +70,6 @@ func init() {
 	once.Do(func() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
-		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
@@ -93,7 +91,6 @@ func string2number(input string) int64 {
 }
 
 func SetupMainNetEnvironment(pruneH int64) {
-	milestoneVenusHeight = MainNetVeneusHeight
 	milestoneMercuryHeight = MainNetMercuyHeight
 	genesisHeight = MainNetGenesisHeight
 	nodePruneHeight = pruneH
@@ -101,7 +98,6 @@ func SetupMainNetEnvironment(pruneH int64) {
 }
 
 func SetupTestNetEnvironment(pruneH int64) {
-	milestoneVenusHeight = TestNetVeneusHeight
 	milestoneMercuryHeight = TestNetMercuryHeight
 	genesisHeight = TestNetGenesisHeight
 	nodePruneHeight = pruneH
@@ -130,11 +126,6 @@ func HigherThanMars(height int64) bool {
 		return false
 	}
 	return height >= milestoneMarsHeight
-}
-
-// GetMilestoneVenusHeight returns milestoneVenusHeight
-func GetMilestoneVenusHeight() int64 {
-	return milestoneVenusHeight
 }
 
 // 2322600 is mainnet GenesisHeight

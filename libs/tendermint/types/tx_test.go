@@ -32,7 +32,7 @@ func randInt(low, high int) int {
 
 func TestTx_Hash(t *testing.T) {
 	tx := Tx("Hello, world!")
-	oldHeight := GetMilestoneVenusHeight()
+	oldHeight := GetVenusHeight()
 	defer UnittestOnlySetMilestoneVenusHeight(oldHeight)
 	for _, c := range []struct {
 		curHeight   int64
