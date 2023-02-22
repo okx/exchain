@@ -871,15 +871,7 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 		}
 	}
 
-	//if tmtypes.HigherThanVenus1(req.Height) {
 	queryIbcProof(&res, &commitInfo, storeName)
-	//} else {
-	// Restore origin path and append proof op.
-	//res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
-	//	[]byte(storeName),
-	//	NewMultiStoreProof(commitInfo.StoreInfos),
-	//).ProofOp())
-	//}
 
 	// TODO: handle in another TM v0.26 update PR
 	// res.Proof = buildMultiStoreProof(res.Proof, storeName, commitInfo.StoreInfos)
