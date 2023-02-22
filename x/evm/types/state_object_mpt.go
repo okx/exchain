@@ -14,6 +14,7 @@ import (
 
 const (
 	FlagTrieUseCompositeKey = "trie.use-composite-key"
+	ContractStateCache      = 2048 // MB
 )
 
 var (
