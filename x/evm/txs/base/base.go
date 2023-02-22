@@ -61,7 +61,6 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	// call evm hooks
-	//if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
 	receipt := &ethtypes.Receipt{
 		Status:           ethtypes.ReceiptStatusSuccessful,
 		Bloom:            result.ResultData.Bloom,
@@ -76,7 +75,6 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	if err != nil {
 		tx.Keeper.Logger().Error("tx call evm hooks failed", "error", err)
 	}
-	//}
 
 	return
 }

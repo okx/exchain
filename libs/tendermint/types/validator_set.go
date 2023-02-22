@@ -475,9 +475,7 @@ func computeNewPriorities(updates []*Validator, vals *ValidatorSet, updatedTotal
 func (vals *ValidatorSet) applyUpdates(updates []*Validator) {
 
 	existing := vals.Validators
-	//if HigherThanVenus1(global.GetGlobalHeight()) {
 	sort.Sort(ValidatorsByAddress(existing))
-	//}
 
 	merged := make([]*Validator, len(existing)+len(updates))
 	i := 0
@@ -612,9 +610,7 @@ func (vals *ValidatorSet) updateWithChangeSet(changes []*Validator, allowDeletes
 	vals.RescalePriorities(PriorityWindowSizeFactor * vals.TotalVotingPower())
 	vals.shiftByAvgProposerPriority()
 
-	//if HigherThanVenus1(global.GetGlobalHeight()) {
 	sort.Sort(ValidatorsByVotingPower(vals.Validators))
-	//}
 
 	return nil
 }

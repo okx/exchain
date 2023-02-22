@@ -27,8 +27,5 @@ var ibcStateVersion = Version{
 }
 
 func GetStateVersion(h int64) Version {
-	//if types.HigherThanVenus1(h) {
 	return ibcStateVersion
-	//}
-	//return initStateVersion
 }

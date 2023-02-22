@@ -1083,10 +1083,7 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	//if tmtypes.HigherThanVenus1(ci.Version) {
 	return ci.ibcHash()
-	//}
-	//return ci.originHash()
 }
 
 func (ci commitInfo) originHash() []byte {

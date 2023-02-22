@@ -163,9 +163,7 @@ func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 
 // BeginBlock executes all ABCI BeginBlock logic respective to the capability module.
 func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
-	//if tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
 	am.keeper.InitMemStore(ctx)
-	//}
 }
 
 // EndBlock executes all ABCI EndBlock logic respective to the capability module. It
