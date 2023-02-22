@@ -18,7 +18,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -319,9 +318,9 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	if tmtypes.HigherThanVenus1(req.Height) {
-		return st.queryWithCM40(req)
-	}
+	//if tmtypes.HigherThanVenus1(req.Height) {
+	return st.queryWithCM40(req)
+	//}
 	if len(req.Data) == 0 {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}

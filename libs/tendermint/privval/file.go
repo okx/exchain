@@ -420,10 +420,10 @@ func (pv *FilePV) saveSigned(height int64, round int, step int8,
 //}
 
 func checkVotesOnlyDifferByTimestamp(h int64, lastSignBytes, newSignBytes []byte) (time.Time, bool) {
-	if types.HigherThanVenus1(h) {
-		return ibcCheckVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes)
-	}
-	return originCheckVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes)
+	//if types.HigherThanVenus1(h) {
+	return ibcCheckVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes)
+	//}
+	//return originCheckVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes)
 }
 
 // returns the timestamp from the lastSignBytes.

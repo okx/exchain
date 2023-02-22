@@ -221,10 +221,10 @@ func (vote *Vote) CommitSig() CommitSig {
 }
 
 func (vote *Vote) SignBytes(chainID string) []byte {
-	if HigherThanVenus1(vote.Height) {
-		return vote.ibcSignBytes(chainID)
-	}
-	return vote.originSignBytes(chainID)
+	//if HigherThanVenus1(vote.Height) {
+	return vote.ibcSignBytes(chainID)
+	//}
+	//return vote.originSignBytes(chainID)
 }
 
 func (vote *Vote) ibcSignBytes(chainID string) []byte {

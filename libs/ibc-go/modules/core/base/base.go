@@ -40,7 +40,7 @@ var (
 
 		// ibc modules
 		if types.HigherThanVenus1(h) {
-			return false
+			panic("asd")
 		}
 
 		// < veneus1
@@ -54,7 +54,7 @@ var (
 
 		// ibc modulee && >=veneus1
 		if types.HigherThanVenus1(h) {
-			return false
+			panic("vvv")
 		}
 
 		// < veneus1

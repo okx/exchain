@@ -2,6 +2,10 @@ package capability
 
 import (
 	"encoding/json"
+	"math/rand"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -15,10 +19,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	simulation2 "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
-	"math/rand"
 )
 
 var (
@@ -58,7 +59,7 @@ func (a AppModuleBasic) RegisterInterfaces(_ types2.InterfaceRegistry) {}
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return nil
+	return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 }
 
 // ValidateGenesis performs genesis state validation for the capability module.
@@ -143,7 +144,7 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	return nil
+	return am.initGenesis(ctx, data)
 }
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genState types.GenesisState
@@ -157,7 +158,7 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return nil
+	return am.exportGenesis(ctx)
 }
 
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
@@ -167,9 +168,9 @@ func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 
 // BeginBlock executes all ABCI BeginBlock logic respective to the capability module.
 func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
-	if tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
-		am.keeper.InitMemStore(ctx)
-	}
+	//if tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+	am.keeper.InitMemStore(ctx)
+	//}
 }
 
 // EndBlock executes all ABCI EndBlock logic respective to the capability module. It

@@ -1,7 +1,6 @@
 package state
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/libs/tendermint/version"
 )
 
@@ -28,8 +27,8 @@ var ibcStateVersion = Version{
 }
 
 func GetStateVersion(h int64) Version {
-	if types.HigherThanVenus1(h) {
-		return ibcStateVersion
-	}
-	return initStateVersion
+	//if types.HigherThanVenus1(h) {
+	return ibcStateVersion
+	//}
+	//return initStateVersion
 }

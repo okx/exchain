@@ -128,10 +128,10 @@ func (c *IBCCommit) ToCommit() *Commit {
 }
 
 func (v *Validator) HeightBytes(h int64) []byte {
-	if HigherThanVenus1(h) {
-		return v.IBCHeightBytes()
-	}
-	return v.OriginBytes()
+	//if HigherThanVenus1(h) {
+	return v.IBCHeightBytes()
+	//}
+	//return v.OriginBytes()
 }
 
 func (v *Validator) IBCHeightBytes() []byte {

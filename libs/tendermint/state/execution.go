@@ -696,7 +696,7 @@ func updateState(
 
 	// TODO: allow app to upgrade version
 	nextVersion := state.Version
-	if types.HigherThanVenus1(header.Height) && !state.Version.IsUpgraded() {
+	if !state.Version.IsUpgraded() {
 		nextVersion = state.Version.UpgradeToIBCVersion()
 	}
 

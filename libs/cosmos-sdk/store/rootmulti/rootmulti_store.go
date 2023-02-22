@@ -871,15 +871,15 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 		}
 	}
 
-	if tmtypes.HigherThanVenus1(req.Height) {
-		queryIbcProof(&res, &commitInfo, storeName)
-	} else {
-		// Restore origin path and append proof op.
-		res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
-			[]byte(storeName),
-			NewMultiStoreProof(commitInfo.StoreInfos),
-		).ProofOp())
-	}
+	//if tmtypes.HigherThanVenus1(req.Height) {
+	queryIbcProof(&res, &commitInfo, storeName)
+	//} else {
+	// Restore origin path and append proof op.
+	//res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
+	//	[]byte(storeName),
+	//	NewMultiStoreProof(commitInfo.StoreInfos),
+	//).ProofOp())
+	//}
 
 	// TODO: handle in another TM v0.26 update PR
 	// res.Proof = buildMultiStoreProof(res.Proof, storeName, commitInfo.StoreInfos)
@@ -1091,10 +1091,10 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	if tmtypes.HigherThanVenus1(ci.Version) {
-		return ci.ibcHash()
-	}
-	return ci.originHash()
+	//if tmtypes.HigherThanVenus1(ci.Version) {
+	return ci.ibcHash()
+	//}
+	//return ci.originHash()
 }
 
 func (ci commitInfo) originHash() []byte {
@@ -1108,6 +1108,9 @@ func (ci commitInfo) originHash() []byte {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) ibcHash() []byte {
+	if len(ci.StoreInfos) == 0 {
+		return nil
+	}
 	m := ci.toMap()
 	rootHash, _, _ := sdkmaps.ProofsFromMap(m)
 	return rootHash
