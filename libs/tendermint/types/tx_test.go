@@ -90,7 +90,7 @@ func TestValidTxProof(t *testing.T) {
 
 	for h, tc := range cases {
 		txs := tc.txs
-		root := txs.Hash(0)
+		root := txs.Hash()
 		// make sure valid proof for every tx
 		for i := range txs {
 			tx := []byte(txs[i])
@@ -182,7 +182,7 @@ func TestComputeAminoOverhead(t *testing.T) {
 func testTxProofUnchangable(t *testing.T) {
 	// make some proof
 	txs := makeTxs(randInt(2, 100), randInt(16, 128))
-	root := txs.Hash(0)
+	root := txs.Hash()
 	i := randInt(0, len(txs)-1)
 	proof := txs.Proof(i, 0)
 

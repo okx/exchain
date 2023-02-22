@@ -1693,10 +1693,10 @@ func (d *Data) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 // Hash returns the hash of the data
 func (data *Data) Hash(height int64) tmbytes.HexBytes {
 	if data == nil {
-		return (Txs{}).Hash(height)
+		return (Txs{}).Hash()
 	}
 	if data.hash == nil {
-		data.hash = data.Txs.Hash(height) // NOTE: leaves of merkle tree are TxIDs
+		data.hash = data.Txs.Hash() // NOTE: leaves of merkle tree are TxIDs
 	}
 	return data.hash
 }
