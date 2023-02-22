@@ -6,7 +6,6 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/staking/types"
 )
@@ -20,10 +19,9 @@ func init() {
 }
 
 func RegisterConvert() {
-	enableHeight := tmtypes.GetVenus3Height()
-	baseapp.RegisterCmHandle("okexchain/staking/MsgDeposit", baseapp.NewCMHandle(ConvertDepositMsg, enableHeight))
-	baseapp.RegisterCmHandle("okexchain/staking/MsgWithdraw", baseapp.NewCMHandle(ConvertWithdrawMsg, enableHeight))
-	baseapp.RegisterCmHandle("okexchain/staking/MsgAddShares", baseapp.NewCMHandle(ConvertAddSharesMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/staking/MsgDeposit", baseapp.NewCMHandle(ConvertDepositMsg, 0))
+	baseapp.RegisterCmHandle("okexchain/staking/MsgWithdraw", baseapp.NewCMHandle(ConvertWithdrawMsg, 0))
+	baseapp.RegisterCmHandle("okexchain/staking/MsgAddShares", baseapp.NewCMHandle(ConvertAddSharesMsg, 0))
 }
 
 func ConvertDepositMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {

@@ -2,7 +2,6 @@ package evm
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -29,10 +28,7 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 		case types.ManageContractMethodBlockedListProposal:
 			return handleManageContractMethodBlockedlListProposal(ctx, k, content)
 		case types.ManageSysContractAddressProposal:
-			if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
-				return handleManageSysContractAddressProposal(ctx, k, content)
-			}
-			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
+			return handleManageSysContractAddressProposal(ctx, k, content)
 		case types.ManageContractByteCodeProposal:
 			return handleManageContractBytecodeProposal(ctx, k, content)
 		default:
