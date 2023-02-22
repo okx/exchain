@@ -65,16 +65,16 @@ type Keeper struct {
 	// add inner block data
 	innerBlockData BlockInnerData
 
+	stateCache     *fastcache.Cache
+	EvmStateDb     *types.CommitStateDB
+	UpdatedAccount []ethcmn.Address
+
 	db          ethstate.Database
 	rootTrie    ethstate.Trie
 	rootHash    ethcmn.Hash
 	startHeight uint64
 	triegc      *prque.Prque
-	stateCache  *fastcache.Cache
 	cmLock      sync.Mutex
-
-	EvmStateDb     *types.CommitStateDB
-	UpdatedAccount []ethcmn.Address
 
 	// cache chain config
 	cci *chainConfigInfo
@@ -136,6 +136,7 @@ func NewKeeper(
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
+		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 		LogsManages:    NewLogManager(),
@@ -147,7 +148,7 @@ func NewKeeper(
 	k.Watcher.SetWatchDataManager()
 	ak.SetObserverKeeper(k)
 
-	k.OpenTrie()
+	//k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 	return k
 }
@@ -160,29 +161,31 @@ func NewSimulateKeeper(
 	hashCache, _ := lru.New(hashCacheLimit)
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
-		cdc:           cdc,
-		storeKey:      storeKey,
-		accountKeeper: ak,
-		paramSpace:    paramSpace,
-		supplyKeeper:  sk,
-		bankKeeper:    bk,
-		stakingKeeper: stk,
-		TxCount:       0,
-		Bloom:         big.NewInt(0),
-		LogSize:       0,
-		Watcher:       watcher.NewWatcher(nil),
-		Ada:           ada,
+		cdc:            cdc,
+		storeKey:       storeKey,
+		accountKeeper:  ak,
+		paramSpace:     paramSpace,
+		supplyKeeper:   sk,
+		bankKeeper:     bk,
+		stakingKeeper:  stk,
+		TxCount:        0,
+		Bloom:          big.NewInt(0),
+		LogSize:        0,
+		Watcher:        watcher.NewWatcher(nil),
+		Ada:            ada,
+		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
+		UpdatedAccount: make([]ethcmn.Address, 0),
 
 		db: mpt.InstanceOfMptStore(),
 		// Optimize memory usage. No need to initialize this variable when simulate tx.
 		// triegc:         prque.New(nil),
-		UpdatedAccount: make([]ethcmn.Address, 0),
-		cci:            &chainConfigInfo{},
-		heightCache:    heightCache,
-		hashCache:      hashCache,
+
+		cci:         &chainConfigInfo{},
+		heightCache: heightCache,
+		hashCache:   hashCache,
 	}
 
-	k.OpenTrie()
+	//k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 
 	return k
@@ -210,6 +213,7 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		DB:            k.db,
 		Trie:          k.rootTrie,
 		RootHash:      k.rootHash,
+		StateCache:    k.stateCache,
 	}
 }
 
@@ -221,9 +225,10 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Ada:        k.Ada,
 		Cdc:        k.cdc,
 
-		DB:       k.db,
-		Trie:     k.rootTrie,
-		RootHash: k.rootHash,
+		DB:         k.db,
+		Trie:       k.rootTrie,
+		RootHash:   k.rootHash,
+		StateCache: k.stateCache,
 	}
 }
 

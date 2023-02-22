@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -33,7 +32,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		case types.QueryStorage:
 			return queryStorage(ctx, path, keeper)
 		case types.QueryStorageProof:
-			return queryStorageProof(ctx, path, keeper, req.Height)
+			return queryStorageProof(ctx, path, keeper)
 		case types.QueryStorageRoot:
 			return queryStorageRootHash(ctx, path, keeper, req.Height)
 		case types.QueryStorageByKey:
@@ -150,48 +149,20 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	return bz, nil
 }
 
-func queryStorageProof(ctx sdk.Context, path []string, keeper Keeper, height int64) ([]byte, error) {
+func queryStorageProof(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	if len(path) < 3 {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 			"Insufficient parameters, at least 3 parameters is required")
 	}
 
 	addr := ethcmn.HexToAddress(path[1])
-	storageRootHash, err := queryStorageRootBytesInHeight(keeper, addr, height)
+	key := ethcmn.HexToHash(path[2])
+	val := keeper.GetState(ctx, addr, key)
+	proofList, err := keeper.GetStorageProof(ctx, addr, key)
 	if err != nil {
-		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
 	}
-
-	// check if storageRootHash is empty
-	var res types.QueryResStorageProof
-	if storageRootHash == nil {
-		res = types.QueryResStorageProof{Value: []byte{}, Proof: [][]byte{}}
-	} else {
-		// open storage trie base on storage root hash
-		storageTrie, err := keeper.db.OpenTrie(ethcmn.BytesToHash(storageRootHash))
-		if err != nil {
-			return nil, fmt.Errorf("open %s storage trie failed: %s", addr, err.Error())
-		}
-
-		// append key
-		key := ethcmn.HexToHash(path[2])
-		val, err := storageTrie.TryGet(crypto.Keccak256(append(addr.Bytes(), key.Bytes()...)))
-		if err != nil {
-			return nil, fmt.Errorf("get %s storage in location %s failed: %s", addr, key, err.Error())
-		}
-		// check if value is found
-		if val == nil {
-			res = types.QueryResStorageProof{Value: []byte{}, Proof: [][]byte{}}
-		} else {
-			var proof mpt.ProofList
-			if err = storageTrie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof); err != nil {
-				return nil, fmt.Errorf("trie generate proof failed: %s", err.Error())
-			}
-			res = types.QueryResStorageProof{Value: val, Proof: proof}
-		}
-	}
-
-	// marshal result
+	res := types.QueryResStorageProof{Value: val.Bytes(), Proof: proofList}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
