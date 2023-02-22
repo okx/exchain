@@ -841,7 +841,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 	return ctx, msCache
 }
 
-func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte, height int64) sdk.CacheMultiStore {
+func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte) sdk.CacheMultiStore {
 	if msCache.TracingEnabled() {
 		msCache = msCache.SetTracingContext(
 			map[string]interface{}{

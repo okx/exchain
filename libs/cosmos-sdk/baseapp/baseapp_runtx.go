@@ -47,11 +47,11 @@ func (info *runTxInfo) PutCacheMultiStore(cms sdk.CacheMultiStore) {
 	info.reusableCacheMultiStore = cms
 }
 
-func (app *BaseApp) GetCacheMultiStore(txBytes []byte, height int64) (sdk.CacheMultiStore, bool) {
+func (app *BaseApp) GetCacheMultiStore(txBytes []byte) (sdk.CacheMultiStore, bool) {
 	if app.reusableCacheMultiStore == nil {
 		return nil, false
 	}
-	reuse := updateCacheMultiStore(app.reusableCacheMultiStore, txBytes, height)
+	reuse := updateCacheMultiStore(app.reusableCacheMultiStore, txBytes)
 	app.reusableCacheMultiStore = nil
 	return reuse, true
 }
@@ -160,7 +160,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(trace.ValTxMsgs, false, mode)
 
 	if mode == runTxModeDeliver {
-		if cms, ok := app.GetCacheMultiStore(info.txBytes, info.ctx.BlockHeight()); ok {
+		if cms, ok := app.GetCacheMultiStore(info.txBytes); ok {
 			info.PutCacheMultiStore(cms)
 		}
 	}
@@ -210,7 +210,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	} else if mode == runTxModeCheck || mode == runTxModeReCheck {
 		info.msCacheAnte = app.checkTxCacheMultiStores.GetStore()
 		if info.msCacheAnte != nil {
-			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes, info.ctx.BlockHeight())
+			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes)
 			anteCtx = info.ctx
 			anteCtx.SetMultiStore(info.msCacheAnte)
 		} else {
