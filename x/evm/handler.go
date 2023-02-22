@@ -42,6 +42,7 @@ func updateHGU(ctx sdk.Context, msg sdk.Msg) {
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() <= 0 {
 		return
 	}
+	
 	msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
 
 	if msgFnSignature == nil {
