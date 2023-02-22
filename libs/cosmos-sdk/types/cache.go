@@ -38,6 +38,7 @@ type Account interface {
 	SetCoins(Coins) error
 	SpendableCoins(blockTime time.Time) Coins
 	String() string
+	GetStateRoot() ethcmn.Hash
 }
 
 type ModuleAccount interface {

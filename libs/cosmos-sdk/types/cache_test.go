@@ -65,6 +65,10 @@ func (m *mockAccount) String() string {
 	return ""
 }
 
+func (m *mockAccount) GetStateRoot() ethcmn.Hash {
+	return ethcmn.Hash{}
+}
+
 func newCache(parent *Cache) *Cache {
 	return NewCache(parent, true)
 }

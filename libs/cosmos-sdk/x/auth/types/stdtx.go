@@ -272,6 +272,10 @@ func (tx *StdTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
+func (tx StdTx) GetPartnerInfo(ctx sdk.Context) (string, string) {
+	return "", ""
+}
+
 func (tx *StdTx) GetFrom() string {
 	signers := tx.GetSigners()
 	if len(signers) == 0 {

@@ -2,6 +2,7 @@ package mpt
 
 import (
 	"fmt"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 	"sync"
 
@@ -58,6 +59,9 @@ type MptStore struct {
 	version      int64
 	startVersion int64
 	cmLock       sync.Mutex
+
+	//TODO by yxq
+	retrieval mpttypes.AccountStateRootRetrieval
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -80,18 +84,19 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
+func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
-	return generateMptStore(logger, id, db)
+	return generateMptStore(logger, id, db, retrieval)
 }
 
-func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database) (*MptStore, error) {
+func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
 		db:         db,
 		triegc:     triegc,
 		logger:     logger,
 		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
+		retrieval:  retrieval,
 		exitSignal: make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
@@ -101,7 +106,7 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
-	return generateMptStore(logger, id, db)
+	return generateMptStore(logger, id, db, nil)
 }
 
 func (ms *MptStore) openTrie(id types.CommitID) error {
