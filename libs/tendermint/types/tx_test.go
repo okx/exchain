@@ -63,16 +63,16 @@ func TestTxIndex(t *testing.T) {
 }
 
 func TestTxIndexByHash(t *testing.T) {
-	var height int64
+
 	for i := 0; i < 20; i++ {
 		txs := makeTxs(15, 60)
 		for j := 0; j < len(txs); j++ {
 			tx := txs[j]
-			idx := txs.IndexByHash(tx.Hash(), height)
+			idx := txs.IndexByHash(tx.Hash())
 			assert.Equal(t, j, idx)
 		}
-		assert.Equal(t, -1, txs.IndexByHash(nil, height))
-		assert.Equal(t, -1, txs.IndexByHash(Tx("foodnwkf").Hash(), height))
+		assert.Equal(t, -1, txs.IndexByHash(nil))
+		assert.Equal(t, -1, txs.IndexByHash(Tx("foodnwkf").Hash()))
 	}
 }
 

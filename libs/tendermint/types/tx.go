@@ -61,7 +61,7 @@ func (txs Txs) Index(tx Tx) int {
 }
 
 // IndexByHash returns the index of this transaction hash in the list, or -1 if not found
-func (txs Txs) IndexByHash(hash []byte, height int64) int {
+func (txs Txs) IndexByHash(hash []byte) int {
 	for i := range txs {
 		if bytes.Equal(txs[i].Hash(), hash) {
 			return i
