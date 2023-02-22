@@ -12,13 +12,15 @@ import (
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	lru "github.com/hashicorp/golang-lru"
+
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 
 	"github.com/spf13/viper"
 
+	"golang.org/x/time/rate"
+
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm/watcher"
-	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -30,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -282,9 +285,26 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 		return nil, err
 	}
 
+	// Set status codes based on tx result
+	var status hexutil.Uint64
+	if txRes.TxResult.IsOK() {
+		status = hexutil.Uint64(1)
+	} else {
+		status = hexutil.Uint64(0)
+	}
+
 	execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(execRes.Logs) == 0 {
+		execRes.Logs = []*ethtypes.Log{}
+	}
+
+	// Sometimes failed txs leave Logs which need to be cleared
+	if status == 0 {
+		execRes.ClearLogsAndBloom()
 	}
 
 	return execRes.Logs, nil

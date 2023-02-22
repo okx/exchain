@@ -1339,6 +1339,12 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	if len(data.Logs) == 0 {
 		data.Logs = []*ethtypes.Log{}
 	}
+
+	// Sometimes failed txs leave Logs which need to be cleared
+	if status == 0 {
+		data.ClearLogsAndBloom()
+	}
+
 	contractAddr := &data.ContractAddress
 	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
 		contractAddr = nil

@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"math/big"
 	"math/bits"
 	"strings"
 	"sync"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/tendermint/go-amino"
 
@@ -16,9 +17,10 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 )
 
 type KV struct {
@@ -644,6 +646,12 @@ func DecodeResultData(in []byte) (ResultData, error) {
 		return ResultData{}, err
 	}
 	return data, nil
+}
+
+func (rd *ResultData) ClearLogsAndBloom() {
+	rd.Logs = []*ethtypes.Log{}
+	bloomInt := big.NewInt(0).SetBytes(ethtypes.LogsBloom(rd.Logs))
+	rd.Bloom = ethtypes.BytesToBloom(bloomInt.Bytes())
 }
 
 type recoverEthSigData struct {
