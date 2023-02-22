@@ -121,11 +121,6 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 }
 
 func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txBytes []byte) (common.Hash, error) {
-	//TODO: to delete after venus height
-	lastHeight, err := api.clientCtx.Client.LatestBlockNumber()
-	if err != nil {
-		return common.Hash{}, err
-	}
 	// Get sender address
 	chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
 	if err != nil {
