@@ -5,20 +5,33 @@ import (
 	"path/filepath"
 	"strings"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/leveldb"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 )
 
-const FlagTrieRocksdbBatchSize = "trie.rocksdb-batch-size"
+const (
+	FlagTrieDirtyDisabled    = "trie-dirty-disabled"
+	FlagTrieCacheSize        = "trie-cache-size"
+	FlagEnableDoubleWrite    = "enable-double-write"
+	FlagTrieRocksdbBatchSize = "trie.rocksdb-batch-size"
+)
 
-var TrieRocksdbBatchSize uint = 10
+var (
+	TrieDirtyDisabled         = false
+	TrieCacheSize        uint = 2048 // MB
+	EnableDoubleWrite         = false
+	TrieRocksdbBatchSize uint = 10
+)
 
 //------------------------------------------
 type (
 	BackendType string
 
 	dbCreator func(name string, dir string) (ethdb.KeyValueStore, error)
+
+	AccountStateRootRetrieval func([]byte) ethcmn.Hash
 )
 
 // These are valid backend types.

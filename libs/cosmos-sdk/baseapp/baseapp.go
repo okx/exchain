@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -28,8 +27,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -1035,4 +1036,54 @@ func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 
 func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 	return app.txDecoder
+}
+
+//TODO by yxq
+func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
+	if !tmstate.EnableParaSender {
+		return
+	}
+	go func() {
+		if len(block.Data.Txs) < 20 {
+			return
+		}
+
+		poolChan := make(chan struct{}, 64)
+		for _, tx := range block.Data.Txs {
+			poolChan <- struct{}{}
+
+			go func(tx []byte) {
+				defer func() {
+					<-poolChan
+				}()
+
+				cmstx, err := app.txDecoder(tx)
+				if err != nil {
+					return
+				}
+
+				// load account from db into cache
+				app.checkState.ctx.SetTxBytes(tx)
+				from, to := cmstx.GetPartnerInfo(app.checkState.ctx)
+				if from != "" {
+					senderAddr, err := sdk.AccAddressFromBech32(from)
+					if err != nil {
+						return
+					}
+					app.accNonceHandler(app.checkState.ctx, senderAddr)
+				}
+				if to != "" {
+					receiverAddr, err := sdk.AccAddressFromBech32(to)
+					if err != nil {
+						return
+					}
+					app.accNonceHandler(app.checkState.ctx, receiverAddr)
+				}
+			}(tx)
+		}
+	}()
+}
+
+func (app *BaseApp) SetAccountStateRetrievalForCMS(retrieval mpttypes.AccountStateRootRetrieval) {
+	app.cms.SetAccountStateRootRetrieval(retrieval)
 }

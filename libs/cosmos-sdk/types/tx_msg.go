@@ -46,6 +46,8 @@ type Tx interface {
 	// Return tx call function signature
 	GetTxFnSignatureInfo() ([]byte, int)
 
+	GetPartnerInfo(ctx Context) (string, string)
+
 	GetType() TransactionType
 
 	GetSigners() []AccAddress

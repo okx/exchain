@@ -599,6 +599,11 @@ func (tx *txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
+//TODO by yxq
+func (tx txTest) GetPartnerInfo(ctx sdk.Context) (string, string) {
+	return "", ""
+}
+
 func (tx *txTest) GetGas() uint64 {
 	return 0
 }

@@ -11,13 +11,13 @@ import (
 	"sync"
 	"time"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/system/trace/persist"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
@@ -80,6 +80,9 @@ type Store struct {
 	commitFilters  []types.StoreFilter
 	pruneFilters   []types.StoreFilter
 	versionFilters []types.VersionFilter
+
+	//TODO by yxq
+	retrieval mpttypes.AccountStateRootRetrieval
 }
 
 var (
@@ -396,6 +399,12 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		// convert StoreInfos slice to map
 		for _, storeInfo := range cInfo.StoreInfos {
 			infos[storeInfo.Name] = storeInfo
+		}
+
+		mptInfo := infos[mpt.StoreKey]
+		if mptInfo.Core.CommitID.Version == 0 {
+			mptInfo.Core.CommitID.Version = ver
+			infos[mpt.StoreKey] = mptInfo
 		}
 
 		rs.commitInfoFilter(infos, ver, MptStore)
@@ -965,7 +974,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		return mem.NewStore(), nil
 
 	case types.StoreTypeMPT:
-		return mpt.NewMptStore(rs.logger, id)
+		return mpt.NewMptStore(rs.logger, rs.retrieval, id)
 
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
@@ -1577,7 +1586,9 @@ func (rs *Store) StopStore() {
 			panic("unexpected multi store")
 		case types.StoreTypeMPT:
 			s := store.(*mpt.MptStore)
-			s.StopWithVersion(latestVersion)
+			//TODO by yxq
+			s.OnStop()
+			//s.StopWithVersion(latestVersion)
 		case types.StoreTypeTransient:
 		default:
 		}
@@ -1601,4 +1612,8 @@ func GetLatestStoredMptHeight() uint64 {
 
 func (rs *Store) SetUpgradeVersion(version int64) {
 	rs.upgradeVersion = version
+}
+
+func (rs *Store) SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval) {
+	rs.retrieval = retrieval
 }
