@@ -974,9 +974,9 @@ func TestTxOrTxHashToKey(t *testing.T) {
 
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil))
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash))
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash()))
-	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash()))
+	txhash[0] += 1
+	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, txhash))
 }
 
 func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
