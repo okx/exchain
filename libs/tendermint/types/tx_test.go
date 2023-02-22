@@ -94,7 +94,7 @@ func TestValidTxProof(t *testing.T) {
 		// make sure valid proof for every tx
 		for i := range txs {
 			tx := []byte(txs[i])
-			proof := txs.Proof(i, 0)
+			proof := txs.Proof(i)
 			assert.Equal(t, i, proof.Proof.Index, "%d: %d", h, i)
 			assert.Equal(t, len(txs), proof.Proof.Total, "%d: %d", h, i)
 			assert.EqualValues(t, root, proof.RootHash, "%d: %d", h, i)
@@ -184,7 +184,7 @@ func testTxProofUnchangable(t *testing.T) {
 	txs := makeTxs(randInt(2, 100), randInt(16, 128))
 	root := txs.Hash()
 	i := randInt(0, len(txs)-1)
-	proof := txs.Proof(i, 0)
+	proof := txs.Proof(i)
 
 	// make sure it is valid to start with
 	assert.Nil(t, proof.Validate(root, 0))

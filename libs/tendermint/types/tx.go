@@ -73,7 +73,7 @@ func (txs Txs) IndexByHash(hash []byte) int {
 // Proof returns a simple merkle proof for this node.
 // Panics if i < 0 or i >= len(txs)
 // TODO: optimize this!
-func (txs Txs) Proof(i int, height int64) TxProof {
+func (txs Txs) Proof(i int) TxProof {
 	l := len(txs)
 	bzs := make([][]byte, l)
 	for i := 0; i < l; i++ {
