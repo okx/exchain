@@ -1345,7 +1345,7 @@ func (txs txIDStringer) String() string {
 }
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
-func txID(tx []byte, height int64) string {
+func txID(tx []byte) string {
 	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash())
 }
 
