@@ -422,7 +422,7 @@ func (b *Block) StringIndented(indent string) string {
 %s  %v
 %s}#%v`,
 		indent, b.Header.StringIndented(indent+"  "),
-		indent, b.Data.StringIndented(indent+"  ", b.Height),
+		indent, b.Data.StringIndented(indent+"  "),
 		indent, b.Evidence.StringIndented(indent+"  "),
 		indent, b.LastCommit.StringIndented(indent+"  "),
 		indent, b.Hash())
@@ -1702,7 +1702,7 @@ func (data *Data) Hash(height int64) tmbytes.HexBytes {
 }
 
 // StringIndented returns a string representation of the transactions
-func (data *Data) StringIndented(indent string, height int64) string {
+func (data *Data) StringIndented(indent string) string {
 	if data == nil {
 		return "nil-Data"
 	}
