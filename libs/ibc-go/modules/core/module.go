@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 
 	"math/rand"
@@ -23,7 +21,6 @@ import (
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/client/cli"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/simulation"
@@ -104,7 +101,6 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // AppModule implements an application module for the ibc module.
 type AppModule struct {
 	AppModuleBasic
-	*base.BaseIBCUpgradeModule
 	keeper *keeper.FacadedKeeper
 
 	// create localhost by default
@@ -116,7 +112,6 @@ func NewAppModule(k *keeper.FacadedKeeper) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
-	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
 	return ret
 }
 
@@ -227,17 +222,5 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 
 // WeightedOperations returns the all the ibc module operations with their respective weights.
 func (am AppModule) WeightedOperations(_ module.SimulationState) []simulation2.WeightedOperation {
-	return nil
-}
-
-func (am AppModule) RegisterTask() upgrade.HeightTask {
-	return upgrade.NewHeightTask(4, func(ctx sdk.Context) error {
-		data := lazyGenesis()
-		am.initGenesis(ctx, data)
-		return nil
-	})
-}
-
-func (am AppModule) RegisterParam() params.ParamSet {
 	return nil
 }
