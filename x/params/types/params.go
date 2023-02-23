@@ -31,6 +31,7 @@ type Params struct {
 	VotingPeriod time.Duration `json:"voting_period"`
 	// block height for dex list can not be greater than DexListMaxBlockHeight
 	MaxBlockHeight uint64 `json:"max_block_height"`
+	ConsensusType common.ConsensusType `json:"consensus_type"`
 }
 
 // DefaultParams returns the instance of Params with default value
@@ -41,6 +42,7 @@ func DefaultParams() Params {
 		MinDeposit:       minDeposit,
 		VotingPeriod:     time.Hour * 72,
 		MaxBlockHeight:   100000,
+		ConsensusType:  common.PoA,
 	}
 }
 
@@ -50,7 +52,8 @@ MaxDepositPeriod: %s,
 MinDeposit:       %s,
 VotingPeriod:     %s,
 MaxBlockHeight:   %d,
-`, p.MaxDepositPeriod, p.MinDeposit, p.VotingPeriod, p.MaxBlockHeight)
+ConsensusType:    %d,
+`, p.MaxDepositPeriod, p.MinDeposit, p.VotingPeriod, p.MaxBlockHeight, p.ConsensusType)
 }
 
 // TODO: to supplement the validate function for every pair of param
@@ -67,5 +70,6 @@ func (p *Params) ParamSetPairs() subspace.ParamSetPairs {
 		{KeyMinDeposit, &p.MinDeposit, common.ValidateSysCoins("min deposit")},
 		{KeyVotingPeriod, &p.VotingPeriod, common.ValidateDurationPositive("voting period")},
 		{KeyMaxBlockHeight, &p.MaxBlockHeight, common.ValidateUint64Positive("max block height")},
+		{KeyConsensusType, &p.ConsensusType, common.ValidateConsensusType("consensus type")},
 	}
 }
