@@ -104,7 +104,6 @@ import (
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/common/monitor"
 	commonversion "github.com/okex/exchain/x/common/version"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
@@ -163,7 +162,6 @@ var (
 			distr.ChangeDistributionTypeProposalHandler,
 			distr.WithdrawRewardEnabledProposalHandler,
 			distr.RewardTruncatePrecisionProposalHandler,
-			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
 			evmclient.ManageContractMethodGuFactorProposalHandler,
@@ -188,10 +186,6 @@ var (
 		upgrade.AppModuleBasic{},
 		evm.AppModuleBasic{},
 		token.AppModuleBasic{},
-		dex.AppModuleBasic{},
-		order.AppModuleBasic{},
-		ammswap.AppModuleBasic{},
-		farm.AppModuleBasic{},
 		capabilityModule.AppModuleBasic{},
 		core.CoreModule{},
 		capability.CapabilityModuleAdapter{},
@@ -213,12 +207,6 @@ var (
 		staking.NotBondedPoolName:   {supply.Burner, supply.Staking},
 		gov.ModuleName:              nil,
 		token.ModuleName:            {supply.Minter, supply.Burner},
-		dex.ModuleName:              nil,
-		order.ModuleName:            nil,
-		ammswap.ModuleName:          {supply.Minter, supply.Burner},
-		farm.ModuleName:             nil,
-		farm.YieldFarmingAccount:    nil,
-		farm.MintFarmingAccount:     {supply.Burner},
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		ibcfeetypes.ModuleName:      nil,
@@ -272,10 +260,6 @@ type SimApp struct {
 	EvidenceKeeper evidence.Keeper
 	EvmKeeper      *evm.Keeper
 	TokenKeeper    token.Keeper
-	DexKeeper      dex.Keeper
-	OrderKeeper    order.Keeper
-	SwapKeeper     ammswap.Keeper
-	FarmKeeper     farm.Keeper
 	wasmKeeper     wasm.Keeper
 
 	// the module manager
@@ -347,8 +331,8 @@ func NewSimApp(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock,
+		ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
 		mpt.StoreKey, wasm.StoreKey,
@@ -384,10 +368,6 @@ func NewSimApp(
 	app.subspaces[evidence.ModuleName] = app.ParamsKeeper.Subspace(evidence.DefaultParamspace)
 	app.subspaces[evm.ModuleName] = app.ParamsKeeper.Subspace(evm.DefaultParamspace)
 	app.subspaces[token.ModuleName] = app.ParamsKeeper.Subspace(token.DefaultParamspace)
-	app.subspaces[dex.ModuleName] = app.ParamsKeeper.Subspace(dex.DefaultParamspace)
-	app.subspaces[order.ModuleName] = app.ParamsKeeper.Subspace(order.DefaultParamspace)
-	app.subspaces[ammswap.ModuleName] = app.ParamsKeeper.Subspace(ammswap.DefaultParamspace)
-	app.subspaces[farm.ModuleName] = app.ParamsKeeper.Subspace(farm.DefaultParamspace)
 	app.subspaces[ibchost.ModuleName] = app.ParamsKeeper.Subspace(ibchost.ModuleName)
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.DefaultParamspace)
@@ -418,7 +398,7 @@ func NewSimApp(
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
 		codecProxy.GetCdc(), keys[mint.StoreKey], app.subspaces[mint.ModuleName], stakingKeeper,
-		app.SupplyKeeper, auth.FeeCollectorName, farm.MintFarmingAccount,
+		app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.DistrKeeper = distr.NewKeeper(
 		codecProxy.GetCdc(), keys[distr.StoreKey], app.subspaces[distr.ModuleName], stakingKeeper,
@@ -438,18 +418,6 @@ func NewSimApp(
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock], app.marshal.GetCdc(), false, &app.AccountKeeper)
-
-	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, stakingKeeper,
-		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.marshal.GetCdc())
-
-	app.OrderKeeper = order.NewKeeper(
-		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, monitor.NopOrderMetrics())
-
-	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
-
-	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper.Keeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
-		app.keys[farm.StoreKey], app.marshal.GetCdc())
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
@@ -526,8 +494,6 @@ func NewSimApp(
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
 		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
-		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
-		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
 		AddRoute(ibchost.RouterKey, ibcclient.NewClientUpdateProposalHandler(v2keeper.ClientKeeper)).
@@ -535,8 +501,6 @@ func NewSimApp(
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
-		AddRoute(dex.RouterKey, &app.DexKeeper).
-		AddRoute(farm.RouterKey, &app.FarmKeeper).
 		AddRoute(evm.RouterKey, app.EvmKeeper).
 		AddRoute(mint.RouterKey, &app.MintKeeper).
 		AddRoute(erc20.RouterKey, &app.Erc20Keeper)
@@ -546,8 +510,6 @@ func NewSimApp(
 		app.BankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
 	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
-	app.DexKeeper.SetGovKeeper(app.GovKeeper)
-	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
@@ -648,10 +610,6 @@ func NewSimApp(
 		evidence.NewAppModule(app.EvidenceKeeper),
 		evm2.TNewEvmModuleAdapter(app.EvmKeeper, &app.AccountKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
-		dex.NewAppModule(commonversion.ProtocolVersionV0, app.DexKeeper, app.SupplyKeeper),
-		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
-		ammswap.NewAppModule(app.SwapKeeper),
-		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
 		//ibc.NewAppModule(app.IBCKeeper),
@@ -673,14 +631,11 @@ func NewSimApp(
 	app.mm.SetOrderBeginBlockers(
 		bank.ModuleName,
 		capabilitytypes.ModuleName,
-		order.ModuleName,
 		token.ModuleName,
-		dex.ModuleName,
 		mint.ModuleName,
 		distr.ModuleName,
 		slashing.ModuleName,
 		staking.ModuleName,
-		farm.ModuleName,
 		evidence.ModuleName,
 		evm.ModuleName,
 		ibchost.ModuleName,
@@ -691,8 +646,6 @@ func NewSimApp(
 	app.mm.SetOrderEndBlockers(
 		crisis.ModuleName,
 		gov.ModuleName,
-		dex.ModuleName,
-		order.ModuleName,
 		staking.ModuleName,
 		evm.ModuleName,
 		mock.ModuleName,
@@ -705,7 +658,7 @@ func NewSimApp(
 		capabilitytypes.ModuleName,
 		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
 		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
-		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
+		token.ModuleName,
 		ibctransfertypes.ModuleName,
 		ibchost.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
@@ -753,7 +706,7 @@ func NewSimApp(
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
 	}
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper, app.StakingKeeper, app.ParamsKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(), app.WasmHandler, app.IBCKeeper, app.StakingKeeper, app.ParamsKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
@@ -988,7 +941,7 @@ func GetMaccPerms() map[string][]string {
 	return dupMaccPerms
 }
 
-func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
+func validateMsgHook() ante.ValidateMsgHandler {
 	return func(newCtx sdk.Context, msgs []sdk.Msg) error {
 
 		wrongMsgErr := sdk.ErrUnknownRequest(
@@ -996,17 +949,7 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 		var err error
 
 		for _, msg := range msgs {
-			switch assertedMsg := msg.(type) {
-			case order.MsgNewOrders:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-				_, err = order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
-			case order.MsgCancelOrders:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+			switch  msg.(type) {
 			case *evmtypes.MsgEthereumTx:
 				if len(msgs) > 1 {
 					return wrongMsgErr
