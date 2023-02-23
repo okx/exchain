@@ -61,8 +61,6 @@ func (am AppModule) UpgradeHeight() int64 {
 }
 
 func (am AppModule) RegisterParam() params.ParamSet {
-	//v := types.KeyHistoricalEntriesParams(7)
-	//return params2.ParamSet(v)
 	return nil
 }
 
