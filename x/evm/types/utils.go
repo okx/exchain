@@ -648,12 +648,6 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	return data, nil
 }
 
-func (rd *ResultData) ClearLogsAndBloom() {
-	rd.Logs = []*ethtypes.Log{}
-	bloomInt := big.NewInt(0).SetBytes(ethtypes.LogsBloom(rd.Logs))
-	rd.Bloom = ethtypes.BytesToBloom(bloomInt.Bytes())
-}
-
 type recoverEthSigData struct {
 	Buffer  bytes.Buffer
 	Sig     [65]byte
