@@ -61,19 +61,21 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	// call evm hooks
-	receipt := &ethtypes.Receipt{
-		Status:           ethtypes.ReceiptStatusSuccessful,
-		Bloom:            result.ResultData.Bloom,
-		Logs:             result.ResultData.Logs,
-		TxHash:           result.ResultData.TxHash,
-		ContractAddress:  result.ResultData.ContractAddress,
-		GasUsed:          result.ExecResult.GasInfo.GasConsumed,
-		BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
-		TransactionIndex: uint(tx.Keeper.TxCount),
-	}
-	err = tx.Keeper.CallEvmHooks(tx.Ctx, &tx.StateTransition, receipt)
-	if err != nil {
-		tx.Keeper.Logger().Error("tx call evm hooks failed", "error", err)
+	if !tx.Ctx.IsCheckTx() {
+		receipt := &ethtypes.Receipt{
+			Status:           ethtypes.ReceiptStatusSuccessful,
+			Bloom:            result.ResultData.Bloom,
+			Logs:             result.ResultData.Logs,
+			TxHash:           result.ResultData.TxHash,
+			ContractAddress:  result.ResultData.ContractAddress,
+			GasUsed:          result.ExecResult.GasInfo.GasConsumed,
+			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
+			TransactionIndex: uint(tx.Keeper.TxCount),
+		}
+		err = tx.Keeper.CallEvmHooks(tx.Ctx, &tx.StateTransition, receipt)
+		if err != nil {
+			tx.Keeper.Logger().Error("tx call evm hooks failed", "error", err)
+		}
 	}
 
 	return
