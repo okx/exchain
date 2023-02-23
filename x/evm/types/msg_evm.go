@@ -368,7 +368,6 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if !isProtectedV(msg.Data.V) &&
 		tmtypes.HigherThanMercury(height) &&
 		uint64(height) < PreEIP155Height {
-		fmt.Println("VerifySig.---------PreEIP155Height:", PreEIP155Height, ",curHeight", height)
 		return errors.New("deprecated support for homestead Signer")
 	}
 	if msg.BaseTx.GetFrom() != "" {

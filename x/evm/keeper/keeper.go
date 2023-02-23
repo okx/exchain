@@ -154,7 +154,6 @@ func NewKeeper(
 
 	//reference to the paramKeeper
 	k.paramsKeeper.ClaimReadyForUpgrade(PREEIP155, func(info ptypes.UpgradeInfo) {
-		k.logger.Error("ClaimReadyForUpgrade. set PreEIP155Height", info.EffectiveHeight)
 		types.PreEIP155Height = info.EffectiveHeight
 	})
 

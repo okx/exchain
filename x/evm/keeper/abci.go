@@ -23,15 +23,6 @@ var once sync.Once
 // BeginBlock sets the block hash -> block height map for the previous block height
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	// load the preEIP effective height once
-	once.Do(func() {
-		k.logger.Error("Try to read preeip155 height")
-		if upgradeInfo, err := k.paramsKeeper.GetEffectiveUpgradeInfo(ctx, PREEIP155); err == nil {
-			k.logger.Error("Read preeip155 EffectiveHeight success:", upgradeInfo.EffectiveHeight)
-			types.PreEIP155Height = upgradeInfo.EffectiveHeight
-		}
-	})
-
 	if req.Header.GetHeight() == tmtypes.GetMarsHeight() {
 		migrateDataInMarsHeight(ctx, k)
 	}
@@ -42,6 +33,12 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	// load the preEIP effective height once
+	once.Do(func() {
+		if upgradeInfo, err := k.paramsKeeper.GetEffectiveUpgradeInfo(ctx, PREEIP155); err == nil {
+			types.PreEIP155Height = upgradeInfo.EffectiveHeight
+		}
+	})
 
 	// Set the hash -> height and height -> hash mapping.
 	currentHash := req.Hash
