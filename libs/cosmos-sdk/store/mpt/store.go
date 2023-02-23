@@ -408,7 +408,7 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 	ms.cmLock.Lock()
 	defer ms.cmLock.Unlock()
 
-	if !tmtypes.HigherThanMars(ms.version) && !TrieWriteAhead {
+	if !tmtypes.HigherThanMars(ms.version) {
 		return nil
 	}
 
