@@ -24,7 +24,6 @@ const IGNORE_HEIGHT_CHECKING = -1
 // When and which decoder decoding what kind of tx:
 // | ------------| --------------------|
 // |             | Tx Type             |
-// |             |                     |
 // | ------------|---------------------|
 // | evmDecoder  |   evmTx             |
 // | aminoDecoder|   stdTx             |
@@ -125,18 +124,18 @@ func evmDecoder(_ codec.CdcAbstraction, txBytes []byte) (tx sdk.Tx, err error) {
 func aminoDecoder(cdc codec.CdcAbstraction, txBytes []byte) (tx sdk.Tx, err error) {
 	var v interface{}
 	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
-		return sanityCheck(v.(sdk.Tx))
+		return aminoSanityCheck(v.(sdk.Tx))
 	}
 	err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 	if err != nil {
 		return nil, err
 	}
-	return sanityCheck(tx)
+	return aminoSanityCheck(tx)
 }
 
-func sanityCheck(tx sdk.Tx) (sdk.Tx, error) {
-	if tx.GetType() == sdk.EvmTxType {
-		return nil, fmt.Errorf("amino decode is not allowed for MsgEthereumTx")
+func aminoSanityCheck(tx sdk.Tx) (sdk.Tx, error) {
+	if tx.GetType() != sdk.StdTxType {
+		return nil, fmt.Errorf("amino decode is not allowed for %s", tx.GetType())
 	}
 	return tx, nil
 }
