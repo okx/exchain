@@ -22,18 +22,12 @@ import (
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okex/exchain/libs/cosmos-sdk/x/bank/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
-	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
-	dexclient "github.com/okex/exchain/x/dex/client"
-	dexrest "github.com/okex/exchain/x/dex/client/rest"
 	dist "github.com/okex/exchain/x/distribution"
 	distr "github.com/okex/exchain/x/distribution"
 	distrest "github.com/okex/exchain/x/distribution/client/rest"
 	evmrest "github.com/okex/exchain/x/evm/client/rest"
-	farmclient "github.com/okex/exchain/x/farm/client"
-	farmrest "github.com/okex/exchain/x/farm/client/rest"
 	fsrest "github.com/okex/exchain/x/feesplit/client/rest"
 	govrest "github.com/okex/exchain/x/gov/client/rest"
-	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
@@ -71,12 +65,8 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	stakingrest.RegisterRoutes(rs.CliCtx, v1Router)
 	distrest.RegisterRoutes(rs.CliCtx, v1Router, dist.StoreKey)
 
-	orderrest.RegisterRoutes(rs.CliCtx, v1Router)
 	tokensrest.RegisterRoutes(rs.CliCtx, v1Router, token.StoreKey)
-	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
-	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
-	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
 	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -88,8 +78,6 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			distr.ChangeDistributionTypeProposalHandler.RESTHandler(rs.CliCtx),
 			distr.WithdrawRewardEnabledProposalHandler.RESTHandler(rs.CliCtx),
 			distr.RewardTruncatePrecisionProposalHandler.RESTHandler(rs.CliCtx),
-			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
-			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageSysContractAddressProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractByteCodeProposalHandler.RESTHandler(rs.CliCtx),
@@ -108,7 +96,6 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 	bankrest.RegisterRoutes(rs.CliCtx, v2Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v2Router)
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
-	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
 	fsrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }

@@ -16,12 +16,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/x/ammswap"
-	dex "github.com/okex/exchain/x/dex/types"
 	distr "github.com/okex/exchain/x/distribution"
-	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/staking"
 	token "github.com/okex/exchain/x/token/types"
 	"github.com/okex/exchain/x/wasm/types"
@@ -119,12 +115,6 @@ func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		gov.ModuleName:            nil,
 		token.ModuleName:          {supply.Minter, supply.Burner},
-		dex.ModuleName:            nil,
-		order.ModuleName:          nil,
-		ammswap.ModuleName:        {supply.Minter, supply.Burner},
-		farm.ModuleName:           nil,
-		farm.YieldFarmingAccount:  nil,
-		farm.MintFarmingAccount:   {supply.Burner},
 	}
 
 	for acc := range maccPerms {

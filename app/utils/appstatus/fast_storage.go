@@ -18,16 +18,12 @@ import (
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/ammswap"
-	dex "github.com/okex/exchain/x/dex/types"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
-	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/feesplit"
 	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/slashing"
 	staking "github.com/okex/exchain/x/staking/types"
 	token "github.com/okex/exchain/x/token/types"
@@ -44,8 +40,8 @@ func GetAllStoreKeys() []string {
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock,
+		ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
 		// mpt.StoreKey,

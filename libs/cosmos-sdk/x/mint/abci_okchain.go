@@ -40,10 +40,10 @@ func beginBlocker(ctx sdk.Context, k Keeper) {
 		panic(err)
 	}
 	// send the minted coins to the farm module account
-	err = k.AddYieldFarming(ctx, farmingAmount)
-	if err != nil {
-		panic(err)
-	}
+	//err = k.AddYieldFarming(ctx, farmingAmount)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	logger.Debug(fmt.Sprintf(
 		"total supply <%v>, "+
