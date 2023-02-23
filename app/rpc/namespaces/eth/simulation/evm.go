@@ -23,9 +23,8 @@ type EvmFactory struct {
 	storeKey       *sdk.KVStoreKey
 	paramsKey      *sdk.KVStoreKey
 	paramsTKey     *sdk.TransientStoreKey
-
-	cms       sdk.CommitMultiStore
-	storePool sync.Pool
+	cms            sdk.CommitMultiStore
+	storePool      sync.Pool
 }
 
 func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
