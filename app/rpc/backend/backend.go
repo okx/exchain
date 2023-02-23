@@ -284,22 +284,13 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 	if err != nil {
 		return nil, err
 	}
-
-	// Set status codes based on tx result
-	var status hexutil.Uint64
-	if txRes.TxResult.IsOK() {
-		status = hexutil.Uint64(1)
-	} else {
-		status = hexutil.Uint64(0)
-	}
-
 	execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
 	if err != nil {
 		return nil, err
 	}
 
 	// Sometimes failed txs leave Logs which need to be cleared
-	if status == 0 && execRes.Logs != nil {
+	if !txRes.TxResult.IsOK() && execRes.Logs != nil {
 		execRes.ClearLogsAndBloom()
 	}
 
