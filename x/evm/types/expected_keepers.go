@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	ptypes "github.com/okex/exchain/x/params/types"
 )
 
 // AccountKeeper defines the expected account keeper interface
@@ -35,4 +36,10 @@ type BankKeeper interface {
 // StakingKeeper for validator verify
 type StakingKeeper interface {
 	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
+}
+
+// ParamsKeeper for upgrade
+type ParamsKeeper interface {
+	ClaimReadyForUpgrade(name string, cb func(ptypes.UpgradeInfo))
+	GetEffectiveUpgradeInfo(ctx sdk.Context, name string) (ptypes.UpgradeInfo, error)
 }

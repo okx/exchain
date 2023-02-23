@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"sync"
 
@@ -31,6 +32,7 @@ var big8 = big.NewInt(8)
 var DefaultDeployContractFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")
 var emptyEthAddr = ethcmn.Address{}
+var PreEIP155Height uint64 = math.MaxUint64
 
 // message type and route constants
 const (
@@ -363,7 +365,10 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, erro
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
-	if !isProtectedV(msg.Data.V) && tmtypes.HigherThanMercury(height) {
+	if !isProtectedV(msg.Data.V) &&
+		tmtypes.HigherThanMercury(height) &&
+		uint64(height) < PreEIP155Height {
+		fmt.Println("VerifySig.---------PreEIP155Height:", PreEIP155Height, ",curHeight", height)
 		return errors.New("deprecated support for homestead Signer")
 	}
 	if msg.BaseTx.GetFrom() != "" {

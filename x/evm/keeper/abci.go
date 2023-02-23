@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/okex/exchain/x/evm/watcher"
 
@@ -17,9 +18,20 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
+var once sync.Once
+
 // BeginBlock sets the block hash -> block height map for the previous block height
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	// load the preEIP effective height once
+	once.Do(func() {
+		k.logger.Error("Try to read preeip155 height")
+		if upgradeInfo, err := k.paramsKeeper.GetEffectiveUpgradeInfo(ctx, PREEIP155); err == nil {
+			k.logger.Error("Read preeip155 EffectiveHeight success:", upgradeInfo.EffectiveHeight)
+			types.PreEIP155Height = upgradeInfo.EffectiveHeight
+		}
+	})
+
 	if req.Header.GetHeight() == tmtypes.GetMarsHeight() {
 		migrateDataInMarsHeight(ctx, k)
 	}
