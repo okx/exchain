@@ -6,7 +6,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/feesplit/types"
 )
@@ -38,14 +37,6 @@ func (k Keeper) PostTxProcessing(
 	st *evmtypes.StateTransition,
 	receipt *ethtypes.Receipt,
 ) error {
-	// This is different from ibc and wasm, evm tx exists at all times.
-	// in Venus3 height store takes effect,
-	// in Venus3+1 height initGenesis takes effect,
-	// in Venus3+2 height can be used normally params
-	if !tmtypes.HigherThanVenus3(ctx.BlockHeight() - 1) {
-		return nil
-	}
-
 	// For GetParams using cache, no fee is charged
 	currentGasMeter := ctx.GasMeter()
 	infGasMeter := sdk.GetReusableInfiniteGasMeter()

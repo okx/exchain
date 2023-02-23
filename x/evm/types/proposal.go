@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -410,11 +408,6 @@ func (mp ManageSysContractAddressProposal) ProposalType() string {
 
 // ValidateBasic validates a manage system contract address proposal
 func (mp ManageSysContractAddressProposal) ValidateBasic() sdk.Error {
-	//will delete it after upgrade venus3
-	if global.GetGlobalHeight() > 0 && !types.HigherThanVenus3(global.GetGlobalHeight()) {
-		return govtypes.ErrInvalidProposalContent("not support system contract address proposal")
-	}
-
 	if len(strings.TrimSpace(mp.Title)) == 0 {
 		return govtypes.ErrInvalidProposalContent("title is required")
 	}

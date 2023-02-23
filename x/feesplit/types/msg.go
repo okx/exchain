@@ -7,8 +7,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/tendermint/global"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -66,10 +64,6 @@ func (msg MsgRegisterFeeSplit) Type() string { return TypeMsgRegisterFeeSplit }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRegisterFeeSplit) ValidateBasic() error {
-	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
-		return ErrNotFeesplitHeight
-	}
-
 	if _, err := sdk.AccAddressFromBech32(msg.DeployerAddress); err != nil {
 		return sdkerrors.Wrapf(err, "invalid deployer address %s", msg.DeployerAddress)
 	}
@@ -138,10 +132,6 @@ func (msg MsgUpdateFeeSplit) Type() string { return TypeMsgUpdateFeeSplit }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgUpdateFeeSplit) ValidateBasic() error {
-	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
-		return ErrNotFeesplitHeight
-	}
-
 	if _, err := sdk.AccAddressFromBech32(msg.DeployerAddress); err != nil {
 		return sdkerrors.Wrapf(err, "invalid deployer address %s", msg.DeployerAddress)
 	}
@@ -195,10 +185,6 @@ func (msg MsgCancelFeeSplit) Type() string { return TypeMsgCancelFeeSplit }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCancelFeeSplit) ValidateBasic() error {
-	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
-		return ErrNotFeesplitHeight
-	}
-
 	if _, err := sdk.AccAddressFromBech32(msg.DeployerAddress); err != nil {
 		return sdkerrors.Wrapf(err, "invalid deployer address %s", msg.DeployerAddress)
 	}

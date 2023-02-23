@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
 )
@@ -421,7 +420,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageSysContractAddressProposal() 
 		ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
 		true,
 	)
-	types.UnittestOnlySetMilestoneVenus3Height(-1)
+
 	suite.Require().Equal(expectedTitle, proposal.GetTitle())
 	suite.Require().Equal(expectedDescription, proposal.GetDescription())
 	suite.Require().Equal(RouterKey, proposal.ProposalRoute())

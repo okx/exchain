@@ -300,7 +300,6 @@ func NewOKExChainApp(
 		"VenusHeight", tmtypes.GetVenusHeight(),
 		"Venus1Height", tmtypes.GetVenus1Height(),
 		"Venus2Height", tmtypes.GetVenus2Height(),
-		"Venus3Height", tmtypes.GetVenus3Height(),
 		"Veneus4Height", tmtypes.GetVenus4Height(),
 		"EarthHeight", tmtypes.GetEarthHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
