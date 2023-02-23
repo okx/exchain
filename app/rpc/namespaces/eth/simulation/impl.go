@@ -107,16 +107,22 @@ func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderM
 }
 
 type SubspaceProxy struct {
-	q *watcher.Querier
+	q        *watcher.Querier
+	subspace params.Subspace
 }
 
 func (p SubspaceProxy) CustomKVStore(ctx sdk.Context) sdk.KVStore {
-	panic("implement me")
+	return p.subspace.CustomKVStore(ctx)
 }
 
-func NewSubspaceProxy() SubspaceProxy {
+func NewSubspaceProxy(key sdk.StoreKey, tkey sdk.StoreKey) SubspaceProxy {
+	paramSpace := params.NewSubspace(nil, key, tkey, evm.DefaultParamspace)
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(evmtypes.ParamKeyTable())
+	}
 	return SubspaceProxy{
-		q: watcher.NewQuerier(),
+		q:        watcher.NewQuerier(),
+		subspace: paramSpace,
 	}
 }
 
