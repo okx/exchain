@@ -46,8 +46,6 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 			GetCmdAddShares(cdc),
 		)...)
 
-	stakingTxCmd.AddCommand(GetCmdProxy(cdc))
-
 	return stakingTxCmd
 }
 

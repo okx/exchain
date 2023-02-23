@@ -36,12 +36,12 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgWithdraw(ctx, msg, k)
 		case types.MsgAddShares:
 			return handleMsgAddShares(ctx, msg, k)
-		case types.MsgBindProxy:
-			return handleMsgBindProxy(ctx, msg, k)
-		case types.MsgUnbindProxy:
-			return handleMsgUnbindProxy(ctx, msg, k)
-		case types.MsgRegProxy:
-			return handleRegProxy(ctx, msg, k)
+		//case types.MsgBindProxy:
+		//	return handleMsgBindProxy(ctx, msg, k)
+		//case types.MsgUnbindProxy:
+		//	return handleMsgUnbindProxy(ctx, msg, k)
+		//case types.MsgRegProxy:
+		//	return handleRegProxy(ctx, msg, k)
 		case types.MsgDestroyValidator:
 			return handleMsgDestroyValidator(ctx, msg, k)
 		default:
