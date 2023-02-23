@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"google.golang.org/protobuf/encoding/protowire"
-
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 
@@ -49,14 +47,14 @@ type ethTxData struct {
 
 // Hash computes the TMHASH hash of the wire encoded transaction.
 func (tx Tx) Hash() []byte {
-	// if we can't get length-prefixed bytes, this tx should not be an amino-encoded tx
-	if _, err := amino.GetBinaryBareFromBinaryLengthPrefixed(tx); err != nil {
-		// if we can't get proto tag, this tx should not be a proto-encoded tx
-		_, _, length := protowire.ConsumeTag(tx)
-		if length < 0 {
-			return etherhash.Sum(tx)
-		}
-	}
+	//// if we can't get length-prefixed bytes, this tx should not be an amino-encoded tx
+	//if _, err := amino.GetBinaryBareFromBinaryLengthPrefixed(tx); err != nil {
+	//	// if we can't get proto tag, this tx should not be a proto-encoded tx
+	//	_, _, length := protowire.ConsumeTag(tx)
+	//	if length < 0 {
+	//		return etherhash.Sum(tx)
+	//	}
+	//}
 	var msg ethTxData
 	if err := rlp.DecodeBytes(tx, &msg); err != nil {
 		return tmhash.Sum(tx)
