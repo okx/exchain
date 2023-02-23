@@ -17,7 +17,6 @@ const (
 )
 
 const (
-	FlagTrieWriteAhead    = "trie.write-ahead"
 	FlagTrieDirtyDisabled = "trie.dirty-disabled"
 	FlagTrieCacheSize     = "trie.cache-size"
 	FlagTrieNodesLimit    = "trie.nodes-limit"
