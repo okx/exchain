@@ -6,7 +6,6 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/feesplit/types"
 )
@@ -20,10 +19,9 @@ func init() {
 }
 
 func RegisterConvert() {
-	enableHeight := tmtypes.GetVenus3Height()
-	baseapp.RegisterCmHandle("okexchain/MsgRegisterFeeSplit", baseapp.NewCMHandle(ConvertRegisterFeeSplitMsg, enableHeight))
-	baseapp.RegisterCmHandle("okexchain/MsgUpdateFeeSplit", baseapp.NewCMHandle(ConvertUpdateFeeSplitMsg, enableHeight))
-	baseapp.RegisterCmHandle("okexchain/MsgCancelFeeSplit", baseapp.NewCMHandle(ConvertCancelFeeSplitMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/MsgRegisterFeeSplit", baseapp.NewCMHandle(ConvertRegisterFeeSplitMsg, 0))
+	baseapp.RegisterCmHandle("okexchain/MsgUpdateFeeSplit", baseapp.NewCMHandle(ConvertUpdateFeeSplitMsg, 0))
+	baseapp.RegisterCmHandle("okexchain/MsgCancelFeeSplit", baseapp.NewCMHandle(ConvertCancelFeeSplitMsg, 0))
 }
 
 func ConvertRegisterFeeSplitMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
