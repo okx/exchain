@@ -36,7 +36,7 @@ var (
 var (
 	KeyPrefixAccRootMptHash        = []byte{0x11}
 	KeyPrefixAccLatestStoredHeight = []byte{0x12}
-	KeyPrefixEvmRootMptHash        = []byte{0x13}
+	KeyPrefixEvmRootMptHash        = []byte{0x13} // TODO must be delete
 	KeyPrefixEvmLatestStoredHeight = []byte{0x14}
 
 	GAccToPrefetchChannel    = make(chan [][]byte, 2000)

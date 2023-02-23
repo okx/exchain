@@ -3,11 +3,11 @@ package types
 import (
 	"errors"
 	"fmt"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	ethermint "github.com/okex/exchain/app/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
@@ -43,9 +43,6 @@ func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Has
 		}
 
 		usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
-	}
-	if prefetcher != nil {
-		prefetcher.Used(csdb.originalRoot, usedAddrs)
 	}
 
 	if len(csdb.stateObjectsDirty) > 0 {
@@ -92,10 +89,7 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 		err error
 	)
 
-	tmpKey := key
-	if TrieUseCompositeKey {
-		tmpKey = GetStorageByAddressKey(addr.Bytes(), key.Bytes())
-	}
+	tmpKey := GetStorageByAddressKey(addr.Bytes(), key.Bytes())
 	if enc, err = csdb.StorageTrie(addr).TryGet(tmpKey.Bytes()); err != nil {
 		return ethcmn.Hash{}
 	}
@@ -172,6 +166,7 @@ func (csdb *CommitStateDB) MarkUpdatedAcc(addList []ethcmn.Address) {
 	}
 }
 
+//TODO this line code only get contract_storage_merkle_proof, have not acc_merkle_proof
 // GetStorageProof returns the Merkle proof for given storage slot.
 func (csdb *CommitStateDB) GetStorageProof(a ethcmn.Address, key ethcmn.Hash) ([][]byte, error) {
 	var proof mpt.ProofList
@@ -195,8 +190,9 @@ func (csdb *CommitStateDB) GetProof(addr ethcmn.Address) ([][]byte, error) {
 // GetProofByHash returns the Merkle proof for a given account.
 func (csdb *CommitStateDB) GetProofByHash(addrHash ethcmn.Hash) ([][]byte, error) {
 	var proof mpt.ProofList
-	err := csdb.trie.Prove(addrHash[:], 0, &proof)
-	return proof, err
+	//Todo need to call acc mpt trie
+	//err := csdb.trie.Prove(addrHash[:], 0, &proof)
+	return proof, nil
 }
 
 func (csdb *CommitStateDB) Logger() log.Logger {
@@ -216,7 +212,7 @@ func (csdb *CommitStateDB) StartPrefetcher(namespace string) {
 		csdb.prefetcher = nil
 	}
 
-	csdb.prefetcher = mpt.NewTriePrefetcher(csdb.db, csdb.originalRoot, namespace)
+	csdb.prefetcher = mpt.NewTriePrefetcher(csdb.db, types2.EmptyRootHash, namespace)
 }
 
 // StopPrefetcher terminates a running prefetcher and reports any leftover stats
@@ -226,8 +222,4 @@ func (csdb *CommitStateDB) StopPrefetcher() {
 		csdb.prefetcher.Close()
 		csdb.prefetcher = nil
 	}
-}
-
-func (csdb *CommitStateDB) GetRootTrie() ethstate.Trie {
-	return csdb.trie
 }

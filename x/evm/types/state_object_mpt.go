@@ -17,10 +17,6 @@ const (
 	ContractStateCache      = 2048 // MB
 )
 
-var (
-	TrieUseCompositeKey = true
-)
-
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
 	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
 	//need to copy acc stateroot
@@ -65,28 +61,18 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
-	if enc = so.stateDB.StateCache.Get(nil, prefixKey.Bytes()); len(enc) > 0 {
-		value.SetBytes(enc)
-	} else {
+	tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
+	if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
+		so.setError(err)
+		return ethcmn.Hash{}
+	}
 
-		tmpKey := key
-		if TrieUseCompositeKey {
-			tmpKey = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-		}
-
-		if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
+	if len(enc) > 0 {
+		_, content, _, err := rlp.Split(enc)
+		if err != nil {
 			so.setError(err)
-			return ethcmn.Hash{}
 		}
-
-		if len(enc) > 0 {
-			_, content, _, err := rlp.Split(enc)
-			if err != nil {
-				so.setError(err)
-			}
-			value.SetBytes(content)
-		}
+		value.SetBytes(content)
 	}
 
 	so.originStorage[key] = value
@@ -137,10 +123,9 @@ func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 // UpdateRoot sets the trie root to the current root hash of
 func (so *stateObject) updateRoot(db ethstate.Database) {
 	// If nothing changed, don't bother with hashing anything
-	if so.updateTrie(db) == nil {
-		return
+	if trie := so.updateTrie(db); trie != nil {
+		so.account.StateRoot = trie.Hash()
 	}
-	//so.stateRoot = so.trie.Hash()
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
@@ -162,20 +147,15 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		prefixKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
-		if TrieUseCompositeKey {
-			key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-		}
+		key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
-			so.stateDB.StateCache.Del(prefixKey.Bytes())
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
-			so.stateDB.StateCache.Set(prefixKey.Bytes(), value.Bytes())
 		}
 	}
 	if so.stateDB.prefetcher != nil {
@@ -214,9 +194,7 @@ func (so *stateObject) finalise(prefetch bool) {
 		for key, value := range so.dirtyStorage {
 			so.pendingStorage[key] = value
 			if value != so.originStorage[key] {
-				if TrieUseCompositeKey {
-					key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-				}
+				key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 				slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 			}
 		}
@@ -282,12 +260,4 @@ func (so *stateObject) UpdateAccInfo() error {
 		}
 	}
 	return fmt.Errorf("fail to update account for address: %s", so.account.Address.String())
-}
-
-func AssembleCompositeKey(prefix, key []byte) ethcmn.Hash {
-	compositeKey := make([]byte, (len(prefix)+len(key))/2)
-
-	copy(compositeKey, prefix[:len(prefix)/2])
-	copy(compositeKey[len(prefix)/2:], key[len(key)/2:])
-	return ethcmn.BytesToHash(compositeKey)
 }

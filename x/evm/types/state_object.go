@@ -339,9 +339,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 			}
 		}
 		if mpt.TrieWriteAhead {
-			if TrieUseCompositeKey {
-				key = prefixKey
-			}
+			key = prefixKey
 
 			usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 			if (value == ethcmn.Hash{}) {
