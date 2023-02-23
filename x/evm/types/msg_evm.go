@@ -404,6 +404,11 @@ func (msg *MsgEthereumTx) GetGas() uint64 {
 	return msg.Data.GasLimit
 }
 
+// Protected says whether the transaction is replay-protected.
+func (msg *MsgEthereumTx) Protected() bool {
+	return isProtectedV(msg.Data.V)
+}
+
 // Fee returns gasprice * gaslimit.
 func (msg *MsgEthereumTx) Fee() *big.Int {
 	fee := new(big.Int)
