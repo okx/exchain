@@ -220,7 +220,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 	k.EvmStateDb.StopPrefetcher()
 
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		k.rootTrie = k.EvmStateDb.GetRootTrie()
 
 		// The onleaf func is called _serially_, so we can reuse the same account

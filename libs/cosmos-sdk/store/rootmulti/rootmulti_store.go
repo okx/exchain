@@ -1217,10 +1217,8 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 			continue
 		}
 
-		if !mpt.TrieWriteAhead {
-			if newMptStoreFilter(sName, version) {
-				continue
-			}
+		if newMptStoreFilter(sName, version) {
+			continue
 		}
 
 		if filter(key.Name(), version, store, filters) {

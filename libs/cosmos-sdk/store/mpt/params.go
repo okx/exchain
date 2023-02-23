@@ -17,7 +17,6 @@ const (
 )
 
 const (
-	FlagTrieWriteAhead    = "trie.write-ahead"
 	FlagTrieDirtyDisabled = "trie.dirty-disabled"
 	FlagTrieCacheSize     = "trie.cache-size"
 	FlagTrieNodesLimit    = "trie.nodes-limit"
@@ -25,7 +24,6 @@ const (
 )
 
 var (
-	TrieWriteAhead          = false
 	TrieDirtyDisabled       = false
 	TrieCacheSize     uint  = 2048 // MB
 	TrieNodesLimit    uint  = 256  // MB
