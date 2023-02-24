@@ -299,7 +299,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		}
 		if sleepDuration > gapWaiting {
 			sleepDuration = sleepDuration - gapWaiting
-			cs.remainWaiting -= gapWaiting
+			cs.remainWaiting = cs.remainWaiting - gapWaiting
 		} else {
 			cs.remainWaiting = cs.remainWaiting - sleepDuration
 			sleepDuration = 0
