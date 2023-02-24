@@ -102,8 +102,8 @@ $ %s tx gov submit-proposal next-block-update <path/to/proposal.json> --from=<ke
 Where proposal.json contains:
 
 {
-    "title":"modify next update block",
-    "description":"modify next update block",
+    "title":"modify next block to update",
+    "description":"modify next block to update",
     "block_num":123456,
     "deposit":[
         {

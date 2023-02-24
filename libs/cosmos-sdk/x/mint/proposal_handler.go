@@ -3,6 +3,7 @@ package mint
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/x/common"
 	govTypes "github.com/okex/exchain/x/gov/types"
 )
@@ -47,6 +48,9 @@ func handleModifyNextBlockUpdateProposal(ctx sdk.Context, k *Keeper, proposal *g
 	modifyProposal, ok := proposal.Content.(types.ModifyNextBlockUpdateProposal)
 	if !ok {
 		return types.ErrUnexpectedProposalType
+	}
+	if modifyProposal.BlockNum <= uint64(global.GetGlobalHeight())+1 {
+		return types.ErrNextBlockUpdateTooLate
 	}
 
 	minter := k.GetMinterCustom(ctx)
