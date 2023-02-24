@@ -2,8 +2,6 @@ package keeper
 
 import (
 	"encoding/binary"
-	"fmt"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -24,18 +22,6 @@ func (k *Keeper) GetMptRootHash(height uint64) ethcmn.Hash {
 	return ethcmn.BytesToHash(rst)
 }
 
-// SetMptRootHash sets the mapping from block height to root mpt hash
-func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
-	heightBytes := sdk.Uint64ToBigEndian(uint64(ctx.BlockHeight()))
-	k.db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...), hash.Bytes())
-
-	// put root hash to iavl and participate the process of calculate appHash
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store := k.paramSpace.CustomKVStore(ctx)
-		store.Set(types.KeyPrefixEvmRootHash, hash.Bytes())
-	}
-}
-
 // GetLatestStoredBlockHeight get latest stored mpt storage height
 func (k *Keeper) GetLatestStoredBlockHeight() uint64 {
 	rst, err := k.db.TrieDB().DiskDB().Get(mpt.KeyPrefixEvmLatestStoredHeight)
@@ -52,46 +38,10 @@ func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
 }
 
 func (k *Keeper) OpenTrie() {
-	//startHeight := types2.GetStartBlockHeight() // start height of oec
-	latestStoredHeight := k.GetLatestStoredBlockHeight()
-	latestStoredRootHash := k.GetMptRootHash(latestStoredHeight)
-
-	tr, err := k.db.OpenTrie(latestStoredRootHash)
-	if err != nil {
-		panic("Fail to open root mpt: " + err.Error())
-	}
-	k.rootTrie = tr
-	k.rootHash = latestStoredRootHash
-	k.startHeight = latestStoredHeight
-
-	if latestStoredHeight == 0 {
-		k.startHeight = uint64(tmtypes.GetStartBlockHeight())
-	}
 }
 
 func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
-	if !tmtypes.HigherThanMars(targetVersion) {
-		return
-	}
 
-	latestStoredHeight := k.GetLatestStoredBlockHeight()
-	if latestStoredHeight < uint64(targetVersion) {
-		panic(fmt.Sprintf("The target mpt height is: %v, but the latest stored evm height is: %v", targetVersion, latestStoredHeight))
-	}
-	targetMptRootHash := k.GetMptRootHash(uint64(targetVersion))
-
-	tr, err := k.db.OpenTrie(targetMptRootHash)
-	if err != nil {
-		panic("Fail to open root mpt: " + err.Error())
-	}
-	k.rootTrie = tr
-	k.rootHash = targetMptRootHash
-	k.startHeight = uint64(targetVersion)
-	if targetVersion == 0 {
-		k.startHeight = uint64(tmtypes.GetStartBlockHeight())
-	}
-
-	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 }
 
 // Stop stops the blockchain service. If any imports are currently in progress
@@ -212,30 +162,6 @@ func (k *Keeper) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64, log l
 			}
 			triedb.Dereference(root.(ethcmn.Hash))
 		}
-	}
-}
-
-func (k *Keeper) Commit(ctx sdk.Context) {
-	// commit contract storage mpt trie
-	k.EvmStateDb.WithContext(ctx).Commit(true)
-	k.EvmStateDb.StopPrefetcher()
-
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		k.rootTrie = k.EvmStateDb.GetRootTrie()
-
-		// The onleaf func is called _serially_, so we can reuse the same account
-		// for unmarshalling every time.
-		var storageRoot ethcmn.Hash
-		root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-			storageRoot.SetBytes(leaf)
-			if storageRoot != ethtypes.EmptyRootHash {
-				k.db.TrieDB().Reference(storageRoot, parent)
-			}
-
-			return nil
-		})
-		k.SetMptRootHash(ctx, root)
-		k.rootHash = root
 	}
 }
 
