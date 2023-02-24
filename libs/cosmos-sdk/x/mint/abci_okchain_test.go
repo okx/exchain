@@ -36,6 +36,7 @@ func createTestApp() (*simapp.SimApp, sdk.Context) {
 	ctx := app.BaseApp.NewContext(isCheckTx, abci.Header{})
 	app.MintKeeper.SetParams(ctx, internaltypes.DefaultParams())
 	app.MintKeeper.SetMinter(ctx, internaltypes.InitialMinterCustom())
+	types.UnittestOnlySetMilestoneVenus5Height(0)
 
 	return app, ctx
 }
@@ -166,7 +167,6 @@ func (suite *AbciOkchainSuite) TestFakeUpdateNextBlock() {
 
 func (suite *AbciOkchainSuite) step1(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
 	// Upgrade the main network code, wait N height to take effect.
-	types.UnittestOnlySetMilestoneVenus5Height(0)
 	ctx.SetBlockHeight(InitStartBlock)
 	coins := []sdk.Coin{sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(InitStartSupply))}
 	_ = simApp.SupplyKeeper.MintCoins(*ctx, mint.ModuleName, coins)
