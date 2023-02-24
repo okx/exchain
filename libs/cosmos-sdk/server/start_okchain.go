@@ -263,8 +263,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagChainID, ChainID, "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
-	//TODO by yxq
-	cmd.Flags().BoolVar(&state.EnableParaSender, state.FlagParaSender, false, "Enable Parallel Sender")
 	//cmd.Flags().UintVar(&mpttypes.TrieCacheSize, mpttypes.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	//cmd.Flags().BoolVar(&mpttypes.TrieDirtyDisabled, mpttypes.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
 	//cmd.Flags().BoolVar(&mpttypes.EnableDoubleWrite, mpttypes.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
