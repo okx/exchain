@@ -104,13 +104,8 @@ func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, i
 // setMptRootHash sets the mapping from block height to root mpt hash
 func setMptRootHash(db ethstate.Database, height uint64, hash ethcmn.Hash, isEvm bool) {
 	heightBytes := sdk.Uint64ToBigEndian(height)
-	if isEvm {
-		db.TrieDB().DiskDB().Put(mpt.KeyPrefixEvmLatestStoredHeight, heightBytes)
-		db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...), hash.Bytes())
-	} else {
-		db.TrieDB().DiskDB().Put(mpt.KeyPrefixAccLatestStoredHeight, heightBytes)
-		db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixAccRootMptHash, heightBytes...), hash.Bytes())
-	}
+	db.TrieDB().DiskDB().Put(mpt.KeyPrefixAccLatestStoredHeight, heightBytes)
+	db.TrieDB().DiskDB().Put(append(mpt.KeyPrefixAccRootMptHash, heightBytes...), hash.Bytes())
 }
 
 func writeDataToRawdb(batch ethdb.Batch) {

@@ -31,7 +31,6 @@ var (
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
-	KeyPrefixRootMptHashForIavl          = []byte{0x0a}
 	KeyPrefixSysContractAddress          = []byte{0x10}
 	KeyPrefixContractCodeHash            = []byte{0x11}
 
