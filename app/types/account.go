@@ -4,25 +4,25 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-
-	"github.com/tendermint/go-amino"
-	"gopkg.in/yaml.v2"
-
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
-	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/tendermint/go-amino"
+	"gopkg.in/yaml.v2"
 )
 
 var _ exported.Account = (*EthAccount)(nil)
 var _ exported.GenesisAccount = (*EthAccount)(nil)
 var emptyCodeHash = crypto.Keccak256(nil)
+var NullHash ethcmn.Hash
 
 func init() {
 	authtypes.RegisterAccountTypeCodec(&EthAccount{}, EthAccountName)
@@ -97,6 +97,9 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	if !baseAccountFlag {
 		acc.BaseAccount = nil
 	}
+	if acc.StateRoot == NullHash {
+		acc.StateRoot = mpt.EmptyRootHash
+	}
 	return nil
 }
 
@@ -131,7 +134,11 @@ func (acc EthAccount) AminoSize(cdc *amino.Codec) int {
 	if len(acc.CodeHash) != 0 {
 		size += 1 + amino.ByteSliceSize(acc.CodeHash)
 	}
-	size += 1 + amino.ByteSliceSize(acc.StateRoot.Bytes())
+
+	if acc.StateRoot != mpttypes.EmptyRootHash {
+		size += 1 + amino.ByteSliceSize(acc.StateRoot.Bytes())
+	}
+
 	return size
 }
 
@@ -173,10 +180,17 @@ func (acc EthAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error 
 			return err
 		}
 	}
-	const pbKey = 3<<3 | 2
-	err := amino.EncodeByteSliceWithKeyToBuffer(buf, acc.StateRoot.Bytes(), pbKey)
-	if err != nil {
-		return err
+
+	if acc.StateRoot == NullHash {
+		return fmt.Errorf("invalid StateRoot of EthAccount")
+	}
+
+	if acc.StateRoot != mpt.EmptyRootHash {
+		const pbKey = 3<<3 | 2
+		err := amino.EncodeByteSliceWithKeyToBuffer(buf, acc.StateRoot.Bytes(), pbKey)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

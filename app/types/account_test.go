@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	ethcmm "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
@@ -208,6 +209,7 @@ func TestEthAccountAmino(t *testing.T) {
 
 	accounts := []EthAccount{
 		{},
+		{StateRoot: ethcmm.BytesToHash(ethcrypto.Keccak256(nil))},
 		{
 			auth.NewBaseAccount(
 				addr,
@@ -243,49 +245,40 @@ func TestEthAccountAmino(t *testing.T) {
 		},
 		{
 			BaseAccount: &auth.BaseAccount{},
+			StateRoot:   mpt.EmptyRootHash,
 		},
 	}
 
 	for _, testAccount := range accounts {
-		data, err := cdc.MarshalBinaryBare(&testAccount)
-		if err != nil {
-			t.Fatal("marshal error")
+		data, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
+		if testAccount.StateRoot == NullHash {
+			require.Error(t, err)
+			continue
 		}
+		require.NoError(t, err)
+		
 		require.Equal(t, len(data), 4+testAccount.AminoSize(cdc))
-
-		var accountFromAmino exported.Account
-
-		err = cdc.UnmarshalBinaryBare(data, &accountFromAmino)
-		if err != nil {
-			t.Fatal("unmarshal error")
-		}
-
-		var accountFromUnmarshaller exported.Account
-		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, (*exported.Account)(nil))
-		require.NoError(t, err)
-		accountFromUnmarshaller, ok := v.(exported.Account)
-		require.True(t, ok)
-
-		require.EqualValues(t, accountFromAmino, accountFromUnmarshaller)
-
-		var ethAccount EthAccount
-		err = ethAccount.UnmarshalFromAmino(cdc, data[4:])
-		require.NoError(t, err)
-		require.EqualValues(t, accountFromAmino, &ethAccount)
-
-		dataFromMarshaller, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
-		require.NoError(t, err)
-		require.EqualValues(t, data, dataFromMarshaller)
 
 		dataFromSizer, err := cdc.MarshalBinaryWithSizer(&testAccount, false)
 		require.NoError(t, err)
 		require.EqualValues(t, data, dataFromSizer)
 
-		dataFromMarshaller, err = ethAccount.MarshalToAmino(cdc)
+		dataFromMarshaller, err := testAccount.MarshalToAmino(cdc)
+		require.NoError(t, err)
 		if dataFromMarshaller == nil {
 			dataFromMarshaller = []byte{}
 		}
 		require.Equal(t, data[4:], dataFromMarshaller)
+
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, (*exported.Account)(nil))
+		require.NoError(t, err)
+		accountFromUnmarshaller, ok := v.(exported.Account)
+		require.True(t, ok)
+
+		var ethAccount EthAccount
+		err = ethAccount.UnmarshalFromAmino(cdc, data[4:])
+		require.NoError(t, err)
+		require.EqualValues(t, accountFromUnmarshaller, &ethAccount)
 	}
 }
 
