@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -305,12 +304,6 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		return
 	}
 
-	var tr ethstate.Trie = nil
-	if mpt.TrieWriteAhead {
-		tr = so.getTrie(db)
-	}
-	usedStorage := make([][]byte, 0, len(so.pendingStorage))
-
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	for key, value := range so.pendingStorage {
@@ -338,24 +331,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-		if mpt.TrieWriteAhead {
-			key = prefixKey
-
-			usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
-			if (value == ethcmn.Hash{}) {
-				so.setError(tr.TryDelete(key[:]))
-			} else {
-				// Encoding []byte cannot fail, ok to ignore the error.
-				v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
-				so.setError(tr.TryUpdate(key[:], v))
-			}
-		}
 	}
-
-	if so.stateDB.prefetcher != nil && mpt.TrieWriteAhead {
-		so.stateDB.prefetcher.Used(so.account.StateRoot, usedStorage)
-	}
-
 	if len(so.pendingStorage) > 0 {
 		so.pendingStorage = make(ethstate.Storage)
 	}

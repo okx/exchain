@@ -272,9 +272,6 @@ func (k Keeper) SetBlockHeight(ctx sdk.Context, hash []byte, height int64) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
-	if mpt.TrieWriteAhead {
-		k.setBlockHashInDiskDB(hash, height)
-	}
 }
 
 // IterateBlockHash iterates all over the block hash in every height
@@ -341,9 +338,6 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
-	if mpt.TrieWriteAhead {
-		k.setBlockBloomInDiskDB(height, bloom)
-	}
 }
 
 // IterateBlockBloom iterates all over the bloom value in every height

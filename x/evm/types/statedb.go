@@ -15,7 +15,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
@@ -365,9 +364,6 @@ func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
-	if mpt.TrieWriteAhead {
-		csdb.setHeightHashInRawDB(height, hash)
-	}
 }
 
 // SetParams sets the evm parameters to the param space.
@@ -906,47 +902,13 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	}
 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		if mpt.TrieWriteAhead {
-			// Commit objects to the trie, measuring the elapsed time
-			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
-
-			for addr := range csdb.stateObjectsDirty {
-				if obj := csdb.stateObjects[addr]; !obj.deleted {
-					// Write any contract code associated with the state object
-					if obj.code != nil && obj.dirtyCode {
-						obj.commitCode()
-
-						rawdb.WriteCode(codeWriter, ethcmn.BytesToHash(obj.CodeHash()), obj.code)
-						obj.dirtyCode = false
-					}
-
-					// Write any storage changes in the state object to its storage trie
-					if err := obj.CommitTrie(csdb.db); err != nil {
-						return ethcmn.Hash{}, err
-					}
-
-					accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
-					if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
-						ethermintAccount.StateRoot = obj.account.StateRoot
-						csdb.accountKeeper.SetAccount(csdb.ctx, ethermintAccount)
-					}
-				}
-			}
-
-			if codeWriter.ValueSize() > 0 {
-				if err := codeWriter.Write(); err != nil {
-					csdb.SetError(fmt.Errorf("failed to commit dirty codes: %s", err.Error()))
-				}
-			}
-		} else {
-			// Commit objects to the trie, measuring the elapsed time
-			for addr := range csdb.stateObjectsDirty {
-				if so := csdb.stateObjects[addr]; !so.deleted {
-					// Write any contract code associated with the state object
-					if so.code != nil && so.dirtyCode {
-						so.commitCode()
-						so.dirtyCode = false
-					}
+		// Commit objects to the trie, measuring the elapsed time
+		for addr := range csdb.stateObjectsDirty {
+			if so := csdb.stateObjects[addr]; !so.deleted {
+				// Write any contract code associated with the state object
+				if so.code != nil && so.dirtyCode {
+					so.commitCode()
+					so.dirtyCode = false
 				}
 			}
 		}

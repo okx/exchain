@@ -272,7 +272,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	//cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
 
 	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
-	cmd.Flags().BoolVar(&mpt.TrieWriteAhead, mpt.FlagTrieWriteAhead, true, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
 	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")

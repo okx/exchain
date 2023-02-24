@@ -4,7 +4,6 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/suite"
@@ -16,7 +15,6 @@ type StateDBMptTestSuite struct {
 }
 
 func (suite *StateDBMptTestSuite) SetupTest() {
-	mpt.TrieWriteAhead = true
 	types.UnittestOnlySetMilestoneMarsHeight(1)
 
 	suite.StateDBTestSuite.SetupTest()

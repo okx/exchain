@@ -131,15 +131,12 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Set(storeAccKey, bz)
-	//TODO by yxq: delete code
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
-		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
-	}
+
 	if ctx.Cache().IsEnabled() {
 		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
 	}
 
-	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead) {
+	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight())) {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
 
@@ -186,11 +183,8 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Delete(storeAccKey)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
-		ctx.MultiStore().GetKVStore(ak.mptKey).Delete(storeAccKey)
-	}
 
-	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead) {
+	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight())) {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
 
