@@ -47,7 +47,7 @@ var (
 
 	// EmptyCodeHash is the known hash of an empty code.
 	EmptyCodeHash      = crypto.Keccak256Hash(nil)
-	EmptyCodeHashBytes = crypto.Keccak256(nil)
+	EmptyCodeHashBytes = EmptyCodeHash.Bytes()
 
 	// EmptyRootHash is the known root hash of an empty trie.
 	EmptyRootHash      = ethtypes.EmptyRootHash

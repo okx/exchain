@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	ethcmm "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
@@ -206,10 +205,14 @@ func TestEthAccountAmino(t *testing.T) {
 	privKey := secp256k1.GenPrivKey()
 	pubKey := privKey.PubKey()
 	addr := sdk.AccAddress(pubKey.Address())
+	testCodeHash := ethcrypto.Keccak256([]byte("test"))
+	testStateRoot := ethcrypto.Keccak256Hash(nil)
 
 	accounts := []EthAccount{
 		{},
-		{StateRoot: ethcmm.BytesToHash(ethcrypto.Keccak256(nil))},
+		{CodeHash: mpt.EmptyCodeHashBytes},
+		{StateRoot: mpt.EmptyRootHash},
+		{CodeHash: testCodeHash, StateRoot: testStateRoot},
 		{
 			auth.NewBaseAccount(
 				addr,
@@ -218,8 +221,8 @@ func TestEthAccountAmino(t *testing.T) {
 				1,
 				1,
 			),
-			ethcrypto.Keccak256(nil),
-			mpt.EmptyRootHash,
+			testCodeHash,
+			testStateRoot,
 		},
 		{
 			auth.NewBaseAccount(
@@ -229,7 +232,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 				0,
 			),
-			ethcrypto.Keccak256(nil),
+			testCodeHash,
 			mpt.EmptyRootHash,
 		},
 		{
@@ -240,7 +243,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 				0,
 			),
-			ethcrypto.Keccak256(nil),
+			testCodeHash,
 			mpt.EmptyRootHash,
 		},
 		{
@@ -251,12 +254,12 @@ func TestEthAccountAmino(t *testing.T) {
 
 	for _, testAccount := range accounts {
 		data, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
-		if testAccount.StateRoot == NullHash {
+		if len(testAccount.CodeHash) == 0 || testAccount.StateRoot == mpt.NilHash {
 			require.Error(t, err)
 			continue
 		}
 		require.NoError(t, err)
-		
+
 		require.Equal(t, len(data), 4+testAccount.AminoSize(cdc))
 
 		dataFromSizer, err := cdc.MarshalBinaryWithSizer(&testAccount, false)

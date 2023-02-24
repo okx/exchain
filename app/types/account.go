@@ -6,8 +6,6 @@ import (
 	"fmt"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -21,8 +19,6 @@ import (
 
 var _ exported.Account = (*EthAccount)(nil)
 var _ exported.GenesisAccount = (*EthAccount)(nil)
-var emptyCodeHash = crypto.Keccak256(nil)
-var NullHash ethcmn.Hash
 
 func init() {
 	authtypes.RegisterAccountTypeCodec(&EthAccount{}, EthAccountName)
@@ -97,7 +93,7 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	if !baseAccountFlag {
 		acc.BaseAccount = nil
 	}
-	if acc.StateRoot == NullHash {
+	if acc.StateRoot == mpt.NilHash {
 		acc.StateRoot = mpt.EmptyRootHash
 	}
 	return nil
@@ -153,6 +149,15 @@ func (acc EthAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 }
 
 func (acc EthAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	//acc.StateRoot is mpt.EmptyCodeHashBytes by default, so this case should not happen
+	if len(acc.CodeHash) != ethcmn.HashLength {
+		return fmt.Errorf("invalid CodeHash of EthAccount")
+	}
+	// acc.StateRoot is mpt.EmptyRootHash by default, so this case should not happen
+	if acc.StateRoot == mpt.NilHash {
+		return fmt.Errorf("invalid StateRoot of EthAccount")
+	}
+
 	// field 1
 	if acc.BaseAccount != nil {
 		const pbKey = 1<<3 | 2
@@ -173,7 +178,7 @@ func (acc EthAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error 
 	}
 
 	// field 2
-	if len(acc.CodeHash) != 0 {
+	if !bytes.Equal(acc.CodeHash, mpt.EmptyCodeHashBytes) {
 		const pbKey = 2<<3 | 2
 		err := amino.EncodeByteSliceWithKeyToBuffer(buf, acc.CodeHash, pbKey)
 		if err != nil {
@@ -181,10 +186,7 @@ func (acc EthAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error 
 		}
 	}
 
-	if acc.StateRoot == NullHash {
-		return fmt.Errorf("invalid StateRoot of EthAccount")
-	}
-
+	//field 3
 	if acc.StateRoot != mpt.EmptyRootHash {
 		const pbKey = 3<<3 | 2
 		err := amino.EncodeByteSliceWithKeyToBuffer(buf, acc.StateRoot.Bytes(), pbKey)
@@ -199,11 +201,13 @@ func (acc EthAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error 
 // ProtoAccount defines the prototype function for BaseAccount used for an
 // AccountKeeper.
 func ProtoAccount() exported.Account {
-	return &EthAccount{
+	acc := &EthAccount{
 		BaseAccount: &auth.BaseAccount{},
-		CodeHash:    ethcrypto.Keccak256(nil),
+		CodeHash:    make([]byte, ethcmn.HashLength),
 		StateRoot:   mpt.EmptyRootHash,
 	}
+	copy(acc.CodeHash, mpt.EmptyCodeHash[:])
+	return acc
 }
 
 // EthAddress returns the account address ethereum format.
@@ -384,7 +388,7 @@ func (acc EthAccount) String() string {
 
 // IsContract returns if the account contains contract code.
 func (acc EthAccount) IsContract() bool {
-	return !bytes.Equal(acc.CodeHash, emptyCodeHash)
+	return !bytes.Equal(acc.CodeHash, mpt.EmptyCodeHashBytes)
 }
 
 func (acc EthAccount) GetStateRoot() ethcmn.Hash {
