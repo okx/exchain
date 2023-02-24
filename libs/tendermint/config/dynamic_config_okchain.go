@@ -29,6 +29,11 @@ type IDynamicConfig interface {
 	GetCommitGapOffset() int64
 	GetIavlAcNoBatch() bool
 	GetRemainWaiting() bool
+	GetDynamicGpWeight() int
+	GetDynamicGpCheckBlocks() int
+	GetDynamicGpMode() int
+	GetDynamicGpMaxTxNum() int64
+	GetDynamicGpMaxGasUsed() int64
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -39,6 +44,9 @@ func SetDynamicConfig(c IDynamicConfig) {
 
 type MockDynamicConfig struct {
 	enableDeleteMinGPTx bool
+	dynamicGpMode       int
+	dynamicGpMaxTxNum   int64
+	dynamicGpMaxGasUsed int64
 }
 
 func (d MockDynamicConfig) GetMempoolRecheck() bool {
@@ -140,4 +148,45 @@ func (d MockDynamicConfig) GetIavlAcNoBatch() bool {
 
 func (d MockDynamicConfig) GetRemainWaiting() bool {
 	return false
+}
+
+func (d *MockDynamicConfig) SetDynamicGpMode(value int) {
+	if value < 0 || value > 2 {
+		return
+	}
+	d.dynamicGpMode = value
+}
+
+func (d MockDynamicConfig) GetDynamicGpMode() int {
+	return d.dynamicGpMode
+}
+
+func (d MockDynamicConfig) GetDynamicGpCheckBlocks() int {
+	return 5
+}
+
+func (d MockDynamicConfig) GetDynamicGpWeight() int {
+	return 80
+}
+
+func (d *MockDynamicConfig) SetDynamicGpMaxTxNum(value int64) {
+	if value < 0 {
+		return
+	}
+	d.dynamicGpMaxTxNum = value
+}
+
+func (d MockDynamicConfig) GetDynamicGpMaxTxNum() int64 {
+	return d.dynamicGpMaxTxNum
+}
+
+func (d *MockDynamicConfig) SetDynamicGpMaxGasUsed(value int64) {
+	if value < -1 {
+		return
+	}
+	d.dynamicGpMaxGasUsed = value
+}
+
+func (d MockDynamicConfig) GetDynamicGpMaxGasUsed() int64 {
+	return d.dynamicGpMaxGasUsed
 }

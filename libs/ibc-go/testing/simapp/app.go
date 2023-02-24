@@ -43,6 +43,9 @@ import (
 
 	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
+
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
 	icahostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
@@ -54,13 +57,10 @@ import (
 	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
 	ethermint "github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
@@ -316,7 +316,6 @@ type SimApp struct {
 	ICAAuthModule       mock.IBCModule
 
 	FeeMockModule mock.IBCModule
-	gpo           *gasprice.Oracle
 }
 
 func NewSimApp(
@@ -379,7 +378,7 @@ func NewSimApp(
 	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
-	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey])
+	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey], logger)
 	app.subspaces[auth.ModuleName] = app.ParamsKeeper.Subspace(auth.DefaultParamspace)
 	app.subspaces[bank.ModuleName] = app.ParamsKeeper.Subspace(bank.DefaultParamspace)
 	app.subspaces[staking.ModuleName] = app.ParamsKeeper.Subspace(staking.DefaultParamspace)
@@ -760,7 +759,7 @@ func NewSimApp(
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
 	}
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper, app.StakingKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper, app.StakingKeeper, app.ParamsKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
@@ -770,10 +769,6 @@ func NewSimApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(func(...sdk.IWatcher) {})
-
-	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
-	app.gpo = gasprice.NewOracle(gpoConfig)
-	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -850,16 +845,6 @@ func getTxFeeHandler() sdk.GetTxFeeHandler {
 		}
 
 		return
-	}
-}
-
-func updateGPOHandler(gpo *gasprice.Oracle) sdk.UpdateGPOHandler {
-	return func(dynamicGpInfos []sdk.DynamicGasInfo) {
-		if appconfig.GetOecConfig().GetDynamicGpMode() != okexchain.MinimalGpMode {
-			for _, dgi := range dynamicGpInfos {
-				gpo.CurrentBlockGPs.Update(dgi.GetGP(), dgi.GetGU())
-			}
-		}
 	}
 }
 

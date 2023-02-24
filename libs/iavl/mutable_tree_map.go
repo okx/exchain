@@ -27,6 +27,9 @@ func (tm *TreeMap) addNewTree(tree *MutableTree) {
 	if _, ok := tm.mutableTreeSavedMap[tree.GetModuleName()]; !ok {
 		tm.mutableTreeSavedMap[tree.GetModuleName()] = tree
 		go tree.commitSchedule()
+		if EnablePruningHistoryState {
+			go tree.pruningSchedule()
+		}
 	}
 }
 

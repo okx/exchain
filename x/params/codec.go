@@ -17,4 +17,6 @@ func init() {
 // RegisterCodec registers all necessary param module types with a given codec.
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(types.ParameterChangeProposal{}, "okexchain/params/ParameterChangeProposal", nil)
+	cdc.RegisterConcrete(types.UpgradeProposal{}, "okexchain/params/UpgradeProposal", nil)
+	cdc.RegisterConcrete(types.UpgradeInfo{}, "okexchain/params/UpgradeInfo", nil)
 }

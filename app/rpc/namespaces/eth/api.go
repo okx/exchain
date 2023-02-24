@@ -23,17 +23,15 @@ import (
 	"github.com/spf13/viper"
 
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 
-	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	"github.com/okex/exchain/app/types"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -258,59 +256,69 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	recommendGP := (*big.Int)(api.gasPrice)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		price := new(big.Int).Set(app.GlobalGp)
-		if price.Cmp(gasprice.MinPrice) == -1 {
-			price.Set(gasprice.MinPrice)
+	minGP := (*big.Int)(api.gasPrice)
+	maxGP := new(big.Int).Mul(minGP, big.NewInt(5000))
+
+	rgp := new(big.Int).Set(minGP)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+		// If current block is not congested, rgp == minimal gas price.
+		if mempool.IsCongested {
+			rgp.Set(mempool.GlobalRecommendedGP)
 		}
 
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+		if rgp.Cmp(minGP) == -1 {
+			rgp.Set(minGP)
+		}
+
+		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 1 {
 			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			recommendGP = new(big.Int).Mul(price, coefficient)
-		} else {
-			recommendGP = price
+			rgp = new(big.Int).Mul(rgp, coefficient)
 		}
 
-		if recommendGP.Cmp(gasprice.MaxPrice) == 1 {
-			recommendGP.Set(gasprice.MaxPrice)
+		if rgp.Cmp(maxGP) == 1 {
+			rgp.Set(maxGP)
 		}
 	}
 
-	return (*hexutil.Big)(recommendGP)
+	return (*hexutil.Big)(rgp)
 }
 
 func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	monitor := monitor.GetMonitor("eth_gasPriceIn3Gears", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	avgGP := (*big.Int)(api.gasPrice)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		price := new(big.Int).Set(app.GlobalGp)
-		if price.Cmp(gasprice.MinPrice) == -1 {
-			price.Set(gasprice.MinPrice)
+	minGP := (*big.Int)(api.gasPrice)
+	maxGP := new(big.Int).Mul(minGP, big.NewInt(5000))
+
+	avgGP := new(big.Int).Set(minGP)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+		if mempool.IsCongested {
+			avgGP.Set(mempool.GlobalRecommendedGP)
 		}
 
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+		if avgGP.Cmp(minGP) == -1 {
+			avgGP.Set(minGP)
+		}
+
+		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 1 {
 			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			avgGP = new(big.Int).Mul(price, coefficient)
-		} else {
-			avgGP = price
+			avgGP = new(big.Int).Mul(avgGP, coefficient)
 		}
 
-		if avgGP.Cmp(gasprice.MaxPrice) == 1 {
-			avgGP.Set(gasprice.MaxPrice)
+		if avgGP.Cmp(maxGP) == 1 {
+			avgGP.Set(maxGP)
 		}
 	}
+
 	// safe low GP = average GP * 0.5, but it will not be less than the minimal GP.
 	safeGp := new(big.Int).Quo(avgGP, big.NewInt(2))
-	if safeGp.Cmp(gasprice.MinPrice) == -1 {
-		safeGp.Set(gasprice.MinPrice)
+	if safeGp.Cmp(minGP) == -1 {
+		safeGp.Set(minGP)
 	}
 	// fastest GP = average GP * 1.5, but it will not be greater than the max GP.
 	fastestGp := new(big.Int).Add(avgGP, new(big.Int).Quo(avgGP, big.NewInt(2)))
-	if fastestGp.Cmp(gasprice.MaxPrice) == 1 {
-		fastestGp.Set(gasprice.MaxPrice)
+	if fastestGp.Cmp(maxGP) == 1 {
+		fastestGp.Set(maxGP)
 	}
 
 	res := rpctypes.NewGPIn3Gears(safeGp, avgGP, fastestGp)
@@ -458,12 +466,18 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, blockNum rpctypes.BlockNumber, directlyKey bool) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	useWatchBackend := api.useWatchBackend(blockNum)
+
+	qWatchdbKey := key
 	if useWatchBackend {
-		res, err := api.wrappedBackend.MustGetState(address, key)
+		if !directlyKey {
+			qWatchdbKey = evmtypes.GetStorageByAddressKey(address.Bytes(), key).Bytes()
+		}
+		res, err := api.wrappedBackend.MustGetState(address, qWatchdbKey)
 		if err == nil {
 			return res, nil
 		}
 	}
+
 	var queryStr = ""
 	if !directlyKey {
 		queryStr = fmt.Sprintf("custom/%s/storage/%s/%X", evmtypes.ModuleName, address.Hex(), key)
@@ -479,7 +493,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	if useWatchBackend {
-		api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
+		api.watcherBackend.CommitStateToRpcDb(address, qWatchdbKey, out.Value)
 	}
 	return out.Value, nil
 }

@@ -222,10 +222,3 @@ func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler) {
 func (app *BaseApp) SetTmClient(client client.Client) {
 	app.tmClient = client
 }
-
-func (app *BaseApp) SetUpdateGPOHandler(handler sdk.UpdateGPOHandler) {
-	if app.sealed {
-		panic("SetUpdateGPOHandler() on sealed BaseApp")
-	}
-	app.updateGPOHandler = handler
-}

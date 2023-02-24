@@ -108,7 +108,7 @@ func CreateTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) Test
 	blacklistedAddrs := make(map[string]bool)
 	blacklistedAddrs[feeCollectorAcc.String()] = true
 
-	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
+	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams, ctx.Logger())
 	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, keyMpt,
 		paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 	bankKeeper := bank.NewBaseKeeper(accountKeeper, paramsKeeper.Subspace(bank.DefaultParamspace),
