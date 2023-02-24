@@ -50,9 +50,7 @@ type CommitStateDBParams struct {
 
 	StateCache *fastcache.Cache
 
-	DB       ethstate.Database
-	Trie     ethstate.Trie
-	RootHash ethcmn.Hash
+	DB ethstate.Database
 }
 
 type Watcher interface {
@@ -80,11 +78,8 @@ type CacheCode struct {
 // manner. In otherwords, how this relates to the keeper in this module.
 // Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
 type CommitStateDB struct {
-	db           ethstate.Database
-	StateCache   *fastcache.Cache
-	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
-	prefetcher   *mpt.TriePrefetcher
-	originalRoot ethcmn.Hash
+	db         ethstate.Database
+	prefetcher *mpt.TriePrefetcher
 
 	// TODO: We need to store the context as part of the structure itself opposed
 	// to being passed as a parameter (as it should be) in order to implement the
@@ -171,9 +166,7 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 // key/value space matters in determining the merkle root.
 func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	csdb := &CommitStateDB{
-		db:           csdbParams.DB,
-		trie:         csdbParams.Trie,
-		originalRoot: csdbParams.RootHash,
+		db: csdbParams.DB,
 
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
@@ -195,7 +188,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
 		GuFactor:            DefaultGuFactor,
-		StateCache:          csdbParams.StateCache,
 	}
 
 	return csdb
@@ -203,9 +195,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 
 func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx *sdk.Context) {
 	csdb.db = csdbParams.DB
-	csdb.trie = csdbParams.Trie
-	csdb.originalRoot = csdbParams.RootHash
-	csdb.StateCache = csdbParams.StateCache
 
 	csdb.storeKey = csdbParams.StoreKey
 	csdb.paramSpace = csdbParams.ParamSpace
@@ -323,22 +312,6 @@ func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *
 	return csdb
 }
 
-func (csdb *CommitStateDB) WithHistoricalTrie() *CommitStateDB {
-	heightBytes := sdk.Uint64ToBigEndian(uint64(csdb.ctx.BlockHeight()))
-	rst, err := csdb.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...))
-	if err != nil || len(rst) == 0 {
-		return csdb
-	}
-	rootHash := ethcmn.BytesToHash(rst)
-	tire, err := csdb.db.OpenTrie(rootHash)
-	if err != nil {
-		return csdb
-	}
-	csdb.originalRoot = rootHash
-	csdb.trie = tire
-	return csdb
-}
-
 func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {
 	csdb.dbAdapter = dba
 }
@@ -364,6 +337,7 @@ func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) *CacheCode {
 	return nil
 }
 
+// IteratorCode is iterator code cache，it can't be used in onchain execution
 func (csdb *CommitStateDB) IteratorCode(cb func(addr ethcmn.Address, c CacheCode) bool) {
 	for addr, v := range csdb.codeCache {
 		cb(addr, v)
@@ -927,15 +901,6 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 		}()
 	}
 
-	// Now we're about to start to write changes to the trie. The trie is so far
-	// _untouched_. We can check with the prefetcher, if it can give us a trie
-	// which has the same root, but also has some content loaded into it.
-	if prefetcher != nil {
-		if trie := prefetcher.Trie(csdb.originalRoot); trie != nil {
-			csdb.trie = trie
-		}
-	}
-
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		// Commit objects to the trie, measuring the elapsed time
 		for addr := range csdb.stateObjectsDirty {
@@ -987,9 +952,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 		// the commit-phase will be a lot faster
 		addressesToPrefetch = append(addressesToPrefetch, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
-	if csdb.prefetcher != nil && len(addressesToPrefetch) > 0 {
-		csdb.prefetcher.Prefetch(csdb.originalRoot, addressesToPrefetch)
-	}
+	//TODO need to prefecth to acc trie
 
 	// Invalidate journal because reverting across transactions is not allowed.
 	csdb.clearJournalAndRefund()

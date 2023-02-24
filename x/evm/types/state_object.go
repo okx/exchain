@@ -303,7 +303,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 	if len(so.pendingStorage) == 0 {
 		return
 	}
-	
+
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
 	for key, value := range so.pendingStorage {
@@ -332,7 +332,6 @@ func (so *stateObject) commitState(db ethstate.Database) {
 			}
 		}
 	}
-
 	if len(so.pendingStorage) > 0 {
 		so.pendingStorage = make(ethstate.Storage)
 	}

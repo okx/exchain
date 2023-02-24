@@ -69,9 +69,8 @@ type Keeper struct {
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
 
-	db          ethstate.Database
-	rootTrie    ethstate.Trie
-	rootHash    ethcmn.Hash
+	db ethstate.Database
+
 	startHeight uint64
 	triegc      *prque.Prque
 	cmLock      sync.Mutex
@@ -211,8 +210,6 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
 		DB:            k.db,
-		Trie:          k.rootTrie,
-		RootHash:      k.rootHash,
 		StateCache:    k.stateCache,
 	}
 }
@@ -226,8 +223,6 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Cdc:        k.cdc,
 
 		DB:         k.db,
-		Trie:       k.rootTrie,
-		RootHash:   k.rootHash,
 		StateCache: k.stateCache,
 	}
 }
