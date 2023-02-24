@@ -85,3 +85,59 @@ Where proposal.json contains:
 		},
 	}
 }
+
+// GetCmdModifyNextBlockUpdateProposal implements a command handler for submitting modify next block update proposal transaction
+func GetCmdModifyNextBlockUpdateProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return &cobra.Command{
+		Use:   "next-block-update [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a proposal for modifying the next block update.",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a proposal for modifying the next block update along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal next-block-update <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+    "title":"modify next update block",
+    "description":"modify next update block",
+    "block_num":123456,
+    "deposit":[
+        {
+            "denom":"%s",
+            "amount":"100.000000000000000000"
+        }
+    ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := utils2.ParseParseModifyNextBlockUpdateProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewModifyNextBlockUpdateProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.BlockNum,
+			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}

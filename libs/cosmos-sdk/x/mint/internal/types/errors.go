@@ -18,6 +18,7 @@ var (
 	ErrDuplicatedTreasure      = sdkerrors.Register(ModuleName, 3, "treasures can not be duplicate")
 	ErrUnexpectedProposalType  = sdkerrors.Register(ModuleName, 4, "unsupported proposal type of mint module")
 	ErrProposerMustBeValidator = sdkerrors.Register(ModuleName, 5, "the proposal of proposer must be validator")
+	ErrNotReachedVenus5Height  = sdkerrors.Register(ModuleName, 6, "venus5 block height has not been reached")
 )
 
 // ErrTreasuresInternal returns an error when the length of address list in the proposal is larger than the max limitation
