@@ -52,6 +52,7 @@ type preBlockTaskRes struct {
 const (
 	msgQueueSize   = 1000
 	EnablePrerunTx = "enable-preruntx"
+	maxGapWaiting  = 500
 )
 
 // msgs from the reactor which may update the state
