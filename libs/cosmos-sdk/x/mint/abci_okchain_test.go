@@ -8,17 +8,24 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	internaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 const (
-	BlocksPerYear  uint64 = (60 * 60 * 8766 / 3)
-	DeflationEpoch uint64 = 3
-	DeflationRate  string = "0.5"
-	FarmProportion string = "0.5"
-	Denom          string = "okt"
-	FeeAccountName string = "fee_collector"
+	BlocksPerYear  uint64 = 10519200        // Block per year, uint64(60 * 60 * 8766 / 3)
+	DeflationEpoch uint64 = 3               // Default epoch, 3 year
+	DeflationRate  string = "0.5"           // Default deflation rate 0.5
+	FarmProportion string = "0.5"           // Default farm proportion 0.5
+	Denom          string = "okt"           // OKT
+	FeeAccountName string = "fee_collector" // Fee account
+
+	InitStartBlock    int64  = 17601985 // Current mainnet block,  17601985
+	InitStartSupply   int64  = 19210060 // Current mainnet supply, 19210060
+	BlocksPerYearNew  uint64 = 8304636  // Reset new block per year, uint64(60 * 60 * 8766 / 3.8)
+	DeflationEpochNew uint64 = 9        // Reset epoch, year to month, and 3 to 9
+	Target24DayBlock  uint64 = 5000     // 24 day blocks must be 555000, but fake to 5000
 )
 
 // returns context and an app with updated mint keeper
@@ -41,7 +48,7 @@ func TestAbciOkchainSuite(t *testing.T) {
 	suite.Run(t, new(AbciOkchainSuite))
 }
 
-func (suite *AbciOkchainSuite) TestNormalBlockRewards() {
+func (suite *AbciOkchainSuite) TestNormalMint() {
 	testCases := []struct {
 		title          string
 		phase          uint64
@@ -138,151 +145,204 @@ func (suite *AbciOkchainSuite) TestNormalBlockRewards() {
 	}
 }
 
-const (
-	CurrentBlock         int64  = 17601985 // 当前区块 17601985
-	CurrentSupply        int64  = 19210060 // 当前奖励 19210060
-	BlocksPerDay         uint64 = 22736    // 每天区块 22736 = 24 * 60 * 60 / 3.8
-	DeflationEpochDay    uint64 = 273      // 需要天数 273 = 6207157 / 22736
-	Target24DayBlock     uint64 = 555000   // 24天减半的时间点
-	TargetDeflationBlock uint64 = 6207157  // 周期区块 6207157
-	SupplyPhase0         int64  = 277500   // 第一阶段24天增发okt
-)
+func (suite *AbciOkchainSuite) TestDateAndSupply() {
+	// TODO Check expected date and total supply
+}
 
-func (suite *AbciOkchainSuite) initCurrentSupply(ctx *sdk.Context, simApp *simapp.SimApp, all_reward *sdk.Dec) {
-	//init
-	ctx.SetBlockHeight(CurrentBlock)
-	coins := []sdk.Coin{sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(CurrentSupply))}
+func (suite *AbciOkchainSuite) TestFakeUpdateNextBlock() {
+	simApp, ctx := createTestApp()
+	allRewards := sdk.NewDec(InitStartSupply)
+
+	suite.step1(sdk.MustNewDecFromStr("0.5"), &ctx, simApp, &allRewards)
+	suite.step2(sdk.MustNewDecFromStr("0.5"), &ctx, simApp, &allRewards)
+	suite.step3(sdk.MustNewDecFromStr("0.5"), &ctx, simApp, &allRewards)
+	suite.step4(sdk.MustNewDecFromStr("0.5"), &ctx, simApp, &allRewards)
+	suite.step5(sdk.MustNewDecFromStr("0.5"), &ctx, simApp, &allRewards)
+	suite.step6(sdk.MustNewDecFromStr("0.25"), &ctx, simApp, &allRewards)
+	suite.step7(sdk.MustNewDecFromStr("0.25"), &ctx, simApp, &allRewards)
+	suite.step8(sdk.MustNewDecFromStr("0.125"), &ctx, simApp, &allRewards)
+	suite.LoopDeflation(&ctx, simApp, &allRewards)
+}
+
+func (suite *AbciOkchainSuite) step1(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	// Upgrade the main network code, wait N height to take effect.
+	types.UnittestOnlySetMilestoneVenus5Height(0)
+	ctx.SetBlockHeight(InitStartBlock)
+	coins := []sdk.Coin{sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(InitStartSupply))}
 	_ = simApp.SupplyKeeper.MintCoins(*ctx, mint.ModuleName, coins)
 	_ = simApp.SupplyKeeper.SendCoinsFromModuleToModule(*ctx, mint.ModuleName, FeeAccountName, coins)
 
+	// Execution block.
 	mint.BeginBlocker(*ctx, simApp.MintKeeper)
 	feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
-	expect := feeAccount.GetCoins().AmountOf(Denom)
 	minter := simApp.MintKeeper.GetMinterCustom(*ctx)
-	require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
-	require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom), sdk.MustNewDecFromStr("1.0"))
-	reward := sdk.MustNewDecFromStr("1.0").Sub(sdk.MustNewDecFromStr("1.0").MulTruncate(sdk.MustNewDecFromStr(FarmProportion)))
-	*all_reward = all_reward.Add(reward)
-	require.Equal(suite.T(), expect, *all_reward)
+	*allRewards = allRewards.Add(expectReward)
 
-	require.Equal(suite.T(), CurrentBlock, ctx.BlockHeight())
+	// Suit expect.
+	require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
+	require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+	require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
+	require.Equal(suite.T(), InitStartBlock, ctx.BlockHeight())
+
+	// The target N height to take effect.
+	types.UnittestOnlySetMilestoneVenus5Height(InitStartBlock + 1000)
 }
 
-func (suite *AbciOkchainSuite) phase0(ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
-	//phase0
-	var i int64
-	for i = 1; i <= int64(Target24DayBlock-4000); i++ {
+func (suite *AbciOkchainSuite) step2(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	//System: block height N+1
+	for i := int64(1); i <= 1000+1; i++ {
+		// Execution block.
 		ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 		mint.BeginBlocker(*ctx, simApp.MintKeeper)
 		minter := simApp.MintKeeper.GetMinterCustom(*ctx)
-		require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
-		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom), sdk.MustNewDecFromStr("1.0"))
 		feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
-		expect := feeAccount.GetCoins().AmountOf(Denom)
-		reward := sdk.MustNewDecFromStr("1.0").Sub(sdk.MustNewDecFromStr("1.0").MulTruncate(sdk.MustNewDecFromStr(FarmProportion)))
-		*allRewards = allRewards.Add(reward)
-		require.Equal(suite.T(), expect, *allRewards)
+		*allRewards = allRewards.Add(expectReward)
+
+		// Suit expect.
+		require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
+		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+		require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
 	}
+
+	require.Equal(suite.T(), InitStartBlock+1000, types.GetVenus5Height())
+	require.Equal(suite.T(), InitStartBlock+1000+1, ctx.BlockHeight())
 }
 
-func (suite *AbciOkchainSuite) phase1(ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
-	// The first proposal
+func (suite *AbciOkchainSuite) step3(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	// Send change BlocksPerYear proposal (effective immediately), first proposal.
 	params := simApp.MintKeeper.GetParams(*ctx)
-	params.BlocksPerYear = BlocksPerDay
+	params.BlocksPerYear = BlocksPerYearNew
 	simApp.MintKeeper.SetParams(*ctx, params)
 
 	for i := int64(1); i <= 1000; i++ {
+		// Execution block.
 		ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 		mint.BeginBlocker(*ctx, simApp.MintKeeper)
 		minter := simApp.MintKeeper.GetMinterCustom(*ctx)
-		require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
-		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom), sdk.MustNewDecFromStr("1.0"))
-		feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
-		expect := feeAccount.GetCoins().AmountOf(Denom)
-		reward := sdk.MustNewDecFromStr("1.0").Sub(sdk.MustNewDecFromStr("1.0").MulTruncate(sdk.MustNewDecFromStr(FarmProportion)))
-		*allRewards = allRewards.Add(reward)
-		require.Equal(suite.T(), expect, *allRewards)
-
 		params = simApp.MintKeeper.GetParams(*ctx)
-		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerDay)
+		feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
+		*allRewards = allRewards.Add(expectReward)
+
+		// Suit expect.
+		require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
+		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+		require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
+		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerYearNew)
 		require.Equal(suite.T(), params.DeflationEpoch, DeflationEpoch)
 	}
+
+	require.Equal(suite.T(), InitStartBlock+1000*2+1, ctx.BlockHeight())
 }
 
-func (suite *AbciOkchainSuite) phase2(ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
-	// The second proposal
+func (suite *AbciOkchainSuite) step4(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	// Send change DeflationEpoch proposal (effective immediately) from 3 to 9, second proposal.
 	params := simApp.MintKeeper.GetParams(*ctx)
-	params.DeflationEpoch = DeflationEpochDay
+	params.DeflationEpoch = DeflationEpochNew
 	simApp.MintKeeper.SetParams(*ctx, params)
+
 	for i := int64(1); i <= 1000; i++ {
+		// Execution block.
 		ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 		mint.BeginBlocker(*ctx, simApp.MintKeeper)
 		minter := simApp.MintKeeper.GetMinterCustom(*ctx)
-		require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
-		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom), sdk.MustNewDecFromStr("1.0"))
 		feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
-		expect := feeAccount.GetCoins().AmountOf(Denom)
-		reward := sdk.MustNewDecFromStr("1.0").Sub(sdk.MustNewDecFromStr("1.0").MulTruncate(sdk.MustNewDecFromStr(FarmProportion)))
-		*allRewards = allRewards.Add(reward)
-		require.Equal(suite.T(), expect, *allRewards)
+		*allRewards = allRewards.Add(expectReward)
 		params = simApp.MintKeeper.GetParams(*ctx)
-		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerDay)
-		require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochDay)
-	}
 
+		// Suit expect.
+		require.Equal(suite.T(), minter.NextBlockToUpdate, BlocksPerYear*DeflationEpoch)
+		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+		require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
+		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerYearNew)
+		require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochNew)
+	}
+	require.Equal(suite.T(), InitStartBlock+1000*3+1, ctx.BlockHeight())
 }
 
-func (suite *AbciOkchainSuite) phase3(ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
-	// The third proposal
+func (suite *AbciOkchainSuite) step5(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	// Send forced changes to the NextBlockUpdate proposal, third proposal.
 	minter := simApp.MintKeeper.GetMinterCustom(*ctx)
 	minter.NextBlockToUpdate = uint64(ctx.BlockHeight() + 1000)
 	simApp.MintKeeper.SetMinterCustom(*ctx, minter)
-	for i := int64(1); i <= 1000; i++ {
+
+	for i := int64(1); i < 1000; i++ {
+		// Execution block.
 		ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 		mint.BeginBlocker(*ctx, simApp.MintKeeper)
 		minter := simApp.MintKeeper.GetMinterCustom(*ctx)
-		defaultMint := sdk.MustNewDecFromStr("1.0")
-		if i == 1000 {
-			defaultMint = sdk.MustNewDecFromStr("0.5")
-		}
-		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom), defaultMint)
 		feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
-		expect := feeAccount.GetCoins().AmountOf(Denom)
-		reward := defaultMint.Sub(defaultMint.MulTruncate(sdk.MustNewDecFromStr(FarmProportion)))
-		*allRewards = allRewards.Add(reward)
-		require.Equal(suite.T(), expect, *allRewards)
+		*allRewards = allRewards.Add(expectReward)
 		params := simApp.MintKeeper.GetParams(*ctx)
-		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerDay)
-		require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochDay)
+
+		// Suit expect.
+		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+		require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
+		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerYearNew)
+		require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochNew)
 	}
+	require.Equal(suite.T(), InitStartBlock+1000*4, ctx.BlockHeight())
 }
 
-func (suite *AbciOkchainSuite) phase4(ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
-	// The fourth proposal
+func (suite *AbciOkchainSuite) step6(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	// System code triggers halving: 0.5->0.25
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+	mint.BeginBlocker(*ctx, simApp.MintKeeper)
 	minter := simApp.MintKeeper.GetMinterCustom(*ctx)
-	minter.NextBlockToUpdate = uint64(ctx.BlockHeight() + 1000)
+	feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
+	*allRewards = allRewards.Add(expectReward)
+	params := simApp.MintKeeper.GetParams(*ctx)
+
+	// Suit expect.
+	require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+	require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
+	require.Equal(suite.T(), params.BlocksPerYear, BlocksPerYearNew)
+	require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochNew)
+	require.Equal(suite.T(), InitStartBlock+1000*4+1, ctx.BlockHeight())
+}
+
+func (suite *AbciOkchainSuite) step7(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	// Send forced changes to the NextBlockUpdate proposal, fourth proposal.
+	minter := simApp.MintKeeper.GetMinterCustom(*ctx)
+	minter.NextBlockToUpdate = uint64(ctx.BlockHeight()) + Target24DayBlock - 4000
 	simApp.MintKeeper.SetMinterCustom(*ctx, minter)
-	for i := int64(1); i <= 1000; i++ {
+
+	for i := int64(1); i < int64(Target24DayBlock)-4000; i++ {
+		// Execution block.
 		ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 		mint.BeginBlocker(*ctx, simApp.MintKeeper)
 		minter := simApp.MintKeeper.GetMinterCustom(*ctx)
-		defaultMint := sdk.MustNewDecFromStr("0.5")
-		if i == 1000 {
-			defaultMint = sdk.MustNewDecFromStr("0.25")
-		}
-		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom), defaultMint)
 		feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
-		expect := feeAccount.GetCoins().AmountOf(Denom)
-		reward := defaultMint.Sub(defaultMint.MulTruncate(sdk.MustNewDecFromStr(FarmProportion)))
-		*allRewards = allRewards.Add(reward)
-		require.Equal(suite.T(), expect, *allRewards)
+		*allRewards = allRewards.Add(expectReward)
 		params := simApp.MintKeeper.GetParams(*ctx)
-		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerDay)
-		require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochDay)
+
+		// Suit expect.
+		require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+		require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
+		require.Equal(suite.T(), params.BlocksPerYear, BlocksPerYearNew)
+		require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochNew)
 	}
+
+	require.Equal(suite.T(), InitStartBlock+int64(Target24DayBlock), ctx.BlockHeight())
 }
 
-func (suite *AbciOkchainSuite) keeping(ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+func (suite *AbciOkchainSuite) step8(expectReward sdk.Dec, ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
+	// System code triggers halving: 0.25->0.125
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+	mint.BeginBlocker(*ctx, simApp.MintKeeper)
+	minter := simApp.MintKeeper.GetMinterCustom(*ctx)
+	feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
+	*allRewards = allRewards.Add(expectReward)
+	params := simApp.MintKeeper.GetParams(*ctx)
+
+	// Suit expect.
+	require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom).MulTruncate(sdk.MustNewDecFromStr(FarmProportion)), expectReward)
+	require.Equal(suite.T(), feeAccount.GetCoins().AmountOf(Denom), *allRewards)
+	require.Equal(suite.T(), params.BlocksPerYear, BlocksPerYearNew)
+	require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochNew)
+	require.Equal(suite.T(), InitStartBlock+int64(Target24DayBlock)+1, ctx.BlockHeight())
+}
+
+func (suite *AbciOkchainSuite) LoopDeflation(ctx *sdk.Context, simApp *simapp.SimApp, allRewards *sdk.Dec) {
 	testCases := []struct {
 		title          string
 		phase          uint64
@@ -352,7 +412,7 @@ func (suite *AbciOkchainSuite) keeping(ctx *sdk.Context, simApp *simapp.SimApp, 
 
 	for _, tc := range testCases {
 		suite.Run(tc.title, func() {
-			ctx.SetBlockHeight(CurrentBlock + int64(Target24DayBlock) + int64(BlocksPerDay*DeflationEpochDay*tc.phase))
+			ctx.SetBlockHeight(InitStartBlock + int64(Target24DayBlock) + int64(BlocksPerYearNew*DeflationEpochNew*tc.phase))
 			mint.BeginBlocker(*ctx, simApp.MintKeeper)
 			feeAccount := simApp.SupplyKeeper.GetModuleAccount(*ctx, FeeAccountName)
 			expect := feeAccount.GetCoins().AmountOf(Denom)
@@ -363,28 +423,13 @@ func (suite *AbciOkchainSuite) keeping(ctx *sdk.Context, simApp *simapp.SimApp, 
 			params := simApp.MintKeeper.GetParams(*ctx)
 			minter := simApp.MintKeeper.GetMinterCustom(*ctx)
 			require.Equal(suite.T(), params.MintDenom, Denom)
-			require.Equal(suite.T(), params.BlocksPerYear, BlocksPerDay)
+			require.Equal(suite.T(), params.BlocksPerYear, BlocksPerYearNew)
 			require.Equal(suite.T(), params.DeflationRate, sdk.MustNewDecFromStr(DeflationRate))
-			require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochDay)
+			require.Equal(suite.T(), params.DeflationEpoch, DeflationEpochNew)
 			require.Equal(suite.T(), params.FarmProportion, sdk.MustNewDecFromStr(FarmProportion))
 
-			require.Equal(suite.T(), minter.NextBlockToUpdate, uint64(CurrentBlock)+Target24DayBlock+BlocksPerDay*DeflationEpochDay*(tc.phase+1))
+			require.Equal(suite.T(), minter.NextBlockToUpdate, uint64(InitStartBlock)+Target24DayBlock+BlocksPerYearNew/12*DeflationEpochNew*(tc.phase+1)+1)
 			require.Equal(suite.T(), minter.MintedPerBlock.AmountOf(Denom), tc.mintedPerBlock)
 		})
 	}
-}
-
-func (suite *AbciOkchainSuite) TestFakeUpdateNextBlock() {
-	// init current supply block rewards
-	simApp, ctx := createTestApp()
-	allRewards := sdk.NewDec(CurrentSupply)
-
-	suite.initCurrentSupply(&ctx, simApp, &allRewards)
-	suite.phase0(&ctx, simApp, &allRewards)
-	suite.phase1(&ctx, simApp, &allRewards)
-	suite.phase2(&ctx, simApp, &allRewards)
-	suite.phase3(&ctx, simApp, &allRewards)
-	suite.phase4(&ctx, simApp, &allRewards)
-	require.Equal(suite.T(), CurrentBlock+int64(Target24DayBlock), ctx.BlockHeight())
-	suite.keeping(&ctx, simApp, &allRewards)
 }
