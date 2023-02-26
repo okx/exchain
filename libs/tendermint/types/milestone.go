@@ -30,8 +30,7 @@ var (
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
 
-	MILESTONE_EARTH_HEIGHT string
-	milestoneEarthHeight   int64
+	MILESTONE_EARTH_HEIGHT int64
 
 	MILESTONE_VENUS4_HEIGHT string
 	milestoneVenus4Height   int64
@@ -45,6 +44,8 @@ var (
 const (
 	MainNet = "exchain-66"
 	TestNet = "exchain-65"
+
+	MILESTONE_EARTH = "earth"
 )
 
 const (
@@ -72,7 +73,6 @@ func init() {
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
-		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
 	})
 }
@@ -216,18 +216,18 @@ func GetVenus2Height() int64 {
 // ==================================
 // =========== Earth ===============
 func UnittestOnlySetMilestoneEarthHeight(h int64) {
-	milestoneEarthHeight = h
+	MILESTONE_EARTH_HEIGHT = h
 }
 
 func HigherThanEarth(h int64) bool {
-	if milestoneEarthHeight == 0 {
+	if MILESTONE_EARTH_HEIGHT == 0 {
 		return false
 	}
-	return h >= milestoneEarthHeight
+	return h >= MILESTONE_EARTH_HEIGHT
 }
 
 func GetEarthHeight() int64 {
-	return milestoneEarthHeight
+	return MILESTONE_EARTH_HEIGHT
 }
 
 // =========== Earth ===============
