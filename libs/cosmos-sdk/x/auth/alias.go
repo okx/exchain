@@ -7,6 +7,7 @@
 package auth
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -14,7 +15,7 @@ import (
 
 const (
 	ModuleName                    = types.ModuleName
-	StoreKey                      = types.StoreKey
+	StoreKey                      = mpt.StoreKey //types.StoreKey
 	FeeCollectorName              = types.FeeCollectorName
 	QuerierRoute                  = types.QuerierRoute
 	DefaultParamspace             = types.DefaultParamspace

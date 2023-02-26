@@ -19,6 +19,7 @@ import (
 // encoding/decoding library.
 type AccountKeeper struct {
 	// The (unexposed) key used to access the store from the Context.
+	// Deprecated: Use mptKey instead.
 	key sdk.StoreKey
 
 	mptKey sdk.StoreKey
@@ -38,11 +39,10 @@ type AccountKeeper struct {
 // (binary) encode and decode concrete sdk.Accounts.
 // nolint
 func NewAccountKeeper(
-	cdc *codec.Codec, key, keyMpt sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
+	cdc *codec.Codec, keyMpt sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
 
 	return AccountKeeper{
-		key:           key,
 		mptKey:        keyMpt,
 		proto:         proto,
 		cdc:           cdc,
