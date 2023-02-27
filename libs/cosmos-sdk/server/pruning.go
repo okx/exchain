@@ -21,13 +21,15 @@ func GetPruningOptionsFromFlags() (types.PruningOptions, error) {
 	strategy := strings.ToLower(viper.GetString(FlagPruning))
 
 	switch strategy {
-	case types.PruningOptionDefault, types.PruningOptionNothing, types.PruningOptionEverything:
-		if strategy == types.PruningOptionNothing {
-			tmiavl.EnablePruningHistoryState = false
-			tmiavl.CommitIntervalHeight = 1
-			iavlcfg.DynamicConfig.SetCommitGapHeight(1)
-			mpt.TrieDirtyDisabled = true
-		}
+	case types.PruningOptionNothing:
+		tmiavl.EnablePruningHistoryState = false
+		tmiavl.CommitIntervalHeight = 1
+		iavlcfg.DynamicConfig.SetCommitGapHeight(1)
+		mpt.TrieDirtyDisabled = true
+		return types.NewPruningOptionsFromString(strategy), nil
+
+	case types.PruningOptionDefault, types.PruningOptionEverything:
+		mpt.TrieDirtyDisabled = false
 		return types.NewPruningOptionsFromString(strategy), nil
 
 	case types.PruningOptionCustom:
@@ -40,6 +42,8 @@ func GetPruningOptionsFromFlags() (types.PruningOptions, error) {
 		if err := opts.Validate(); err != nil {
 			return opts, fmt.Errorf("invalid custom pruning options: %w", err)
 		}
+
+		mpt.TrieDirtyDisabled = opts.KeepEvery == 1
 
 		return opts, nil
 
