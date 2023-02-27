@@ -126,12 +126,14 @@ func GetMilestoneVenusHeight() int64 {
 
 // 2322600 is mainnet GenesisHeight
 func IsMainNet() bool {
-	return MILESTONE_GENESIS_HEIGHT == "2322600"
+	//return MILESTONE_GENESIS_HEIGHT == "2322600"
+	return false
 }
 
 // 1121818 is testnet GenesisHeight
 func IsTestNet() bool {
-	return MILESTONE_GENESIS_HEIGHT == "1121818"
+	//return MILESTONE_GENESIS_HEIGHT == "1121818"
+	return false
 }
 
 func GetStartBlockHeight() int64 {
