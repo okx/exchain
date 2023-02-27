@@ -3,6 +3,7 @@ package iavl
 
 import (
 	"bytes"
+	"encoding/hex"
 	mrand "math/rand"
 	"sort"
 	"testing"
@@ -428,7 +429,7 @@ func TestProof(t *testing.T) {
 func TestTreeProof(t *testing.T) {
 	tree, err := getTestTree(100)
 	require.NoError(t, err)
-	assert.Equal(t, tree.Hash(), []byte(nil))
+	assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", hex.EncodeToString(tree.Hash()))
 
 	// should get false for proof with nil root
 	value, proof, err := tree.GetWithProof([]byte("foo"))

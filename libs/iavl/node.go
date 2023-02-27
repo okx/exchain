@@ -5,6 +5,7 @@ package iavl
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"unsafe"
@@ -251,6 +252,9 @@ func (node *Node) _hash() []byte {
 // Hash the node and its descendants recursively. This usually mutates all
 // descendant nodes. Returns the node hash and number of nodes hashed.
 func (node *Node) hashWithCount() ([]byte, int64) {
+	if node == nil {
+		return sha256.New().Sum(nil), 0
+	}
 	if node.hash != nil {
 		return node.hash, 0
 	}

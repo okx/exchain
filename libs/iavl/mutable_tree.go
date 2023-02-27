@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"container/list"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -170,10 +171,7 @@ func (tree *MutableTree) AvailableVersions() []int {
 // Hash returns the hash of the latest saved version of the tree, as returned
 // by SaveVersion. If no versions have been saved, Hash returns nil.
 func (tree *MutableTree) Hash() []byte {
-	if tree.version > 0 {
-		return tree.lastSaved.Hash()
-	}
-	return nil
+	return tree.lastSaved.Hash()
 }
 
 // WorkingHash returns the hash of the current working tree.
@@ -806,6 +804,12 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 		existingHash, err := tree.ndb.getRoot(version)
 		if err != nil {
 			return nil, version, *tree.deltas, err
+		}
+
+		// If the existing root hash is empty (because the tree is empty), then we need to
+		// compare with the hash of an empty input which is what `WorkingHash()` returns.
+		if len(existingHash) == 0 {
+			existingHash = sha256.New().Sum(nil)
 		}
 
 		var newHash []byte

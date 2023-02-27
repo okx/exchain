@@ -3,6 +3,7 @@ package iavl
 
 import (
 	"bytes"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
@@ -232,22 +233,22 @@ func TestVersionedEmptyTree(t *testing.T) {
 	require.NoError(err)
 
 	hash, v, _, err := tree.SaveVersion(false)
-	require.Nil(hash)
+	require.Equal("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", hex.EncodeToString(hash))
 	require.EqualValues(1, v)
 	require.NoError(err)
 
 	hash, v, _, err = tree.SaveVersion(false)
-	require.Nil(hash)
+	require.Equal("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", hex.EncodeToString(hash))
 	require.EqualValues(2, v)
 	require.NoError(err)
 
 	hash, v, _, err = tree.SaveVersion(false)
-	require.Nil(hash)
+	require.Equal("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", hex.EncodeToString(hash))
 	require.EqualValues(3, v)
 	require.NoError(err)
 
 	hash, v, _, err = tree.SaveVersion(false)
-	require.Nil(hash)
+	require.Equal("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", hex.EncodeToString(hash))
 	require.EqualValues(4, v)
 	require.NoError(err)
 
