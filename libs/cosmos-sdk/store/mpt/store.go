@@ -2,20 +2,18 @@ package mpt
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
-	"io"
-	"sync"
-
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -24,6 +22,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"io"
+	"sync"
 )
 
 const (
@@ -62,6 +62,13 @@ type MptStore struct {
 
 	//TODO by yxq
 	retrieval mpttypes.AccountStateRootRetrieval
+
+	// snapshots
+	snaps         *snapshot.Tree
+	snap          snapshot.Snapshot
+	snapDestructs map[ethcmn.Hash]struct{}
+	snapAccounts  map[ethcmn.Hash][]byte
+	snapStorage   map[ethcmn.Hash]map[ethcmn.Hash][]byte
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -100,6 +107,18 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 		exitSignal: make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
+
+	if err = mptStore.openSnapshot(); err != nil {
+		mptStore.logger.Error("open snapshot error", "error", err)
+	}
+
+	if mptStore.snaps != nil {
+		if mptStore.snap = mptStore.snaps.Snapshot(mptStore.originalRoot); mptStore.snap != nil {
+			mptStore.snapDestructs = make(map[ethcmn.Hash]struct{})
+			mptStore.snapAccounts = make(map[ethcmn.Hash][]byte)
+			mptStore.snapStorage = make(map[ethcmn.Hash]map[ethcmn.Hash][]byte)
+		}
+	}
 
 	return mptStore, err
 }
@@ -255,6 +274,23 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	ms.SetMptRootHash(uint64(ms.version), root)
 	ms.originalRoot = root
 
+	// If snapshotting is enabled, update the snapshot tree with this new version
+	if ms.snap != nil {
+		// Only update if there's a state transition (skip empty Clique blocks)
+		if parent := ms.snap.Root(); parent != root {
+			if err := ms.snaps.Update(root, parent, ms.snapDestructs, ms.snapAccounts, ms.snapStorage); err != nil {
+				ms.logger.Error("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
+			}
+			// Keep 128 diff layers in the memory, persistent layer is 129th.
+			// - head layer is paired with HEAD state
+			// - head-1 layer is paired with HEAD-1 state
+			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
+			if err := ms.snaps.Cap(root, 128); err != nil {
+				ms.logger.Error("Failed to cap snapshot tree", "root", root, "layers", 128, "err", err)
+			}
+		}
+		ms.snap, ms.snapDestructs, ms.snapAccounts, ms.snapStorage = nil, nil, nil, nil
+	}
 	// TODO: use a thread to push data to database
 	// push data to database
 	ms.PushData2Database(ms.version)

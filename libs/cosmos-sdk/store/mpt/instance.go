@@ -10,6 +10,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	snap "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/snapshot"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/spf13/viper"
@@ -40,6 +41,7 @@ func InstanceOfMptStore() ethstate.Database {
 			panic("fail to open database: " + e.Error())
 		}
 		db := rawdb.NewDatabase(kvstore)
+		snap.SetDiskDB(db)
 		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     int(TrieCacheSize),
 			Journal:   "",

@@ -2,10 +2,14 @@ package keeper
 
 import (
 	"encoding/binary"
+	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	snap "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/snapshot"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -38,6 +42,7 @@ func (k *Keeper) SetLatestStoredBlockHeight(height uint64) {
 }
 
 func (k *Keeper) OpenTrie() {
+
 }
 
 func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
@@ -231,4 +236,41 @@ func (k Keeper) iterateBlockBloomInDiskDB(fn func(key []byte, value []byte) (sto
 			break
 		}
 	}
+}
+
+func (k *Keeper) openSnapshot() error {
+	latestHeight := k.getLatestStoredBlockHeight()
+	latestRootHash := k.getMptRootHash(latestHeight)
+	var recovery bool
+	if layer := rawdb.ReadSnapshotRecoveryNumber(snap.GetDiskDB()); layer != nil && *layer > latestHeight {
+		k.logger.Error("Enabling snapshot recovery", "chainhead", layer, "diskbase", *layer)
+		recovery = true
+	}
+	var err error
+	k.snaps, err = snapshot.New(snap.GetDiskDB(), k.db.TrieDB(), 256, latestRootHash, false, true, recovery)
+	if err != nil {
+		k.logger.Error("open snapshot error ", "error", err)
+		return fmt.Errorf("open snapshot error %v", err)
+	}
+	k.snap = k.snaps.Snapshot(latestRootHash)
+
+	return nil
+}
+
+func (k *Keeper) getLatestStoredBlockHeight() uint64 {
+	rst, err := k.db.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
+}
+
+func (k *Keeper) getMptRootHash(height uint64) ethcmn.Hash {
+	hhash := sdk.Uint64ToBigEndian(height)
+	rst, err := k.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, hhash...))
+	if err != nil || len(rst) == 0 {
+		return ethcmn.Hash{}
+	}
+
+	return ethcmn.BytesToHash(rst)
 }

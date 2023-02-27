@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"math/big"
 	"sync"
 
@@ -70,6 +71,9 @@ type Keeper struct {
 	UpdatedAccount []ethcmn.Address
 
 	db ethstate.Database
+
+	snaps *snapshot.Tree
+	snap  snapshot.Snapshot
 
 	startHeight uint64
 	triegc      *prque.Prque
@@ -148,6 +152,8 @@ func NewKeeper(
 	ak.SetObserverKeeper(k)
 
 	//k.OpenTrie()
+	k.openSnapshot()
+
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
 	return k
 }
@@ -211,6 +217,9 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Cdc:           k.cdc,
 		DB:            k.db,
 		StateCache:    k.stateCache,
+
+		Snapshot: k.snaps,
+		Snap:     k.snap,
 	}
 }
 
