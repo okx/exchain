@@ -1,8 +1,10 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -77,20 +79,16 @@ func (ak AccountKeeper) GetSequence(ctx sdk.Context, addr sdk.AccAddress) (uint6
 // If the global account number is not set, it initializes it with value 0.
 func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
-	store := ctx.KVStore(ak.mptKey)
-	bz := store.Get(types.GlobalAccountNumberKey)
-	if bz == nil {
-		// initialize the account numbers
-		accNumber = 0
+	store := prefix.NewStore(ak.paramSubspace.CustomKVStore(ctx), types.GlobalAccountNumberKey)
+	bz := store.Get([]byte{})
+	if len(bz) == 0 {
+		bz = make([]byte, 8)
 	} else {
-		err := ak.cdc.UnmarshalBinaryLengthPrefixed(bz, &accNumber)
-		if err != nil {
-			panic(err)
-		}
+		accNumber = binary.BigEndian.Uint64(bz)
 	}
 
-	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
-	store.Set(types.GlobalAccountNumberKey, bz)
+	binary.BigEndian.PutUint64(bz, accNumber+1)
+	store.Set([]byte{}, bz)
 
 	return accNumber
 }
