@@ -770,6 +770,10 @@ func NewOKExChainApp(
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
+
+		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
+			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
+		}
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
