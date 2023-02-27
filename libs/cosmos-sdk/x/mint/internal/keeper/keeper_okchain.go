@@ -3,6 +3,7 @@ package keeper
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 )
 
@@ -41,7 +42,12 @@ func (k Keeper) UpdateMinterCustom(ctx sdk.Context, minter *types.MinterCustom, 
 
 	// update new MinterCustom
 	minter.MintedPerBlock = sdk.NewDecCoinsFromDec(params.MintDenom, provisionAmtPerBlock)
-	minter.NextBlockToUpdate += params.DeflationEpoch * params.BlocksPerYear
+
+	if tmtypes.HigherThanVenus5(ctx.BlockHeight()) {
+		minter.NextBlockToUpdate += params.DeflationEpoch * params.BlocksPerYear / 12
+	} else {
+		minter.NextBlockToUpdate += params.DeflationEpoch * params.BlocksPerYear
+	}
 
 	k.SetMinterCustom(ctx, *minter)
 }
