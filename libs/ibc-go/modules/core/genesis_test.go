@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 
 	// tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
 	"github.com/stretchr/testify/suite"
@@ -49,7 +48,7 @@ type IBCTestSuite struct {
 
 // SetupTest creates a coordinator with 2 test chains.
 func (suite *IBCTestSuite) SetupTest() {
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))

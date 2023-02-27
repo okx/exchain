@@ -11,14 +11,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system/trace/persist"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -319,71 +316,7 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	if tmtypes.HigherThanVenus1(req.Height) {
-		return st.queryWithCM40(req)
-	}
-	if len(req.Data) == 0 {
-		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
-	}
-
-	// store the height we chose in the response, with 0 being changed to the
-	// latest height
-	res.Height = getHeight(st.tree, req)
-
-	switch req.Path {
-	case "/key": // get by key
-		key := req.Data // data holds the key bytes
-		res.Key = key
-
-		tree, err := st.tree.GetImmutable(res.Height)
-		if err != nil {
-			return sdkerrors.QueryResult(sdkerrors.Wrapf(iavl.ErrVersionDoesNotExist, "request height %d", req.Height))
-		}
-
-		if req.Prove {
-			value, proof, err := tree.GetWithProof(key)
-			if err != nil {
-				res.Log = err.Error()
-				break
-			}
-			if proof == nil {
-				// Proof == nil implies that the store is empty.
-				if value != nil {
-					panic("unexpected value for an empty proof")
-				}
-			}
-			if value != nil {
-				// value was found
-				res.Value = value
-				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewValueOp(key, proof).ProofOp()}}
-			} else {
-				// value wasn't found
-				res.Value = nil
-				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewAbsenceOp(key, proof).ProofOp()}}
-			}
-		} else {
-			_, res.Value = tree.GetWithIndex(key)
-		}
-
-	case "/subspace":
-		var KVs []types.KVPair
-
-		subspace := req.Data
-		res.Key = subspace
-
-		iterator := types.KVStorePrefixIterator(st, subspace)
-		for ; iterator.Valid(); iterator.Next() {
-			KVs = append(KVs, types.KVPair{Key: iterator.Key(), Value: iterator.Value()})
-		}
-
-		iterator.Close()
-		res.Value = cdc.MustMarshalBinaryLengthPrefixed(KVs)
-
-	default:
-		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unexpected query path: %v", req.Path))
-	}
-
-	return res
+	return st.queryWithCM40(req)
 }
 
 func (st *Store) GetDBReadTime() int {
