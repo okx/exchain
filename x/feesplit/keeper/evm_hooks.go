@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"errors"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -39,7 +38,6 @@ func (k Keeper) PostTxProcessing(
 	st *evmtypes.StateTransition,
 	receipt *ethtypes.Receipt,
 ) error {
-	return errors.New("testError")
 	// This is different from ibc and wasm, evm tx exists at all times.
 	// in Venus3 height store takes effect,
 	// in Venus3+1 height initGenesis takes effect,
