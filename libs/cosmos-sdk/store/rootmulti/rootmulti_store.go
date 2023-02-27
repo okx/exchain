@@ -404,7 +404,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		callback := func(name string, version int64) {
 			ibcInfo := infos[name]
 			if ibcInfo.Core.CommitID.Version == 0 {
-				ibcInfo.Core.CommitID.Version = version //tmtypes.GetVenus1Height()
+				ibcInfo.Core.CommitID.Version = version
 				infos[name] = ibcInfo
 				for key, param := range rs.storesParams {
 					if key.Name() == name {
