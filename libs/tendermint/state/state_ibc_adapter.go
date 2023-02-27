@@ -14,10 +14,6 @@ func (v Version) UpgradeToIBCVersion() Version {
 	}
 }
 
-func (v Version) IsUpgraded() bool {
-	return v.Consensus.Block == version.IBCBlockProtocol
-}
-
 var ibcStateVersion = Version{
 	Consensus: version.Consensus{
 		Block: version.IBCBlockProtocol,
