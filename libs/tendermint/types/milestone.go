@@ -15,9 +15,6 @@ var (
 	MILESTONE_GENESIS_HEIGHT string
 	genesisHeight            int64
 
-	MILESTONE_MERCURY_HEIGHT string
-	milestoneMercuryHeight   int64
-
 	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
@@ -48,9 +45,6 @@ const (
 	MainNetVeneusHeight = 8200000
 	TestNetVeneusHeight = 8510000
 
-	MainNetMercuyHeight  = 5150000
-	TestNetMercuryHeight = 5300000
-
 	MainNetGenesisHeight = 2322600
 	TestNetGenesisHeight = 1121818
 
@@ -61,7 +55,6 @@ const (
 func init() {
 	once.Do(func() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
-		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
@@ -83,25 +76,14 @@ func string2number(input string) int64 {
 
 func SetupMainNetEnvironment(pruneH int64) {
 	milestoneVenusHeight = MainNetVeneusHeight
-	milestoneMercuryHeight = MainNetMercuyHeight
 	genesisHeight = MainNetGenesisHeight
 	nodePruneHeight = pruneH
 }
 
 func SetupTestNetEnvironment(pruneH int64) {
 	milestoneVenusHeight = TestNetVeneusHeight
-	milestoneMercuryHeight = TestNetMercuryHeight
 	genesisHeight = TestNetGenesisHeight
 	nodePruneHeight = pruneH
-}
-
-// depracate homstead signer support
-func HigherThanMercury(height int64) bool {
-	if milestoneMercuryHeight == 0 {
-		// milestoneMercuryHeight not enabled
-		return false
-	}
-	return height > milestoneMercuryHeight
 }
 
 func HigherThanVenus(height int64) bool {
@@ -144,10 +126,6 @@ func GetNodePruneHeight() int64 {
 
 func GetVenusHeight() int64 {
 	return milestoneVenusHeight
-}
-
-func GetMercuryHeight() int64 {
-	return milestoneMercuryHeight
 }
 
 func GetMarsHeight() int64 {
