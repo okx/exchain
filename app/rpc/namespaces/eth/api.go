@@ -787,6 +787,11 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
 	}
 
+	// send chanData to txPool
+	if api.txPool != nil {
+		return broadcastTxByTxPool(api, tx, txBytes)
+	}
+
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data
 	// If error is encountered on the node, the broadcast will not return an error
 	res, err := api.clientCtx.BroadcastTx(txBytes)
