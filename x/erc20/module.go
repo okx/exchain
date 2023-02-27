@@ -3,10 +3,6 @@ package erc20
 import (
 	"encoding/json"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
@@ -22,7 +18,6 @@ import (
 
 var _ module.AppModuleBasic = AppModuleBasic{}
 var _ module.AppModule = AppModule{}
-var _ upgrade.UpgradeModule = AppModule{}
 
 // AppModuleBasic struct
 type AppModuleBasic struct{}
@@ -39,7 +34,7 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 
 // DefaultGenesis is json default structure
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return nil
+	return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis is the validation check of the Genesis
@@ -65,7 +60,6 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 // AppModule implements an application module for the erc20 module.
 type AppModule struct {
-	*base.BaseIBCUpgradeModule
 	AppModuleBasic
 	keeper Keeper
 }
@@ -76,7 +70,6 @@ func NewAppModule(k Keeper) AppModule {
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
 	}
-	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
 	return ret
 }
 
@@ -120,7 +113,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 
 // InitGenesis instantiates the genesis state
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	return nil
+	return am.initGenesis(ctx, data)
 }
 
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -131,19 +124,5 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis exports the genesis state to be used by daemon
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return nil
-}
-
-func (am AppModule) RegisterTask() upgrade.HeightTask {
-	return upgrade.NewHeightTask(0, func(ctx sdk.Context) error {
-		if am.Sealed() {
-			return nil
-		}
-		am.initGenesis(ctx, types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState()))
-		return nil
-	})
-}
-
-func (am AppModule) RegisterParam() params.ParamSet {
-	return nil
+	return types.ModuleCdc.MustMarshalJSON(ExportGenesis(ctx, am.keeper))
 }

@@ -44,6 +44,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.ParamsMaxValsToAddShares(ctx),
 		k.ParamsMinDelegation(ctx),
 		k.ParamsMinSelfDelegation(ctx),
+		k.HistoricalEntries(ctx),
 	)
 }
 

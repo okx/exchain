@@ -29,7 +29,7 @@ type FeeTestSuite struct {
 
 func (suite *FeeTestSuite) SetupTest() {
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 3)
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	types2.UnittestOnlySetMilestoneVenus4Height(-1)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
