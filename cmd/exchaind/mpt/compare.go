@@ -73,8 +73,6 @@ func cmpIavlEvm(v2 string, version int64) {
 	panicError(err)
 	fmt.Println("evmTrie root hash:", evmTrie.Hash())
 
-	v2itr := trie.NewIterator(evmTrie.NodeIterator(nil))
-
 	var stateRoot ethcmn.Hash
 
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
