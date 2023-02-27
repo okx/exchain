@@ -145,7 +145,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams, ctx.Logger())
 
 	// 1.2 init account keeper
-	ak := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+	ak := auth.NewAccountKeeper(cdc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 
 	// 1.3 init bank keeper
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)

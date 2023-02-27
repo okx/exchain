@@ -24,7 +24,7 @@ func (ak AccountKeeper) Accounts(c context.Context, req *types.QueryAccountsRequ
 	}
 
 	ctx := sdk.UnwrapSDKContext(c)
-	store := ctx.KVStore(ak.key)
+	store := ctx.KVStore(ak.mptKey)
 	accountsStore := prefix.NewStore(store, types.AddressStoreKeyPrefix)
 
 	var accounts []*codectypes.Any
@@ -45,8 +45,6 @@ func (ak AccountKeeper) Accounts(c context.Context, req *types.QueryAccountsRequ
 	}
 
 	return &types.QueryAccountsResponse{Accounts: accounts, Pagination: pageRes}, err
-
-	return nil, nil
 }
 
 func (ak AccountKeeper) Account(conte context.Context, req *types.QueryAccountRequest) (*types.QueryAccountResponse, error) {
