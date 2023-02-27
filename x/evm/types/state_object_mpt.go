@@ -3,10 +3,10 @@ package types
 import (
 	"bytes"
 	"fmt"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	types2 "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
 )
@@ -60,10 +60,25 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-	if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
-		so.setError(err)
-		return ethcmn.Hash{}
+	if so.stateDB.snap != nil {
+		// If the object was destructed in *this* block (and potentially resurrected),
+		// the storage has been cleared out, and we should *not* consult the previous
+		// snapshot about any storage values. The only possible alternatives are:
+		//   1) resurrect happened, and new slot values were set -- those should
+		//      have been handles via pendingStorage above.
+		//   2) we don't have new values, and can deliver empty response back
+		if _, destructed := so.stateDB.snapDestructs[so.addrHash]; destructed {
+			return ethcmn.Hash{}
+		}
+		enc, err = so.stateDB.snap.Storage(so.addrHash, crypto.Keccak256Hash(key.Bytes()))
+	}
+
+	if so.stateDB.snap == nil || err != nil {
+		tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
+		if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
+			so.setError(err)
+			return ethcmn.Hash{}
+		}
 	}
 
 	if len(enc) > 0 {
@@ -136,8 +151,13 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		return so.trie
 	}
 
+	// The snapshot storage map for the object
+	var storage map[ethcmn.Hash][]byte
+
 	// Insert all the pending updates into the trie
 	tr := so.getTrie(db)
+	hasher := so.stateDB.hasher
+
 	usedStorage := make([][]byte, 0, len(so.pendingStorage))
 	for key, value := range so.pendingStorage {
 		// Skip noop changes, persist actual changes
@@ -149,12 +169,25 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
+		var v []byte
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
-			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+			v, _ = rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
+		}
+
+		// If state snapshotting is active, cache the data til commit
+		if so.stateDB.snap != nil {
+			if storage == nil {
+				// Retrieve the old storage map, if available, create a new one otherwise
+				if storage = so.stateDB.snapStorage[so.addrHash]; storage == nil {
+					storage = make(map[ethcmn.Hash][]byte)
+					so.stateDB.snapStorage[so.addrHash] = storage
+				}
+			}
+			storage[crypto.HashData(hasher, key[:])] = v // v will be nil if it's deleted
 		}
 	}
 	if so.stateDB.prefetcher != nil {
