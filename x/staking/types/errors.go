@@ -61,9 +61,11 @@ const (
 )
 
 var (
-	ErrInvalidHistoricalInfo           = sdkerrors.Register(ModuleName, 144, "invalid historical info")
-	ErrNoHistoricalInfo                = sdkerrors.Register(ModuleName, 145, "no historical info found")
+	ErrInvalidHistoricalInfo  = sdkerrors.Register(ModuleName, 144, "invalid historical info")
+	ErrNoHistoricalInfo       = sdkerrors.Register(ModuleName, 145, "no historical info found")
+	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 146, "unsupported proposal type of staking module")
 )
+
 // ErrNoValidatorFound returns an error when a validator doesn't exist
 func ErrNoValidatorFound(valAddr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNoValidatorFound, fmt.Sprintf("validator %s does not exist", valAddr))}

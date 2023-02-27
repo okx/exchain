@@ -106,6 +106,7 @@ import (
 	paramsclient "github.com/okex/exchain/x/params/client"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
+	stakingclient "github.com/okex/exchain/x/staking/client"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
 	wasmclient "github.com/okex/exchain/x/wasm/client"
@@ -168,6 +169,7 @@ var (
 			wasmclient.UnpinCodesProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
+			stakingclient.ProposeValidatorProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
