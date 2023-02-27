@@ -15,9 +15,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/cli"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
@@ -506,12 +504,4 @@ func (am AppModule) NegotiateAppVersion(
 	}
 
 	return types.Version, nil
-}
-
-func (am AppModule) RegisterTask() upgrade.HeightTask {
-	return nil
-}
-
-func (am AppModule) RegisterParam() params.ParamSet {
-	return nil
 }
