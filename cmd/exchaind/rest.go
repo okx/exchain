@@ -95,6 +95,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			evmclient.ManageSysContractAddressProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractByteCodeProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
+			mintclient.ModifyNextBlockUpdateProposalHandler.RESTHandler(rs.CliCtx),
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
