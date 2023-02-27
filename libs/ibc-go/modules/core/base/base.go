@@ -5,7 +5,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -30,7 +29,7 @@ func (b *BaseIBCUpgradeModule) RegisterTask() upgrade.HeightTask {
 }
 
 func (b *BaseIBCUpgradeModule) UpgradeHeight() int64 {
-	return types.GetVenus1Height()
+	return 0
 }
 
 func (b *BaseIBCUpgradeModule) CommitFilter() *cosmost.StoreFilter {
