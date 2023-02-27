@@ -70,6 +70,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")
+	cmd.Flags().Bool(eth.FlagAllowUnprotectedTxs, false, "Allow for unprotected (non EIP155 signed) transactions to be submitted via RPC")
 
 	cmd.Flags().Bool(token.FlagOSSEnable, false, "Enable the function of exporting account data and uploading to oss")
 	cmd.Flags().String(token.FlagOSSEndpoint, "", "The OSS datacenter endpoint such as http://oss-cn-hangzhou.aliyuncs.com")
