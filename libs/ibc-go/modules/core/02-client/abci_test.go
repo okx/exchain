@@ -1,9 +1,9 @@
 package client_test
 
 import (
-	client "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"testing"
+
+	client "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 
 	"github.com/stretchr/testify/suite"
 	// abci "github.com/tendermint/tendermint/abci/types"
@@ -25,7 +25,7 @@ type ClientTestSuite struct {
 }
 
 func (suite *ClientTestSuite) SetupTest() {
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))

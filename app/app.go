@@ -11,7 +11,6 @@ import (
 	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
 	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
 	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 	"github.com/okex/exchain/x/icamauth"
 
 	ibccommon "github.com/okex/exchain/libs/ibc-go/modules/core/common"
@@ -298,7 +297,6 @@ func NewOKExChainApp(
 	logger.Info("Starting "+system.ChainName,
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
-		"Venus1Height", tmtypes.GetVenus1Height(),
 		"Venus2Height", tmtypes.GetVenus2Height(),
 		"Veneus4Height", tmtypes.GetVenus4Height(),
 		"EarthHeight", tmtypes.GetEarthHeight(),
@@ -572,12 +570,11 @@ func NewOKExChainApp(
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
-	left := common.NewDisaleProxyMiddleware()
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper, transferModule)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
-	transferStack := ibcporttypes.NewFacadedMiddleware(left,
+	transferStack := ibcporttypes.NewFacadedMiddleware(middle,
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
-		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
+	)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
@@ -699,7 +696,6 @@ func NewOKExChainApp(
 		erc20.ModuleName,
 		wasm.ModuleName,
 		feesplit.ModuleName,
-		ibchost.ModuleName,
 		icatypes.ModuleName, ibcfeetypes.ModuleName,
 	)
 

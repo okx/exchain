@@ -789,10 +789,7 @@ func (h *Header) Hash() tmbytes.HexBytes {
 	if h == nil || len(h.ValidatorsHash) == 0 {
 		return nil
 	}
-	if HigherThanVenus1(h.Height) {
-		return h.IBCHash()
-	}
-	return h.originHash()
+	return h.IBCHash()
 }
 func (h *Header) originHash() tmbytes.HexBytes {
 	return merkle.SimpleHashFromByteSlices([][]byte{

@@ -8,12 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"encoding/hex"
 
 	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
-	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -35,6 +32,8 @@ import (
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func newSdkAddress() sdk.AccAddress {
@@ -457,7 +456,6 @@ func newProxyDecoder() *codec.CodecProxy {
 	return codecProxy
 }
 func TestMsgIBCTxValidate(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneVenus1Height(1)
 
 	IBCRouterKey := "ibc"
 	cpcdc := newProxyDecoder()
