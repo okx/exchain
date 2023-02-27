@@ -1,13 +1,13 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/tendermint/global"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	exgovtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -43,7 +43,10 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 	}{
 		{
 			"no proposal title",
-			func() {},
+			func() {
+				global.SetGlobalHeight(0)
+				tmtypes.UnittestOnlySetMilestoneVenus5Height(0)
+			},
 			"",
 			"description",
 			0,
@@ -51,7 +54,10 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"gt max proposal title length",
-			func() {},
+			func() {
+				global.SetGlobalHeight(0)
+				tmtypes.UnittestOnlySetMilestoneVenus5Height(0)
+			},
 			RandStr(types.MaxTitleLength + 1),
 			"description",
 			0,
@@ -59,7 +65,10 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"gt max proposal title length",
-			func() {},
+			func() {
+				global.SetGlobalHeight(0)
+				tmtypes.UnittestOnlySetMilestoneVenus5Height(0)
+			},
 			RandStr(types.MaxTitleLength),
 			"",
 			0,
@@ -67,15 +76,43 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"gt max proposal description length",
-			func() {},
+			func() {
+				global.SetGlobalHeight(0)
+				tmtypes.UnittestOnlySetMilestoneVenus5Height(0)
+			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength + 1),
 			0,
 			exgovtypes.ErrInvalidProposalContent("description length is bigger than max description length"),
 		},
 		{
+			"invalid height",
+			func() {
+				global.SetGlobalHeight(100)
+				tmtypes.UnittestOnlySetMilestoneVenus5Height(-1)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			100,
+			ErrCodeInvalidHeight,
+		},
+		{
+			"valid height",
+			func() {
+				global.SetGlobalHeight(100)
+				tmtypes.UnittestOnlySetMilestoneVenus5Height(-1)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			101,
+			nil,
+		},
+		{
 			"ok",
-			func() {},
+			func() {
+				global.SetGlobalHeight(0)
+				tmtypes.UnittestOnlySetMilestoneVenus5Height(0)
+			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			0,
@@ -84,9 +121,6 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 	}
 
 	for _, tc := range testCases {
-		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
-
 		suite.Run(tc.title, func() {
 			tc.setMilestoneHeight()
 			title := tc.proposalTitle
