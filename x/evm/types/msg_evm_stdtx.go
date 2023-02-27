@@ -3,7 +3,6 @@ package types
 import (
 	"math/big"
 
-	"github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -34,24 +33,4 @@ func (msg *MsgEthereumTx) GetTxFnSignatureInfo() ([]byte, int) {
 	recipient := msg.Data.Recipient.Bytes()
 	methodId := msg.Data.Payload[0:4]
 	return append(recipient, methodId...), 0
-}
-
-func (msg MsgEthereumTx) GetPartnerInfo(ctx sdk.Context) (string, string) {
-	chainIDEpoch, err := types.ParseChainID(ctx.ChainID())
-	if err != nil {
-		return "", ""
-	}
-
-	// Verify signature and retrieve sender address
-	err = msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
-	if err != nil {
-		return "", ""
-	}
-
-	to := ""
-	if msg.Data.Recipient != nil {
-		to = EthAddressStringer(*msg.Data.Recipient).String()
-	}
-
-	return msg.From, to
 }

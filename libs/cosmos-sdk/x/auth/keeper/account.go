@@ -47,13 +47,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		return data.Copy()
 	}
 
-	var key sdk.StoreKey
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		key = ak.mptKey
-	} else {
-		key = ak.key
-	}
-
+	key := ak.mptKey
 	store := ctx.GetReusableKVStore(key)
 	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
 	defer func() {
@@ -82,12 +76,7 @@ func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
 		return
 	}
 
-	var key sdk.StoreKey
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		key = ak.mptKey
-	} else {
-		key = ak.key
-	}
+	key := ak.mptKey
 	store := ctx.GetReusableKVStore(key)
 	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
 	defer func() {
@@ -118,12 +107,7 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 
-	var key sdk.StoreKey
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		key = ak.mptKey
-	} else {
-		key = ak.key
-	}
+	key := ak.mptKey
 	store := ctx.GetReusableKVStore(key)
 	defer ctx.ReturnKVStore(store)
 
@@ -174,13 +158,7 @@ func (ak *AccountKeeper) encodeAccount(acc exported.Account) (bz []byte) {
 // NOTE: this will cause supply invariant violation if called
 func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
-
+	store := ctx.KVStore(ak.mptKey)
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Delete(storeAccKey)
 
@@ -193,12 +171,8 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function
 func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exported.Account) (stop bool)) {
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
+
+	store := ctx.KVStore(ak.mptKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.AddressStoreKeyPrefix)
 
 	defer iterator.Close()
@@ -214,18 +188,13 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 // IterateAccounts iterates over all the stored accounts and performs a callback function
 // 	TODO by yxq: deprecated
 func (ak AccountKeeper) MigrateAccounts(ctx sdk.Context, cb func(account exported.Account, key, value []byte) (stop bool)) {
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
-	iterator := sdk.KVStorePrefixIterator(store, types.AddressStoreKeyPrefix)
 
+	store := ctx.KVStore(ak.mptKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.AddressStoreKeyPrefix)
 	defer iterator.Close()
+
 	for ; iterator.Valid(); iterator.Next() {
 		account := ak.decodeAccount(iterator.Value())
-
 		if cb(account, iterator.Key(), iterator.Value()) {
 			break
 		}
