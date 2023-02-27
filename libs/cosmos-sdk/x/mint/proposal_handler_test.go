@@ -10,7 +10,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
@@ -488,7 +487,7 @@ func (suite *MintTestSuite) TestTreasuresProposal() {
 
 func (suite *MintTestSuite) TestModifyNextBlockUpdateProposal() {
 	tmtypes.UnittestOnlySetMilestoneVenus5Height(-1)
-	global.SetGlobalHeight(1000)
+	suite.ctx.SetBlockHeight(1000)
 	proposal := types.NewModifyNextBlockUpdateProposal(
 		"default title",
 		"default description",
@@ -506,8 +505,7 @@ func (suite *MintTestSuite) TestModifyNextBlockUpdateProposal() {
 	}{
 		{"error block num 0", 0, 0, types.ErrNextBlockUpdateTooLate},
 		{"error block num 1000", 1000, 0, types.ErrNextBlockUpdateTooLate},
-		{"error block num 1001", 1001, 0, types.ErrNextBlockUpdateTooLate},
-		{"ok block num 1002", 1002, 1002, nil},
+		{"ok block num 1001", 1001, 1001, nil},
 		{"ok block num 2000", 2000, 2000, nil},
 	}
 
