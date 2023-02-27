@@ -1,10 +1,12 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"math/bits"
 	"strconv"
 	"strings"
 	"testing"
@@ -135,12 +137,15 @@ func NewDecFromIntWithPrec(i Int, prec int64) Dec {
 
 // create a decimal from an input decimal string.
 // valid must come in the form:
-//   (-) whole integers (.) decimal integers
+//
+//	(-) whole integers (.) decimal integers
+//
 // examples of acceptable input include:
-//   -123.456
-//   456.7890
-//   345
-//   -456789
+//
+//	-123.456
+//	456.7890
+//	345
+//	-456789
 //
 // NOTE - An error will return if more decimal places
 // are provided in the string than the constant Precision.
@@ -209,8 +214,8 @@ func MustNewDecFromStr(s string) Dec {
 	return dec
 }
 
-//______________________________________________________________________________________________
-//nolint
+// ______________________________________________________________________________________________
+// nolint
 func (d Dec) IsNil() bool       { return d.Int == nil }                 // is decimal nil
 func (d Dec) IsZero() bool      { return (d.Int).Sign() == 0 }          // is equal to zero
 func (d Dec) IsNegative() bool  { return (d.Int).Sign() == -1 }         // is negative
@@ -693,8 +698,9 @@ func SortableDecBytes(dec Dec) []byte {
 
 // reuse nil values
 var (
-	nilAmino string
-	nilJSON  []byte
+	nilAmino   string
+	nilBzAmino []byte
+	nilJSON    []byte
 )
 
 func init() {
@@ -704,6 +710,8 @@ func init() {
 		panic("bad nil amino init")
 	}
 	nilAmino = string(bz)
+	nilBzAmino = empty.Bytes()
+	nilBzAmino = append([]byte{0x00}, nilBzAmino...)
 
 	nilJSON, err = json.Marshal(string(bz))
 	if err != nil {
@@ -711,21 +719,49 @@ func init() {
 	}
 }
 
-// wraps d.MarshalText()
-func (d Dec) MarshalAmino() (string, error) {
-	if d.Int == nil {
-		return nilAmino, nil
+func getZeroPrefixLen(buf []byte) int {
+	var i int
+	for i < len(buf) && buf[i] == 0 {
+		i++
 	}
-	bz, err := d.Int.MarshalText()
-	return string(bz), err
+	return i
+}
+
+func getBigIntData(d *big.Int, buffer *bytes.Buffer) []byte {
+	const _S = (bits.UintSize / 8)
+
+	bzLen := len(d.Bits()) * _S
+
+	buffer.Reset()
+	buffer.Grow(bzLen)
+	var buf = buffer.Bytes()[:bzLen]
+
+	d.FillBytes(buf)
+	return buf[getZeroPrefixLen(buf):]
+}
+
+// wraps d.MarshalText()
+func (d Dec) MarshalAmino() ([]byte, error) {
+	if d.Int == nil {
+		return append([]byte{}, nilBzAmino...), nil
+	}
+	bz := d.Int.Bytes()
+	var signByte byte = 0
+	if d.Int.Sign() < 0 {
+		signByte = 1
+	}
+	bz = append([]byte{signByte}, bz...)
+	return bz, nil
 }
 
 // requires a valid JSON string - strings quotes and calls UnmarshalText
-func (d *Dec) UnmarshalAmino(text string) (err error) {
+func (d *Dec) UnmarshalAmino(text []byte) (err error) {
 	tempInt := new(big.Int)
-	err = tempInt.UnmarshalText([]byte(text))
-	if err != nil {
-		return err
+	if len(text) > 0 {
+		tempInt.SetBytes(text[1:])
+		if text[0] == 1 {
+			tempInt.Neg(tempInt)
+		}
 	}
 	d.Int = tempInt
 	return nil
@@ -733,9 +769,11 @@ func (d *Dec) UnmarshalAmino(text string) (err error) {
 
 func (d *Dec) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	tempInt := new(big.Int)
-	err := tempInt.UnmarshalText(data)
-	if err != nil {
-		return err
+	if len(data) > 0 {
+		tempInt.SetBytes(data[1:])
+		if data[0] == 1 {
+			tempInt.Neg(tempInt)
+		}
 	}
 	d.Int = tempInt
 	return nil
@@ -743,17 +781,22 @@ func (d *Dec) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 
 func (d Dec) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	if d.Int == nil {
-		return []byte(nilAmino), nil
+		return append([]byte(nil), nilBzAmino...), nil
 	}
-	bz, err := d.Int.MarshalText()
-	return bz, err
+	bz := d.Int.Bytes()
+	var signByte byte = 0
+	if d.Int.Sign() < 0 {
+		signByte = 1
+	}
+	bz = append([]byte{signByte}, bz...)
+	return bz, nil
 }
 
 func (d Dec) AminoSize(_ *amino.Codec) int {
 	if d.Int == nil {
 		return len(nilAmino)
 	}
-	return amino.CalcBigIntTextSize(d.Int)
+	return 1 + len(d.Int.Bytes())
 }
 
 // MarshalJSON marshals the decimal

@@ -535,6 +535,8 @@ func TestDecAmino(t *testing.T) {
 	}
 	cdc := amino.NewCodec()
 	for _, dec := range testCases {
+		var isNeg = !dec.IsNil() && dec.IsNegative()
+
 		expectData, err := cdc.MarshalBinaryBare(dec)
 		require.NoError(t, err)
 
@@ -556,5 +558,33 @@ func TestDecAmino(t *testing.T) {
 		require.NoError(t, err)
 
 		require.EqualValues(t, expectValue, actualValue)
+
+		require.Equal(t, isNeg, !actualValue.IsNil() && actualValue.IsNegative())
 	}
+}
+
+func BenchmarkBigInt(b *testing.B) {
+	bi := new(big.Int).Mul(big.NewInt(math.MaxInt64), big.NewInt(math.MinInt64))
+	var bz []byte
+	b.Run("txt", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			bz, _ = bi.MarshalText()
+		}
+	})
+	b.Run("bin", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			bz = bi.Bytes()
+		}
+	})
+	b.Run("bin2", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			bz = bi.Bytes()
+			var signByte byte = 0
+			if bi.Sign() < 0 {
+				signByte = 1
+			}
+			bz = append([]byte{signByte}, bz...)
+		}
+	})
+	_ = bz
 }
