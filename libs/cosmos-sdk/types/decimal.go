@@ -710,8 +710,7 @@ func init() {
 		panic("bad nil amino init")
 	}
 	nilAmino = string(bz)
-	nilBzAmino = empty.Bytes()
-	nilBzAmino = append([]byte{0x00}, nilBzAmino...)
+	nilBzAmino, _ = empty.GobEncode()
 
 	nilJSON, err = json.Marshal(string(bz))
 	if err != nil {
@@ -740,27 +739,19 @@ func getBigIntData(d *big.Int, buffer *bytes.Buffer) []byte {
 	return buf[getZeroPrefixLen(buf):]
 }
 
-// wraps d.MarshalText()
 func (d Dec) MarshalAmino() ([]byte, error) {
 	if d.Int == nil {
 		return append([]byte{}, nilBzAmino...), nil
 	}
-	bz := d.Int.Bytes()
-	var signByte byte = 0
-	if d.Int.Sign() < 0 {
-		signByte = 1
-	}
-	bz = append([]byte{signByte}, bz...)
-	return bz, nil
+	return d.Int.GobEncode()
 }
 
 // requires a valid JSON string - strings quotes and calls UnmarshalText
 func (d *Dec) UnmarshalAmino(text []byte) (err error) {
 	tempInt := new(big.Int)
 	if len(text) > 0 {
-		tempInt.SetBytes(text[1:])
-		if text[0] == 1 {
-			tempInt.Neg(tempInt)
+		if err = tempInt.GobDecode(text); err != nil {
+			return err
 		}
 	}
 	d.Int = tempInt
@@ -770,9 +761,8 @@ func (d *Dec) UnmarshalAmino(text []byte) (err error) {
 func (d *Dec) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	tempInt := new(big.Int)
 	if len(data) > 0 {
-		tempInt.SetBytes(data[1:])
-		if data[0] == 1 {
-			tempInt.Neg(tempInt)
+		if err := tempInt.GobDecode(data); err != nil {
+			return err
 		}
 	}
 	d.Int = tempInt
@@ -783,13 +773,7 @@ func (d Dec) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	if d.Int == nil {
 		return append([]byte(nil), nilBzAmino...), nil
 	}
-	bz := d.Int.Bytes()
-	var signByte byte = 0
-	if d.Int.Sign() < 0 {
-		signByte = 1
-	}
-	bz = append([]byte{signByte}, bz...)
-	return bz, nil
+	return d.Int.GobEncode()
 }
 
 func (d Dec) AminoSize(_ *amino.Codec) int {

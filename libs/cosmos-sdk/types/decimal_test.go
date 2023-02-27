@@ -586,5 +586,10 @@ func BenchmarkBigInt(b *testing.B) {
 			bz = append([]byte{signByte}, bz...)
 		}
 	})
+	b.Run("gob", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			bz, _ = bi.GobEncode()
+		}
+	})
 	_ = bz
 }
