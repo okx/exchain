@@ -203,7 +203,7 @@ func newKeeper(cdc *codec.CodecProxy,
 	//reference to the paramKeeper
 	if keeper.params != nil {
 		keeper.params.ClaimReadyForUpgrade(tmtypes.MILESTONE_EARTH, func(info ptypes.UpgradeInfo) {
-			tmtypes.MILESTONE_EARTH_HEIGHT = int64(info.EffectiveHeight)
+			tmtypes.SetMilestoneEarthHeight(int64(info.EffectiveHeight))
 		})
 	}
 

@@ -27,7 +27,7 @@ var (
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
 
-	MILESTONE_EARTH_HEIGHT int64
+	milestoneEarthHeight int64
 
 	MILESTONE_VENUS4_HEIGHT string
 	milestoneVenus4Height   int64
@@ -187,18 +187,22 @@ func GetVenus2Height() int64 {
 // ==================================
 // =========== Earth ===============
 func UnittestOnlySetMilestoneEarthHeight(h int64) {
-	MILESTONE_EARTH_HEIGHT = h
+	milestoneEarthHeight = h
+}
+
+func SetMilestoneEarthHeight(h int64) {
+	milestoneEarthHeight = h
 }
 
 func HigherThanEarth(h int64) bool {
-	if MILESTONE_EARTH_HEIGHT == 0 {
+	if milestoneEarthHeight == 0 {
 		return false
 	}
-	return h >= MILESTONE_EARTH_HEIGHT
+	return h >= milestoneEarthHeight
 }
 
 func GetEarthHeight() int64 {
-	return MILESTONE_EARTH_HEIGHT
+	return milestoneEarthHeight
 }
 
 // =========== Earth ===============
