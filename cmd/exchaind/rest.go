@@ -3,26 +3,20 @@ package main
 import (
 	"fmt"
 
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
-	"github.com/okex/exchain/x/wasm/proxy"
-
-	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
-	mintrest "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
-	erc20client "github.com/okex/exchain/x/erc20/client"
-	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
-	evmclient "github.com/okex/exchain/x/evm/client"
-
 	"github.com/spf13/viper"
 
+	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okex/exchain/libs/cosmos-sdk/x/bank/client/rest"
+	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
+	mintrest "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -30,6 +24,9 @@ import (
 	dist "github.com/okex/exchain/x/distribution"
 	distr "github.com/okex/exchain/x/distribution"
 	distrest "github.com/okex/exchain/x/distribution/client/rest"
+	erc20client "github.com/okex/exchain/x/erc20/client"
+	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
+	evmclient "github.com/okex/exchain/x/evm/client"
 	evmrest "github.com/okex/exchain/x/evm/client/rest"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	farmrest "github.com/okex/exchain/x/farm/client/rest"
@@ -42,6 +39,7 @@ import (
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
 	wasmrest "github.com/okex/exchain/x/wasm/client/rest"
+	"github.com/okex/exchain/x/wasm/proxy"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.

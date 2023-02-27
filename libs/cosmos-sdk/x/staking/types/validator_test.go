@@ -11,11 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func TestValidatorTestEquivalent(t *testing.T) {

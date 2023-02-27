@@ -11,9 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/okex/exchain/libs/system/trace/persist"
 	"github.com/spf13/viper"
-
 	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/app/rpc/simulator"
@@ -24,6 +22,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/system/trace/persist"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )

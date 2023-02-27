@@ -132,6 +132,7 @@ func (keeper Keeper) GetProposalsFiltered(
 		if types.ValidProposalStatus(status) && proposal.Status != status {
 			continue
 		}
+
 		matchingProposals = append(matchingProposals, proposal)
 	}
 	return matchingProposals

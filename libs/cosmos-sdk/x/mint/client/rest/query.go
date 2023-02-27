@@ -18,11 +18,15 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 
-	//
-	//r.HandleFunc(
-	//	"/minting/annual-provisions",
-	//	queryAnnualProvisionsHandlerFn(cliCtx),
-	//).Methods("GET")
+	r.HandleFunc(
+		"/minting/inflation",
+		queryInflationHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/minting/annual-provisions",
+		queryAnnualProvisionsHandlerFn(cliCtx),
+	).Methods("GET")
 
 	r.HandleFunc(
 		"/minting/block-rewards",

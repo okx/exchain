@@ -7,8 +7,14 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 )
 
+func disableMining(minter *types.Minter) {
+	minter.Inflation = sdk.ZeroDec()
+}
+
+var setInflationHandler func(minter *types.Minter)
+
 // BeginBlocker mints new tokens for the previous block.
-func BeginBlocker(ctx sdk.Context, k Keeper) {
+func beginBlocker(ctx sdk.Context, k Keeper) {
 
 	logger := k.Logger(ctx)
 	// fetch stored minter & params
@@ -61,4 +67,10 @@ func BeginBlocker(ctx sdk.Context, k Keeper) {
 			sdk.NewAttribute(sdk.AttributeKeyAmount, minter.MintedPerBlock.String()),
 		),
 	)
+}
+
+// BeginBlocker mints new tokens for the previous block.
+func BeginBlocker(ctx sdk.Context, k Keeper) {
+	setInflationHandler = disableMining
+	beginBlocker(ctx, k)
 }

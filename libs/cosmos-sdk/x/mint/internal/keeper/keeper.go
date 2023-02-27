@@ -56,7 +56,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 }
 
 // get the minter
-func (k Keeper) GetMinter(ctx sdk.Context) (minter types.MinterCustom) {
+func (k Keeper) GetMinter(ctx sdk.Context) (minter types.Minter) {
 	store := ctx.KVStore(k.storeKey)
 	b := store.Get(types.MinterKey)
 	if b == nil {
