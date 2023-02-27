@@ -24,14 +24,8 @@ var (
 	MILESTONE_MARS_HEIGHT string
 	milestoneMarsHeight   int64
 
-	MILESTONE_VENUS1_HEIGHT string
-	milestoneVenus1Height   int64
-
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
-
-	MILESTONE_VENUS3_HEIGHT string
-	milestoneVenus3Height   int64
 
 	MILESTONE_EARTH_HEIGHT string
 	milestoneEarthHeight   int64
@@ -51,9 +45,6 @@ const (
 )
 
 const (
-	MainNetVeneus1Height = 12988000
-	TestNetVeneus1Height = 12067000
-
 	MainNetVeneusHeight = 8200000
 	TestNetVeneusHeight = 8510000
 
@@ -73,9 +64,7 @@ func init() {
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
-		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
-		milestoneVenus3Height = string2number(MILESTONE_VENUS3_HEIGHT)
 		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
 	})
@@ -97,7 +86,6 @@ func SetupMainNetEnvironment(pruneH int64) {
 	milestoneMercuryHeight = MainNetMercuyHeight
 	genesisHeight = MainNetGenesisHeight
 	nodePruneHeight = pruneH
-	milestoneVenus1Height = MainNetVeneus1Height
 }
 
 func SetupTestNetEnvironment(pruneH int64) {
@@ -105,7 +93,6 @@ func SetupTestNetEnvironment(pruneH int64) {
 	milestoneMercuryHeight = TestNetMercuryHeight
 	genesisHeight = TestNetGenesisHeight
 	nodePruneHeight = pruneH
-	milestoneVenus1Height = TestNetVeneus1Height
 }
 
 // depracate homstead signer support
@@ -180,26 +167,6 @@ func UnittestOnlySetMilestoneMarsHeight(height int64) {
 }
 
 // ==================================
-// =========== Venus1 ===============
-func HigherThanVenus1(h int64) bool {
-	if milestoneVenus1Height == 0 {
-		return false
-	}
-	return h >= milestoneVenus1Height
-}
-
-func UnittestOnlySetMilestoneVenus1Height(h int64) {
-	milestoneVenus1Height = h
-}
-
-func GetVenus1Height() int64 {
-	return milestoneVenus1Height
-}
-
-// =========== Venus1 ===============
-// ==================================
-
-// ==================================
 // =========== Venus2 ===============
 func HigherThanVenus2(h int64) bool {
 	if milestoneVenus2Height == 0 {
@@ -217,26 +184,6 @@ func GetVenus2Height() int64 {
 }
 
 // =========== Venus2 ===============
-// ==================================
-
-// ==================================
-// =========== Venus3 ===============
-func HigherThanVenus3(h int64) bool {
-	if milestoneVenus3Height == 0 {
-		return false
-	}
-	return h > milestoneVenus3Height
-}
-
-func UnittestOnlySetMilestoneVenus3Height(h int64) {
-	milestoneVenus3Height = h
-}
-
-func GetVenus3Height() int64 {
-	return milestoneVenus3Height
-}
-
-// =========== Venus3 ===============
 // ==================================
 
 // ==================================
