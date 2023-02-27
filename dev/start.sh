@@ -66,7 +66,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install Venus1Height=1 Venus2Height=1 EarthHeight=1)
+(cd .. && make install Venus2Height=1 EarthHeight=1)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
@@ -103,7 +103,7 @@ if [ "$(uname -s)" == "Darwin" ]; then
     sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
-else 
+else
     sed -i 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
     sed -i 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
