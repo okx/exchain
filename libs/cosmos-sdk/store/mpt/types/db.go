@@ -26,6 +26,8 @@ type (
 	dbCreator func(name string, dir string) (ethdb.KeyValueStore, error)
 
 	AccountStateRootRetrieval func([]byte) ethcmn.Hash
+
+	CommitSnapshot func(hash ethcmn.Hash)
 )
 
 // These are valid backend types.

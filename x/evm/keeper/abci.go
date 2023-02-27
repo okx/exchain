@@ -58,6 +58,8 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		types.GetEvmParamsCache().SetNeedParamsUpdate()
 		types.GetEvmParamsCache().SetNeedBlockedUpdate()
 	}
+
+	k.lazyLoadSnapshot()
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while

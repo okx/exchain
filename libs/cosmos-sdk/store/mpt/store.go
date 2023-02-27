@@ -2,20 +2,18 @@ package mpt
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
-	"io"
-	"sync"
-
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -24,6 +22,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"io"
+	"sync"
 )
 
 const (
@@ -62,6 +62,8 @@ type MptStore struct {
 
 	//TODO by yxq
 	retrieval mpttypes.AccountStateRootRetrieval
+
+	commitSnapshot mpttypes.CommitSnapshot
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -84,12 +86,12 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
+func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, commitSnapshot mpttypes.CommitSnapshot, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
-	return generateMptStore(logger, id, db, retrieval)
+	return generateMptStore(logger, id, db, retrieval, commitSnapshot)
 }
 
-func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
+func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval, commitSnapshot mpttypes.CommitSnapshot) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
 		db:         db,
@@ -98,6 +100,8 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
 		retrieval:  retrieval,
 		exitSignal: make(chan struct{}),
+
+		commitSnapshot: commitSnapshot,
 	}
 	err := mptStore.openTrie(id)
 
@@ -106,7 +110,7 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
-	return generateMptStore(logger, id, db, nil)
+	return generateMptStore(logger, id, db, nil, nil)
 }
 
 func (ms *MptStore) openTrie(id types.CommitID) error {
@@ -261,6 +265,8 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	}
 	ms.SetMptRootHash(uint64(ms.version), root)
 	ms.originalRoot = root
+
+	ms.commitSnapshot(root)
 
 	// TODO: use a thread to push data to database
 	// push data to database
@@ -589,3 +595,6 @@ func (ms *MptStore) prefetchData() {
 }
 
 func (ms *MptStore) SetUpgradeVersion(i int64) {}
+
+func (ms *MptStore) SetSnapshots(tree *snapshot.Tree, snap snapshot.Snapshot) {
+}

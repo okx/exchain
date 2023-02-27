@@ -2,9 +2,12 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/VictoriaMetrics/fastcache"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
+	"github.com/ethereum/go-ethereum/crypto"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/go-amino"
 	"math/big"
@@ -50,6 +53,8 @@ type CommitStateDBParams struct {
 	StateCache *fastcache.Cache
 
 	DB ethstate.Database
+
+	Snapshot *snapshot.Tree
 }
 
 type Watcher interface {
@@ -136,6 +141,14 @@ type CommitStateDB struct {
 	updatedAccount map[ethcmn.Address]struct{} // will destroy every block
 
 	GuFactor sdk.Dec
+
+	// snapshots
+	snaps         *snapshot.Tree
+	Snap          snapshot.Snapshot
+	SnapDestructs map[ethcmn.Hash]struct{}
+	SnapAccounts  map[ethcmn.Hash][]byte
+	SnapStorage   map[ethcmn.Hash]map[ethcmn.Hash][]byte
+	hasher        crypto.KeccakState
 }
 
 // Warning!!! If you change CommitStateDB.member you must be careful ResetCommitStateDB contract BananaLF.
@@ -167,6 +180,8 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	csdb := &CommitStateDB{
 		db: csdbParams.DB,
 
+		snaps: csdbParams.Snapshot,
+
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
 		accountKeeper: csdbParams.AccountKeeper,
@@ -187,6 +202,18 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
 		GuFactor:            DefaultGuFactor,
+
+		hasher: crypto.NewKeccakState(),
+	}
+	latestHeight := csdb.getLatestStoredBlockHeight()
+	root := csdb.getMptRootHash(latestHeight)
+
+	if csdb.snaps != nil {
+		if csdb.Snap = csdb.snaps.Snapshot(root); csdb.Snap != nil {
+			csdb.SnapDestructs = make(map[common.Hash]struct{})
+			csdb.SnapAccounts = make(map[common.Hash][]byte)
+			csdb.SnapStorage = make(map[common.Hash]map[common.Hash][]byte)
+		}
 	}
 
 	return csdb
@@ -888,6 +915,16 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 		}
 		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
 			obj.deleted = true
+
+			// If state snapshotting is active, also mark the destruction there.
+			// Note, we can't do this only at the end of a block because multiple
+			// transactions within the same block might self destruct and then
+			// resurrect an account; but the snapshotter needs both events.
+			if csdb.Snap != nil {
+				csdb.SnapDestructs[obj.addrHash] = struct{}{} // We need to maintain account deletions explicitly (will remain set indefinitely)
+				delete(csdb.SnapAccounts, obj.addrHash)       // Clear out any previously updated account data (may be recreated via a ressurrect)
+				delete(csdb.SnapStorage, obj.addrHash)        // Clear out any previously updated storage data (may be recreated via a ressurrect)
+			}
 		} else {
 			obj.finalise(true) // Prefetch slots in the background
 		}
@@ -975,6 +1012,13 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		if csdb.ctx.GetWatcher().Enabled() {
 			csdb.ctx.GetWatcher().SaveAccount(so.account)
 		}
+	}
+	// If state snapshotting is active, cache the data til commit. Note, this
+	// update mechanism is not symmetric to the deletion, because whereas it is
+	// enough to track account updates at commit time, deletions need tracking
+	// at transaction boundary level to ensure we capture state clearing.
+	if csdb.Snap != nil {
+		csdb.SnapAccounts[so.addrHash] = snapshot.SlimAccountRLP(so.account.Sequence, so.Balance(), so.account.StateRoot, so.CodeHash())
 	}
 
 	return nil
@@ -1201,6 +1245,14 @@ func (csdb *CommitStateDB) GetOrNewStateObject(addr ethcmn.Address) StateObject 
 // the given address, it is overwritten and returned as the second return value.
 func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *stateObject) {
 	prevObj = csdb.getStateObject(addr)
+
+	var prevdestruct bool
+	if csdb.Snap != nil && prevObj != nil {
+		_, prevdestruct = csdb.SnapDestructs[prevObj.addrHash]
+		if !prevdestruct {
+			csdb.SnapDestructs[prevObj.addrHash] = struct{}{}
+		}
+	}
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
@@ -1605,4 +1657,22 @@ func (csdb *CommitStateDB) getInitContractCodeHash(addr sdk.AccAddress) []byte {
 	store := csdb.paramSpace.CustomKVStore(csdb.ctx)
 	key := GetInitContractCodeHashKey(addr)
 	return store.Get(key)
+}
+
+func (csdb *CommitStateDB) getLatestStoredBlockHeight() uint64 {
+	rst, err := csdb.db.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
+}
+
+func (csdb *CommitStateDB) getMptRootHash(height uint64) ethcmn.Hash {
+	hhash := sdk.Uint64ToBigEndian(height)
+	rst, err := csdb.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, hhash...))
+	if err != nil || len(rst) == 0 {
+		return ethcmn.Hash{}
+	}
+
+	return ethcmn.BytesToHash(rst)
 }

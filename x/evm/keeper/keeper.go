@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"math/big"
 	"sync"
 
@@ -68,6 +69,10 @@ type Keeper struct {
 	UpdatedAccount []ethcmn.Address
 
 	db ethstate.Database
+
+	snaps    *snapshot.Tree
+	snap     snapshot.Snapshot
+	snapInit bool
 
 	startHeight uint64
 	triegc      *prque.Prque
@@ -146,7 +151,10 @@ func NewKeeper(
 	ak.SetObserverKeeper(k)
 
 	//k.OpenTrie()
+
+	//k.openSnapshot()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
+
 	return k
 }
 
@@ -209,6 +217,8 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Cdc:           k.cdc,
 		DB:            k.db,
 		StateCache:    k.stateCache,
+
+		Snapshot: k.snaps,
 	}
 }
 
@@ -435,4 +445,16 @@ func (k *Keeper) CallEvmHooks(ctx sdk.Context, st *types.StateTransition, receip
 func (k *Keeper) AddHeightHashToCache(height int64, hash string) {
 	k.heightCache.Add(hash, height)
 	k.hashCache.Add(height, hash)
+}
+
+func (k *Keeper) lazyLoadSnapshot() error {
+	if k.snapInit {
+		return nil
+	}
+	defer func() { k.snapInit = true }()
+	if err := k.openSnapshot(); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -206,6 +206,8 @@ type CommitMultiStore interface {
 	SetLogger(log log.Logger)
 
 	SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval)
+
+	SetCommitSnapshot(commitSnapshot mpttypes.CommitSnapshot)
 }
 
 //---------subsp-------------------------------

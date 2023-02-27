@@ -239,3 +239,7 @@ func (ms multiStore) CommitterCommitMap(inputDeltaMap iavl.TreeDeltaMap) (sdk.Co
 func (ms multiStore) SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval) {
 	panic("not implemented")
 }
+
+func (ms multiStore) SetCommitSnapshot(commitSnapshot mpttypes.CommitSnapshot) {
+	panic("not implemented")
+}
