@@ -758,7 +758,7 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
-
+	app.SetAccountStateRetrievalForCMS(app.AccountKeeper.RetrievalStateRoot)
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -982,14 +982,6 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 			return ak.OnStop(ctx)
 		}
 		return nil
-	}
-}
-
-func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
-	return func(ctx sdk.Context) {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
-		}
 	}
 }
 

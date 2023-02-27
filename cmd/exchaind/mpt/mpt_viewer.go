@@ -2,6 +2,9 @@ package mpt
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/status-im/keycard-go/hexutils"
 	"log"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -46,28 +49,35 @@ func iterateAccMpt(ctx *server.Context) {
 
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
 	for itr.Next() {
-		fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), ethcmn.Bytes2Hex(itr.Value))
+		acc := DecodeAccount(ethcmn.Bytes2Hex(itr.Key), itr.Value)
+		if acc != nil {
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
+		}
 	}
 }
 
 func iterateEvmMpt(ctx *server.Context) {
-	evmMptDb := mpt.InstanceOfMptStore()
-	hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	accMptDb := mpt.InstanceOfMptStore()
+	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
-	rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, hhash...))
+	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
 	panicError(err)
-	evmTrie, err := evmMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
+	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)
-	fmt.Println("evmTrie root hash:", evmTrie.Hash())
+	fmt.Println("accTrie root hash:", accTrie.Hash())
 
 	var stateRoot ethcmn.Hash
-	itr := trie.NewIterator(evmTrie.NodeIterator(nil))
+	itr := trie.NewIterator(accTrie.NodeIterator(nil))
 	for itr.Next() {
-		addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
+		addr := ethcmn.BytesToAddress(accTrie.GetKey(itr.Key))
 		addrHash := ethcrypto.Keccak256Hash(addr[:])
-		stateRoot.SetBytes(itr.Value)
+		acc := DecodeAccount(addr.String(), itr.Value)
+		if acc == nil {
+			continue
+		}
+		stateRoot.SetBytes(acc.GetStateRoot().Bytes())
 
-		contractTrie := getStorageTrie(evmMptDb, addrHash, stateRoot)
+		contractTrie := getStorageTrie(accMptDb, addrHash, stateRoot)
 		fmt.Println(addr.String(), contractTrie.Hash())
 
 		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
@@ -75,4 +85,18 @@ func iterateEvmMpt(ctx *server.Context) {
 			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(cItr.Key), ethcmn.Bytes2Hex(cItr.Value))
 		}
 	}
+}
+
+func DecodeAccount(key string, bz []byte) exported.Account {
+	val, err := auth.ModuleCdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, (*exported.Account)(nil))
+	if err == nil {
+		return val.(exported.Account)
+	}
+	var acc exported.Account
+	err = auth.ModuleCdc.UnmarshalBinaryBare(bz, &acc)
+	if err != nil {
+		fmt.Printf(" key(%s) value(%s) err(%s)\n", key, hexutils.BytesToHex(bz), err)
+		return nil
+	}
+	return acc
 }

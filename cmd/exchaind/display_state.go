@@ -73,7 +73,6 @@ func displayAccountState(ctx *server.Context) {
 
 	// load start version
 	displayVersion := viper.GetInt64(FlagDisplayVersion)
-	dispApp.EvmKeeper.SetTargetMptVersion(displayVersion)
 
 	err := dispApp.LoadHeight(displayVersion)
 	panicError(err)
@@ -96,7 +95,6 @@ func displayContractState(ctx *server.Context) {
 
 	// load start version
 	displayVersion := viper.GetInt64(FlagDisplayVersion)
-	dispApp.EvmKeeper.SetTargetMptVersion(displayVersion)
 
 	err := dispApp.LoadHeight(displayVersion)
 	panicError(err)

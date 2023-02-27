@@ -282,9 +282,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}()
 	header := app.deliverState.ctx.BlockHeader()
 
-	if app.mptCommitHandler != nil {
-		app.mptCommitHandler(app.deliverState.ctx)
-	}
 	if mptStore := app.cms.GetCommitKVStore(sdk.NewKVStoreKey(mpt.StoreKey)); mptStore != nil {
 		// notify mptStore to tryUpdateTrie, must call before app.deliverState.ms.Write()
 		mpt.GAccTryUpdateTrieChannel <- struct{}{}

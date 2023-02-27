@@ -194,35 +194,12 @@ func queryStorageRootHash(ctx sdk.Context, path []string, keeper Keeper, height 
 	}
 
 	addr := ethcmn.HexToAddress(path[1])
-	storageRootHash, err := queryStorageRootBytesInHeight(keeper, addr, height)
-	if err != nil {
-		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
+	acc := keeper.accountKeeper.GetAccount(ctx, addr.Bytes())
+	if acc == nil {
+		return nil, fmt.Errorf("get %s storage root hash failed: acc is not exist", addr)
 	}
 
-	if storageRootHash == nil {
-		return mpt.EmptyRootHashBytes, nil
-	} else {
-		return storageRootHash, nil
-	}
-}
-
-func queryStorageRootBytesInHeight(keeper Keeper, addr ethcmn.Address, height int64) ([]byte, error) {
-	// query evm tire root hash based on height
-	evmRootHash := keeper.GetMptRootHash(uint64(height))
-	if evmRootHash == mpt.NilHash {
-		return nil, fmt.Errorf("header %d not found", height)
-	}
-
-	// query storage root hash base on address in evmTrie
-	evmTrie, err := keeper.db.OpenTrie(evmRootHash)
-	if err != nil {
-		return nil, fmt.Errorf("open evm trie failed: %s", err.Error())
-	}
-	storageRootHash, err := evmTrie.TryGet(addr.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
-	}
-	return storageRootHash, nil
+	return acc.GetStateRoot().Bytes(), nil
 }
 
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {

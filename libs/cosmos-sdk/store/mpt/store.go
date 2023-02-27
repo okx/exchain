@@ -248,7 +248,14 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	// stop pre round prefetch
 	ms.StopPrefetcher()
 
-	root, err := ms.trie.Commit(nil)
+	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+		storageRoot := ms.retrieval(leaf)
+		if storageRoot != EmptyRootHash && storageRoot != (ethcmn.Hash{}) {
+			ms.db.TrieDB().Reference(storageRoot, parent)
+		}
+		return nil
+	})
+
 	if err != nil {
 		panic("fail to commit trie data: " + err.Error())
 	}
