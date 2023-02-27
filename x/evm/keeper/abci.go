@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"math/big"
-	"sync"
 
 	"github.com/okex/exchain/x/evm/watcher"
 
@@ -18,8 +17,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-var once sync.Once
-
 // BeginBlock sets the block hash -> block height map for the previous block height
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
@@ -33,13 +30,6 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-	// Try to load the PreEIP155 proposal height during the node start up.
-	// It will be run only once for efficiency reason
-	once.Do(func() {
-		if upgradeInfo, err := k.paramsKeeper.GetEffectiveUpgradeInfo(ctx, PREEIP155); err == nil {
-			types.PreEIP155Height = upgradeInfo.EffectiveHeight
-		}
-	})
 
 	// Set the hash -> height and height -> hash mapping.
 	currentHash := req.Hash

@@ -23,13 +23,11 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
-	ptypes "github.com/okex/exchain/x/params/types"
 )
 
 const (
 	heightCacheLimit = 1024
 	hashCacheLimit   = 1024
-	PREEIP155        = "PREEIP155"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -52,7 +50,6 @@ type Keeper struct {
 	bankKeeper    types.BankKeeper
 	govKeeper     GovKeeper
 	stakingKeeper types.StakingKeeper
-	paramsKeeper  types.ParamsKeeper
 
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
@@ -102,9 +99,8 @@ type chainConfigInfo struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace,
-	ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, stk types.StakingKeeper,
-	pk types.ParamsKeeper, logger log.Logger) *Keeper {
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, stk types.StakingKeeper,
+	logger log.Logger) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
@@ -131,7 +127,6 @@ func NewKeeper(
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
 		stakingKeeper: stk,
-		paramsKeeper:  pk,
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
@@ -151,11 +146,6 @@ func NewKeeper(
 	}
 	k.Watcher.SetWatchDataManager()
 	ak.SetObserverKeeper(k)
-
-	//reference to the paramKeeper
-	k.paramsKeeper.ClaimReadyForUpgrade(PREEIP155, func(info ptypes.UpgradeInfo) {
-		types.PreEIP155Height = info.EffectiveHeight
-	})
 
 	k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
