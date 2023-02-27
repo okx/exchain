@@ -3,8 +3,6 @@ package keeper_test
 import (
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/types"
-
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -27,7 +25,7 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
-	types.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
 
