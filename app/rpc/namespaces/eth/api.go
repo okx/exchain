@@ -65,6 +65,8 @@ const (
 
 	EvmHookGasEstimate = uint64(60000)
 	EvmDefaultGasLimit = uint64(21000)
+
+	FlagAllowUnprotectedTxs = "rpc.allow-unprotected-txs"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -773,18 +775,16 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	defer monitor.OnEnd("data", data)
 
 	txBytes := data
-	var tx *evmtypes.MsgEthereumTx
+	tx := new(evmtypes.MsgEthereumTx)
 
-	// send chanData to txPool
-	if api.txPool != nil {
-		tx = new(evmtypes.MsgEthereumTx)
+	// RLP decode raw transaction bytes
+	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
+		// Return nil is for when gasLimit overflows uint64
+		return common.Hash{}, err
+	}
 
-		// RLP decode raw transaction bytes
-		if err := authtypes.EthereumTxDecode(data, tx); err != nil {
-			// Return nil is for when gasLimit overflows uint64
-			return common.Hash{}, err
-		}
-		return broadcastTxByTxPool(api, tx, txBytes)
+	if !tx.Protected() && !viper.GetBool(FlagAllowUnprotectedTxs) {
+		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
 	}
 
 	// TODO: Possibly log the contract creation address (if recipient address is nil) or tx data

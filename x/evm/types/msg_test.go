@@ -177,6 +177,22 @@ func TestMsgEthereumTxRLPDecode(t *testing.T) {
 	require.Error(t, msg.DecodeRLP(mockStream))
 }
 
+func TestMsgEthereumTxHomestead(t *testing.T) {
+	zeroChainID := big.NewInt(0)
+
+	priv1, _ := ethsecp256k1.GenerateKey()
+	addr1 := ethcmn.BytesToAddress(priv1.PubKey().Address().Bytes())
+
+	// require valid signature passes validation
+	msg := NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
+
+	// zero chainID
+	err := msg.Sign(zeroChainID, priv1.ToECDSA())
+	require.Nil(t, err)
+	err = msg.VerifySig(zeroChainID, 0)
+	require.Nil(t, err)
+}
+
 func TestMsgEthereumTxSig(t *testing.T) {
 	chainID, zeroChainID := big.NewInt(3), big.NewInt(0)
 
