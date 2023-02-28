@@ -18,6 +18,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/global"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/gov"
+	ptypes "github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/x/staking"
 	token "github.com/okex/exchain/x/token/types"
 	"github.com/okex/exchain/x/wasm/types"
@@ -234,3 +235,7 @@ type PortKeeperProxy struct{}
 func (p PortKeeperProxy) BindPort(ctx sdk.Context, portID string) *capabilitytypes.Capability {
 	return nil
 }
+
+type ParamsKeeperProxy struct{}
+
+func (p ParamsKeeperProxy) ClaimReadyForUpgrade(name string, cb func(ptypes.UpgradeInfo)) {}

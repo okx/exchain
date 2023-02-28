@@ -394,6 +394,7 @@ func createTestInput(
 		subspace(types.ModuleName),
 		&accountKeeper,
 		bank.NewBankKeeperAdapter(bankKeeper),
+		&paramsKeeper,
 		ibcKeeper.ChannelKeeper,
 		&ibcKeeper.PortKeeper,
 		scopedWasmKeeper,
