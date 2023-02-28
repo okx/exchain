@@ -560,6 +560,9 @@ func TestDecAmino(t *testing.T) {
 		require.EqualValues(t, expectValue, actualValue)
 
 		require.Equal(t, isNeg, !actualValue.IsNil() && actualValue.IsNegative())
+		if !dec.IsNil() {
+			require.Equal(t, dec.BigInt(), actualValue.BigInt())
+		}
 	}
 }
 
