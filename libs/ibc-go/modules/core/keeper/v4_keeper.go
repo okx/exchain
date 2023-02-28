@@ -4,13 +4,15 @@ import (
 	"context"
 	"strings"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/params"
+	ptypes "github.com/okex/exchain/x/params/types"
 )
 
 var (
@@ -19,10 +21,20 @@ var (
 
 type V4Keeper struct {
 	*Keeper
+	ParamsKeeper params.Keeper
 }
 
-func NewV4Keeper(keeper *Keeper) *V4Keeper {
-	return &V4Keeper{Keeper: keeper}
+func NewV4Keeper(keeper *Keeper, pk params.Keeper) *V4Keeper {
+	k := &V4Keeper{
+		Keeper:       keeper,
+		ParamsKeeper: pk,
+	}
+
+	k.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_Venus4, func(info ptypes.UpgradeInfo) {
+		tmtypes.SetMilestoneVenus4Height(int64(info.EffectiveHeight))
+	})
+
+	return k
 }
 
 // ConnectionOpenTry defines a rpc handler method for MsgConnectionOpenTry.

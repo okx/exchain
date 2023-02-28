@@ -32,7 +32,7 @@ var (
 			return false
 		}
 
-		// ==veneus1
+		// ==venus4
 		if h == tmtypes.GetVenus4Height() {
 			if store != nil {
 				store.SetUpgradeVersion(h)
@@ -54,7 +54,7 @@ var (
 			return false
 		}
 
-		// ibc modulee && >=veneus1
+		// ibc module && >=venus4
 		if tmtypes.HigherThanVenus4(h) {
 			return false
 		}

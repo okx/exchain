@@ -26,8 +26,7 @@ var (
 
 	milestoneEarthHeight int64
 
-	MILESTONE_VENUS4_HEIGHT string
-	milestoneVenus4Height   int64
+	milestoneVenus4Height int64
 
 	// note: it stores the earlies height of the node,and it is used by cli
 	nodePruneHeight int64
@@ -39,7 +38,8 @@ const (
 	MainNet = "exchain-66"
 	TestNet = "exchain-65"
 
-	MILESTONE_EARTH = "earth"
+	MILESTONE_EARTH  = "earth"
+	MILESTONE_Venus4 = "venus4"
 )
 
 const (
@@ -59,7 +59,6 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
-		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
 	})
 }
 
@@ -189,12 +188,16 @@ func GetEarthHeight() int64 {
 // ==================================
 
 // ==================================
-// =========== Venus3 ===============
+// =========== Venus4 ===============
 func HigherThanVenus4(h int64) bool {
 	if milestoneVenus4Height == 0 {
 		return false
 	}
 	return h > milestoneVenus4Height
+}
+
+func SetMilestoneVenus4Height(h int64) {
+	milestoneVenus4Height = h
 }
 
 func UnittestOnlySetMilestoneVenus4Height(h int64) {
