@@ -15,9 +15,6 @@ var (
 	MILESTONE_GENESIS_HEIGHT string
 	genesisHeight            int64
 
-	MILESTONE_VENUS_HEIGHT string
-	milestoneVenusHeight   int64
-
 	MILESTONE_MARS_HEIGHT string
 	milestoneMarsHeight   int64
 
@@ -43,9 +40,6 @@ const (
 )
 
 const (
-	MainNetVeneusHeight = 8200000
-	TestNetVeneusHeight = 8510000
-
 	MainNetGenesisHeight = 2322600
 	TestNetGenesisHeight = 1121818
 
@@ -56,7 +50,6 @@ const (
 func init() {
 	once.Do(func() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
-		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
@@ -75,22 +68,13 @@ func string2number(input string) int64 {
 }
 
 func SetupMainNetEnvironment(pruneH int64) {
-	milestoneVenusHeight = MainNetVeneusHeight
 	genesisHeight = MainNetGenesisHeight
 	nodePruneHeight = pruneH
 }
 
 func SetupTestNetEnvironment(pruneH int64) {
-	milestoneVenusHeight = TestNetVeneusHeight
 	genesisHeight = TestNetGenesisHeight
 	nodePruneHeight = pruneH
-}
-
-func HigherThanVenus(height int64) bool {
-	if milestoneVenusHeight == 0 {
-		return false
-	}
-	return height >= milestoneVenusHeight
 }
 
 // use MPT storage model to replace IAVL storage model
@@ -99,11 +83,6 @@ func HigherThanMars(height int64) bool {
 		return false
 	}
 	return height >= milestoneMarsHeight
-}
-
-// GetMilestoneVenusHeight returns milestoneVenusHeight
-func GetMilestoneVenusHeight() int64 {
-	return milestoneVenusHeight
 }
 
 // 2322600 is mainnet GenesisHeight
@@ -126,17 +105,8 @@ func GetNodePruneHeight() int64 {
 	return nodePruneHeight
 }
 
-func GetVenusHeight() int64 {
-	return milestoneVenusHeight
-}
-
 func GetMarsHeight() int64 {
 	return milestoneMarsHeight
-}
-
-// can be used in unit test only
-func UnittestOnlySetMilestoneVenusHeight(height int64) {
-	milestoneVenusHeight = height
 }
 
 // can be used in unit test only

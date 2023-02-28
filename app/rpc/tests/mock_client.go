@@ -285,7 +285,7 @@ func (c MockClient) BroadcastTxSync(tx types.Tx) (*ctypes.ResultBroadcastTx, err
 		Data:      r.Data,
 		Log:       r.Log,
 		Codespace: r.Codespace,
-		Hash:      tx.Hash(c.env.BlockStore.Height()),
+		Hash:      tx.Hash(),
 	}, nil
 }
 
@@ -475,7 +475,7 @@ func (c *MockClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
 	var proof types.TxProof
 	if prove {
 		block := c.env.BlockStore.LoadBlock(height)
-		proof = block.Data.Txs.Proof(int(index), block.Height) // XXX: overflow on 32-bit machines
+		proof = block.Data.Txs.Proof(int(index)) // XXX: overflow on 32-bit machines
 	}
 
 	return &ctypes.ResultTx{

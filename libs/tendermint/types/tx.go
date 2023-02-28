@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/tendermint/go-amino"
 )
@@ -19,17 +23,43 @@ import (
 // Might we want types here ?
 type Tx []byte
 
-func Bytes2Hash(txBytes []byte, height int64) string {
-	txHash := Tx(txBytes).Hash(height)
+func Bytes2Hash(txBytes []byte) string {
+	txHash := Tx(txBytes).Hash()
 	return ethcmn.BytesToHash(txHash).String()
 }
 
+type ethTxData struct {
+	AccountNonce uint64          `json:"nonce"`
+	Price        *big.Int        `json:"gasPrice"`
+	GasLimit     uint64          `json:"gas"`
+	Recipient    *ethcmn.Address `json:"to" rlp:"nil"` // nil means contract creation
+	Amount       *big.Int        `json:"value"`
+	Payload      []byte          `json:"input"`
+
+	// signature values
+	V *big.Int `json:"v"`
+	R *big.Int `json:"r"`
+	S *big.Int `json:"s"`
+
+	// hash is only used when marshaling to JSON
+	Hash *ethcmn.Hash `json:"hash" rlp:"-"`
+}
+
 // Hash computes the TMHASH hash of the wire encoded transaction.
-func (tx Tx) Hash(height int64) []byte {
-	if HigherThanVenus(height) {
-		return etherhash.Sum(tx)
+func (tx Tx) Hash() []byte {
+	//// if we can't get length-prefixed bytes, this tx should not be an amino-encoded tx
+	//if _, err := amino.GetBinaryBareFromBinaryLengthPrefixed(tx); err != nil {
+	//	// if we can't get proto tag, this tx should not be a proto-encoded tx
+	//	_, _, length := protowire.ConsumeTag(tx)
+	//	if length < 0 {
+	//		return etherhash.Sum(tx)
+	//	}
+	//}
+	var msg ethTxData
+	if err := rlp.DecodeBytes(tx, &msg); err != nil {
+		return tmhash.Sum(tx)
 	}
-	return tmhash.Sum(tx)
+	return etherhash.Sum(tx)
 }
 
 // String returns the hex-encoded transaction as a string.
@@ -42,12 +72,12 @@ type Txs []Tx
 
 // Hash returns the Merkle root hash of the transaction hashes.
 // i.e. the leaves of the tree are the hashes of the txs.
-func (txs Txs) Hash(height int64) []byte {
+func (txs Txs) Hash() []byte {
 	// These allocations will be removed once Txs is switched to [][]byte,
 	// ref #2603. This is because golang does not allow type casting slices without unsafe
 	txBzs := make([][]byte, len(txs))
 	for i := 0; i < len(txs); i++ {
-		txBzs[i] = txs[i].Hash(height)
+		txBzs[i] = txs[i].Hash()
 	}
 	return merkle.SimpleHashFromByteSlices(txBzs)
 }
@@ -63,9 +93,9 @@ func (txs Txs) Index(tx Tx) int {
 }
 
 // IndexByHash returns the index of this transaction hash in the list, or -1 if not found
-func (txs Txs) IndexByHash(hash []byte, height int64) int {
+func (txs Txs) IndexByHash(hash []byte) int {
 	for i := range txs {
-		if bytes.Equal(txs[i].Hash(height), hash) {
+		if bytes.Equal(txs[i].Hash(), hash) {
 			return i
 		}
 	}
@@ -75,11 +105,11 @@ func (txs Txs) IndexByHash(hash []byte, height int64) int {
 // Proof returns a simple merkle proof for this node.
 // Panics if i < 0 or i >= len(txs)
 // TODO: optimize this!
-func (txs Txs) Proof(i int, height int64) TxProof {
+func (txs Txs) Proof(i int) TxProof {
 	l := len(txs)
 	bzs := make([][]byte, l)
 	for i := 0; i < l; i++ {
-		bzs[i] = txs[i].Hash(height)
+		bzs[i] = txs[i].Hash()
 	}
 	root, proofs := merkle.SimpleProofsFromByteSlices(bzs)
 
@@ -98,13 +128,13 @@ type TxProof struct {
 }
 
 // Leaf returns the hash(tx), which is the leaf in the merkle tree which this proof refers to.
-func (tp TxProof) Leaf(height int64) []byte {
-	return tp.Data.Hash(height)
+func (tp TxProof) Leaf() []byte {
+	return tp.Data.Hash()
 }
 
 // Validate verifies the proof. It returns nil if the RootHash matches the dataHash argument,
 // and if the proof is internally consistent. Otherwise, it returns a sensible error.
-func (tp TxProof) Validate(dataHash []byte, height int64) error {
+func (tp TxProof) Validate(dataHash []byte) error {
 	if !bytes.Equal(dataHash, tp.RootHash) {
 		return errors.New("proof matches different data hash")
 	}
@@ -114,7 +144,7 @@ func (tp TxProof) Validate(dataHash []byte, height int64) error {
 	if tp.Proof.Total <= 0 {
 		return errors.New("proof total must be positive")
 	}
-	valid := tp.Proof.Verify(tp.RootHash, tp.Leaf(height))
+	valid := tp.Proof.Verify(tp.RootHash, tp.Leaf())
 	if valid != nil {
 		return errors.New("proof is not internally consistent")
 	}

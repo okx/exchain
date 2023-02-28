@@ -464,7 +464,7 @@ func (b *EthermintBackend) GetLogs(height int64) ([][]*ethtypes.Log, error) {
 			return nil, ErrTimeout
 		default:
 			// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-			txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
+			txRes, err := b.clientCtx.Client.Tx(tx.Hash(), !b.clientCtx.TrustNode)
 			if err != nil {
 				continue
 			}

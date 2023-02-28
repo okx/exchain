@@ -327,7 +327,6 @@ func NewSimApp(
 ) *SimApp {
 	logger.Info("Starting OEC",
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
-		"VenusHeight", tmtypes.GetVenusHeight(),
 	)
 	//onceLog.Do(func() {
 	//	iavl.SetLogger(logger.With("module", "iavl"))
