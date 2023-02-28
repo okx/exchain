@@ -2,13 +2,12 @@ package simulation
 
 import (
 	"encoding/binary"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -60,7 +59,7 @@ func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccA
 	acc := types.EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
-		StateRoot:   mpt.EmptyRootHash,
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 	acc.SetAddress(addr)
 	a.cachedAcc[addr.String()] = &acc

@@ -3,28 +3,25 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 	"testing"
 
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/stretchr/testify/require"
-
-	"github.com/stretchr/testify/suite"
-
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
+
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 func init() {
@@ -46,7 +43,7 @@ func (suite *AccountTestSuite) SetupTest() {
 	suite.account = &EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
-		StateRoot:   mpt.EmptyRootHash,
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 }
 
@@ -217,7 +214,7 @@ func TestEthAccountAmino(t *testing.T) {
 				1,
 			),
 			ethcrypto.Keccak256(nil),
-			mpt.EmptyRootHash,
+			ethtypes.EmptyRootHash,
 		},
 		{
 			auth.NewBaseAccount(
@@ -228,7 +225,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 			),
 			ethcrypto.Keccak256(nil),
-			mpt.EmptyRootHash,
+			ethtypes.EmptyRootHash,
 		},
 		{
 			auth.NewBaseAccount(
@@ -239,7 +236,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 			),
 			ethcrypto.Keccak256(nil),
-			mpt.EmptyRootHash,
+			ethtypes.EmptyRootHash,
 		},
 		{
 			BaseAccount: &auth.BaseAccount{},
@@ -310,7 +307,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
-		StateRoot:   mpt.EmptyRootHash,
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 
 	data, _ := cdc.MarshalBinaryBare(&testAccount)
@@ -356,7 +353,7 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
-		StateRoot:   mpt.EmptyRootHash,
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 
 	b.ResetTimer()

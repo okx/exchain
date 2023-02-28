@@ -3,6 +3,7 @@ package mpt
 import (
 	"bytes"
 	"fmt"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"log"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -79,7 +80,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 			if !bytes.Equal(ethAcc.CodeHash, mpt.EmptyCodeHashBytes) {
 				contractCount++
 				// update evm mpt. Key is the address of the contract; Value is the empty root hash
-				panicError(evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), mpt.EmptyRootHashBytes))
+				panicError(evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), ethtypes.EmptyRootHash.Bytes()))
 				if contractCount%100 == 0 {
 					pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 				}

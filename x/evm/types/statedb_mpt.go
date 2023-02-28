@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Hash, error) {
@@ -203,9 +202,6 @@ func (csdb *CommitStateDB) Logger() log.Logger {
 // state trie concurrently while the state is mutated so that when we reach the
 // commit phase, most of the needed data is already hot.
 func (csdb *CommitStateDB) StartPrefetcher(namespace string) {
-	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		return
-	}
 
 	if csdb.prefetcher != nil {
 		csdb.prefetcher.Close()
