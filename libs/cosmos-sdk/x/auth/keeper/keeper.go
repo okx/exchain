@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -77,19 +78,15 @@ func (ak AccountKeeper) GetSequence(ctx sdk.Context, addr sdk.AccAddress) (uint6
 // If the global account number is not set, it initializes it with value 0.
 func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
-	store := ak.paramSubspace.CustomKVStore(ctx)
+	store := ctx.KVStore(ak.mptKey)
 	bz := store.Get(types.GlobalAccountNumberKey)
-	if bz == nil {
-		// initialize the account numbers
-		accNumber = 0
+	if len(bz) == 0 {
+		bz = make([]byte, 8)
 	} else {
-		err := ak.cdc.UnmarshalBinaryLengthPrefixed(bz, &accNumber)
-		if err != nil {
-			panic(err)
-		}
+		accNumber = binary.BigEndian.Uint64(bz)
 	}
 
-	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
+	binary.BigEndian.PutUint64(bz, accNumber+1)
 	store.Set(types.GlobalAccountNumberKey, bz)
 
 	return accNumber
