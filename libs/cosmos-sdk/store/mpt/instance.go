@@ -40,7 +40,7 @@ func InstanceOfMptStore() ethstate.Database {
 		if e != nil {
 			panic("fail to open database: " + e.Error())
 		}
-		gStatic := NewRuntimeState()
+		gStatic = NewRuntimeState()
 		nkvstore := NewStatKeyValueStore(kvstore, gStatic)
 		db := rawdb.NewDatabase(nkvstore)
 		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
