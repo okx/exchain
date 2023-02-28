@@ -63,6 +63,7 @@ func (s *Batch) Put(key []byte, value []byte) error {
 }
 
 func (s *Batch) Delete(key []byte) error {
+	s.stat.addDBWriteCount(1)
 	s.stat.increasePersistedSize(len(key))
 	s.stat.increaseDeletedCount()
 	return s.Batch.Delete(key)
