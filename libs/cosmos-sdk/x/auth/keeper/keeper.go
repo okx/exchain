@@ -78,16 +78,14 @@ func (ak AccountKeeper) GetSequence(ctx sdk.Context, addr sdk.AccAddress) (uint6
 // If the global account number is not set, it initializes it with value 0.
 func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
-	store := ctx.KVStore(ak.mptKey)
+	store := ak.paramSubspace.CustomKVStore(ctx)
 	bz := store.Get(types.GlobalAccountNumberKey)
-	if len(bz) == 0 {
-		bz = make([]byte, 8)
-	} else {
+	if len(bz) != 0 {
 		accNumber = binary.BigEndian.Uint64(bz)
 	}
-
-	binary.BigEndian.PutUint64(bz, accNumber+1)
-	store.Set(types.GlobalAccountNumberKey, bz)
+	temp := make([]byte, 8)
+	binary.BigEndian.PutUint64(temp, accNumber+1)
+	store.Set(types.GlobalAccountNumberKey, temp)
 
 	return accNumber
 }
