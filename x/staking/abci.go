@@ -2,9 +2,9 @@ package staking
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
 )
@@ -12,9 +12,7 @@ import (
 // BeginBlocker will persist the current header and validator set as a historical entry
 // and prune the oldest entry based on the HistoricalEntries parameter
 func BeginBlocker(ctx sdk.Context, k Keeper) {
-	if tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
-		k.TrackHistoricalInfo(ctx)
-	}
+	k.TrackHistoricalInfo(ctx)
 }
 
 // EndBlocker is called every block, update validator set

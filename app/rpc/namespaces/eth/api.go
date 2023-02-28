@@ -65,6 +65,8 @@ const (
 
 	EvmHookGasEstimate = uint64(60000)
 	EvmDefaultGasLimit = uint64(21000)
+
+	FlagAllowUnprotectedTxs = "rpc.allow-unprotected-txs"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -785,22 +787,22 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 	txBytes := data
-	var tx *evmtypes.MsgEthereumTx
+	tx := new(evmtypes.MsgEthereumTx)
 
-	if !tmtypes.HigherThanVenus(int64(height)) || api.txPool != nil {
-		tx = new(evmtypes.MsgEthereumTx)
+	// RLP decode raw transaction bytes
+	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
+		// Return nil is for when gasLimit overflows uint64
+		return common.Hash{}, err
+	}
 
-		// RLP decode raw transaction bytes
-		if err := authtypes.EthereumTxDecode(data, tx); err != nil {
-			// Return nil is for when gasLimit overflows uint64
+	if !tx.Protected() && !viper.GetBool(FlagAllowUnprotectedTxs) {
+		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
+	}
+
+	if !tmtypes.HigherThanVenus(int64(height)) {
+		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
+		if err != nil {
 			return common.Hash{}, err
-		}
-
-		if !tmtypes.HigherThanVenus(int64(height)) {
-			txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
-			if err != nil {
-				return common.Hash{}, err
-			}
 		}
 	}
 

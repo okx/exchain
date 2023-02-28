@@ -18,7 +18,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
 	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types/testdata"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protowire"
@@ -80,7 +79,7 @@ func TestIbcTxDecoderSignMode(t *testing.T) {
 
 // TestTxDecode decode ibc tx with unkown field
 func TestIbcDecodeUnknownFields(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	cdcProxy := newProxyDecoder()
 	decoder := TxDecoder(cdcProxy)
 
@@ -176,7 +175,7 @@ func TestIbcDecodeUnknownFields(t *testing.T) {
 }
 
 func TestRejectNonADR027(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	cdcProxy := newProxyDecoder()
 	decoder := TxDecoder(cdcProxy)
 
@@ -270,7 +269,7 @@ func TestRejectNonADR027(t *testing.T) {
 }
 
 func TestHeightSensitive(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	cdcProxy := newProxyDecoder()
 	decoder := TxDecoder(cdcProxy)
 

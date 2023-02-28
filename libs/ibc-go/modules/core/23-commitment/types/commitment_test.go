@@ -1,12 +1,12 @@
 package types_test
 
 import (
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 	// "github.com/cosmos/cosmos-sdk/store/iavl"
@@ -24,7 +24,7 @@ type MerkleTestSuite struct {
 }
 
 func (suite *MerkleTestSuite) SetupTest() {
-	types.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	db := dbm.NewMemDB()
 	suite.store = rootmulti.NewStore(db)
 	suite.storeKey = storetypes.NewKVStoreKey("iavlStoreKey")
