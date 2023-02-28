@@ -89,6 +89,7 @@ Where proposal.json contains:
 				proposal.Description,
 				proposal.IsAdd,
 				proposal.BlockNum,
+				proposal.Validator,
 			)
 
 			err = content.ValidateBasic()
@@ -105,11 +106,12 @@ Where proposal.json contains:
 // ManageTreasuresProposalJSON defines a ManageTreasureProposal with a deposit used to parse
 // manage treasures proposals from a JSON file.
 type ManageTreasuresProposalJSON struct {
-	Title       string       `json:"title" yaml:"title"`
-	Description string       `json:"description" yaml:"description"`
-	IsAdd       bool         `json:"is_add" yaml:"is_add"`
-	BlockNum    uint64       `json:"block_num" yaml:"block_num"`
-	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
+	Title       string                 `json:"title" yaml:"title"`
+	Description string                 `json:"description" yaml:"description"`
+	IsAdd       bool                   `json:"is_add" yaml:"is_add"`
+	BlockNum    uint64                 `json:"block_num" yaml:"block_num"`
+	Deposit     sdk.SysCoins           `json:"deposit" yaml:"deposit"`
+	Validator   types.ProposeValidator `json:"validator" yaml:"validator"`
 }
 
 // parseProposeValidatorProposalJSON parses json from proposal file to ProposeValidatorProposalJSON struct

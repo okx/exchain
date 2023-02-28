@@ -6,5 +6,4 @@ var (
 	KeyMinDeposit       = []byte("MinDeposit")
 	KeyVotingPeriod     = []byte("VotingPeriod")
 	KeyMaxBlockHeight   = []byte("MaxBlockHeight")
-	KeyConsensusType   = []byte("ConsensusType")
 )

@@ -26,18 +26,16 @@ func handleProposeValidatorProposal(ctx sdk.Context, k *Keeper, proposal *govTyp
 	if !ok {
 		return types.ErrUnexpectedProposalType
 	}
-
+	validator := proposeValidatorProposal.Validator
 	if proposeValidatorProposal.IsAdd {
-		//// add/update treasures into state
-		//if err := k.UpdateTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
-		//	return types.ErrTreasuresInternal(err)
-		//}
-		return nil
+		createValMsg := NewMsgCreateValidator(validator.ValidatorAddress, validator.PubKey,
+			validator.Description, validator.MinSelfDelegation)
+		_, err := handleMsgCreateValidator(ctx, createValMsg, *k)
+		return err
+	} else {
+		delValMsg := NewMsgDestroyValidator(sdk.AccAddress(validator.ValidatorAddress))
+		_, err := handleMsgDestroyValidator(ctx, delValMsg, *k)
+		return err
 	}
-
-	// delete treasures into state
-	//if err := k.DeleteTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
-	//	return types.ErrTreasuresInternal(err)
-	//}
 	return nil
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/staking"
+	staking "github.com/okex/exchain/x/staking/exported"
 )
 
 const custom = "custom"

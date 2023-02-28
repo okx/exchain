@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -20,21 +21,33 @@ func init() {
 	govtypes.RegisterProposalTypeCodec(ProposeValidatorProposal{}, ProposeValidatorProposalName)
 }
 
+type ProposeValidator struct {
+	Description Description `json:"description" yaml:"description"`
+	//Commission        CommissionRates `json:"commission" yaml:"commission"`
+	MinSelfDelegation sdk.SysCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
+	DelegatorAddress  sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
+	ValidatorAddress  sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
+	PubKey            crypto.PubKey  `json:"pubkey" yaml:"pubkey"`
+}
+
 // ProposeValidatorProposal - structure for the proposal of proposing validator
 type ProposeValidatorProposal struct {
-	Title       string `json:"title" yaml:"title"`
-	Description string `json:"description" yaml:"description"`
-	IsAdd       bool   `json:"is_add" yaml:"is_add"`
-	BlockNum    uint64 `json:"block_num" yaml:"block_num"`
+	Title       string           `json:"title" yaml:"title"`
+	Description string           `json:"description" yaml:"description"`
+	IsAdd       bool             `json:"is_add" yaml:"is_add"`
+	BlockNum    uint64           `json:"block_num" yaml:"block_num"`
+	Validator   ProposeValidator `json:"validator" yaml:"validator"`
 }
 
 // NewProposeValidatorProposal creates a new instance of ProposeValidatorProposal
-func NewProposeValidatorProposal(title, description string, isAdd bool, blockNum uint64) ProposeValidatorProposal {
+func NewProposeValidatorProposal(title, description string, isAdd bool, blockNum uint64,
+	validator ProposeValidator) ProposeValidatorProposal {
 	return ProposeValidatorProposal{
 		Title:       title,
 		Description: description,
 		IsAdd:       isAdd,
 		BlockNum:    blockNum,
+		Validator:   validator,
 	}
 }
 

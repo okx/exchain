@@ -433,7 +433,8 @@ func newTestOkcChainApp(
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
 		AddRoute(ibchost.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.V2Keeper.ClientKeeper)).
-		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
+		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
+		AddRoute(staking.RouterKey, staking.NewProposalHandler(&app.StakingKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
@@ -698,7 +699,7 @@ func createKeysByCases(caseas []UpgradeCase) map[string]*sdk.KVStoreKey {
 	return keys
 }
 
-///
+// /
 type RecordMemDB struct {
 	db *dbm.MemDB
 	common.PlaceHolder

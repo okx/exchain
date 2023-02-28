@@ -53,6 +53,7 @@ var (
 	KeyMinSelfDelegation  = []byte("MinSelfDelegation")
 
 	KeyHistoricalEntries = []byte("HistoricalEntries")
+	KeyConsensusType     = []byte("ConsensusType")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -72,12 +73,13 @@ type Params struct {
 	// validator's self declared minimum self delegation
 	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
 
-	HistoricalEntries uint32 `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
+	HistoricalEntries uint32               `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
+	ConsensusType     common.ConsensusType `json:"consensus_type"`
 }
 
 // NewParams creates a new Params instance
 func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, maxValsToAddShares uint16, minDelegation sdk.Dec,
-	minSelfDelegation sdk.Dec) Params {
+	minSelfDelegation sdk.Dec, consensusType common.ConsensusType) Params {
 	return Params{
 		UnbondingTime:      unbondingTime,
 		MaxValidators:      maxValidators,
@@ -85,6 +87,7 @@ func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, 
 		MaxValsToAddShares: maxValsToAddShares,
 		MinDelegation:      minDelegation,
 		MinSelfDelegation:  minSelfDelegation,
+		ConsensusType:      consensusType,
 	}
 }
 
@@ -102,6 +105,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16Positive("max vals to add shares")},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
 		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
+		{Key: KeyConsensusType, Value: &p.ConsensusType, ValidatorFn: common.ValidateConsensusType("consensus type")},
 	}
 }
 func validateHistoricalEntries(i interface{}) error {
@@ -130,6 +134,7 @@ func DefaultParams() Params {
 		DefaultMaxValsToAddShares,
 		DefaultMinDelegation,
 		DefaultMinSelfDelegation,
+		common.PoA,
 	)
 }
 
@@ -141,8 +146,9 @@ func (p *Params) String() string {
   Epoch: 					%d
   MaxValsToAddShares:       %d
   MinDelegation				%d
-  MinSelfDelegation         %d`,
-		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation, p.MinSelfDelegation)
+  MinSelfDelegation         %d
+  ConsensusType:            %s,`,
+		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation, p.MinSelfDelegation, p.ConsensusType)
 }
 
 // Validate gives a quick validity check for a set of params

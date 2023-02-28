@@ -3,6 +3,23 @@ package exported
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/x/staking"
+)
+
+var (
+	NewHandler            = staking.NewHandler
+	EndBlocker            = staking.EndBlocker
+	NewMsgDeposit         = staking.NewMsgDeposit
+	NewMsgAddShares       = staking.NewMsgAddShares
+	NewDescription        = staking.NewDescription
+	NewMsgCreateValidator = staking.NewMsgCreateValidator
+	StoreKey              = staking.StoreKey
+	TStoreKey             = staking.TStoreKey
+	NotBondedPoolName     = staking.NotBondedPoolName
+	BondedPoolName        = staking.BondedPoolName
+	NewKeeper             = staking.NewKeeper
+	DefaultParamspace     = staking.DefaultParamspace
+	DefaultParams         = staking.DefaultParams
 )
 
 // DelegatorI expected delegator functions
@@ -34,4 +51,9 @@ type ValidatorI interface {
 	TokensFromSharesRoundUp(sdk.Dec) sdk.Dec                // token worth of provided delegator shares, rounded up
 	SharesFromTokens(amt sdk.Int) (sdk.Dec, error)          // shares worth of delegator's bond
 	SharesFromTokensTruncated(amt sdk.Int) (sdk.Dec, error) // truncated shares worth of delegator's bond
+}
+
+type Keeper interface {
+	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
+	GetEpoch(ctx sdk.Context)
 }

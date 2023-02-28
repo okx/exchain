@@ -28,7 +28,7 @@ import (
 
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/x/staking"
+	staking "github.com/okex/exchain/x/staking/exported"
 )
 
 var (

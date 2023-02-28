@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -10,7 +11,7 @@ import (
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params"
 	paramstypes "github.com/okex/exchain/x/params/types"
-	stakingkeeper "github.com/okex/exchain/x/staking"
+	stakingkeeper "github.com/okex/exchain/x/staking/exported"
 )
 
 type AnteDecorator struct {

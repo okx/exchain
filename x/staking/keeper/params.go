@@ -3,6 +3,8 @@ package keeper
 import (
 	"time"
 
+	"github.com/okex/exchain/x/common"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/staking/types"
@@ -44,6 +46,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.ParamsMaxValsToAddShares(ctx),
 		k.ParamsMinDelegation(ctx),
 		k.ParamsMinSelfDelegation(ctx),
+		k.ParamsConsensusType(ctx),
 	)
 }
 
@@ -115,5 +118,11 @@ func (k Keeper) ParamsMinDelegation(ctx sdk.Context) (num sdk.Dec) {
 // ParamsMinSelfDelegation returns the param MinSelfDelegateAmount
 func (k Keeper) ParamsMinSelfDelegation(ctx sdk.Context) (num sdk.Dec) {
 	k.paramstore.Get(ctx, types.KeyMinSelfDelegation, &num)
+	return
+}
+
+// ParamsConsensusType returns the param ConsensusType
+func (k Keeper) ParamsConsensusType(ctx sdk.Context) (consensusType common.ConsensusType) {
+	k.paramstore.Get(ctx, types.KeyConsensusType, &consensusType)
 	return
 }
