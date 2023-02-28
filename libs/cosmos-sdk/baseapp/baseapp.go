@@ -4,12 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"reflect"
-	"strings"
-	"time"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -30,6 +24,10 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
+	"io/ioutil"
+	"os"
+	"reflect"
+	"strings"
 )
 
 const (
@@ -197,10 +195,9 @@ type BaseApp struct { // nolint: maligned
 
 	parallelTxManage *parallelTxManager
 
-	customizeModuleOnStop []sdk.CustomizeOnStop
-	feeCollector          sdk.Coins
-	feeChanged            bool // used to judge whether should update the fee-collector account
-	FeeSplitCollector     []*sdk.FeeSplitInfo
+	feeCollector      sdk.Coins
+	feeChanged        bool // used to judge whether should update the fee-collector account
+	FeeSplitCollector []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -955,11 +952,6 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 
 func (app *BaseApp) StopBaseApp() {
 	app.cms.StopStore()
-
-	ctx := sdk.NewContext(nil, abci.Header{Height: app.LastBlockHeight(), Time: time.Now()}, false, app.logger)
-	for _, fn := range app.customizeModuleOnStop {
-		fn(ctx)
-	}
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {

@@ -9,7 +9,6 @@ import (
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 const (
@@ -219,18 +218,14 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 	if so.code != nil {
 		return len(so.code)
 	}
-	if tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
-		if bytes.Equal(so.CodeHash(), emptyCodeHash) {
-			return 0
-		}
-		size, err := db.ContractCodeSize(so.addrHash, ethcmn.BytesToHash(so.CodeHash()))
-		if err != nil {
-			so.setError(fmt.Errorf("can't load code size %x: %v", so.CodeHash(), err))
-		}
-		return size
-	} else {
-		return len(so.Code(db))
+	if bytes.Equal(so.CodeHash(), emptyCodeHash) {
+		return 0
 	}
+	size, err := db.ContractCodeSize(so.addrHash, ethcmn.BytesToHash(so.CodeHash()))
+	if err != nil {
+		so.setError(fmt.Errorf("can't load code size %x: %v", so.CodeHash(), err))
+	}
+	return size
 }
 
 // SetStorage replaces the entire state storage with the given one.

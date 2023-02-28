@@ -21,9 +21,6 @@ var (
 	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
-	MILESTONE_MARS_HEIGHT string
-	milestoneMarsHeight   int64
-
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
 
@@ -63,7 +60,6 @@ func init() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
-		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
@@ -111,16 +107,6 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
-// use MPT storage model to replace IAVL storage model
-func HigherThanMars(height int64) bool {
-	//if milestoneMarsHeight == 0 {
-	//	return false
-	//}
-	//return height >= milestoneMarsHeight
-	//TODO by Sunstrider: need change follow logic
-	return true
-}
-
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
 	return milestoneVenusHeight
@@ -152,18 +138,9 @@ func GetMercuryHeight() int64 {
 	return milestoneMercuryHeight
 }
 
-func GetMarsHeight() int64 {
-	return milestoneMarsHeight
-}
-
 // can be used in unit test only
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
-}
-
-// can be used in unit test only
-func UnittestOnlySetMilestoneMarsHeight(height int64) {
-	milestoneMarsHeight = height
 }
 
 // ==================================

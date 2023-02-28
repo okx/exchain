@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/hex"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"sort"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -55,7 +55,8 @@ func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			}
 
-			if types.HigherThanMars(ctx.BlockHeight()) {
+			// TODO by yxq, temporarily for test
+			if cfg.DynamicConfig.GetEnablePGU() {
 				return
 			}
 
