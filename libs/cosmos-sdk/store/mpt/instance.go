@@ -26,7 +26,6 @@ var (
 )
 
 func InstanceOfMptStore() ethstate.Database {
-	TrieDirtyDisabled = viper.GetBool(FlagTrieDirtyDisabled)
 	initMptOnce.Do(func() {
 		homeDir := viper.GetString(flags.FlagHome)
 		path := filepath.Join(homeDir, mptDataDir)
