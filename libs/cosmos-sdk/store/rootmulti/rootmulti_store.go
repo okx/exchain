@@ -285,7 +285,9 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 			}
 
 		} else if storeParams.typ == types.StoreTypeMPT {
-			if ok := rs.stores[key].(*mpt.MptStore).HasVersion(targetVersion); !ok {
+
+			if !mpt.HasVersionByDiskDB(targetVersion) {
+
 				rs.logger.Info(fmt.Sprintf("mpt-%s does not have version: %d", key.Name(), targetVersion))
 				return false, nil
 			}
