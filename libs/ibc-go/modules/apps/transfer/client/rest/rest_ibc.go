@@ -12,7 +12,7 @@ import (
 
 func RegisterOriginRPCRoutersForGRPC(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
-		"/exchain/v1/ibc/apps/transfer/v1/denom_traces",
+		"/ibc/apps/transfer/v1/denom_traces",
 		denomTracesHandlerFn(cliCtx),
 	).Methods("GET")
 }

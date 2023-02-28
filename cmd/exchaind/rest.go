@@ -18,6 +18,7 @@ import (
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	mintrest "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
+	ibctransferrest "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/rest"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	dexrest "github.com/okex/exchain/x/dex/client/rest"
@@ -100,6 +101,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 		},
 	)
 	mintrest.RegisterRoutes(rs.CliCtx, v1Router)
+	ibctransferrest.RegisterOriginRPCRoutersForGRPC(rs.CliCtx, v1Router)
 }
 
 func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
