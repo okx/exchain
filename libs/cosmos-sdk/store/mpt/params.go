@@ -2,7 +2,6 @@ package mpt
 
 import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 )
@@ -46,8 +45,4 @@ var (
 	// EmptyCodeHash is the known hash of an empty code.
 	EmptyCodeHash      = crypto.Keccak256Hash(nil)
 	EmptyCodeHashBytes = crypto.Keccak256(nil)
-
-	// EmptyRootHash is the known root hash of an empty trie.
-	EmptyRootHash      = ethtypes.EmptyRootHash
-	EmptyRootHashBytes = EmptyRootHash.Bytes()
 )

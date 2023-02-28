@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/app/crypto/hd"
+	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
@@ -19,12 +20,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authvesting "github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/x/genutil"
-
-	"github.com/okex/exchain/app/crypto/hd"
-	okexchain "github.com/okex/exchain/app/types"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -118,7 +115,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 				genAccount = okexchain.EthAccount{
 					BaseAccount: baseAccount,
 					CodeHash:    ethcrypto.Keccak256(nil),
-					StateRoot:   mpt.EmptyRootHash,
+					StateRoot:   ethtypes.EmptyRootHash,
 				}
 			}
 

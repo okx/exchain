@@ -1,11 +1,12 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -79,17 +80,13 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
 	store := ctx.KVStore(ak.mptKey)
 	bz := store.Get(types.GlobalAccountNumberKey)
-	if bz == nil {
-		// initialize the account numbers
-		accNumber = 0
+	if len(bz) == 0 {
+		bz = make([]byte, 8)
 	} else {
-		err := ak.cdc.UnmarshalBinaryLengthPrefixed(bz, &accNumber)
-		if err != nil {
-			panic(err)
-		}
+		accNumber = binary.BigEndian.Uint64(bz)
 	}
 
-	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
+	binary.BigEndian.PutUint64(bz, accNumber+1)
 	store.Set(types.GlobalAccountNumberKey, bz)
 
 	return accNumber
@@ -122,7 +119,7 @@ func (ak AccountKeeper) RetrievalStateRoot(bz []byte) ethcmn.Hash {
 	if err == nil {
 		return acc.GetStateRoot()
 	}
-	return mpt.EmptyRootHash
+	return ethtypes.EmptyRootHash
 }
 
 func (ak AccountKeeper) EncodeAccount(acc exported.Account) ([]byte, error) {
