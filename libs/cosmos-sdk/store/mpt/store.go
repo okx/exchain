@@ -415,10 +415,6 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 	ms.cmLock.Lock()
 	defer ms.cmLock.Unlock()
 
-	if !tmtypes.HigherThanMars(ms.version) {
-		return nil
-	}
-
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	if !TrieDirtyDisabled {
 		triedb := ms.db.TrieDB()
@@ -546,9 +542,6 @@ func getVersionedWithProof(trie ethstate.Trie, key []byte) ([]byte, [][]byte, er
 }
 
 func (ms *MptStore) StartPrefetcher(namespace string) {
-	if !tmtypes.HigherThanMars(ms.version) {
-		return
-	}
 
 	if ms.prefetcher != nil {
 		ms.prefetcher.Close()

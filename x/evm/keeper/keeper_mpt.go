@@ -7,12 +7,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-// Stop stops the blockchain service. If any imports are currently in progress
-// it will abort them using the procInterrupt.
-func (k *Keeper) OnStop(ctx sdk.Context) error {
-	return nil
-}
-
 /*
  * Getters for keys in x/evm/types/keys.go
  * TODO: these interfaces are used for setting/getting data in rawdb, instead of iavl.

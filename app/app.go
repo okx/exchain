@@ -301,7 +301,6 @@ func NewOKExChainApp(
 		"Venus2Height", tmtypes.GetVenus2Height(),
 		"Veneus4Height", tmtypes.GetVenus4Height(),
 		"EarthHeight", tmtypes.GetEarthHeight(),
-		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
 		iavl.SetLogger(logger.With("module", "iavl"))
@@ -744,8 +743,7 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
-	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
-	//app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
+
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
@@ -969,15 +967,6 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
 	return nil
-}
-
-func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
-	return func(ctx sdk.Context) error {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-			return ak.OnStop(ctx)
-		}
-		return nil
-	}
 }
 
 func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHandler {

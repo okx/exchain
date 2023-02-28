@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"encoding/binary"
 	"math/big"
 	"sync"
 
@@ -19,7 +18,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
@@ -248,46 +246,17 @@ func (k Keeper) GetBlockHeight(ctx sdk.Context, hash ethcmn.Hash) (int64, bool) 
 		height := cached.(int64)
 		return height, true
 	}
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		return k.getBlockHashInDiskDB(hash.Bytes())
-	}
-
-	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
-	bz := store.Get(hash.Bytes())
-	if len(bz) == 0 {
-		return 0, false
-	}
-
-	height := binary.BigEndian.Uint64(bz)
-	return int64(height), true
+	return k.getBlockHashInDiskDB(hash.Bytes())
 }
 
 // SetBlockHeight sets the mapping from block consensus hash to block height
 func (k Keeper) SetBlockHeight(ctx sdk.Context, hash []byte, height int64) {
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		k.setBlockHashInDiskDB(hash, height)
-		return
-	}
-
-	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
-	bz := sdk.Uint64ToBigEndian(uint64(height))
-	store.Set(hash, bz)
+	k.setBlockHashInDiskDB(hash, height)
 }
 
 // IterateBlockHash iterates all over the block hash in every height
 func (k Keeper) IterateBlockHash(ctx sdk.Context, fn func(key []byte, value []byte) (stop bool)) {
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		k.iterateBlockHashInDiskDB(fn)
-		return
-	}
-
-	iterator := sdk.KVStorePrefixIterator(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		if stop := fn(iterator.Key(), iterator.Value()); stop {
-			break
-		}
-	}
+	k.iterateBlockHashInDiskDB(fn)
 }
 
 // ----------------------------------------------------------------------------
@@ -316,44 +285,17 @@ func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash ethcmn.Hash) 
 
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		return k.getBlockBloomInDiskDB(height)
-	}
-
-	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
-	has := store.Has(types.BloomKey(height))
-	if !has {
-		return ethtypes.Bloom{}
-	}
-	bz := store.Get(types.BloomKey(height))
-	return ethtypes.BytesToBloom(bz)
+	return k.getBlockBloomInDiskDB(height)
 }
 
 // SetBlockBloom sets the mapping from block height to bloom bits
 func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloom) {
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		k.setBlockBloomInDiskDB(height, bloom)
-		return
-	}
-
-	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
-	store.Set(types.BloomKey(height), bloom.Bytes())
+	k.setBlockBloomInDiskDB(height, bloom)
 }
 
 // IterateBlockBloom iterates all over the bloom value in every height
 func (k Keeper) IterateBlockBloom(ctx sdk.Context, fn func(key []byte, value []byte) (stop bool)) {
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		k.iterateBlockBloomInDiskDB(fn)
-		return
-	}
-
-	iterator := sdk.KVStorePrefixIterator(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		if stop := fn(iterator.Key(), iterator.Value()); stop {
-			break
-		}
-	}
+	k.iterateBlockBloomInDiskDB(fn)
 }
 
 // GetAccountStorage return state storage associated with an account
@@ -375,12 +317,7 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address ethcmn.Address) (type
 func (k *Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	// if keeper has cached the chain config, return immediately
 
-	var store types.StoreProxy
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = k.Ada.NewStore(k.paramSpace.CustomKVStore(ctx), types.KeyPrefixChainConfig)
-	} else {
-		store = k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
-	}
+	store := k.Ada.NewStore(k.paramSpace.CustomKVStore(ctx), types.KeyPrefixChainConfig)
 
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -423,12 +360,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 // SetChainConfig sets the mapping from block consensus hash to block height
 func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
-	var store types.StoreProxy
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = k.Ada.NewStore(k.paramSpace.CustomKVStore(ctx), types.KeyPrefixChainConfig)
-	} else {
-		store = k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
-	}
+	store := k.Ada.NewStore(k.paramSpace.CustomKVStore(ctx), types.KeyPrefixChainConfig)
 
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig

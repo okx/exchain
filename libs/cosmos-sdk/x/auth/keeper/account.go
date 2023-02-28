@@ -8,7 +8,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
 )
 
@@ -120,7 +119,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
 	}
 
-	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight())) {
+	if ctx.IsDeliver() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
 
@@ -162,7 +161,7 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Delete(storeAccKey)
 
-	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight())) {
+	if ctx.IsDeliver() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
 

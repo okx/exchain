@@ -184,13 +184,6 @@ func (app *BaseApp) SetEvmWatcherCollector(collector sdk.EvmWatcherCollector) {
 	app.watcherCollector = collector
 }
 
-func (app *BaseApp) AddCustomizeModuleOnStopLogic(cs sdk.CustomizeOnStop) {
-	if app.sealed {
-		panic("AddCustomizeModuleOnStopLogic() on sealed BaseApp")
-	}
-	app.customizeModuleOnStop = append(app.customizeModuleOnStop, cs)
-}
-
 func (app *BaseApp) SetPreDeliverTxHandler(handler sdk.PreDeliverTxHandler) {
 	if app.sealed {
 		panic("SetPreDeliverTxHandler() on sealed BaseApp")
