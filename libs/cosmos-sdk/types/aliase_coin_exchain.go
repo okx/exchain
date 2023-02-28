@@ -17,10 +17,6 @@ var (
 	reDnmString = fmt.Sprintf(`[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?`)
 	reDecAmt    = `[[:digit:]]*\.?[[:digit:]]+`
 
-	rePoolTokenDnmString = fmt.Sprintf(`(ammswap_)[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?_[a-z][a-z0-9]{0,9}(\-[a-f0-9]{3})?`)
-	rePoolTokenDnm       = regexp.MustCompile(fmt.Sprintf(`^%s$`, rePoolTokenDnmString))
-	reDecCoinPoolToken   = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reDecAmt, reSpc, rePoolTokenDnmString))
-
 	reDecCoin = &EnvRegexp{
 		regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, reDecAmt, reSpc, reDnmString)),
 	}
@@ -79,11 +75,7 @@ type EnvRegexp struct {
 }
 
 func (r *EnvRegexp) FindStringSubmatch(coinStr string) []string {
-	matches := r.Regexp.FindStringSubmatch(coinStr)
-	if matches != nil {
-		return matches
-	}
-	return reDecCoinPoolToken.FindStringSubmatch(coinStr)
+	return r.Regexp.FindStringSubmatch(coinStr)
 }
 
 func GetSystemFee() Coin {
@@ -101,11 +93,9 @@ func ValidateDenom(denom string) error {
 	if denom == DefaultBondDenom {
 		return nil
 	}
-	if !reDnm.MatchString(denom) && !rePoolTokenDnm.MatchString(denom) {
-		if strings.HasPrefix(denom, "ibc") {
-			if validIBCCoinDenom(denom) {
+	if !reDnm.MatchString(denom)  {
+		if strings.HasPrefix(denom, "ibc") && validIBCCoinDenom(denom) {
 				return nil
-			}
 		}
 		return fmt.Errorf("invalid denom: %s", denom)
 	}
