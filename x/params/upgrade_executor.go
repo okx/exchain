@@ -32,7 +32,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 
 	if curHeight < confirmHeight {
 		k.gk.InsertWaitingProposalQueue(ctx, confirmHeight, proposalID)
-		_ = storeWaitingUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight) // ignore error
+		_ = storeWaitingUpgrade(ctx, k, proposal, effectiveHeight) // ignore error
 		return nil
 	}
 
@@ -50,7 +50,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		panic(errMsg)
 	}
 
-	storedInfo, err := storeEffectiveUpgrade(ctx, k, proposal.UpgradeInfo, effectiveHeight)
+	storedInfo, err := storeEffectiveUpgrade(ctx, k, proposal, effectiveHeight)
 	if err != nil {
 		return err
 	}
@@ -86,22 +86,41 @@ func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.Upgrad
 	return confirmHeight, nil
 }
 
-func storePreparingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo) sdk.Error {
-	info.Status = types.UpgradeStatusPreparing
+func storePreparingUpgrade(ctx sdk.Context, k *Keeper, upgrade types.UpgradeProposal) sdk.Error {
+	info := types.UpgradeInfo{
+		Name:         upgrade.Name,
+		ExpectHeight: upgrade.ExpectHeight,
+		Config:       upgrade.Config,
+
+		EffectiveHeight: 0,
+		Status:          types.UpgradeStatusPreparing,
+	}
 
 	return k.writeUpgradeInfo(ctx, info, false)
 }
 
-func storeWaitingUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) error {
-	info.EffectiveHeight = effectiveHeight
-	info.Status = types.UpgradeStatusWaitingEffective
+func storeWaitingUpgrade(ctx sdk.Context, k *Keeper, upgrade types.UpgradeProposal, effectiveHeight uint64) error {
+	info := types.UpgradeInfo{
+		Name:         upgrade.Name,
+		ExpectHeight: upgrade.ExpectHeight,
+		Config:       upgrade.Config,
+
+		EffectiveHeight: effectiveHeight,
+		Status:          types.UpgradeStatusWaitingEffective,
+	}
 
 	return k.writeUpgradeInfo(ctx, info, true)
 }
 
-func storeEffectiveUpgrade(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, effectiveHeight uint64) (types.UpgradeInfo, sdk.Error) {
-	info.EffectiveHeight = effectiveHeight
-	info.Status = types.UpgradeStatusEffective
+func storeEffectiveUpgrade(ctx sdk.Context, k *Keeper, upgrade types.UpgradeProposal, effectiveHeight uint64) (types.UpgradeInfo, sdk.Error) {
+	info := types.UpgradeInfo{
+		Name:         upgrade.Name,
+		ExpectHeight: upgrade.ExpectHeight,
+		Config:       upgrade.Config,
+
+		EffectiveHeight: effectiveHeight,
+		Status:          types.UpgradeStatusEffective,
+	}
 
 	return info, k.writeUpgradeInfo(ctx, info, true)
 }
