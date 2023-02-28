@@ -181,7 +181,7 @@ func (ms *MptStore) sprintDebugLog(version int64) {
 	}
 	printLog += fmt.Sprintf(", TPersisCnt:%d", gStatic.getPersistedCount())
 	printLog += fmt.Sprintf(", TPersisSize:%d", gStatic.getPersistedSize())
-	printLog += fmt.Sprintf(", TDelCnt:%d", gStatic.getDeletedCount)
+	printLog += fmt.Sprintf(", TDelCnt:%d", gStatic.getDeletedCount())
 
 	ms.logger.Debug(header + printLog)
 }
