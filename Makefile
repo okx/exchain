@@ -22,10 +22,8 @@ ServerName=exchaind
 ClientName=exchaincli
 # the height of the 1st block is GenesisHeight+1
 GenesisHeight=0
-MercuryHeight=1
 Venus2Height=0
 Venus4Height=0
-EarthHeight=0
 MarsHeight=1
 
 LINK_STATICALLY = false
@@ -42,15 +40,12 @@ endif
 
 ifeq ($(MAKECMDGOALS),mainnet)
    GenesisHeight=2322600
-   MercuryHeight=5150000
    Venus2Height=14738000
 
    WITH_ROCKSDB=true
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
-   MercuryHeight=5300000
    Venus2Height=14781000
-   EarthHeight=17364500
    Venus4Height=17531500
 
    WITH_ROCKSDB=true
@@ -85,10 +80,8 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_GENESIS_HEIGHT=$(GenesisHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS4_HEIGHT=$(Venus4Height) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_EARTH_HEIGHT=$(EarthHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
 
 

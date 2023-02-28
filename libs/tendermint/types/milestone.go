@@ -15,17 +15,13 @@ var (
 	MILESTONE_GENESIS_HEIGHT string
 	genesisHeight            int64
 
-	MILESTONE_MERCURY_HEIGHT string
-	milestoneMercuryHeight   int64
-
 	MILESTONE_MARS_HEIGHT string
 	milestoneMarsHeight   int64
 
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
 
-	MILESTONE_EARTH_HEIGHT string
-	milestoneEarthHeight   int64
+	milestoneEarthHeight int64
 
 	MILESTONE_VENUS4_HEIGHT string
 	milestoneVenus4Height   int64
@@ -39,12 +35,11 @@ var (
 const (
 	MainNet = "exchain-66"
 	TestNet = "exchain-65"
+
+	MILESTONE_EARTH = "earth"
 )
 
 const (
-	MainNetMercuyHeight  = 5150000
-	TestNetMercuryHeight = 5300000
-
 	MainNetGenesisHeight = 2322600
 	TestNetGenesisHeight = 1121818
 
@@ -55,10 +50,8 @@ const (
 func init() {
 	once.Do(func() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
-		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
-		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
 	})
 }
@@ -75,24 +68,13 @@ func string2number(input string) int64 {
 }
 
 func SetupMainNetEnvironment(pruneH int64) {
-	milestoneMercuryHeight = MainNetMercuyHeight
 	genesisHeight = MainNetGenesisHeight
 	nodePruneHeight = pruneH
 }
 
 func SetupTestNetEnvironment(pruneH int64) {
-	milestoneMercuryHeight = TestNetMercuryHeight
 	genesisHeight = TestNetGenesisHeight
 	nodePruneHeight = pruneH
-}
-
-// depracate homstead signer support
-func HigherThanMercury(height int64) bool {
-	if milestoneMercuryHeight == 0 {
-		// milestoneMercuryHeight not enabled
-		return false
-	}
-	return height > milestoneMercuryHeight
 }
 
 // use MPT storage model to replace IAVL storage model
@@ -105,12 +87,14 @@ func HigherThanMars(height int64) bool {
 
 // 2322600 is mainnet GenesisHeight
 func IsMainNet() bool {
-	return MILESTONE_GENESIS_HEIGHT == "2322600"
+	//return MILESTONE_GENESIS_HEIGHT == "2322600"
+	return false
 }
 
 // 1121818 is testnet GenesisHeight
 func IsTestNet() bool {
-	return MILESTONE_GENESIS_HEIGHT == "1121818"
+	//return MILESTONE_GENESIS_HEIGHT == "1121818"
+	return false
 }
 
 func GetStartBlockHeight() int64 {
@@ -119,10 +103,6 @@ func GetStartBlockHeight() int64 {
 
 func GetNodePruneHeight() int64 {
 	return nodePruneHeight
-}
-
-func GetMercuryHeight() int64 {
-	return milestoneMercuryHeight
 }
 
 func GetMarsHeight() int64 {
@@ -157,6 +137,10 @@ func GetVenus2Height() int64 {
 // ==================================
 // =========== Earth ===============
 func UnittestOnlySetMilestoneEarthHeight(h int64) {
+	milestoneEarthHeight = h
+}
+
+func SetMilestoneEarthHeight(h int64) {
 	milestoneEarthHeight = h
 }
 

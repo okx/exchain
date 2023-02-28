@@ -296,10 +296,8 @@ func NewOKExChainApp(
 ) *OKExChainApp {
 	logger.Info("Starting "+system.ChainName,
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
-		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"Venus2Height", tmtypes.GetVenus2Height(),
 		"Veneus4Height", tmtypes.GetVenus4Height(),
-		"EarthHeight", tmtypes.GetEarthHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
@@ -510,6 +508,7 @@ func NewOKExChainApp(
 		app.subspaces[wasm.ModuleName],
 		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
+		&app.ParamsKeeper,
 		v2keeper.ChannelKeeper,
 		&v2keeper.PortKeeper,
 		nil,
@@ -762,6 +761,10 @@ func NewOKExChainApp(
 		// Initialize pinned codes in wasmvm as they are not persisted there
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
+		}
+
+		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
+			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
 		}
 	}
 
