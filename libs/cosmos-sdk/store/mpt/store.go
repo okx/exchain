@@ -259,6 +259,8 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	// push data to database
 	ms.PushData2Database(ms.version)
 
+	ms.sprintDebugLog(ms.version)
+
 	// start next found prefetch
 	ms.StartPrefetcher("mptStore")
 
@@ -284,23 +286,27 @@ func (ms *MptStore) SetPruning(options types.PruningOptions) {
 }
 
 func (ms *MptStore) GetDBWriteCount() int {
-	return 0
+	return gStatic.getDBWriteCount()
 }
 
 func (ms *MptStore) GetDBReadCount() int {
-	return 0
+	return gStatic.getDBReadCount()
 }
 
 func (ms *MptStore) GetNodeReadCount() int {
+	// need the eth 1.10.25 merged.
+	// return ms.db.TrieDB().GetNodeReadCount()
 	return 0
 }
 
 func (ms *MptStore) ResetCount() {
-	return
+	gStatic.resetCount()
+	// need the eth 1.10.25 merged.
+	//ms.db.TrieDB().ResetCount()
 }
 
 func (ms *MptStore) GetDBReadTime() int {
-	return 0
+	return gStatic.getDBReadTime()
 }
 
 // PushData2Database writes all associated state in cache to the database

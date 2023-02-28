@@ -23,6 +23,7 @@ const (
 var (
 	gMptDatabase ethstate.Database = nil
 	initMptOnce  sync.Once
+	gStatic      *RuntimeState
 )
 
 func InstanceOfMptStore() ethstate.Database {
@@ -39,7 +40,9 @@ func InstanceOfMptStore() ethstate.Database {
 		if e != nil {
 			panic("fail to open database: " + e.Error())
 		}
-		db := rawdb.NewDatabase(kvstore)
+		gStatic := NewRuntimeState()
+		nkvstore := NewStatKeyValueStore(kvstore, gStatic)
+		db := rawdb.NewDatabase(nkvstore)
 		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     int(TrieCacheSize),
 			Journal:   "",
