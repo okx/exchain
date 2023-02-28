@@ -326,7 +326,6 @@ func NewSimApp(
 	baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
 	logger.Info("Starting OEC",
-		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
 	)
 	//onceLog.Do(func() {
