@@ -22,6 +22,7 @@ import (
 	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/order"
+	ptypes "github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/x/staking"
 	token "github.com/okex/exchain/x/token/types"
 	"github.com/okex/exchain/x/wasm/types"
@@ -244,3 +245,7 @@ type PortKeeperProxy struct{}
 func (p PortKeeperProxy) BindPort(ctx sdk.Context, portID string) *capabilitytypes.Capability {
 	return nil
 }
+
+type ParamsKeeperProxy struct{}
+
+func (p ParamsKeeperProxy) ClaimReadyForUpgrade(name string, cb func(ptypes.UpgradeInfo)) {}

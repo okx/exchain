@@ -7,10 +7,6 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -63,13 +59,18 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
-func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return nil
+func (am AppModuleBasic) DefaultGenesis() json.RawMessage {
+	return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	return nil
+	var gs types.GenesisState
+	if err := types.ModuleCdc.UnmarshalJSON(bz, &gs); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
+	}
+
+	return gs.Validate()
 }
 
 // RegisterRESTRoutes implements AppModuleBasic interface
@@ -104,7 +105,6 @@ func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *m
 // AppModule represents the AppModule for this module
 type AppModule struct {
 	AppModuleBasic
-	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
 	m      *codec.CodecProxy
 }
@@ -114,7 +114,6 @@ func NewAppModule(k keeper.Keeper, m *codec.CodecProxy) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
-	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret.AppModuleBasic)
 	return ret
 }
 
@@ -154,7 +153,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	return nil
+	return am.initGenesis(ctx, data)
 }
 
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -167,7 +166,7 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return nil
+	return am.exportGenesis(ctx)
 }
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := am.keeper.ExportGenesis(ctx)
@@ -505,19 +504,4 @@ func (am AppModule) NegotiateAppVersion(
 	}
 
 	return types.Version, nil
-}
-
-func (am AppModule) RegisterTask() upgrade.HeightTask {
-	return upgrade.NewHeightTask(2, func(ctx sdk.Context) error {
-		if am.Sealed() {
-			return nil
-		}
-		data := lazeGenesis()
-		am.initGenesis(ctx, data)
-		return nil
-	})
-}
-
-func (am AppModule) RegisterParam() params.ParamSet {
-	return nil
 }

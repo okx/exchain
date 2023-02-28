@@ -11,7 +11,6 @@ import (
 	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
 	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
 	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 	"github.com/okex/exchain/x/icamauth"
 
 	ibccommon "github.com/okex/exchain/libs/ibc-go/modules/core/common"
@@ -296,13 +295,7 @@ func NewOKExChainApp(
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
 	logger.Info("Starting "+system.ChainName,
-		"GenesisHeight", tmtypes.GetStartBlockHeight(),
-		"MercuryHeight", tmtypes.GetMercuryHeight(),
-		"VenusHeight", tmtypes.GetVenusHeight(),
-		"Venus1Height", tmtypes.GetVenus1Height(),
 		"Venus2Height", tmtypes.GetVenus2Height(),
-		"Veneus4Height", tmtypes.GetVenus4Height(),
-		"EarthHeight", tmtypes.GetEarthHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
@@ -452,7 +445,7 @@ func NewOKExChainApp(
 	v2keeper := ibc.NewKeeper(
 		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
-	v4Keeper := ibc.NewV4Keeper(v2keeper)
+	v4Keeper := ibc.NewV4Keeper(v2keeper, app.ParamsKeeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
 	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
@@ -513,6 +506,7 @@ func NewOKExChainApp(
 		app.subspaces[wasm.ModuleName],
 		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
+		&app.ParamsKeeper,
 		v2keeper.ChannelKeeper,
 		&v2keeper.PortKeeper,
 		nil,
@@ -573,12 +567,11 @@ func NewOKExChainApp(
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
-	left := common.NewDisaleProxyMiddleware()
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper, transferModule)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
-	transferStack := ibcporttypes.NewFacadedMiddleware(left,
+	transferStack := ibcporttypes.NewFacadedMiddleware(middle,
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
-		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
+	)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
@@ -700,7 +693,6 @@ func NewOKExChainApp(
 		erc20.ModuleName,
 		wasm.ModuleName,
 		feesplit.ModuleName,
-		ibchost.ModuleName,
 		icatypes.ModuleName, ibcfeetypes.ModuleName,
 	)
 
@@ -767,6 +759,10 @@ func NewOKExChainApp(
 		// Initialize pinned codes in wasmvm as they are not persisted there
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
+		}
+
+		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
+			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
 		}
 	}
 

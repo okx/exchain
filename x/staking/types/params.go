@@ -19,6 +19,8 @@ const (
 
 	// Default validate rate update interval by hours
 	DefaultValidateRateUpdateInterval = 24
+
+	DefaultHistoricalEntries uint32 = 10000
 )
 
 // Staking params default values
@@ -77,7 +79,7 @@ type Params struct {
 
 // NewParams creates a new Params instance
 func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, maxValsToAddShares uint16, minDelegation sdk.Dec,
-	minSelfDelegation sdk.Dec) Params {
+	minSelfDelegation sdk.Dec, historicalEntries uint32) Params {
 	return Params{
 		UnbondingTime:      unbondingTime,
 		MaxValidators:      maxValidators,
@@ -85,6 +87,7 @@ func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, 
 		MaxValsToAddShares: maxValsToAddShares,
 		MinDelegation:      minDelegation,
 		MinSelfDelegation:  minSelfDelegation,
+		HistoricalEntries:  historicalEntries,
 	}
 }
 
@@ -102,6 +105,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16Positive("max vals to add shares")},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
 		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
+		{Key: KeyHistoricalEntries, Value: &p.HistoricalEntries, ValidatorFn: validateHistoricalEntries},
 	}
 }
 func validateHistoricalEntries(i interface{}) error {
@@ -130,6 +134,7 @@ func DefaultParams() Params {
 		DefaultMaxValsToAddShares,
 		DefaultMinDelegation,
 		DefaultMinSelfDelegation,
+		DefaultHistoricalEntries,
 	)
 }
 

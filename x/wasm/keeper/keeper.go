@@ -6,6 +6,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/gogo/protobuf/proto"
@@ -16,14 +21,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	paramtypes "github.com/okex/exchain/x/params"
+	ptypes "github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/okex/exchain/x/wasm/watcher"
-	"math"
-	"path/filepath"
-	"strconv"
-	"strings"
 )
 
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
@@ -72,6 +75,7 @@ type Keeper struct {
 	cdc                   *codec.CodecProxy
 	accountKeeper         types.AccountKeeper
 	bank                  CoinTransferrer
+	params                types.ParamsKeeper
 	portKeeper            types.PortKeeper
 	capabilityKeeper      types.CapabilityKeeper
 	wasmVM                types.WasmerEngine
@@ -105,6 +109,7 @@ func NewKeeper(
 	paramSpace paramtypes.Subspace,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
+	paramsKeeper types.ParamsKeeper,
 	//distKeeper types.DistributionKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
@@ -122,7 +127,7 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 	watcher.SetWatchDataManager()
-	k := newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, defaultAdapter{}, opts...)
+	k := newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, paramsKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, defaultAdapter{}, opts...)
 	accountKeeper.SetObserverKeeper(k)
 
 	return k
@@ -134,6 +139,7 @@ func NewSimulateKeeper(
 	paramSpace types.Subspace,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
+	paramsKeeper types.ParamsKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	capabilityKeeper types.CapabilityKeeper,
@@ -145,7 +151,7 @@ func NewSimulateKeeper(
 	supportedFeatures string,
 	opts ...Option,
 ) Keeper {
-	return newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, watcher.Adapter{}, opts...)
+	return newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, paramsKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, watcher.Adapter{}, opts...)
 }
 
 func newKeeper(cdc *codec.CodecProxy,
@@ -153,6 +159,7 @@ func newKeeper(cdc *codec.CodecProxy,
 	paramSpace types.Subspace,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
+	paramsKeeper types.ParamsKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	capabilityKeeper types.CapabilityKeeper,
@@ -176,6 +183,7 @@ func newKeeper(cdc *codec.CodecProxy,
 		wasmVM:            wasmer,
 		accountKeeper:     accountKeeper,
 		bank:              NewBankCoinTransferrer(bankKeeper),
+		params:            paramsKeeper,
 		portKeeper:        portKeeper,
 		capabilityKeeper:  capabilityKeeper,
 		messenger:         NewDefaultMessageHandler(router, channelKeeper, capabilityKeeper, cdc.GetProtocMarshal(), portSource),
@@ -191,6 +199,14 @@ func newKeeper(cdc *codec.CodecProxy,
 	}
 	// not updateable, yet
 	keeper.wasmVMResponseHandler = NewDefaultWasmVMContractResponseHandler(NewMessageDispatcher(keeper.messenger, keeper))
+
+	//reference to the paramKeeper
+	if keeper.params != nil {
+		keeper.params.ClaimReadyForUpgrade(tmtypes.MILESTONE_EARTH, func(info ptypes.UpgradeInfo) {
+			tmtypes.SetMilestoneEarthHeight(int64(info.EffectiveHeight))
+		})
+	}
+
 	return *keeper
 }
 

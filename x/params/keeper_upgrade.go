@@ -58,3 +58,18 @@ func (keeper *Keeper) isUpgradeExist(ctx sdk.Context, name string) bool {
 func isUpgradeEffective(ctx sdk.Context, info types.UpgradeInfo) bool {
 	return info.Status == types.UpgradeStatusEffective && uint64(ctx.BlockHeight()) >= info.EffectiveHeight
 }
+
+func (keeper *Keeper) ApplyEffectiveUpgrade(ctx sdk.Context) error {
+	return keeper.iterateAllUpgradeInfo(ctx, func(info types.UpgradeInfo) (stop bool) {
+		if info.Status == types.UpgradeStatusEffective {
+			if cbs, ready := keeper.queryReadyForUpgrade(info.Name); ready {
+				for _, cb := range cbs {
+					if cb != nil {
+						cb(info)
+					}
+				}
+			}
+		}
+		return false
+	})
+}

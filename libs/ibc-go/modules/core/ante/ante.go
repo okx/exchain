@@ -21,9 +21,6 @@ func NewAnteDecorator(k keeper.IBCServerKeeper) AnteDecorator {
 // and continues processing to ensure these transactions are included.
 // This will ensure that relayers do not waste fees on multiMsg transactions when another relayer has already submitted all packets, by rejecting the tx at the mempool layer.
 func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if !types.HigherThanVenus1(ctx.BlockHeight()) {
-		return next(ctx, tx, simulate)
-	}
 	if types.HigherThanVenus4(ctx.BlockHeight()) {
 		return ad.v4(ctx, tx, simulate, next)
 	}

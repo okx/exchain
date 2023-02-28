@@ -2,6 +2,10 @@ package baseapp_test
 
 import (
 	"encoding/json"
+	"math/big"
+	"reflect"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -17,9 +21,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	types4 "github.com/okex/exchain/x/token/types"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"reflect"
-	"testing"
 )
 
 type Env struct {
@@ -39,8 +40,7 @@ type Chain struct {
 }
 
 func NewChain(env *Env) *Chain {
-	types2.UnittestOnlySetMilestoneVenusHeight(-1)
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	chain := new(Chain)
 	chain.acc = make([]*types3.EthAccount, 10)
 	chain.priv = make([]ethsecp256k1.PrivKey, 10)
@@ -85,26 +85,26 @@ func createEthTx(t *testing.T, chain *Chain, i int) []byte {
 	return rawtx
 }
 
-//contract Storage {
-//uint256 number;
-///**
+// contract Storage {
+// uint256 number;
+// /**
 // * @dev Store value in variable
 // * @param num value to store
 // */
-//function store(uint256 num) public {
-//number = num;
-//}
-//function add() public {
-//number += 1;
-//}
-///**
+// function store(uint256 num) public {
+// number = num;
+// }
+// function add() public {
+// number += 1;
+// }
+// /**
 // * @dev Return value
 // * @return value of 'number'
 // */
-//function retrieve() public view returns (uint256){
-//return number;
-//}
-//}
+// function retrieve() public view returns (uint256){
+// return number;
+// }
+// }
 var abiStr = `[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"add","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
 
 func deployContract(t *testing.T, chain *Chain, i int) []byte {

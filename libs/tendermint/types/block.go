@@ -422,7 +422,7 @@ func (b *Block) StringIndented(indent string) string {
 %s  %v
 %s}#%v`,
 		indent, b.Header.StringIndented(indent+"  "),
-		indent, b.Data.StringIndented(indent+"  ", b.Height),
+		indent, b.Data.StringIndented(indent+"  "),
 		indent, b.Evidence.StringIndented(indent+"  "),
 		indent, b.LastCommit.StringIndented(indent+"  "),
 		indent, b.Hash())
@@ -789,10 +789,7 @@ func (h *Header) Hash() tmbytes.HexBytes {
 	if h == nil || len(h.ValidatorsHash) == 0 {
 		return nil
 	}
-	if HigherThanVenus1(h.Height) {
-		return h.IBCHash()
-	}
-	return h.originHash()
+	return h.IBCHash()
 }
 func (h *Header) originHash() tmbytes.HexBytes {
 	return merkle.SimpleHashFromByteSlices([][]byte{
@@ -1693,16 +1690,16 @@ func (d *Data) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 // Hash returns the hash of the data
 func (data *Data) Hash(height int64) tmbytes.HexBytes {
 	if data == nil {
-		return (Txs{}).Hash(height)
+		return (Txs{}).Hash()
 	}
 	if data.hash == nil {
-		data.hash = data.Txs.Hash(height) // NOTE: leaves of merkle tree are TxIDs
+		data.hash = data.Txs.Hash() // NOTE: leaves of merkle tree are TxIDs
 	}
 	return data.hash
 }
 
 // StringIndented returns a string representation of the transactions
-func (data *Data) StringIndented(indent string, height int64) string {
+func (data *Data) StringIndented(indent string) string {
 	if data == nil {
 		return "nil-Data"
 	}
@@ -1712,7 +1709,7 @@ func (data *Data) StringIndented(indent string, height int64) string {
 			txStrings[i] = fmt.Sprintf("... (%v total)", len(data.Txs))
 			break
 		}
-		txStrings[i] = fmt.Sprintf("%X (%d bytes)", tx.Hash(height), len(tx))
+		txStrings[i] = fmt.Sprintf("%X (%d bytes)", tx.Hash(), len(tx))
 	}
 	return fmt.Sprintf(`Data{
 %s  %v

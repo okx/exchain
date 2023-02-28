@@ -18,20 +18,17 @@ import (
 const IGNORE_HEIGHT_CHECKING = -1
 
 // evmDecoder:  MsgEthereumTx decoder by Ethereum RLP
-// ubruDecoder: customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
-// ubDecoder:   The original amino decoder, decoding by reflection
+// aminoDecoder: decode bytes to stdTx with amino
 // ibcDecoder:  Protobuf decoder
 
 // When and which decoder decoding what kind of tx:
-// | ------------| --------------------|---------------|-------------|-----------------|----------------|
-// |             | Before ubruDecoder  | Before Venus  | After Venus | Before VenusOne | After VenusOne |
-// |             | carried out         |               |             |                 |                |
-// | ------------|---------------------|---------------|-------------|-----------------|----------------|
-// | evmDecoder  |                     |               |    evmtx    |   evmtx         |   evmtx        |
-// | ubruDecoder |                     | stdtx & evmtx |    stdtx    |   stdtx         |   stdtx        |
-// | ubDecoder   | stdtx,evmtx,otherTx | otherTx       |    otherTx  |   otherTx       |   otherTx      |
-// | ibcDecoder  |                     |               |             |                 |   ibcTx        |
-// | ------------| --------------------|---------------|-------------|-----------------|----------------|
+// | ------------| --------------------|
+// |             | Tx Type             |
+// | ------------|---------------------|
+// | evmDecoder  |   evmTx             |
+// | aminoDecoder|   stdTx             |
+// | ibcDecoder  |   ibcTx             |
+// | ------------| --------------------|
 
 func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 
@@ -54,13 +51,12 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 
 		for index, f := range []decodeFunc{
 			evmDecoder,
-			ubruDecoder,
-			ubDecoder,
+			aminoDecoder,
 			ibcDecoder,
 		} {
-			if tx, err = f(cdc, txBytes, height); err == nil {
+			if tx, err = f(cdc, txBytes); err == nil {
 				tx.SetRaw(txBytes)
-				tx.SetTxHash(types.Tx(txBytes).Hash(height))
+				tx.SetTxHash(types.Tx(txBytes).Hash())
 				// index=0 means it is a evmtx(evmDecoder) ,we wont verify again
 				// height > IGNORE_HEIGHT_CHECKING means it is a query request
 				if index > 0 && height > IGNORE_HEIGHT_CHECKING {
@@ -82,11 +78,8 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 // Unmarshaler is a generic type for Unmarshal functions
 type Unmarshaler func(bytes []byte, ptr interface{}) error
 
-func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx sdk.Tx, err error) {
-	if height >= 0 && !types.HigherThanVenus1(height) {
-		err = fmt.Errorf("IbcTxDecoder decode tx err,lower than Venus1 height")
-		return
-	}
+// 3. Try to decode with protobuf
+func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte) (tx sdk.Tx, err error) {
 	simReq := &typestx.SimulateRequest{}
 	txBytes := bytes
 
@@ -116,17 +109,10 @@ func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx
 	return
 }
 
-type decodeFunc func(codec.CdcAbstraction, []byte, int64) (sdk.Tx, error)
+type decodeFunc func(codec.CdcAbstraction, []byte) (sdk.Tx, error)
 
 // 1. Try to decode as MsgEthereumTx by RLP
-func evmDecoder(_ codec.CdcAbstraction, txBytes []byte, height int64) (tx sdk.Tx, err error) {
-
-	// bypass height checking in case of a negative number
-	if height >= 0 && !types.HigherThanVenus(height) {
-		err = fmt.Errorf("lower than Venus")
-		return
-	}
-
+func evmDecoder(_ codec.CdcAbstraction, txBytes []byte) (tx sdk.Tx, err error) {
 	var ethTx MsgEthereumTx
 	if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
 		tx = &ethTx
@@ -134,28 +120,22 @@ func evmDecoder(_ codec.CdcAbstraction, txBytes []byte, height int64) (tx sdk.Tx
 	return
 }
 
-// 2. try customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
-func ubruDecoder(cdc codec.CdcAbstraction, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+// 2. Try to decode Tx by amino
+func aminoDecoder(cdc codec.CdcAbstraction, txBytes []byte) (tx sdk.Tx, err error) {
 	var v interface{}
-	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err != nil {
-		return nil, err
+	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err == nil {
+		return aminoSanityCheck(v.(sdk.Tx))
 	}
-	return sanityCheck(v.(sdk.Tx), height)
-}
-
-// TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
-// 3. the original amino way, decode by reflection.
-func ubDecoder(cdc codec.CdcAbstraction, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 	if err != nil {
 		return nil, err
 	}
-	return sanityCheck(tx, height)
+	return aminoSanityCheck(tx)
 }
 
-func sanityCheck(tx sdk.Tx, height int64) (sdk.Tx, error) {
-	if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
-		return nil, fmt.Errorf("amino decode is not allowed for MsgEthereumTx")
+func aminoSanityCheck(tx sdk.Tx) (sdk.Tx, error) {
+	if tx.GetType() != sdk.StdTxType {
+		return nil, fmt.Errorf("amino decode is not allowed for %s", tx.GetType())
 	}
 	return tx, nil
 }
