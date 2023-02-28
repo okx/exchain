@@ -12,9 +12,6 @@ import (
 // 4. ibc
 
 var (
-	MILESTONE_GENESIS_HEIGHT string
-	genesisHeight            int64
-
 	MILESTONE_MARS_HEIGHT string
 	milestoneMarsHeight   int64
 
@@ -40,16 +37,12 @@ const (
 )
 
 const (
-	MainNetGenesisHeight = 2322600
-	TestNetGenesisHeight = 1121818
-
 	TestNetChangeChainId = 2270901
 	TestNetChainName1    = "okexchain-65"
 )
 
 func init() {
 	once.Do(func() {
-		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 	})
@@ -67,12 +60,10 @@ func string2number(input string) int64 {
 }
 
 func SetupMainNetEnvironment(pruneH int64) {
-	genesisHeight = MainNetGenesisHeight
 	nodePruneHeight = pruneH
 }
 
 func SetupTestNetEnvironment(pruneH int64) {
-	genesisHeight = TestNetGenesisHeight
 	nodePruneHeight = pruneH
 }
 
@@ -97,7 +88,7 @@ func IsTestNet() bool {
 }
 
 func GetStartBlockHeight() int64 {
-	return genesisHeight
+	return 0
 }
 
 func GetNodePruneHeight() int64 {
