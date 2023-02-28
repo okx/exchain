@@ -295,7 +295,6 @@ func NewOKExChainApp(
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
 	logger.Info("Starting "+system.ChainName,
-		"VenusHeight", tmtypes.GetVenusHeight(),
 		"Venus2Height", tmtypes.GetVenus2Height(),
 		"Veneus4Height", tmtypes.GetVenus4Height(),
 		"MarsHeight", tmtypes.GetMarsHeight(),

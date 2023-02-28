@@ -325,9 +325,7 @@ func NewSimApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
-	logger.Info("Starting OEC",
-		"VenusHeight", tmtypes.GetVenusHeight(),
-	)
+	logger.Info("Starting OEC")
 	//onceLog.Do(func() {
 	//	iavl.SetLogger(logger.With("module", "iavl"))
 	//	logStartingFlags(logger)

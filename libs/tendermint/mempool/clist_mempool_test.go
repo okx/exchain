@@ -970,20 +970,13 @@ func TestTxOrTxHashToKey(t *testing.T) {
 	var tx = make([]byte, 256)
 	rand.Read(tx)
 
-	old := types.GetVenusHeight()
+	txhash := types.Tx(tx).Hash()
 
-	types.UnittestOnlySetMilestoneVenusHeight(1)
-
-	venus := types.GetVenusHeight()
-	txhash := types.Tx(tx).Hash(venus)
-
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil, venus))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus-1))
-	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
-
-	types.UnittestOnlySetMilestoneVenusHeight(old)
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash()))
+	txhash[0] += 1
+	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, txhash))
 }
 
 func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
