@@ -6,6 +6,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/hd"
 	ethermint "github.com/okex/exchain/app/types"
@@ -15,7 +17,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	srvconfig "github.com/okex/exchain/libs/cosmos-sdk/server/config"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -283,7 +284,7 @@ func InitTestnet(
 		genAccounts = append(genAccounts, ethermint.EthAccount{
 			BaseAccount: authtypes.NewBaseAccount(addr, coins, nil, 0, 0),
 			CodeHash:    ethcrypto.Keccak256(nil),
-			StateRoot:   mpt.EmptyRootHash,
+			StateRoot:   ethtypes.EmptyRootHash,
 		})
 
 		//make and save create validator tx

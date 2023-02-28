@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -122,7 +122,7 @@ func (ak AccountKeeper) RetrievalStateRoot(bz []byte) ethcmn.Hash {
 	if err == nil {
 		return acc.GetStateRoot()
 	}
-	return mpt.EmptyRootHash
+	return ethtypes.EmptyRootHash
 }
 
 func (ak AccountKeeper) EncodeAccount(acc exported.Account) ([]byte, error) {
