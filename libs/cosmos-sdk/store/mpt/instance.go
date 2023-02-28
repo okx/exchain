@@ -26,6 +26,7 @@ var (
 )
 
 func InstanceOfMptStore() ethstate.Database {
+	TrieDirtyDisabled = true // TODO:need update from cli
 	initMptOnce.Do(func() {
 		homeDir := viper.GetString(flags.FlagHome)
 		path := filepath.Join(homeDir, mptDataDir)
@@ -84,4 +85,13 @@ func (ms *MptStore) SetMptRootHash(height uint64, hash ethcmn.Hash) {
 
 func (ms *MptStore) HasVersion(height int64) bool {
 	return ms.GetMptRootHash(uint64(height)) != ethcmn.Hash{}
+}
+
+func HasVersionByDiskDB(height int64) bool {
+	hhash := sdk.Uint64ToBigEndian(uint64(height))
+	rst, err := InstanceOfMptStore().TrieDB().DiskDB().Get(append(KeyPrefixAccRootMptHash, hhash...))
+	if err != nil || len(rst) == 0 {
+		return false
+	}
+	return true
 }
