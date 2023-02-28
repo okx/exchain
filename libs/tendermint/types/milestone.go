@@ -24,8 +24,7 @@ var (
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
 
-	MILESTONE_EARTH_HEIGHT string
-	milestoneEarthHeight   int64
+	milestoneEarthHeight int64
 
 	MILESTONE_VENUS4_HEIGHT string
 	milestoneVenus4Height   int64
@@ -39,6 +38,8 @@ var (
 const (
 	MainNet = "exchain-66"
 	TestNet = "exchain-65"
+
+	MILESTONE_EARTH = "earth"
 )
 
 const (
@@ -58,7 +59,6 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
-		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
 	})
 }
@@ -108,12 +108,14 @@ func GetMilestoneVenusHeight() int64 {
 
 // 2322600 is mainnet GenesisHeight
 func IsMainNet() bool {
-	return MILESTONE_GENESIS_HEIGHT == "2322600"
+	//return MILESTONE_GENESIS_HEIGHT == "2322600"
+	return false
 }
 
 // 1121818 is testnet GenesisHeight
 func IsTestNet() bool {
-	return MILESTONE_GENESIS_HEIGHT == "1121818"
+	//return MILESTONE_GENESIS_HEIGHT == "1121818"
+	return false
 }
 
 func GetStartBlockHeight() int64 {
@@ -165,6 +167,10 @@ func GetVenus2Height() int64 {
 // ==================================
 // =========== Earth ===============
 func UnittestOnlySetMilestoneEarthHeight(h int64) {
+	milestoneEarthHeight = h
+}
+
+func SetMilestoneEarthHeight(h int64) {
 	milestoneEarthHeight = h
 }
 
