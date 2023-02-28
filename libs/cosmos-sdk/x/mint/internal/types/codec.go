@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	ManageTreasuresProposalName = "okexchain/mint/ManageTreasuresProposal"
+	ManageTreasuresProposalName       = "okexchain/mint/ManageTreasuresProposal"
+	ModifyNextBlockUpdateProposalName = "okexchain/mint/ModifyNextBlockUpdateProposal"
 )
 
 // ModuleCdc is a generic sealed codec to be used throughout this module
@@ -20,4 +21,5 @@ func init() {
 
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(ManageTreasuresProposal{}, ManageTreasuresProposalName, nil)
+	cdc.RegisterConcrete(ModifyNextBlockUpdateProposal{}, ModifyNextBlockUpdateProposalName, nil)
 }

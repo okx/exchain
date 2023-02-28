@@ -1,16 +1,18 @@
 package mint_test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
-	"testing"
-	"time"
 )
 
 var (
@@ -479,6 +481,45 @@ func (suite *MintTestSuite) TestTreasuresProposal() {
 
 			// reset data
 			suite.app.MintKeeper.SetTreasures(suite.ctx, make([]types.Treasure, 0))
+		})
+	}
+}
+
+func (suite *MintTestSuite) TestModifyNextBlockUpdateProposal() {
+	tmtypes.UnittestOnlySetMilestoneVenus5Height(-1)
+	suite.ctx.SetBlockHeight(1000)
+	proposal := types.NewModifyNextBlockUpdateProposal(
+		"default title",
+		"default description",
+		0,
+	)
+	govProposal := govtypes.Proposal{
+		Content: proposal,
+	}
+
+	testCases := []struct {
+		msg            string
+		blockNum       uint64
+		expectBlockNum uint64
+		expectError    error
+	}{
+		{"error block num 0", 0, 0, types.ErrNextBlockUpdateTooLate},
+		{"error block num 1000", 1000, 0, types.ErrNextBlockUpdateTooLate},
+		{"ok block num 1001", 1001, 1001, nil},
+		{"ok block num 2000", 2000, 2000, nil},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			proposal.BlockNum = tc.blockNum
+			govProposal.Content = proposal
+
+			err := suite.govHandler(suite.ctx, &govProposal)
+			suite.Require().Equal(err, tc.expectError)
+			if err != nil {
+				minter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
+				suite.Require().Equal(tc.expectBlockNum, minter.NextBlockToUpdate)
+			}
 		})
 	}
 }

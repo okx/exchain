@@ -35,9 +35,11 @@ func init() {
 // UpgradeProposal is the struct of param change proposal
 type UpgradeProposal struct {
 	Title       string `json:"title" yaml:"title"`
-	Description string `json:"Description" yaml:"description"`
+	Description string `json:"description" yaml:"description"`
 
-	UpgradeInfo
+	Name         string `json:"name" yaml:"name"`
+	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
+	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 type UpgradeInfo struct {
@@ -45,7 +47,6 @@ type UpgradeInfo struct {
 	ExpectHeight uint64 `json:"expectHeight" yaml:"expectHeight"`
 	Config       string `json:"config,omitempty" yaml:"config,omitempty"`
 
-	// only used in store
 	EffectiveHeight uint64        `json:"effectiveHeight,omitempty" yaml:"effectiveHeight,omitempty"`
 	Status          UpgradeStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
@@ -54,13 +55,10 @@ func NewUpgradeProposal(title, description, name string, expectHeight uint64, co
 	return UpgradeProposal{
 		Title:       title,
 		Description: description,
-		UpgradeInfo: UpgradeInfo{
-			Name:         name,
-			ExpectHeight: expectHeight,
-			Config:       config,
 
-			EffectiveHeight: 0,
-		},
+		Name:         name,
+		ExpectHeight: expectHeight,
+		Config:       config,
 	}
 }
 
