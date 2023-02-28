@@ -270,7 +270,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	//cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
 
 	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
-	//cmd.Flags().Bool(mpt.FlagTrieDirtyDisabled, true, "Disable cache dirty trie nodes")
+	cmd.Flags().Bool(mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")
 	cmd.Flags().UintVar(&mpt.TrieImgsLimit, mpt.FlagTrieImgsLimit, 4, "Max img size (MB) cached in triedb")
