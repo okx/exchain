@@ -20,8 +20,6 @@ import (
 
 	ica2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/ica"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
-
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 
 	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
@@ -524,12 +522,11 @@ func NewSimApp(
 
 	//middle := transfer2.NewIBCModule(app.TransferKeeper)
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
-	left := common.NewDisaleProxyMiddleware()
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper, transferModule.AppModule)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
-	transferStack := ibcporttypes.NewFacadedMiddleware(left,
+	transferStack := ibcporttypes.NewFacadedMiddleware(middle,
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
-		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
+	)
 
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
 

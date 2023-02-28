@@ -1,7 +1,6 @@
 package rootmulti
 
 import (
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"testing"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -58,7 +57,7 @@ func TestVerifyIAVLStoreQueryProof(t *testing.T) {
 
 func TestVerifyMultiStoreQueryProof(t *testing.T) {
 	// Create main tree for testing.
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	db := dbm.NewMemDB()
 	store := NewStore(db)
 	iavlStoreKey := types.NewKVStoreKey("iavlStoreKey")
@@ -113,7 +112,7 @@ func TestVerifyMultiStoreQueryProof(t *testing.T) {
 }
 
 func TestVerifyMultiStoreQueryProofAbsence(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	// Create main tree for testing.
 	db := dbm.NewMemDB()
 	store := NewStore(db)
