@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/status-im/keycard-go/hexutils"
 	"log"
+	"math/big"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -54,16 +55,20 @@ func iterateAccMpt(ctx *server.Context) {
 
 	var leafCount int
 
+	total := new(big.Int)
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
 	for itr.Next() {
 		leafCount++
 		acc := DecodeAccount(ethcmn.Bytes2Hex(itr.Key), itr.Value)
 		if acc != nil {
+			for _, coin := range acc.GetCoins() {
+				total.Add(total, coin.Amount.Int)
+			}
 			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
 	}
 	height := hex.EncodeToString(heightBytes)
-	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height)
+	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height, "total:", total.String())
 }
 
 func iterateEvmMpt(ctx *server.Context) {
