@@ -122,9 +122,7 @@ func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 // UpdateRoot sets the trie root to the current root hash of
 func (so *stateObject) updateRoot(db ethstate.Database) {
 	// If nothing changed, don't bother with hashing anything
-	if trie := so.updateTrie(db); trie != nil {
-		so.account.StateRoot = trie.Hash()
-	}
+	so.updateTrie(db)
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
