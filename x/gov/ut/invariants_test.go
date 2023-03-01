@@ -1,36 +1,35 @@
-package gov
+package ut
 
 import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
-
-	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestModuleAccountInvariant(t *testing.T) {
-	ctx, _, gk, _, crisisKeeper := keeper.CreateTestInput(t, false, 1000)
-	govHandler := NewHandler(gk)
+	ctx, _, gk, _, crisisKeeper := CreateTestInput(t, false, 1000)
+	govHandler := gov.NewHandler(gk)
 
 	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
 	content := types.NewTextProposal("Test", "description")
-	newProposalMsg := NewMsgSubmitProposal(content, initialDeposit, keeper.Addrs[0])
+	newProposalMsg := gov.NewMsgSubmitProposal(content, initialDeposit, Addrs[0])
 	res, err := govHandler(ctx, newProposalMsg)
 	require.Nil(t, err)
 	var proposalID uint64
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
 
-	newDepositMsg := NewMsgDeposit(keeper.Addrs[0], proposalID,
+	newDepositMsg := gov.NewMsgDeposit(Addrs[0], proposalID,
 		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 100)})
 	res, err = govHandler(ctx, newDepositMsg)
 	require.Nil(t, err)
 
-	invariant := ModuleAccountInvariant(gk)
+	invariant := gov.ModuleAccountInvariant(gk)
 	_, broken := invariant(ctx)
 	require.False(t, broken)
 
 	// todo: check diff after RegisterInvariants
-	RegisterInvariants(&crisisKeeper, gk)
+	gov.RegisterInvariants(&crisisKeeper, gk)
 }

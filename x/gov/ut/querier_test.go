@@ -1,4 +1,4 @@
-package keeper
+package ut
 
 import (
 	"strings"
@@ -8,10 +8,10 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/stretchr/testify/require"
-
+	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"
-	staking "github.com/okex/exchain/x/staking/exported"
+	"github.com/okex/exchain/x/staking"
+	"github.com/stretchr/testify/require"
 )
 
 const custom = "custom"
@@ -180,13 +180,13 @@ func getQueriedTally(
 }
 
 func TestQueries(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
 	skHandler := staking.NewHandler(sk)
-	querier := NewQuerier(keeper)
-	cdc := keeper.Cdc()
+	querier := keeper.NewQuerier(k)
+	cdc := k.Cdc()
 
 	validator := sdk.ValAddress(Addrs[4])
 	CreateValidators(t, skHandler, ctx, []sdk.ValAddress{validator}, []int64{500})
@@ -195,33 +195,33 @@ func TestQueries(t *testing.T) {
 
 	// submit 3 proposals
 	content := types.NewTextProposal("Test", "description")
-	proposal1, err := keeper.SubmitProposal(ctx, content)
+	proposal1, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposalID1 := proposal1.ProposalID
-	err = keeper.AddDeposit(ctx, proposalID1, Addrs[0],
+	err = k.AddDeposit(ctx, proposalID1, Addrs[0],
 		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	content = types.NewTextProposal("Test", "description")
-	proposal2, err := keeper.SubmitProposal(ctx, content)
+	proposal2, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposalID2 := proposal2.ProposalID
-	err = keeper.AddDeposit(ctx, proposalID2, Addrs[0],
+	err = k.AddDeposit(ctx, proposalID2, Addrs[0],
 		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	content = types.NewTextProposal("Test", "description")
-	proposal3, err := keeper.SubmitProposal(ctx, content)
+	proposal3, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposalID3 := proposal3.ProposalID
-	err = keeper.AddDeposit(ctx, proposalID3, Addrs[1],
+	err = k.AddDeposit(ctx, proposalID3, Addrs[1],
 		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 10)}, "")
 	require.Nil(t, err)
 
 	// Addrs[1] deposits on proposals #2 & #3
-	err = keeper.AddDeposit(ctx, proposalID2, Addrs[1], params.DepositParams.MinDeposit, "")
+	err = k.AddDeposit(ctx, proposalID2, Addrs[1], params.DepositParams.MinDeposit, "")
 	require.Nil(t, err)
-	err = keeper.AddDeposit(ctx, proposalID3, Addrs[1], params.DepositParams.MinDeposit, "")
+	err = k.AddDeposit(ctx, proposalID3, Addrs[1], params.DepositParams.MinDeposit, "")
 	require.Nil(t, err)
 
 	// only Addrs[0] deposits on proposalID1 initially
@@ -256,15 +256,15 @@ func TestQueries(t *testing.T) {
 	require.Equal(t, proposalID3, proposals[1].ProposalID)
 
 	// Addrs[0] and Addrs[1] vote on proposal #2
-	err, _ = keeper.AddVote(ctx, proposalID2, Addrs[0], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposalID2, Addrs[0], types.OptionYes)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposalID2, Addrs[1], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposalID2, Addrs[1], types.OptionYes)
 	require.Nil(t, err)
 
 	// Addrs[0] and Addrs[1] votes on proposal #3
-	err, _ = keeper.AddVote(ctx, proposalID3, Addrs[0], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposalID3, Addrs[0], types.OptionYes)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposalID3, Addrs[1], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposalID3, Addrs[1], types.OptionYes)
 	require.Nil(t, err)
 
 	// Test query voted by Addrs[0]
@@ -306,11 +306,11 @@ func TestQueries(t *testing.T) {
 	require.Equal(t, proposalID3, (proposals[1]).ProposalID)
 
 	// Test Tally Query
-	status, dist, tallyResults := Tally(ctx, keeper, proposal2, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal2, true)
 	require.True(t, dist)
 	require.Equal(t, types.StatusRejected, status)
 	proposal2.FinalTallyResult = tallyResults
-	keeper.SetProposal(ctx, proposal2)
+	k.SetProposal(ctx, proposal2)
 	tally := getQueriedTally(t, ctx, cdc, querier, proposalID2)
 	require.Equal(t, tallyResults, tally)
 
@@ -320,12 +320,12 @@ func TestQueries(t *testing.T) {
 }
 
 func TestQueryTally(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
-	cdc := keeper.Cdc()
+	querier := keeper.NewQuerier(k)
+	cdc := k.Cdc()
 
 	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
@@ -337,12 +337,12 @@ func TestQueryTally(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionYes)
 	require.Nil(t, err)
 
 	// no query params
@@ -369,16 +369,16 @@ func TestQueryTally(t *testing.T) {
 	// proposal passed
 	proposal.Status = types.StatusPassed
 	proposal.FinalTallyResult = expectedTally
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 	require.Equal(t, expectedTally, getQueriedTally(t, ctx, cdc, querier, proposal.ProposalID))
 }
 
 func TestQueryParams(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
+	querier := keeper.NewQuerier(k)
 
 	query := abci.RequestQuery{
 		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryParams, "test"}, "/"),
@@ -391,11 +391,11 @@ func TestQueryParams(t *testing.T) {
 }
 
 func TestQueryVotes(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
+	querier := keeper.NewQuerier(k)
 
 	query := abci.RequestQuery{
 		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryVotes}, "/"),
@@ -408,11 +408,11 @@ func TestQueryVotes(t *testing.T) {
 }
 
 func TestQueryVote(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
+	querier := keeper.NewQuerier(k)
 
 	query := abci.RequestQuery{
 		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryVote}, "/"),
@@ -425,11 +425,11 @@ func TestQueryVote(t *testing.T) {
 }
 
 func TestQueryDeposits(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
+	querier := keeper.NewQuerier(k)
 
 	query := abci.RequestQuery{
 		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryDeposits}, "/"),
@@ -442,11 +442,11 @@ func TestQueryDeposits(t *testing.T) {
 }
 
 func TestQueryDeposit(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
+	querier := keeper.NewQuerier(k)
 
 	query := abci.RequestQuery{
 		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryDeposit}, "/"),
@@ -458,15 +458,15 @@ func TestQueryDeposit(t *testing.T) {
 }
 
 func TestQueryProposal(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
-	cdc := keeper.Cdc()
+	querier := keeper.NewQuerier(k)
+	cdc := k.Cdc()
 
 	content := types.NewTextProposal("Test", "description")
-	proposal1, err := keeper.SubmitProposal(ctx, content)
+	proposal1, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 
 	// no query params
@@ -499,11 +499,11 @@ func TestQueryProposal(t *testing.T) {
 }
 
 func TestQueryProposals(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
 	ctx.SetLogger(log)
-	querier := NewQuerier(keeper)
+	querier := keeper.NewQuerier(k)
 
 	// no query params
 	query := abci.RequestQuery{
