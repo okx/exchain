@@ -1,8 +1,11 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/okex/exchain/x/common"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -28,6 +31,15 @@ type ProposeValidator struct {
 	DelegatorAddress  sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	ValidatorAddress  sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
 	PubKey            crypto.PubKey  `json:"pubkey" yaml:"pubkey"`
+}
+
+type proposeValidatorJSON struct {
+	Description Description `json:"description" yaml:"description"`
+	//Commission        CommissionRates `json:"commission" yaml:"commission"`
+	MinSelfDelegation sdk.SysCoin    `json:"min_self_delegation" yaml:"min_self_delegation"`
+	DelegatorAddress  sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
+	ValidatorAddress  sdk.ValAddress `json:"validator_address" yaml:"validator_address"`
+	PubKey            string         `json:"pubkey" yaml:"pubkey"`
 }
 
 // ProposeValidatorProposal - structure for the proposal of proposing validator
@@ -92,6 +104,23 @@ func (pv ProposeValidatorProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(pv.ProposalType())
 	}
 
+	if pv.Validator.ValidatorAddress.Empty() {
+		return govtypes.ErrInvalidProposalContent("empty validator address")
+	}
+	if pv.IsAdd {
+		if pv.Validator.DelegatorAddress.Empty() {
+			return govtypes.ErrInvalidProposalContent("empty delegator address")
+		}
+		if !sdk.AccAddress(pv.Validator.ValidatorAddress).Equals(pv.Validator.DelegatorAddress) {
+			return govtypes.ErrInvalidProposalContent("validator address is invalid")
+		}
+		if pv.Validator.MinSelfDelegation.Amount.LT(sdk.ZeroDec()) || !pv.Validator.MinSelfDelegation.IsValid() {
+			return govtypes.ErrInvalidProposalContent("minimum self delegation is invalid")
+		}
+		if pv.Validator.Description == (Description{}) {
+			return govtypes.ErrInvalidProposalContent("empty description")
+		}
+	}
 	return nil
 }
 
@@ -110,4 +139,35 @@ func (pv ProposeValidatorProposal) String() string {
 	)
 
 	return strings.TrimSpace(builder.String())
+}
+
+// MarshalJSON implements the json.Marshaler interface to provide custom JSON serialization
+func (pv ProposeValidator) MarshalJSON() ([]byte, error) {
+	return json.Marshal(proposeValidatorJSON{
+		Description:       pv.Description,
+		DelegatorAddress:  pv.DelegatorAddress,
+		ValidatorAddress:  pv.ValidatorAddress,
+		PubKey:            MustBech32ifyConsPub(pv.PubKey),
+		MinSelfDelegation: pv.MinSelfDelegation,
+	})
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface to provide custom JSON deserialization
+func (pv *ProposeValidator) UnmarshalJSON(bz []byte) error {
+	var pvJSON proposeValidatorJSON
+	if err := json.Unmarshal(bz, &pvJSON); err != nil {
+		return common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	pv.Description = pvJSON.Description
+	pv.DelegatorAddress = pvJSON.DelegatorAddress
+	pv.ValidatorAddress = pvJSON.ValidatorAddress
+	var err error
+	pv.PubKey, err = GetConsPubKeyBech32(pvJSON.PubKey)
+	if err != nil {
+		return ErrGetConsPubKeyBech32()
+	}
+	pv.MinSelfDelegation = pvJSON.MinSelfDelegation
+
+	return nil
 }

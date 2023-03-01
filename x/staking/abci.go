@@ -56,9 +56,8 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 func PoAValidatorsUpdate(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 	// calculate validator set changes
 	validatorUpdates := make([]abci.ValidatorUpdate, 0)
-	proposedValidators, found := k.GetProposeValidators(ctx)
-	if found {
-		_ = proposedValidators
+	proposedValidators := k.GetProposeValidators(ctx)
+	if len(proposedValidators) > 0 {
 		validatorUpdates = k.PoAApplyAndReturnValidatorSetUpdates(ctx, proposedValidators)
 		k.DeleteProposeValidators(ctx)
 	}

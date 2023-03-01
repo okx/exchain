@@ -36,18 +36,8 @@ func handleProposeValidatorProposal(ctx sdk.Context, k *Keeper, proposal *govTyp
 		return err
 	}
 
-	// proposed validators
-	proposedValidators, found := k.GetProposeValidators(ctx)
-	if found {
-		proposedValidators[valKey] = validatorProposal.IsAdd
-	} else {
-		proposedValidators = map[[sdk.AddrLen]byte]bool{
-			valKey: validatorProposal.IsAdd,
-		}
-	}
-
 	// verify validator count
-	if err := verifyValidatorCount(ctx, k, valSetCount, proposedValidators); err != nil {
+	if err := verifyValidatorCount(ctx, k, valSetCount, valKey, validatorProposal.IsAdd); err != nil {
 		return err
 	}
 
@@ -55,11 +45,12 @@ func handleProposeValidatorProposal(ctx sdk.Context, k *Keeper, proposal *govTyp
 		// create validator
 		createValMsg := NewMsgCreateValidator(validator.ValidatorAddress, validator.PubKey,
 			validator.Description, validator.MinSelfDelegation)
-		_, err := handleMsgCreateValidator(ctx, createValMsg, *k)
-		return err
+		if _, err := handleMsgCreateValidator(ctx, createValMsg, *k); err != nil {
+			return err
+		}
 	}
 
-	k.SetProposeValidators(ctx, proposedValidators)
+	k.SetProposeValidator(ctx, validator.ValidatorAddress, validatorProposal.IsAdd)
 	return nil
 }
 
@@ -75,8 +66,11 @@ func verifyProposalWithValSet(ctx sdk.Context, k *Keeper, valKey [sdk.AddrLen]by
 	return len(lastValSet), nil
 }
 
-func verifyValidatorCount(ctx sdk.Context, k *Keeper, valSetCount int, proposedValidators map[[sdk.AddrLen]byte]bool) sdk.Error {
+func verifyValidatorCount(ctx sdk.Context, k *Keeper, valSetCount int, valKey [sdk.AddrLen]byte, isAdd bool) sdk.Error {
 	maxCount := k.GetParams(ctx).MaxValidators
+	// proposed validators
+	proposedValidators := k.GetProposeValidators(ctx)
+	proposedValidators[valKey] = isAdd
 	proposeCount := 0
 	for _, isAdd := range proposedValidators {
 		if isAdd {

@@ -60,16 +60,31 @@ Example:
 $ %s tx gov submit-proposal propose-validator <path/to/proposal.json> --from=<key_or_address>
 Where proposal.json contains:
 {
-    "title":"propose-validator",
-    "description":"propose a validator",
-	"isAdd": true,
-    "block_num":123456,
-    "deposit":[
-        {
-            "denom":"%s",
-            "amount":"100.000000000000000000"
-        }
-    ]
+  "title": "propose-validator",
+  "description": "propose a validator",
+  "is_add": true,
+  "block_num":"820",
+  "deposit": [
+    {
+      "denom": "okt",
+      "amount": "100.000000000000000000"
+    }
+  ],
+  "validator": {
+    "delegator_address": "ex1ve4mwgq9967gk338yptsg2fheur4ke32u0gqh3",
+    "description": {
+      "details": "",
+      "identity": "",
+      "moniker": "node4",
+      "website": ""
+    },
+    "min_self_delegation": {
+      "amount": "0.000000000000000000",
+      "denom": "%s"
+    },
+    "pubkey": "exvalconspub1zcjduepqc4l9dy4g3ghtc6g2wdy0m24tmjju2lggfd0wjpl055tx4knq82squ8ukzn=",
+    "validator_address": "exvaloper1tfwvmtfkfzrla52w0u0u07gadkegre9gqk9nel"
+  }
 }
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
@@ -79,7 +94,7 @@ Where proposal.json contains:
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			proposal, err := parseProposeValidatorProposalJSON(cdc, args[0])
+			proposal, err := parseProposeValidatorJSON(cdc, args[0])
 			if err != nil {
 				return err
 			}
@@ -103,9 +118,7 @@ Where proposal.json contains:
 	}
 }
 
-// ManageTreasuresProposalJSON defines a ManageTreasureProposal with a deposit used to parse
-// manage treasures proposals from a JSON file.
-type ManageTreasuresProposalJSON struct {
+type ProposeValidatorJSON struct {
 	Title       string                 `json:"title" yaml:"title"`
 	Description string                 `json:"description" yaml:"description"`
 	IsAdd       bool                   `json:"is_add" yaml:"is_add"`
@@ -114,9 +127,9 @@ type ManageTreasuresProposalJSON struct {
 	Validator   types.ProposeValidator `json:"validator" yaml:"validator"`
 }
 
-// parseProposeValidatorProposalJSON parses json from proposal file to ProposeValidatorProposalJSON struct
-func parseProposeValidatorProposalJSON(cdc *codec.Codec, proposalFilePath string) (
-	proposal ManageTreasuresProposalJSON, err error) {
+// ProposeValidatorJSON parses json from proposal file to ProposeValidatorJSON struct
+func parseProposeValidatorJSON(cdc *codec.Codec, proposalFilePath string) (
+	proposal ProposeValidatorJSON, err error) {
 	contents, err := os.ReadFile(proposalFilePath)
 	if err != nil {
 		return

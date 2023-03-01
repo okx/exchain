@@ -85,6 +85,11 @@ func GetLastValidatorPowerKey(operator sdk.ValAddress) []byte {
 	return append(LastValidatorPowerKey, operator...)
 }
 
+// GetProposeValidatorKey gets the propose validator key
+func GetProposeValidatorKey(operator sdk.ValAddress) []byte {
+	return append(ProposeValidatorsKey, operator...)
+}
+
 // GetValidatorQueueTimeKey gets the prefix for all unbonding delegations from a delegator
 func GetValidatorQueueTimeKey(timestamp time.Time) []byte {
 	bz := sdk.FormatTimeBytes(timestamp)
