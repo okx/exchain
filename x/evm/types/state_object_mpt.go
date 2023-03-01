@@ -17,15 +17,7 @@ const (
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
-	acc := types.ProtoAccount().(*types.EthAccount)
-	jsonAccount, err := so.account.MarshalJSON()
-	if err != nil {
-		return nil
-	}
-	err = acc.UnmarshalJSON(jsonAccount)
-	if err != nil {
-		return nil
-	}
+	acc := so.account.Copy().(*types.EthAccount)
 	newStateObj := newStateObject(db, acc)
 	if so.trie != nil {
 		newStateObj.trie = db.db.CopyTrie(so.trie)
