@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/status-im/keycard-go/hexutils"
@@ -65,18 +66,16 @@ func iterateAccMpt(ctx *server.Context) {
 			for _, coin := range acc.GetCoins() {
 				total.Add(total, coin.Amount.Int)
 			}
-			fmt.Println(acc.GetStateRoot().String())
-			if acc.GetStateRoot().String() == "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" && len(acc.GetCoins()) != 0 {
+			ethAcc := acc.(*types.EthAccount)
+
+			if hex.EncodeToString(ethAcc.CodeHash) != "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" && len(acc.GetCoins()) != 0 {
 				contractCount++
-			}
-			if leafCount > 100 {
-				break
 			}
 			//fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
 	}
 	height := hex.EncodeToString(heightBytes)
-	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height, "total:", total.String(), "contractCount:", contractCount)
+	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height, "total:", total.String(), "invalid contract:", contractCount)
 }
 
 func iterateEvmMpt(ctx *server.Context) {
