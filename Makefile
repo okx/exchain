@@ -28,6 +28,7 @@ Venus1Height=1
 Venus2Height=0
 Venus3Height=1
 Venus4Height=0
+Venus5Height=0
 EarthHeight=0
 MarsHeight=0
 
@@ -50,7 +51,7 @@ ifeq ($(MAKECMDGOALS),mainnet)
    Venus1Height=12988000
    Venus2Height=14738000
    Venus3Height=15277000
-
+	
    WITH_ROCKSDB=true
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
@@ -61,6 +62,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    Venus3Height=15540000
    EarthHeight=17364500
    Venus4Height=17531500
+   Venus5Height=18861500
 
    WITH_ROCKSDB=true
 endif
