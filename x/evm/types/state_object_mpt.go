@@ -17,7 +17,7 @@ const (
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
-	acc := so.account.Copy().(*types.EthAccount)
+	acc := so.account.DeepCopy().(*types.EthAccount)
 	newStateObj := newStateObject(db, acc)
 	if so.trie != nil {
 		newStateObj.trie = db.db.CopyTrie(so.trie)
