@@ -15,11 +15,7 @@ var (
 	MILESTONE_MARS_HEIGHT string
 	milestoneMarsHeight   int64
 
-	MILESTONE_VENUS2_HEIGHT string
-	milestoneVenus2Height   int64
-
-	milestoneEarthHeight int64
-
+	milestoneEarthHeight  int64
 	milestoneVenus4Height int64
 
 	// note: it stores the earlies height of the node,and it is used by cli
@@ -44,7 +40,6 @@ const (
 func init() {
 	once.Do(func() {
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
-		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 	})
 }
 
@@ -103,26 +98,6 @@ func GetMarsHeight() int64 {
 func UnittestOnlySetMilestoneMarsHeight(height int64) {
 	milestoneMarsHeight = height
 }
-
-// ==================================
-// =========== Venus2 ===============
-func HigherThanVenus2(h int64) bool {
-	if milestoneVenus2Height == 0 {
-		return false
-	}
-	return h >= milestoneVenus2Height
-}
-
-func UnittestOnlySetMilestoneVenus2Height(h int64) {
-	milestoneVenus2Height = h
-}
-
-func GetVenus2Height() int64 {
-	return milestoneVenus2Height
-}
-
-// =========== Venus2 ===============
-// ==================================
 
 // ==================================
 // =========== Earth ===============

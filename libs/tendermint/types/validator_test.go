@@ -82,10 +82,8 @@ func TestPubKeyFromProto(t *testing.T) {
 		{
 			desc:    "secp256k1 and after veneus2",
 			success: true,
-			f: func() {
-				UnittestOnlySetMilestoneVenus2Height(-1)
-			},
-			v: r(false),
+			f:       func() {},
+			v:       r(false),
 		},
 	}
 
