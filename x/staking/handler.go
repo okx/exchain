@@ -3,8 +3,6 @@ package staking
 import (
 	"fmt"
 
-	"github.com/okex/exchain/x/common"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/staking/keeper"
@@ -23,9 +21,6 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case types.MsgCreateValidator:
-			if k.GetParams(ctx).ConsensusType == common.PoA {
-				return nil, types.ErrDisableCreateValidator
-			}
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)

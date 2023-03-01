@@ -139,7 +139,7 @@ func DefaultParams() Params {
 		DefaultMinDelegation,
 		DefaultMinSelfDelegation,
 		DefaultHistoricalEntries,
-		common.DPoS,
+		common.PoA,
 	)
 }
 
