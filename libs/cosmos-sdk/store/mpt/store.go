@@ -11,7 +11,6 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
@@ -328,7 +327,7 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		)
 
 		if nodes > nodesLimit || imgs > imgsLimit {
-			triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
+			// triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
 		}
 		// Find the next state trie we need to commit
 		// chosen := curHeight - TriesInMemory
