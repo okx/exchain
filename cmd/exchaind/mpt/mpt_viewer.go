@@ -1,6 +1,7 @@
 package mpt
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -42,6 +43,8 @@ func iterateAccMpt(ctx *server.Context) {
 	accMptDb := mpt.InstanceOfMptStore()
 	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
+	heightBytes = make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBytes, 206)
 	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
