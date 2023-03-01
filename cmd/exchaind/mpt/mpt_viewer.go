@@ -1,7 +1,7 @@
 package mpt
 
 import (
-	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -59,7 +59,8 @@ func iterateAccMpt(ctx *server.Context) {
 			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
 	}
-	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", binary.BigEndian.Uint64(heightBytes))
+	height := hex.EncodeToString(heightBytes)
+	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height)
 }
 
 func iterateEvmMpt(ctx *server.Context) {
