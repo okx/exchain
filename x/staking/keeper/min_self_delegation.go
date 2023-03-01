@@ -64,11 +64,12 @@ func (k Keeper) AddSharesAsMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAdd
 	defaultMSDToken sdk.SysCoin) (err error) {
 	// 0. transfer account's okt (0.001okt as default) into bondPool
 	coins := sdk.SysCoins{defaultMSDToken}
-	err = k.supplyKeeper.DelegateCoinsFromAccountToModule(ctx, delAddr, types.BondedPoolName, coins)
-	if err != nil {
-		return err
+	if coins.AmountOf(k.BondDenom(ctx)).GT(sdk.ZeroDec()) {
+		err = k.supplyKeeper.DelegateCoinsFromAccountToModule(ctx, delAddr, types.BondedPoolName, coins)
+		if err != nil {
+			return err
+		}
 	}
-
 	// 1. add shares for default msd to validator itself
 	k.addSharesAsDefaultMinSelfDelegation(ctx, validator)
 

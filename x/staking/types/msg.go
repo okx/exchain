@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/x/common"
 
@@ -118,7 +119,7 @@ func (msg MsgCreateValidator) ValidateBasic() error {
 	if !sdk.AccAddress(msg.ValidatorAddress).Equals(msg.DelegatorAddress) {
 		return ErrBadValidatorAddr()
 	}
-	if msg.MinSelfDelegation.Amount.LTE(sdk.ZeroDec()) || !msg.MinSelfDelegation.IsValid() {
+	if msg.MinSelfDelegation.Amount.LT(sdk.ZeroDec()) || !msg.MinSelfDelegation.IsValid() {
 		return ErrMinSelfDelegationInvalid()
 	}
 	if msg.Description == (Description{}) {

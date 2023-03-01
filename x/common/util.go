@@ -111,7 +111,8 @@ func HasSufficientCoins(addr sdk.AccAddress, availableCoins, amt sdk.Coins) (err
 // (described in http://gitlab.okcoin-inc.com/dex/okexchain/issues/472)
 // if System environment variables "SYS_TEST_ALL" is set to 1, all of the system test will be enable. \n
 // if System environment variables "ORM_MYSQL_SYS_TEST" is set to 1,
-// 				all of the system test in orm_mysql_sys_test.go will be enble.
+//
+//	all of the system test in orm_mysql_sys_test.go will be enble.
 func SkipSysTestChecker(t *testing.T) {
 	_, fname, _, ok := runtime.Caller(0)
 	enable := ok
@@ -293,6 +294,19 @@ func ValidateDecPositive(param string) subspace.ValueValidatorFn {
 		}
 		if !v.IsPositive() {
 			return fmt.Errorf("%s must be positive: %s", param, v)
+		}
+		return nil
+	}
+}
+
+func ValidateDecNotNeg(param string) subspace.ValueValidatorFn {
+	return func(i interface{}) error {
+		v, ok := i.(sdk.Dec)
+		if !ok {
+			return fmt.Errorf("invalid parameter type: %T", i)
+		}
+		if v.IsNegative() {
+			return fmt.Errorf("%s cannot be negative: %s", param, v)
 		}
 		return nil
 	}

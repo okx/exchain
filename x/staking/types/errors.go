@@ -197,7 +197,7 @@ func ErrCommissionGTMaxChangeRate() sdk.Error {
 
 // ErrMinSelfDelegationInvalid returns an error when the msd isn't positive
 func ErrMinSelfDelegationInvalid() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMinSelfDelegationInvalid, "minimum self delegation must be a positive integer")
+	return sdkerrors.New(DefaultCodespace, CodeMinSelfDelegationInvalid, "minimum self delegation cannot be a negative integer")
 }
 
 // ErrNilDelegatorAddr returns an error when the delegator address is nil

@@ -40,7 +40,7 @@ var (
 	// DefaultMinDelegation is the limit value of delegation or undelegation
 	DefaultMinDelegation = sdk.NewDecWithPrec(1, 4)
 	// DefaultMinSelfDelegation is the default value of each validator's msd (hard code)
-	DefaultMinSelfDelegation = sdk.NewDec(10000)
+	DefaultMinSelfDelegation = sdk.NewDec(0)
 )
 
 // nolint - Keys for parameter access
@@ -110,7 +110,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: common.ValidateUint16Positive("epoch")},
 		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16Positive("max vals to add shares")},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
-		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
+		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecNotNeg("min self delegation")},
 		{Key: KeyHistoricalEntries, Value: &p.HistoricalEntries, ValidatorFn: validateHistoricalEntries},
 		{Key: KeyConsensusType, Value: &p.ConsensusType, ValidatorFn: common.ValidateConsensusType("consensus type")},
 		{Key: KeyEnableOperation, Value: &p.EnableOperation, ValidatorFn: common.ValidateBool("enable operation")},
