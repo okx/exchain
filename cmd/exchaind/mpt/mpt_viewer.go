@@ -64,7 +64,7 @@ func iterateAccMpt(ctx *server.Context) {
 			for _, coin := range acc.GetCoins() {
 				total.Add(total, coin.Amount.Int)
 			}
-			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
+			//fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
 	}
 	height := hex.EncodeToString(heightBytes)
