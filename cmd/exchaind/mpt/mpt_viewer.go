@@ -65,8 +65,12 @@ func iterateAccMpt(ctx *server.Context) {
 			for _, coin := range acc.GetCoins() {
 				total.Add(total, coin.Amount.Int)
 			}
+			fmt.Println(acc.GetStateRoot().String())
 			if acc.GetStateRoot().String() == "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" && len(acc.GetCoins()) != 0 {
 				contractCount++
+			}
+			if leafCount > 100 {
+				break
 			}
 			//fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
