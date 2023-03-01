@@ -17,14 +17,16 @@ const (
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
-	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
-	//need to copy acc stateroot
-	ethermintAccount, ok := acc.(*types.EthAccount)
-	if !ok {
-		panic(fmt.Sprintf("invalid account type for state object: %T", acc))
+	acc := types.ProtoAccount().(*types.EthAccount)
+	jsonAccount, err := so.account.MarshalJSON()
+	if err != nil {
+		return nil
 	}
-	ethermintAccount.StateRoot = so.account.GetStateRoot()
-	newStateObj := newStateObject(db, ethermintAccount)
+	err = acc.UnmarshalJSON(jsonAccount)
+	if err != nil {
+		return nil
+	}
+	newStateObj := newStateObject(db, acc)
 	if so.trie != nil {
 		newStateObj.trie = db.db.CopyTrie(so.trie)
 	}
