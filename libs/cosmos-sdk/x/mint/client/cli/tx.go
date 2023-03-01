@@ -120,7 +120,7 @@ Where proposal.json contains:
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			proposal, err := utils2.ParseParseModifyNextBlockUpdateProposalJSON(cdc, args[0])
+			proposal, err := utils2.ParseModifyNextBlockUpdateProposalJSON(cdc, args[0])
 			if err != nil {
 				return err
 			}

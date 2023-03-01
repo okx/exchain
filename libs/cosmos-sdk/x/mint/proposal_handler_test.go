@@ -514,12 +514,12 @@ func (suite *MintTestSuite) TestModifyNextBlockUpdateProposal() {
 			proposal.BlockNum = tc.blockNum
 			govProposal.Content = proposal
 
+			oldMinter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
 			err := suite.govHandler(suite.ctx, &govProposal)
 			suite.Require().Equal(err, tc.expectError)
-			if err != nil {
-				minter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
-				suite.Require().Equal(tc.expectBlockNum, minter.NextBlockToUpdate)
-			}
+			newMinter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
+			suite.Require().Equal(tc.expectBlockNum, newMinter.NextBlockToUpdate)
+			suite.app.MintKeeper.SetMinterCustom(suite.ctx, oldMinter)
 		})
 	}
 }
