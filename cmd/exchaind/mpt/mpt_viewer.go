@@ -43,7 +43,7 @@ func mptViewerCmd(ctx *server.Context) *cobra.Command {
 			case accStoreKey:
 				iterateAccMpt(uint64(height))
 			case evmStoreKey:
-				iterateEvmMpt(ctx)
+				iterateEvmMpt(uint64(height))
 			}
 			log.Printf("--------- iterate %s data end ---------\n", args[0])
 		},
@@ -79,11 +79,20 @@ func iterateAccMpt(height uint64) {
 	}
 }
 
-func iterateEvmMpt(ctx *server.Context) {
+func iterateEvmMpt(height uint64) {
 	accMptDb := mpt.InstanceOfMptStore()
 	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
-	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
+	lastestHeight := binary.BigEndian.Uint64(heightBytes)
+	if lastestHeight < height {
+		panic(fmt.Errorf("height(%d) > lastestHeight(%d)", height, lastestHeight))
+	}
+	if height == 0 {
+		height = lastestHeight
+	}
+
+	hhash := sdk.Uint64ToBigEndian(height)
+	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, hhash...))
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)
