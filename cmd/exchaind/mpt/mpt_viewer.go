@@ -45,15 +45,20 @@ func iterateAccMpt(ctx *server.Context) {
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)
-	fmt.Println("accTrie root hash:", accTrie.Hash())
+	rootHash2 := accTrie.Hash()
+	fmt.Println("accTrie root hash:", rootHash2)
+
+	var leafCount int
 
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
 	for itr.Next() {
+		leafCount++
 		acc := DecodeAccount(ethcmn.Bytes2Hex(itr.Key), itr.Value)
 		if acc != nil {
 			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
 	}
+	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount)
 }
 
 func iterateEvmMpt(ctx *server.Context) {
