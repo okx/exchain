@@ -187,7 +187,8 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	if sdkErr != nil {
 		return nil, sdkErr
 	}
-	if sdkErr = validateSharesAdding(vals); sdkErr != nil {
+	minSelfDelegation := k.GetParams(ctx).MinSelfDelegation
+	if sdkErr = validateSharesAdding(vals, minSelfDelegation); sdkErr != nil {
 		return nil, sdkErr
 	}
 
@@ -217,12 +218,12 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 }
 
 // validateSharesAdding gives a quick validity of target validators before shares adding
-func validateSharesAdding(vals types.Validators) error {
+func validateSharesAdding(vals types.Validators, minSelfDelegation sdk.Dec) error {
 	if len(vals) == 0 {
 		return types.ErrEmptyValidators()
 	}
 
-	if valAddr, ok := isDismissed(vals); ok {
+	if valAddr, ok := isDismissed(vals, minSelfDelegation); ok {
 		return types.ErrAddSharesToDismission(valAddr.String())
 	}
 
@@ -231,10 +232,10 @@ func validateSharesAdding(vals types.Validators) error {
 
 // isDismissed tells whether validator with zero-msd is among the shares adding targets and returns the first dismissed
 // validator address
-func isDismissed(vals types.Validators) (sdk.ValAddress, bool) {
+func isDismissed(vals types.Validators, minSelfDelegation sdk.Dec) (sdk.ValAddress, bool) {
 	valsLen := len(vals)
 	for i := 0; i < valsLen; i++ {
-		if vals[i].MinSelfDelegation.IsZero() {
+		if vals[i].MinSelfDelegation.LT(minSelfDelegation) {
 			return vals[i].OperatorAddress, true
 		}
 	}
