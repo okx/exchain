@@ -351,7 +351,7 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
 	ms.triegc.Push(curMptRoot, -int64(curHeight))
 
-	if curHeight >= TriesInMemory {
+	if curHeight >= TriesInMemory || curHeight >= TrieCommitGap {
 		// If we exceeded our memory allowance, flush matured singleton nodes to disk
 		var (
 			nodes, imgs = triedb.Size()
@@ -390,7 +390,9 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 				ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
 			}
 		}
-
+		if chosen-TriesInMemory <= 0 {
+			return
+		}
 		// Garbage collect anything below our required write retention
 		for !ms.triegc.Empty() {
 			root, number := ms.triegc.Pop()
