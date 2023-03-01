@@ -64,6 +64,9 @@ func iterateAccMpt(ctx *server.Context) {
 		leafCount++
 		acc := DecodeAccount(ethcmn.Bytes2Hex(itr.Key), itr.Value)
 		if acc != nil {
+			for _, coin := range acc.GetCoins() {
+				total.Add(total, coin.Amount.Int)
+			}
 			ethAcc, ok := acc.(*types.EthAccount)
 			if !ok {
 				notOK++
@@ -73,9 +76,6 @@ func iterateAccMpt(ctx *server.Context) {
 
 			if hex.EncodeToString(ethAcc.CodeHash) != "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" && len(acc.GetCoins()) != 0 {
 				contractCount++
-			}
-			for _, coin := range acc.GetCoins() {
-				total.Add(total, coin.Amount.Int)
 			}
 			//fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
