@@ -64,7 +64,7 @@ var (
 	ErrInvalidHistoricalInfo  = sdkerrors.Register(ModuleName, 144, "invalid historical info")
 	ErrNoHistoricalInfo       = sdkerrors.Register(ModuleName, 145, "no historical info found")
 	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 146, "unsupported proposal type of staking module")
-	ErrDisableCreateValidator = sdkerrors.Register(ModuleName, 147, "create validator is disable when consensus type is PoA")
+	ErrDisableOperation       = sdkerrors.Register(ModuleName, 147, "staking operation is disable when consensus type is PoA")
 	ErrProposedInValSet       = sdkerrors.Register(ModuleName, 148, "validator proposed is already in the validator set")
 	ErrProposedNotInValSet    = sdkerrors.Register(ModuleName, 149, "validator proposed for removal is not in the validator set")
 	ErrProposedExceedMax      = sdkerrors.Register(ModuleName, 150, "propose validator exceeds max validators")

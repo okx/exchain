@@ -48,6 +48,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.ParamsMinSelfDelegation(ctx),
 		k.HistoricalEntries(ctx),
 		k.ParamsConsensusType(ctx),
+		k.ParamsEnableOperation(ctx),
 	)
 }
 
@@ -125,5 +126,11 @@ func (k Keeper) ParamsMinSelfDelegation(ctx sdk.Context) (num sdk.Dec) {
 // ParamsConsensusType returns the param ConsensusType
 func (k Keeper) ParamsConsensusType(ctx sdk.Context) (consensusType common.ConsensusType) {
 	k.paramstore.Get(ctx, types.KeyConsensusType, &consensusType)
+	return
+}
+
+// ParamsEnableOperation returns the param EnableOperation
+func (k Keeper) ParamsEnableOperation(ctx sdk.Context) (enableOperation bool) {
+	k.paramstore.Get(ctx, types.KeyEnableOperation, &enableOperation)
 	return
 }

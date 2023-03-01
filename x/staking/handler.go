@@ -21,19 +21,31 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case types.MsgCreateValidator:
+			if !k.GetParams(ctx).EnableOperation {
+				return nil, types.ErrDisableOperation
+			}
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgEditValidatorCommissionRate:
+			if !k.GetParams(ctx).EnableOperation {
+				return nil, types.ErrDisableOperation
+			}
 			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
 				return handleMsgEditValidatorCommissionRate(ctx, msg, k)
 			}
 			return sdk.ErrUnknownRequest(errMsg).Result()
 		case types.MsgDeposit:
+			if !k.GetParams(ctx).EnableOperation {
+				return nil, types.ErrDisableOperation
+			}
 			return handleMsgDeposit(ctx, msg, k)
 		case types.MsgWithdraw:
 			return handleMsgWithdraw(ctx, msg, k)
 		case types.MsgAddShares:
+			if !k.GetParams(ctx).EnableOperation {
+				return nil, types.ErrDisableOperation
+			}
 			return handleMsgAddShares(ctx, msg, k)
 		//case types.MsgBindProxy:
 		//	return handleMsgBindProxy(ctx, msg, k)

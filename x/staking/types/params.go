@@ -56,6 +56,7 @@ var (
 
 	KeyHistoricalEntries = []byte("HistoricalEntries")
 	KeyConsensusType     = []byte("ConsensusType")
+	KeyEnableOperation   = []byte("EnableOperation")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -77,11 +78,12 @@ type Params struct {
 
 	HistoricalEntries uint32               `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
 	ConsensusType     common.ConsensusType `json:"consensus_type"`
+	EnableOperation   bool                 `json:"enable_operation"`
 }
 
 // NewParams creates a new Params instance
 func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, maxValsToAddShares uint16, minDelegation sdk.Dec,
-	minSelfDelegation sdk.Dec, historicalEntries uint32, consensusType common.ConsensusType) Params {
+	minSelfDelegation sdk.Dec, historicalEntries uint32, consensusType common.ConsensusType, enableOperation bool) Params {
 	return Params{
 		UnbondingTime:      unbondingTime,
 		MaxValidators:      maxValidators,
@@ -91,6 +93,7 @@ func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, 
 		MinSelfDelegation:  minSelfDelegation,
 		HistoricalEntries:  historicalEntries,
 		ConsensusType:      consensusType,
+		EnableOperation:    enableOperation,
 	}
 }
 
@@ -110,6 +113,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
 		{Key: KeyHistoricalEntries, Value: &p.HistoricalEntries, ValidatorFn: validateHistoricalEntries},
 		{Key: KeyConsensusType, Value: &p.ConsensusType, ValidatorFn: common.ValidateConsensusType("consensus type")},
+		{Key: KeyEnableOperation, Value: &p.EnableOperation, ValidatorFn: common.ValidateBool("enable operation")},
 	}
 }
 func validateHistoricalEntries(i interface{}) error {
@@ -140,6 +144,7 @@ func DefaultParams() Params {
 		DefaultMinSelfDelegation,
 		DefaultHistoricalEntries,
 		common.PoA,
+		true,
 	)
 }
 
@@ -152,8 +157,10 @@ func (p *Params) String() string {
   MaxValsToAddShares:       %d
   MinDelegation				%d
   MinSelfDelegation         %d
-  ConsensusType:            %s,`,
-		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation, p.MinSelfDelegation, p.ConsensusType)
+  ConsensusType:            %s
+  EnableOperation           %t,`,
+		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation,
+		p.MinSelfDelegation, p.ConsensusType, p.EnableOperation)
 }
 
 // Validate gives a quick validity check for a set of params
