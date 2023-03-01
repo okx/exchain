@@ -67,7 +67,7 @@ func iterateAccMpt(ctx *server.Context) {
 			ethAcc, ok := acc.(*types.EthAccount)
 			if !ok {
 				notOK++
-				fmt.Sprintln(acc.String())
+				fmt.Println(acc.String())
 				continue
 			}
 
