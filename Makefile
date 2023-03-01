@@ -31,8 +31,8 @@ endif
 build_tags = netgo
 
 ifeq ($(WITH_ROCKSDB),true)
-  CGO_ENABLED=1
-  build_tags += rocksdb
+#  CGO_ENABLED=1
+#  build_tags += rocksdb
 endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
@@ -63,9 +63,9 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS_HEIGHT=$(VenusHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
 
-ifeq ($(WITH_ROCKSDB),true)
-  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
-endif
+#ifeq ($(WITH_ROCKSDB),true)
+#  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
+#endif
 
 ifeq ($(OKCMALLOC),tcmalloc)
   ldflags += -extldflags "-ltcmalloc_minimal"
