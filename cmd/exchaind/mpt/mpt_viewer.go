@@ -56,7 +56,8 @@ func iterateAccMpt(ctx *server.Context) {
 	var leafCount int
 
 	total := new(big.Int)
-	big := new(big.Int)
+	bigTotal := new(big.Int)
+	tenThousands, _ := new(big.Int).SetString("10000000000000000000000", 10)
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
 	for itr.Next() {
 		leafCount++
@@ -64,9 +65,8 @@ func iterateAccMpt(ctx *server.Context) {
 		if acc != nil {
 			for _, coin := range acc.GetCoins() {
 				total.Add(total, coin.Amount.Int)
-				a := coin.Amount.Int.Uint64()
-				if a > 10000 {
-					big.Add(big, coin.Amount.Int)
+				if coin.Amount.Int.Cmp(tenThousands) > 0 {
+					bigTotal.Add(bigTotal, coin.Amount.Int)
 					fmt.Println(acc.String())
 				}
 			}
@@ -74,7 +74,7 @@ func iterateAccMpt(ctx *server.Context) {
 		}
 	}
 	height := hex.EncodeToString(heightBytes)
-	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height, "total:", total.String(), "big:", big)
+	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height, "total:", total.String(), "big:", bigTotal)
 }
 
 func iterateEvmMpt(ctx *server.Context) {
