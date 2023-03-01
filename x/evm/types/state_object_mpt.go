@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/ethereum/go-ethereum/trie"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -169,20 +170,20 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
-func (so *stateObject) CommitTrie(db ethstate.Database) error {
+func (so *stateObject) CommitTrie(db ethstate.Database) (*trie.NodeSet, error) {
 	// If nothing changed, don't bother with hashing anything
 	if so.updateTrie(db) == nil {
-		return nil
+		return nil, nil
 	}
 	if so.dbErr != nil {
-		return so.dbErr
+		return nil, so.dbErr
 	}
 
-	root, err := so.trie.Commit(nil)
+	root, set, err := so.trie.Commit(false)
 	if err == nil {
 		so.account.StateRoot = root
 	}
-	return err
+	return set, err
 }
 
 // finalise moves all dirty storage slots into the pending area to be hashed or

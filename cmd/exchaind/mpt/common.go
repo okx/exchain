@@ -2,11 +2,11 @@ package mpt
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"path/filepath"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -84,19 +84,21 @@ func getStorageTrie(db ethstate.Database, addrHash, stateRoot ethcmn.Hash) ethst
 }
 
 // pushData2Database commit the data to the database
-func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, isEvm bool) {
-	var storageRoot ethcmn.Hash
-	root, err := trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot.SetBytes(leaf)
-		if storageRoot != ethtypes.EmptyRootHash {
-			db.TrieDB().Reference(storageRoot, parent)
-		}
-		return nil
-	})
-	panicError(err)
+func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, isEvm bool, accRetrieval types.AccountStateRootRetrieval) {
 
-	err = db.TrieDB().Commit(root, false, nil)
-	panicError(err)
+	root, set, err := trie.Commit(true)
+	if err != nil {
+		panic(err)
+	}
+	// Merge the dirty nodes of account trie into global set
+	if set != nil {
+		if err := db.TrieDB().SetCacheNodeSet(set); err != nil {
+			panic(err)
+		}
+	}
+	if err := db.TrieDB().UpdateForOKC(accRetrieval); err != nil {
+		panic("fail to commit trie data: " + err.Error())
+	}
 
 	setMptRootHash(db, uint64(height), root, isEvm)
 }

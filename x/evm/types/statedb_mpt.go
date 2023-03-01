@@ -30,10 +30,15 @@ func (csdb *CommitStateDB) CommitMpt(prefetcher *mpt.TriePrefetcher) (ethcmn.Has
 			}
 
 			// Write any storage changes in the state object to its storage trie
-			if err := obj.CommitTrie(csdb.db); err != nil {
+			set, err := obj.CommitTrie(csdb.db)
+			if err != nil {
 				return ethcmn.Hash{}, err
 			}
-
+			if set != nil {
+				if err := csdb.db.TrieDB().SetCacheNodeSet(set); err != nil {
+					return ethcmn.Hash{}, err
+				}
+			}
 			accProto := csdb.accountKeeper.GetAccount(csdb.ctx, obj.account.Address)
 			if ethermintAccount, ok := accProto.(*ethermint.EthAccount); ok {
 				ethermintAccount.StateRoot = obj.account.StateRoot
