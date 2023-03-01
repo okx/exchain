@@ -2,9 +2,10 @@ package mpt
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 	"sync"
+
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -350,7 +351,7 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
 	ms.triegc.Push(curMptRoot, -int64(curHeight))
 
-	if curHeight > TriesInMemory {
+	if curHeight >= TriesInMemory {
 		// If we exceeded our memory allowance, flush matured singleton nodes to disk
 		var (
 			nodes, imgs = triedb.Size()
@@ -362,7 +363,8 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 			triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
 		}
 		// Find the next state trie we need to commit
-		chosen := curHeight - TriesInMemory
+		// chosen := curHeight - TriesInMemory
+		chosen := curHeight
 
 		// we start at startVersion, but the chosen height may be startVersion - triesInMemory
 		if chosen <= ms.startVersion {
@@ -392,7 +394,7 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		// Garbage collect anything below our required write retention
 		for !ms.triegc.Empty() {
 			root, number := ms.triegc.Pop()
-			if int64(-number) > chosen {
+			if int64(-number) > chosen-TriesInMemory {
 				ms.triegc.Push(root, number)
 				break
 			}
