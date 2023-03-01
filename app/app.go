@@ -274,11 +274,7 @@ func NewOKExChainApp(
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
 	logger.Info("Starting "+system.ChainName,
-		"GenesisHeight", tmtypes.GetStartBlockHeight(),
-		"MercuryHeight", tmtypes.GetMercuryHeight(),
-		"VenusHeight", tmtypes.GetVenusHeight(),
 		"Venus2Height", tmtypes.GetVenus2Height(),
-		"Veneus4Height", tmtypes.GetVenus4Height(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
@@ -413,7 +409,7 @@ func NewOKExChainApp(
 	v2keeper := ibc.NewKeeper(
 		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
-	v4Keeper := ibc.NewV4Keeper(v2keeper)
+	v4Keeper := ibc.NewV4Keeper(v2keeper, app.ParamsKeeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
 	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper

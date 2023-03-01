@@ -13,7 +13,6 @@ import (
 	cosmossdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/tendermint/global"
-	tendertypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
@@ -158,7 +157,6 @@ func (suite *FakeBlockTxTestSuite) beginFakeBlock() {
 	err := suite.app.BankKeeper.SetCoins(suite.Ctx(), suite.stdSenderAccAddress, cosmossdk.NewCoins(txCoin1000))
 	suite.Require().NoError(err)
 
-	tendertypes.UnittestOnlySetMilestoneVenusHeight(blockHeight - 1)
 	global.SetGlobalHeight(blockHeight - 1)
 	suite.app.BeginBlocker(suite.Ctx(), abcitypes.RequestBeginBlock{Header: abcitypes.Header{Height: blockHeight}})
 }

@@ -139,11 +139,6 @@ func TestGenesisSaveAs(t *testing.T) {
 	assert.Equal(t, genDoc2.Validators, genDoc.Validators)
 }
 
-func TestGenesisValidatorHash(t *testing.T) {
-	genDoc := randomGenesisDoc()
-	assert.NotEmpty(t, genDoc.ValidatorHash())
-}
-
 func randomGenesisDoc() *GenesisDoc {
 	pubkey := ed25519.GenPrivKey().PubKey()
 	return &GenesisDoc{

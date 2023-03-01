@@ -303,11 +303,7 @@ func NewSimApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
-	logger.Info("Starting OEC",
-		"GenesisHeight", tmtypes.GetStartBlockHeight(),
-		"MercuryHeight", tmtypes.GetMercuryHeight(),
-		"VenusHeight", tmtypes.GetVenusHeight(),
-	)
+	logger.Info("Starting OEC")
 	//onceLog.Do(func() {
 	//	iavl.SetLogger(logger.With("module", "iavl"))
 	//	logStartingFlags(logger)
@@ -442,7 +438,7 @@ func NewSimApp(
 	v2keeper := ibc.NewKeeper(
 		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
-	v4Keeper := ibc.NewV4Keeper(v2keeper)
+	v4Keeper := ibc.NewV4Keeper(v2keeper, app.ParamsKeeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
 	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
