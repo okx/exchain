@@ -2,9 +2,10 @@ package mpt
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 	"sync"
+
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -13,7 +14,6 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
@@ -350,7 +350,7 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
 	ms.triegc.Push(curMptRoot, -int64(curHeight))
 
-	if curHeight > TriesInMemory {
+	if curHeight >= TriesInMemory || curHeight >= TrieCommitGap {
 		// If we exceeded our memory allowance, flush matured singleton nodes to disk
 		var (
 			nodes, imgs = triedb.Size()
@@ -359,10 +359,11 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		)
 
 		if nodes > nodesLimit || imgs > imgsLimit {
-			triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
+			// triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
 		}
 		// Find the next state trie we need to commit
-		chosen := curHeight - TriesInMemory
+		// chosen := curHeight - TriesInMemory
+		chosen := curHeight
 
 		// we start at startVersion, but the chosen height may be startVersion - triesInMemory
 		if chosen <= ms.startVersion {
@@ -388,11 +389,13 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 				ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
 			}
 		}
-
+		if chosen-TriesInMemory <= 0 {
+			return
+		}
 		// Garbage collect anything below our required write retention
 		for !ms.triegc.Empty() {
 			root, number := ms.triegc.Pop()
-			if int64(-number) > chosen {
+			if int64(-number) > chosen-TriesInMemory {
 				ms.triegc.Push(root, number)
 				break
 			}
