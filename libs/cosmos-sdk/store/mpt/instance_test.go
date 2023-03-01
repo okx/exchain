@@ -33,7 +33,7 @@ func (suite *InstanceTestSuite) SetupTest() {
 	defer os.RemoveAll(serverDir)
 	viper.Set(flags.FlagHome, serverDir)
 
-	mptStore, err := NewMptStore(nil, types.CommitID{})
+	mptStore, err := NewMptStore(nil, nil, nil, types.CommitID{})
 	if err != nil {
 		panic(err)
 	}

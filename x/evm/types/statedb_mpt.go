@@ -3,16 +3,18 @@ package types
 import (
 	"errors"
 	"fmt"
-	types2 "github.com/ethereum/go-ethereum/core/types"
-	ethermint "github.com/okex/exchain/app/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
+	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
@@ -145,11 +147,42 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 		return obj
 	}
 
-	// otherwise, attempt to fetch the account from the account mapper
-	acc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
-	if acc == nil {
-		csdb.SetError(fmt.Errorf("no account found for address: %s", addr.String()))
-		return nil
+	// If no live objects are available, attempt to use snapshots
+	var (
+		acc authexported.Account
+		err error
+	)
+	if csdb.snap != nil {
+		var sacc *snapshot.Account
+		if sacc, err = csdb.snap.Account(crypto.HashData(csdb.hasher, addr.Bytes())); err == nil {
+			if sacc == nil {
+				return nil
+			}
+			// todo giskook
+			ethAcc := ethermint.EthAccount{
+				BaseAccount: &authtypes.BaseAccount{
+					Address:       nil,
+					Coins:         nil,
+					PubKey:        nil,
+					AccountNumber: 0,
+					Sequence:      sacc.Nonce,
+				},
+				StateRoot: ethcmn.BytesToHash(sacc.Root),
+			}
+			if len(sacc.CodeHash) == 0 {
+				ethAcc.CodeHash = emptyCodeHash
+			}
+			acc = ethAcc
+		}
+	}
+
+	if csdb.snap == nil || err != nil {
+		// otherwise, attempt to fetch the account from the account mapper
+		acc = csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
+		if acc == nil {
+			csdb.SetError(fmt.Errorf("no account found for address: %s", addr.String()))
+			return nil
+		}
 	}
 
 	// insert the state object into the live set

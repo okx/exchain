@@ -67,7 +67,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		//   1) resurrect happened, and new slot values were set -- those should
 		//      have been handles via pendingStorage above.
 		//   2) we don't have new values, and can deliver empty response back
-		if _, destructed := so.stateDB.snapDestructs[so.addrHash]; destructed {
+		if _, destructed := so.stateDB.SnapDestructs[so.addrHash]; destructed {
 			return ethcmn.Hash{}
 		}
 		enc, err = so.stateDB.snap.Storage(so.addrHash, crypto.Keccak256Hash(key.Bytes()))
@@ -182,9 +182,9 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		if so.stateDB.snap != nil {
 			if storage == nil {
 				// Retrieve the old storage map, if available, create a new one otherwise
-				if storage = so.stateDB.snapStorage[so.addrHash]; storage == nil {
+				if storage = so.stateDB.SnapStorage[so.addrHash]; storage == nil {
 					storage = make(map[ethcmn.Hash][]byte)
-					so.stateDB.snapStorage[so.addrHash] = storage
+					so.stateDB.SnapStorage[so.addrHash] = storage
 				}
 			}
 			storage[crypto.HashData(hasher, key[:])] = v // v will be nil if it's deleted

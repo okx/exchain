@@ -147,7 +147,7 @@ func (ch resetObjectChange) revert(s *CommitStateDB) {
 	s.setStateObject(ch.prev)
 	// todo giskook prevdestruct
 	if !ch.prevdestruct && s.snap != nil {
-		delete(s.snapDestructs, ch.prev.addrHash)
+		delete(s.SnapDestructs, ch.prev.addrHash)
 	}
 }
 

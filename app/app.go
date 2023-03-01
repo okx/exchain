@@ -752,6 +752,7 @@ func NewOKExChainApp(
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 	app.SetAccountStateRetrievalForCMS(app.AccountKeeper.RetrievalStateRoot)
+	app.SetCommitSnapshot(app.EvmKeeper.CommitSnapshot)
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {

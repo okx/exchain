@@ -274,3 +274,23 @@ func (k *Keeper) getMptRootHash(height uint64) ethcmn.Hash {
 
 	return ethcmn.BytesToHash(rst)
 }
+
+func (k *Keeper) CommitSnapshot(root ethcmn.Hash) {
+	// If snapshotting is enabled, update the snapshot tree with this new version
+	if k.snap != nil {
+		// Only update if there's a state transition (skip empty Clique blocks)
+		if parent := k.snap.Root(); parent != root {
+			if err := k.snaps.Update(root, parent, k.EvmStateDb.SnapDestructs, k.EvmStateDb.SnapAccounts, k.EvmStateDb.SnapStorage); err != nil {
+				k.logger.Error("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
+			}
+			// Keep 128 diff layers in the memory, persistent layer is 129th.
+			// - head layer is paired with HEAD state
+			// - head-1 layer is paired with HEAD-1 state
+			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
+			if err := k.snaps.Cap(root, 128); err != nil {
+				k.logger.Error("Failed to cap snapshot tree", "root", root, "layers", 128, "err", err)
+			}
+		}
+		k.snap, k.EvmStateDb.SnapDestructs, k.EvmStateDb.SnapAccounts, k.EvmStateDb.SnapStorage = nil, nil, nil, nil
+	}
+}

@@ -83,6 +83,8 @@ type Store struct {
 
 	//TODO by yxq
 	retrieval mpttypes.AccountStateRootRetrieval
+
+	commitSnapshot mpttypes.CommitSnapshot
 }
 
 var (
@@ -934,7 +936,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		return mem.NewStore(), nil
 
 	case types.StoreTypeMPT:
-		return mpt.NewMptStore(rs.logger, rs.retrieval, id)
+		return mpt.NewMptStore(rs.logger, rs.retrieval, rs.commitSnapshot, id)
 
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
@@ -1548,4 +1550,8 @@ func (rs *Store) SetUpgradeVersion(version int64) {
 
 func (rs *Store) SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval) {
 	rs.retrieval = retrieval
+}
+
+func (rs *Store) SetCommitSnapshot(commitSnapshot mpttypes.CommitSnapshot) {
+	rs.commitSnapshot = commitSnapshot
 }

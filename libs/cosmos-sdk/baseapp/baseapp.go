@@ -1031,3 +1031,7 @@ func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 func (app *BaseApp) SetAccountStateRetrievalForCMS(retrieval mpttypes.AccountStateRootRetrieval) {
 	app.cms.SetAccountStateRootRetrieval(retrieval)
 }
+
+func (app *BaseApp) SetCommitSnapshot(commitSnapshot mpttypes.CommitSnapshot) {
+	app.cms.SetCommitSnapshot(commitSnapshot)
+}

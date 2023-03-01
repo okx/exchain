@@ -63,12 +63,7 @@ type MptStore struct {
 	//TODO by yxq
 	retrieval mpttypes.AccountStateRootRetrieval
 
-	// snapshots
-	snaps         *snapshot.Tree
-	snap          snapshot.Snapshot
-	snapDestructs map[ethcmn.Hash]struct{}
-	snapAccounts  map[ethcmn.Hash][]byte
-	snapStorage   map[ethcmn.Hash]map[ethcmn.Hash][]byte
+	commitSnapshot mpttypes.CommitSnapshot
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -91,12 +86,12 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
+func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, commitSnapshot mpttypes.CommitSnapshot, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
-	return generateMptStore(logger, id, db, retrieval)
+	return generateMptStore(logger, id, db, retrieval, commitSnapshot)
 }
 
-func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
+func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval, commitSnapshot mpttypes.CommitSnapshot) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
 		db:         db,
@@ -105,27 +100,17 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
 		retrieval:  retrieval,
 		exitSignal: make(chan struct{}),
+
+		commitSnapshot: commitSnapshot,
 	}
 	err := mptStore.openTrie(id)
-
-	if err = mptStore.openSnapshot(); err != nil {
-		mptStore.logger.Error("open snapshot error", "error", err)
-	}
-
-	if mptStore.snaps != nil {
-		if mptStore.snap = mptStore.snaps.Snapshot(mptStore.originalRoot); mptStore.snap != nil {
-			mptStore.snapDestructs = make(map[ethcmn.Hash]struct{})
-			mptStore.snapAccounts = make(map[ethcmn.Hash][]byte)
-			mptStore.snapStorage = make(map[ethcmn.Hash]map[ethcmn.Hash][]byte)
-		}
-	}
 
 	return mptStore, err
 }
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
-	return generateMptStore(logger, id, db, nil)
+	return generateMptStore(logger, id, db, nil, nil)
 }
 
 func (ms *MptStore) openTrie(id types.CommitID) error {
@@ -281,23 +266,8 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	ms.SetMptRootHash(uint64(ms.version), root)
 	ms.originalRoot = root
 
-	// If snapshotting is enabled, update the snapshot tree with this new version
-	if ms.snap != nil {
-		// Only update if there's a state transition (skip empty Clique blocks)
-		if parent := ms.snap.Root(); parent != root {
-			if err := ms.snaps.Update(root, parent, ms.snapDestructs, ms.snapAccounts, ms.snapStorage); err != nil {
-				ms.logger.Error("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
-			}
-			// Keep 128 diff layers in the memory, persistent layer is 129th.
-			// - head layer is paired with HEAD state
-			// - head-1 layer is paired with HEAD-1 state
-			// - head-127 layer(bottom-most diff layer) is paired with HEAD-127 state
-			if err := ms.snaps.Cap(root, 128); err != nil {
-				ms.logger.Error("Failed to cap snapshot tree", "root", root, "layers", 128, "err", err)
-			}
-		}
-		ms.snap, ms.snapDestructs, ms.snapAccounts, ms.snapStorage = nil, nil, nil, nil
-	}
+	ms.commitSnapshot(root)
+
 	// TODO: use a thread to push data to database
 	// push data to database
 	ms.PushData2Database(ms.version)
@@ -625,3 +595,6 @@ func (ms *MptStore) prefetchData() {
 }
 
 func (ms *MptStore) SetUpgradeVersion(i int64) {}
+
+func (ms *MptStore) SetSnapshots(tree *snapshot.Tree, snap snapshot.Snapshot) {
+}

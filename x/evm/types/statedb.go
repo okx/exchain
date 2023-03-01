@@ -145,9 +145,9 @@ type CommitStateDB struct {
 	// snapshots
 	snaps         *snapshot.Tree
 	snap          snapshot.Snapshot
-	snapDestructs map[ethcmn.Hash]struct{}
-	snapAccounts  map[ethcmn.Hash][]byte
-	snapStorage   map[ethcmn.Hash]map[ethcmn.Hash][]byte
+	SnapDestructs map[ethcmn.Hash]struct{}
+	SnapAccounts  map[ethcmn.Hash][]byte
+	SnapStorage   map[ethcmn.Hash]map[ethcmn.Hash][]byte
 	hasher        crypto.KeccakState
 }
 
@@ -207,9 +207,9 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		hasher: crypto.NewKeccakState(),
 	}
 	if csdb.snap != nil {
-		csdb.snapDestructs = make(map[common.Hash]struct{})
-		csdb.snapAccounts = make(map[common.Hash][]byte)
-		csdb.snapStorage = make(map[common.Hash]map[common.Hash][]byte)
+		csdb.SnapDestructs = make(map[common.Hash]struct{})
+		csdb.SnapAccounts = make(map[common.Hash][]byte)
+		csdb.SnapStorage = make(map[common.Hash]map[common.Hash][]byte)
 	}
 
 	return csdb
@@ -917,9 +917,9 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 			// transactions within the same block might self destruct and then
 			// resurrect an account; but the snapshotter needs both events.
 			if csdb.snap != nil {
-				csdb.snapDestructs[obj.addrHash] = struct{}{} // We need to maintain account deletions explicitly (will remain set indefinitely)
-				delete(csdb.snapAccounts, obj.addrHash)       // Clear out any previously updated account data (may be recreated via a ressurrect)
-				delete(csdb.snapStorage, obj.addrHash)        // Clear out any previously updated storage data (may be recreated via a ressurrect)
+				csdb.SnapDestructs[obj.addrHash] = struct{}{} // We need to maintain account deletions explicitly (will remain set indefinitely)
+				delete(csdb.SnapAccounts, obj.addrHash)       // Clear out any previously updated account data (may be recreated via a ressurrect)
+				delete(csdb.SnapStorage, obj.addrHash)        // Clear out any previously updated storage data (may be recreated via a ressurrect)
 			}
 		} else {
 			obj.finalise(true) // Prefetch slots in the background
@@ -1014,7 +1014,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	// enough to track account updates at commit time, deletions need tracking
 	// at transaction boundary level to ensure we capture state clearing.
 	if csdb.snap != nil {
-		csdb.snapAccounts[so.addrHash] = snapshot.SlimAccountRLP(so.account.Sequence, so.Balance(), so.account.StateRoot, so.CodeHash())
+		csdb.SnapAccounts[so.addrHash] = snapshot.SlimAccountRLP(so.account.Sequence, so.Balance(), so.account.StateRoot, so.CodeHash())
 	}
 
 	return nil
@@ -1244,9 +1244,9 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	var prevdestruct bool
 	if csdb.snap != nil && prevObj != nil {
-		_, prevdestruct = csdb.snapDestructs[prevObj.addrHash]
+		_, prevdestruct = csdb.SnapDestructs[prevObj.addrHash]
 		if !prevdestruct {
-			csdb.snapDestructs[prevObj.addrHash] = struct{}{}
+			csdb.SnapDestructs[prevObj.addrHash] = struct{}{}
 		}
 	}
 
