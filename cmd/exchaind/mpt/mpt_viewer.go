@@ -56,6 +56,7 @@ func iterateAccMpt(ctx *server.Context) {
 
 	var leafCount int
 	var contractCount int
+	var notOK int
 
 	total := new(big.Int)
 	itr := trie.NewIterator(accTrie.NodeIterator(nil))
@@ -65,6 +66,7 @@ func iterateAccMpt(ctx *server.Context) {
 		if acc != nil {
 			ethAcc, ok := acc.(*types.EthAccount)
 			if !ok {
+				notOK++
 				continue
 			}
 
@@ -78,7 +80,7 @@ func iterateAccMpt(ctx *server.Context) {
 		}
 	}
 	height := hex.EncodeToString(heightBytes)
-	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height, "total:", total.String(), "invalid contract:", contractCount)
+	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height, "total:", total.String(), "invalid contract:", contractCount, "moduleAccount", notOK)
 }
 
 func iterateEvmMpt(ctx *server.Context) {
