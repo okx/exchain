@@ -72,15 +72,7 @@ func TestPubKeyFromProto(t *testing.T) {
 			v:       r(true),
 		},
 		{
-			desc:    "secp256k1 but before veneus2",
-			success: false,
-			f: func() {
-
-			},
-			v: r(false),
-		},
-		{
-			desc:    "secp256k1 and after veneus2",
+			desc:    "secp256k1",
 			success: true,
 			f:       func() {},
 			v:       r(false),
