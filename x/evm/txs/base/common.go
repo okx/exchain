@@ -60,6 +60,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 		csdb := getCommitStateDB()
 		types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), ctx)
 		st.Csdb = csdb
+		reuseCsdb = true
 	} else {
 		csdb := getCommitStateDB()
 		types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), ctx)
