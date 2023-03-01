@@ -192,6 +192,10 @@ func (mp ModifyNextBlockUpdateProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
+	if global.GetGlobalHeight() > 0 && mp.BlockNum <= uint64(global.GetGlobalHeight()) {
+		return ErrCodeInvalidHeight
+	}
+
 	return nil
 }
 
