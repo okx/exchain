@@ -271,8 +271,6 @@ func newTestOkcChainApp(
 ) *testSimApp {
 	logger.Info("Starting OEC",
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
-		"MercuryHeight", tmtypes.GetMercuryHeight(),
-		"VenusHeight", tmtypes.GetVenusHeight(),
 	)
 	onceLog.Do(func() {
 		iavl.SetLogger(logger.With("module", "iavl"))
@@ -386,7 +384,7 @@ func newTestOkcChainApp(
 	v2keeper := ibc.NewKeeper(
 		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
-	v4Keeper := ibc.NewV4Keeper(v2keeper)
+	v4Keeper := ibc.NewV4Keeper(v2keeper, app.ParamsKeeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
 	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
@@ -669,7 +667,7 @@ func createKeysByCases(caseas []UpgradeCase) map[string]*sdk.KVStoreKey {
 	return keys
 }
 
-///
+// /
 type RecordMemDB struct {
 	db *dbm.MemDB
 	common.PlaceHolder
@@ -734,7 +732,7 @@ func (d *RecordMemDB) Set(key []byte, value []byte) error {
 //	m := make(map[string]int)
 //	count := 0
 //	maxHeight := int64(0)
-//	veneus1H := 10
+//	venus1H := 10
 //
 //	modules := make([]*simpleAppModule, 0)
 //	for _, ca := range cases {
@@ -763,16 +761,16 @@ func (d *RecordMemDB) Set(key []byte, value []byte) error {
 //	)
 //	app.Commit(abci.RequestCommit{})
 //
-//	for i := int64(2); i < int64(veneus1H+5); i++ {
+//	for i := int64(2); i < int64(venus1H+5); i++ {
 //		header := abci.Header{Height: i}
 //		app.BeginBlock(abci.RequestBeginBlock{Header: header})
-//		if i <= int64(veneus1H) {
+//		if i <= int64(venus1H) {
 //			_, found := app.Erc20Keeper.GetImplementTemplateContract(app.GetDeliverStateCtx())
 //			require.Equal(t, found, false)
 //			_, found = app.Erc20Keeper.GetProxyTemplateContract(app.GetDeliverStateCtx())
 //			require.Equal(t, found, false)
 //		}
-//		if i >= int64(veneus1H+2) {
+//		if i >= int64(venus1H+2) {
 //			_, found := app.Erc20Keeper.GetImplementTemplateContract(app.GetDeliverStateCtx())
 //			require.Equal(t, found, true)
 //			_, found = app.Erc20Keeper.GetProxyTemplateContract(app.GetDeliverStateCtx())
