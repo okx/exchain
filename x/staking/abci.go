@@ -3,6 +3,8 @@ package staking
 import (
 	"fmt"
 
+	"github.com/okex/exchain/x/common"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/staking/keeper"
@@ -18,23 +20,11 @@ func BeginBlocker(ctx sdk.Context, k Keeper) {
 // EndBlocker is called every block, update validator set
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 	// calculate validator set changes
-	validatorUpdates := make([]abci.ValidatorUpdate, 0)
-	if k.IsEndOfEpoch(ctx) {
-		oldEpoch, newEpoch := k.GetEpoch(ctx), k.ParamsEpoch(ctx)
-		if oldEpoch != newEpoch {
-			k.SetEpoch(ctx, newEpoch)
-		}
-		k.SetTheEndOfLastEpoch(ctx)
-		//ctx.Logger().Debug("validatorUpdates epoch", "old", oldEpoch, "new", newEpoch)
-		//ctx.Logger().Debug(fmt.Sprintf("old epoch end blockHeight: %d", lastEpochEndHeight))
-
-		validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
-		// dont forget to delete in case that some validator need to kick out when an epoch ends
-		k.DeleteAbandonedValidatorAddrs(ctx)
-	} else if k.IsKickedOut(ctx) {
-		// if there are some validators to kick out in an epoch
-		validatorUpdates = k.KickOutAndReturnValidatorSetUpdates(ctx)
-		k.DeleteAbandonedValidatorAddrs(ctx)
+	var validatorUpdates []abci.ValidatorUpdate
+	if k.GetParams(ctx).ConsensusType == common.PoA {
+		validatorUpdates = PoAValidatorsUpdate(ctx, k)
+	} else {
+		validatorUpdates = DPoSValidatorsUpdate(ctx, k)
 	}
 
 	// Unbond all mature validators from the unbonding queue.
@@ -60,5 +50,50 @@ func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 			return false
 		})
 
+	return validatorUpdates
+}
+
+func PoAValidatorsUpdate(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
+	// calculate validator set changes
+	validatorUpdates := make([]abci.ValidatorUpdate, 0)
+	proposedValidators, found := k.GetProposeValidators(ctx)
+	if found {
+		_ = proposedValidators
+		validatorUpdates = k.PoAApplyAndReturnValidatorSetUpdates(ctx, proposedValidators)
+		k.DeleteProposeValidators(ctx)
+	}
+	// update epoch
+	if k.IsEndOfEpoch(ctx) {
+		oldEpoch, newEpoch := k.GetEpoch(ctx), k.ParamsEpoch(ctx)
+		if oldEpoch != newEpoch {
+			k.SetEpoch(ctx, newEpoch)
+		}
+		k.SetTheEndOfLastEpoch(ctx)
+		// dont forget to delete in case that some validator need to kick out when an epoch ends
+		k.DeleteAbandonedValidatorAddrs(ctx)
+	}
+	return validatorUpdates
+}
+
+func DPoSValidatorsUpdate(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
+	// calculate validator set changes
+	validatorUpdates := make([]abci.ValidatorUpdate, 0)
+	if k.IsEndOfEpoch(ctx) {
+		oldEpoch, newEpoch := k.GetEpoch(ctx), k.ParamsEpoch(ctx)
+		if oldEpoch != newEpoch {
+			k.SetEpoch(ctx, newEpoch)
+		}
+		k.SetTheEndOfLastEpoch(ctx)
+		//ctx.Logger().Debug("validatorUpdates epoch", "old", oldEpoch, "new", newEpoch)
+		//ctx.Logger().Debug(fmt.Sprintf("old epoch end blockHeight: %d", lastEpochEndHeight))
+
+		validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
+		// dont forget to delete in case that some validator need to kick out when an epoch ends
+		k.DeleteAbandonedValidatorAddrs(ctx)
+	} else if k.IsKickedOut(ctx) {
+		// if there are some validators to kick out in an epoch
+		validatorUpdates = k.KickOutAndReturnValidatorSetUpdates(ctx)
+		k.DeleteAbandonedValidatorAddrs(ctx)
+	}
 	return validatorUpdates
 }

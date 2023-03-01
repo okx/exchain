@@ -29,7 +29,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	totalPower := sdk.ZeroInt()
 
 	// Retrieve the last validator set. The persistent set is updated later in this function (see LastValidatorPowerKey)
-	last := k.getLastValidatorsByAddr(ctx)
+	last := k.GetLastValidatorsByAddr(ctx)
 
 	// Iterate over validators, highest power to lowest.
 	iterator := sdk.KVStoreReversePrefixIterator(store, types.ValidatorsByPowerIndexKey)
@@ -107,6 +107,86 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 	if len(updates) > 0 {
 		k.SetLastTotalPower(ctx, totalPower)
 	}
+
+	return updates
+}
+
+func (k Keeper) PoAApplyAndReturnValidatorSetUpdates(ctx sdk.Context, proposeValidators map[[sdk.AddrLen]byte]bool) (updates []abci.ValidatorUpdate) {
+	if len(proposeValidators) == 0 {
+		return
+	}
+	logger := k.Logger(ctx)
+	// get the last validator set
+	lastValSet := k.GetLastValidatorsByAddr(ctx)
+	logMap(logger, lastValSet, "LastBondedValAddrs")
+
+	totalPower := k.GetLastTotalPower(ctx)
+	for valKey, isAdd := range proposeValidators {
+		valAddr := make([]byte, sdk.AddrLen)
+		copy(valAddr[:], valKey[:])
+		validator := k.mustGetValidator(ctx, valAddr)
+		if isAdd {
+			// look for the ahead candidate
+			_, found := lastValSet[valKey]
+			if found {
+				// no need to promote the val
+				logger.Error(fmt.Sprintf("validator %s is already in the validator set",
+					validator.OperatorAddress.String()))
+				continue
+			}
+			// if we get to a zero-power validator without shares, just pass
+			if validator.PotentialConsensusPowerByShares() == 0 {
+				logger.Error(fmt.Sprintf("validator`s(%s) share is zero",
+					validator.OperatorAddress.String()))
+				continue
+			}
+			switch {
+			case validator.IsUnbonded():
+				validator = k.unbondedToBonded(ctx, validator)
+			case validator.IsUnbonding():
+				validator = k.unbondingToBonded(ctx, validator)
+			case validator.IsBonded():
+				panic("Panic. Candidate validator is not allowed to be in bonded status")
+			default:
+				panic("unexpected validator status")
+			}
+			// calculate the new power of candidate validator
+			newPower := validator.ConsensusPowerByShares()
+			// update the validator to tendermint
+			updates = append(updates, validator.ABCIValidatorUpdateByShares())
+			// set validator power on lookup index
+			k.SetLastValidatorPower(ctx, valAddr, newPower)
+			// cumsum the total power
+			totalPower = totalPower.Add(sdk.NewInt(newPower))
+		} else {
+			switch {
+			case validator.IsUnbonded():
+				logger.Debug(fmt.Sprintf("validator %s is already in the unboned status", validator.OperatorAddress.String()))
+			case validator.IsUnbonding():
+				logger.Debug(fmt.Sprintf("validator %s is already in the unbonding status", validator.OperatorAddress.String()))
+			case validator.IsBonded(): // bonded to unbonding
+				k.bondedToUnbonding(ctx, validator)
+				// delete from the bonded validator index
+				k.DeleteLastValidatorPower(ctx, validator.GetOperator())
+				// update the validator set
+				updates = append(updates, validator.ABCIValidatorUpdateZero())
+				// reduce the total power
+				valKey := getLastValidatorsMapKey(valAddr)
+				oldPowerBytes, found := lastValSet[valKey]
+				if !found {
+					panic("Never occur")
+				}
+				var oldPower int64
+				k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(oldPowerBytes, &oldPower)
+				totalPower = totalPower.Sub(sdk.NewInt(oldPower))
+			default:
+				panic("unexpected validator status")
+			}
+		}
+	}
+
+	// update the total power of this block to store
+	k.SetLastTotalPower(ctx, totalPower)
 
 	return updates
 }
@@ -232,7 +312,7 @@ func (k Keeper) completeUnbondingValidator(ctx sdk.Context, validator types.Vali
 type validatorsByAddr map[[sdk.AddrLen]byte][]byte
 
 // get the last validator set
-func (k Keeper) getLastValidatorsByAddr(ctx sdk.Context) validatorsByAddr {
+func (k Keeper) GetLastValidatorsByAddr(ctx sdk.Context) validatorsByAddr {
 	last := make(validatorsByAddr)
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.LastValidatorPowerKey)

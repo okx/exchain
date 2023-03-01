@@ -3,23 +3,22 @@ package exported
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/x/staking"
 )
 
 var (
-	NewHandler            = staking.NewHandler
-	EndBlocker            = staking.EndBlocker
-	NewMsgDeposit         = staking.NewMsgDeposit
-	NewMsgAddShares       = staking.NewMsgAddShares
-	NewDescription        = staking.NewDescription
-	NewMsgCreateValidator = staking.NewMsgCreateValidator
-	StoreKey              = staking.StoreKey
-	TStoreKey             = staking.TStoreKey
-	NotBondedPoolName     = staking.NotBondedPoolName
-	BondedPoolName        = staking.BondedPoolName
-	NewKeeper             = staking.NewKeeper
-	DefaultParamspace     = staking.DefaultParamspace
-	DefaultParams         = staking.DefaultParams
+// NewHandler            = staking.NewHandler
+// EndBlocker            = staking.EndBlocker
+// NewMsgDeposit         = staking.NewMsgDeposit
+// NewMsgAddShares       = staking.NewMsgAddShares
+// NewDescription        = staking.NewDescription
+// NewMsgCreateValidator = staking.NewMsgCreateValidator
+// StoreKey          = types.StoreKey
+// TStoreKey         = types.TStoreKey
+// NotBondedPoolName = types.NotBondedPoolName
+// BondedPoolName    = types.BondedPoolName
+// NewKeeper         = keeper.NewKeeper
+// DefaultParamspace = keeper.DefaultParamspace
+// DefaultParams     = types.DefaultParams
 )
 
 // DelegatorI expected delegator functions
@@ -55,5 +54,5 @@ type ValidatorI interface {
 
 type Keeper interface {
 	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
-	GetEpoch(ctx sdk.Context)
+	GetEpoch(ctx sdk.Context) (epoch uint16)
 }

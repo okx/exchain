@@ -13,7 +13,7 @@ import (
 func (k Keeper) KickOutAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate) {
 	logger := k.Logger(ctx)
 	// 1.get the last validator set
-	lastBondedVals := k.getLastValidatorsByAddr(ctx)
+	lastBondedVals := k.GetLastValidatorsByAddr(ctx)
 	logMap(logger, lastBondedVals, "LastBondedValAddrs")
 
 	// 2.get the abandoned validator addrs
