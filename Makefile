@@ -21,7 +21,6 @@ Name=exchain
 ServerName=exchaind
 ClientName=exchaincli
 
-Venus2Height=0
 MarsHeight=1
 
 LINK_STATICALLY = false
@@ -37,13 +36,9 @@ ifeq ($(VERSION),)
 endif
 
 ifeq ($(MAKECMDGOALS),mainnet)
-   Venus2Height=14738000
-
    WITH_ROCKSDB=true
 else ifeq ($(MAKECMDGOALS),testnet)
-   Venus2Height=14781000
-
-   WITH_ROCKSDB=true
+    WITH_ROCKSDB=true
 endif
 
 build_tags = netgo
@@ -74,7 +69,6 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
 
 

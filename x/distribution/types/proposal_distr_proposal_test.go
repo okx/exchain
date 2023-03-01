@@ -1,13 +1,12 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/tendermint/global"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	exgovtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -93,51 +92,26 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			"normal, type 0",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			0,
 			nil,
-		},
-		{
-			"normal, type 0, not support",
-			func() {
-				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
-			},
-			RandStr(types.MaxTitleLength),
-			RandStr(types.MaxDescriptionLength),
-			0,
-			ErrCodeNotSupportDistributionProposal(),
 		},
 		{
 			"normal, type 1",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			1,
 			nil,
 		},
-		{
-			"normal, type 1, not support",
-			func() {
-				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
-			},
-			RandStr(types.MaxTitleLength),
-			RandStr(types.MaxDescriptionLength),
-			1,
-			ErrCodeNotSupportDistributionProposal(),
-		},
 	}
 
 	for _, tc := range testCases {
 		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 
 		suite.Run(tc.title, func() {
 			tc.setMilestoneHeight()
@@ -204,51 +178,26 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 			"normal, enabled true",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			true,
 			nil,
-		},
-		{
-			"normal, enabled true, not support",
-			func() {
-				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
-			},
-			RandStr(types.MaxTitleLength),
-			RandStr(types.MaxDescriptionLength),
-			true,
-			ErrCodeNotSupportWithdrawRewardEnabledProposal(),
 		},
 		{
 			"normal, enabled false",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			false,
 			nil,
 		},
-		{
-			"normal, enabled false, not support",
-			func() {
-				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
-			},
-			RandStr(types.MaxTitleLength),
-			RandStr(types.MaxDescriptionLength),
-			false,
-			ErrCodeNotSupportWithdrawRewardEnabledProposal(),
-		},
 	}
 
 	for _, tc := range testCases {
 		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 		suite.Run(tc.title, func() {
 			tc.setMilestoneHeight()
 			title := tc.proposalTitle
@@ -330,7 +279,6 @@ func (suite *ProposalSuite) TestNewRewardTruncatePrecisionProposal() {
 			"normal, precision 0",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -341,7 +289,6 @@ func (suite *ProposalSuite) TestNewRewardTruncatePrecisionProposal() {
 			"normal, precision 18",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -349,21 +296,9 @@ func (suite *ProposalSuite) TestNewRewardTruncatePrecisionProposal() {
 			nil,
 		},
 		{
-			"normal, precision 0, not support",
-			func() {
-				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
-			},
-			RandStr(types.MaxTitleLength),
-			RandStr(types.MaxDescriptionLength),
-			0,
-			ErrCodeNotSupportRewardTruncateProposal(),
-		},
-		{
 			"normal, precision 1",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -374,7 +309,6 @@ func (suite *ProposalSuite) TestNewRewardTruncatePrecisionProposal() {
 			"normal, precision 12",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -385,7 +319,6 @@ func (suite *ProposalSuite) TestNewRewardTruncatePrecisionProposal() {
 
 	for _, tc := range testCases {
 		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 
 		suite.Run(tc.title, func() {
 			tc.setMilestoneHeight()
