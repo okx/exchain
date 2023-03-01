@@ -172,8 +172,8 @@ func (ms *MptStore) sprintDebugLog(version int64) {
 	cacheReadCount := ms.GetNodeReadCount()
 	header := fmt.Sprintf("Save mpt Version<%d> , ", version)
 
-	printLog := fmt.Sprintf("getNodeFrom<dbRCnt:%d, dbWCnt:%d, nodeCache=%d, nodeRCnt:%d>",
-		ms.GetDBReadCount(), ms.GetDBWriteCount(), ms.GetNodeReadCount(), nodeAllReadCount)
+	printLog := fmt.Sprintf("getNodeFrom<dbRCnt:%d, nodeCache=%d, nodeRCnt:%d>, dbWCnt:%d",
+		ms.GetDBReadCount(), ms.GetNodeReadCount(), nodeAllReadCount, ms.GetDBWriteCount())
 
 	if nodeAllReadCount > 0 {
 		printLog += fmt.Sprintf(", CHit:%.2f", float64(cacheReadCount)/float64(nodeAllReadCount)*100)

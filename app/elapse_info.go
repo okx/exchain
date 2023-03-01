@@ -23,7 +23,7 @@ var (
 		{trace.SigCacheRatio, 0},
 		{trace.Evm, 1},
 		{trace.Delta, 1},
-		{trace.Iavl, 1},
+		{trace.Storage, 1},
 		{trace.DeliverTxs, 1},
 		{trace.EvmHandlerDetail, 0},
 

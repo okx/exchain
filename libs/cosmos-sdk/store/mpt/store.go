@@ -303,15 +303,12 @@ func (ms *MptStore) GetDBReadCount() int {
 }
 
 func (ms *MptStore) GetNodeReadCount() int {
-	// need the eth 1.10.25 merged.
-	// return ms.db.TrieDB().GetNodeReadCount()
-	return 0
+	return ms.db.TrieDB().GetNodeReadCount()
 }
 
 func (ms *MptStore) ResetCount() {
 	gStatic.resetCount()
-	// need the eth 1.10.25 merged.
-	//ms.db.TrieDB().ResetCount()
+	ms.db.TrieDB().ResetCount()
 }
 
 func (ms *MptStore) GetDBReadTime() int {
