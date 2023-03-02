@@ -70,11 +70,11 @@ func iterateAccMpt(ctx *server.Context) {
 			ethAcc, ok := acc.(*types.EthAccount)
 			if !ok {
 				notOK++
-				fmt.Println(acc.String())
 				continue
 			}
 
 			if hex.EncodeToString(ethAcc.CodeHash) != "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" && len(acc.GetCoins()) != 0 {
+				fmt.Println(acc.String())
 				contractCount++
 			}
 			//fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
