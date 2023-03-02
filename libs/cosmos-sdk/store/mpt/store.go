@@ -92,10 +92,10 @@ func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetriev
 func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
-		db:         db,
-		triegc:     triegc,
-		logger:     logger,
-		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
+		db:     db,
+		triegc: triegc,
+		logger: logger,
+		//kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
 		retrieval:  retrieval,
 		exitSignal: make(chan struct{}),
 	}
@@ -173,11 +173,29 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 	return cachekv.NewStore(tracekv.NewStore(ms, w, tc))
 }
 
+func (ms *MptStore) getStorageTire(key []byte) (ethstate.Trie, ethcmn.Hash) {
+	if len(key) == StorageTrieKeyLen {
+		root, realKey, err := DecodeStorageGet(key)
+		if err == nil {
+			trie, err := ms.db.OpenTrie(root)
+			if err != nil {
+				return nil, ethcmn.Hash{}
+			}
+			return trie, realKey
+		}
+	}
+	return nil, ethcmn.Hash{}
+}
 func (ms *MptStore) Get(key []byte) []byte {
 	if ms.kvCache != nil {
 		if enc := ms.kvCache.Get(nil, key); len(enc) > 0 {
 			return enc
 		}
+	}
+
+	if t, realKey := ms.getStorageTire(key); t != nil {
+		value, _ := t.TryGet(realKey.Bytes())
+		return value
 	}
 
 	value, err := ms.trie.TryGet(key)
@@ -210,6 +228,11 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.kvCache != nil {
 		ms.kvCache.Set(key, value)
 	}
+
+	if t, realKey := ms.getStorageTire(key); t != nil {
+		t.TryUpdate(realKey.Bytes(), value)
+	}
+
 	err := ms.trie.TryUpdate(key, value)
 	if err != nil {
 		return
@@ -224,6 +247,9 @@ func (ms *MptStore) Delete(key []byte) {
 
 	if ms.kvCache != nil {
 		ms.kvCache.Del(key)
+	}
+	if t, realKey := ms.getStorageTire(key); t != nil {
+		t.TryDelete(realKey.Bytes())
 	}
 	err := ms.trie.TryDelete(key)
 	if err != nil {
@@ -586,3 +612,27 @@ func (ms *MptStore) prefetchData() {
 }
 
 func (ms *MptStore) SetUpgradeVersion(i int64) {}
+
+var (
+	storageGet = []byte{'+'}
+)
+var (
+	StorageTrieKeyLen = len(ethcmn.Hash{})*2 + len(storageGet)
+)
+
+func MakeStorageGet(rootHash, realKey ethcmn.Hash) []byte {
+	compositeKey := make([]byte, 0)
+	compositeKey = append(compositeKey, rootHash.Bytes()...)
+	compositeKey = append(compositeKey, storageGet...)
+	compositeKey = append(compositeKey, realKey.Bytes()...)
+	return compositeKey
+}
+
+func DecodeStorageGet(data []byte) (rootHash, realKey ethcmn.Hash, err error) {
+	if data[32] != storageGet[0] {
+		return rootHash, realKey, fmt.Errorf("not excepted data")
+	}
+	rootHash = ethcmn.BytesToHash(data[:32])
+	realKey = ethcmn.BytesToHash(data[33:])
+	return rootHash, realKey, nil
+}

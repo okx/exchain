@@ -3,12 +3,12 @@ package types
 import (
 	"bytes"
 	"fmt"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 )
 
 const (
@@ -56,15 +56,12 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 
 	var (
 		enc   []byte
-		err   error
 		value ethcmn.Hash
 	)
 
 	tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-	if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
-		so.setError(err)
-		return ethcmn.Hash{}
-	}
+	store := so.stateDB.ctx.KVStore(so.stateDB.storeKey)
+	enc = store.Get(mpt.MakeStorageGet(so.account.StateRoot, tmpKey))
 
 	if len(enc) > 0 {
 		_, content, _, err := rlp.Split(enc)
@@ -138,6 +135,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 
 	// Insert all the pending updates into the trie
 	tr := so.getTrie(db)
+	store := so.stateDB.ctx.KVStore(so.stateDB.storeKey)
 	usedStorage := make([][]byte, 0, len(so.pendingStorage))
 	for key, value := range so.pendingStorage {
 		// Skip noop changes, persist actual changes
@@ -150,11 +148,13 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
-			so.setError(tr.TryDelete(key[:]))
+			//so.setError(tr.TryDelete(key[:]))
+			store.Delete(mpt.MakeStorageGet(so.account.StateRoot, key))
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
-			so.setError(tr.TryUpdate(key[:], v))
+			//so.setError(tr.TryUpdate(key[:], v))
+			store.Set(mpt.MakeStorageGet(so.account.StateRoot, key), v)
 		}
 	}
 	if so.stateDB.prefetcher != nil {

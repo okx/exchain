@@ -24,7 +24,7 @@ run() {
     LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info
 #--mempool.enable_delete_min_gp_tx false \
 #    exchaind start --pruning=nothing --rpc.unsafe \
-    exchaind start --rpc.unsafe \
+    exchaind start --pruning=nothing --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
@@ -35,7 +35,7 @@ run() {
       --enable-gid \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
-      --commit-gap-height 3 \
+      --commit-gap-height 1 \
       --trie.dirty-disabled=true \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
