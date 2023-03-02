@@ -1166,6 +1166,7 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	newobj, prevobj := csdb.createObject(addr)
 	if prevobj != nil {
 		newobj.setBalance(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(prevobj.Balance(), sdk.Precision)) // int2dec
+		csdb.Logger().Error("@@@@@@@@@ got prevObj", "newobj", newobj, "prevobj", newobj)
 	}
 }
 
