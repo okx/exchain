@@ -124,6 +124,7 @@ func DecodeAccount(key string, bz []byte) exported.Account {
 	var acc exported.Account
 	err = auth.ModuleCdc.UnmarshalBinaryBare(bz, &acc)
 	if err != nil {
+		return nil
 		fmt.Printf(" key(%s) value(%s) err(%s)\n", key, hexutils.BytesToHex(bz), err)
 		panic(err)
 	}
