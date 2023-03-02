@@ -10,6 +10,7 @@ import (
 	"github.com/status-im/keycard-go/hexutils"
 	"log"
 	"math/big"
+	"strconv"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -28,10 +29,14 @@ func mptViewerCmd(ctx *server.Context) *cobra.Command {
 			return checkValidKey(args[0])
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			var height uint64
+			if len(args) > 1 {
+				height, _ = strconv.ParseUint(args[1], 10, 64)
+			}
 			log.Printf("--------- iterate %s data start ---------\n", args[0])
 			switch args[0] {
 			case accStoreKey:
-				iterateAccMpt(ctx)
+				iterateAccMpt(ctx, height)
 			case evmStoreKey:
 				iterateEvmMpt(ctx)
 			}
@@ -41,12 +46,15 @@ func mptViewerCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
-func iterateAccMpt(ctx *server.Context) {
+func iterateAccMpt(ctx *server.Context, height uint64) {
 	accMptDb := mpt.InstanceOfMptStore()
 	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
-	heightBytes = make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBytes, 206)
+	if height > 0 {
+		heightBytes = make([]byte, 8)
+		binary.BigEndian.PutUint64(heightBytes, height)
+	}
+
 	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
