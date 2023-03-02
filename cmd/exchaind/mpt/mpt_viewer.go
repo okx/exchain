@@ -23,7 +23,7 @@ import (
 func mptViewerCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mptviewer",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		Short: "iterate mpt store (acc, evm)",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return checkValidKey(args[0])
