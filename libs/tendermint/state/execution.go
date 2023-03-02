@@ -489,7 +489,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			if txRes.Code == abci.CodeTypeOK {
 				validTxs++
 			} else {
-				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
+				logger.Error("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
 				invalidTxs++
 			}
 			abciResponses.DeliverTxs[txIndex] = txRes
