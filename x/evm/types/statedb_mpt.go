@@ -157,6 +157,11 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 		return nil
 	}
 
+	addr2 := acc.(*ethermint.EthAccount).EthAddress()
+	if addr2 != addr {
+		fmt.Println("unexpected2:", addr, addr2)
+	}
+
 	// insert the state object into the live set
 	so := newStateObject(csdb, acc)
 	csdb.setStateObject(so)
