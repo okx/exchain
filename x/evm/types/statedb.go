@@ -93,7 +93,7 @@ type CommitStateDB struct {
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects        map[ethcmn.Address]*stateObject
+	stateObjects        map[ethcmn.Address]stateObject
 	stateObjectsPending map[ethcmn.Address]struct{} // State objects finalized but not yet written to the mpt tree
 	stateObjectsDirty   map[ethcmn.Address]struct{} // State objects modified in the current execution
 
@@ -174,7 +174,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		bankKeeper:    csdbParams.BankKeeper,
 		cdc:           csdbParams.Cdc,
 
-		stateObjects:        make(map[ethcmn.Address]*stateObject),
+		stateObjects:        make(map[ethcmn.Address]stateObject),
 		stateObjectsPending: make(map[ethcmn.Address]struct{}),
 		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
 		preimages:           make(map[ethcmn.Hash][]byte),
@@ -207,7 +207,7 @@ func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx
 			delete(csdb.stateObjects, k)
 		}
 	} else {
-		csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+		csdb.stateObjects = make(map[ethcmn.Address]stateObject)
 	}
 
 	if csdb.stateObjectsPending != nil {
@@ -930,9 +930,9 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 	//usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
 	for addr := range csdb.stateObjectsPending {
 		if obj := csdb.stateObjects[addr]; obj.deleted {
-			csdb.deleteStateObject(obj)
+			csdb.deleteStateObject(&obj)
 		} else {
-			csdb.updateStateObject(obj)
+			csdb.updateStateObject(&obj)
 		}
 		//usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
@@ -1108,7 +1108,7 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 // the underlying account mapper and store keys to avoid reloading data for the
 // next operations.
 func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
-	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	csdb.stateObjects = make(map[ethcmn.Address]stateObject)
 	csdb.stateObjectsPending = make(map[ethcmn.Address]struct{})
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 	csdb.thash = ethcmn.Hash{}
@@ -1125,7 +1125,7 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 
 // ClearStateObjects clears cache of state objects to handle account changes outside of the EVM
 func (csdb *CommitStateDB) ClearStateObjects() {
-	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	csdb.stateObjects = make(map[ethcmn.Address]stateObject)
 	csdb.stateObjectsPending = make(map[ethcmn.Address]struct{})
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 }
@@ -1241,7 +1241,7 @@ func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *sta
 }
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
-	csdb.stateObjects[so.Address()] = so
+	csdb.stateObjects[so.Address()] = *so
 }
 
 // RawDump returns a raw state dump.

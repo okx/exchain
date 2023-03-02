@@ -134,7 +134,7 @@ func (csdb *CommitStateDB) getHeightHashInRawDB(height uint64) ethcmn.Hash {
 // destructed object instead of wiping all knowledge about the state object.
 func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObject {
 	// Prefer live objects if any is available
-	if obj := csdb.stateObjects[addr]; obj != nil {
+	if obj,ok := csdb.stateObjects[addr]; ok {
 		if _, ok := csdb.updatedAccount[addr]; ok {
 			delete(csdb.updatedAccount, addr)
 			if err := obj.UpdateAccInfo(); err != nil {
@@ -142,7 +142,7 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 				return nil
 			}
 		}
-		return obj
+		return &obj
 	}
 
 	// otherwise, attempt to fetch the account from the account mapper
