@@ -88,8 +88,8 @@ func iterateAccMpt(ctx *server.Context, height uint64) {
 			//fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(itr.Key), acc.String())
 		}
 	}
-	height := hex.EncodeToString(heightBytes)
-	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height)
+	height2 := hex.EncodeToString(heightBytes)
+	fmt.Println("accTrie root hash:", ethcmn.BytesToHash(rootHash), rootHash2, "leaf count:", leafCount, "height:", height2)
 	fmt.Println("total:", total.String(), "invalid contract:", contractCount, "moduleAccount:", notOK)
 }
 
