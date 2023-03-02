@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/VictoriaMetrics/fastcache"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/tendermint/go-amino"
 	"math/big"
@@ -46,8 +45,6 @@ type CommitStateDBParams struct {
 	Ada           DbAdapter
 	// Amino codec
 	Cdc *codec.Codec
-
-	StateCache *fastcache.Cache
 
 	DB ethstate.Database
 }

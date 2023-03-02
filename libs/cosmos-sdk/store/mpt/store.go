@@ -95,7 +95,7 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 		db:         db,
 		triegc:     triegc,
 		logger:     logger,
-		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
+		kvCache:    nil,
 		retrieval:  retrieval,
 		exitSignal: make(chan struct{}),
 	}
