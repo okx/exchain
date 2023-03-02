@@ -199,9 +199,6 @@ type BaseApp struct { // nolint: maligned
 	feeChanged        bool // used to judge whether should update the fee-collector account
 	FeeSplitCollector []*sdk.FeeSplitInfo
 
-	chainCache *sdk.Cache
-	blockCache *sdk.Cache
-
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
@@ -246,7 +243,6 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
-		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
 		blockDataCache:   NewBlockDataCache(),

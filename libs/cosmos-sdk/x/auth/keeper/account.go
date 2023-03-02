@@ -3,7 +3,6 @@ package keeper
 import (
 	"sync"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -37,14 +36,6 @@ var addrStoreKeyPool = &sync.Pool{
 
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
-	if data, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
-		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
-		if data == nil {
-			return nil
-		}
-
-		return data.Copy()
-	}
 
 	key := ak.mptKey
 	store := ctx.GetReusableKVStore(key)
@@ -56,39 +47,31 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 
 	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	if bz == nil {
-		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
 	}
 	acc := ak.decodeAccount(bz)
-
-	if ctx.Cache().IsEnabled() {
-		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
-	}
 
 	return acc
 }
 
 // LoadAccount load account from store without return, only used in pre deliver tx
 func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
-	if _, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
-		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
-		return
-	}
 
-	key := ak.mptKey
-	store := ctx.GetReusableKVStore(key)
-	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
-	defer func() {
-		addrStoreKeyPool.Put(keyTarget)
-		ctx.ReturnKVStore(store)
-	}()
+	//TODO need fix by wc
+	//key := ak.mptKey
+	//store := ctx.GetReusableKVStore(key)
+	//keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	//defer func() {
+	//	addrStoreKeyPool.Put(keyTarget)
+	//	ctx.ReturnKVStore(store)
+	//}()
+	//
+	//bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
+	//var acc exported.Account
+	//if bz != nil {
+	//	acc = ak.decodeAccount(bz)
+	//}
 
-	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
-	var acc exported.Account
-	if bz != nil {
-		acc = ak.decodeAccount(bz)
-	}
-	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
 	return
 }
 
@@ -114,10 +97,6 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Set(storeAccKey, bz)
-
-	if ctx.Cache().IsEnabled() {
-		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
-	}
 
 	if ctx.IsDeliver() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
@@ -164,8 +143,6 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	if ctx.IsDeliver() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
-
-	ctx.Cache().UpdateAccount(addr, nil, 0, true)
 }
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function
