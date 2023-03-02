@@ -41,13 +41,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradekeeper "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/okex/exchain/x/ammswap"
-	dex "github.com/okex/exchain/x/dex/types"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
 	"github.com/okex/exchain/x/evm"
-	"github.com/okex/exchain/x/farm"
-	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/staking"
 	token "github.com/okex/exchain/x/token/types"
 
@@ -237,8 +233,8 @@ func createTestInput(
 		auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock,
+		ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
 		mpt.StoreKey,
@@ -303,12 +299,6 @@ func createTestInput(
 		staking.NotBondedPoolName:   {supply.Burner, supply.Staking},
 		gov.ModuleName:              nil,
 		token.ModuleName:            {supply.Minter, supply.Burner},
-		dex.ModuleName:              nil,
-		order.ModuleName:            nil,
-		ammswap.ModuleName:          {supply.Minter, supply.Burner},
-		farm.ModuleName:             nil,
-		farm.YieldFarmingAccount:    nil,
-		farm.MintFarmingAccount:     {supply.Burner},
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		types.ModuleName:            nil,
@@ -404,6 +394,7 @@ func createTestInput(
 		subspace(types.ModuleName),
 		&accountKeeper,
 		bank.NewBankKeeperAdapter(bankKeeper),
+		&paramsKeeper,
 		ibcKeeper.ChannelKeeper,
 		&ibcKeeper.PortKeeper,
 		scopedWasmKeeper,

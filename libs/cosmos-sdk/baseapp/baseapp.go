@@ -831,7 +831,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		msCache = msCache.SetTracingContext(
 			sdk.TraceContext(
 				map[string]interface{}{
-					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight())),
+					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash()),
 				},
 			),
 		).(sdk.CacheMultiStore)
@@ -841,11 +841,11 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 	return ctx, msCache
 }
 
-func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte, height int64) sdk.CacheMultiStore {
+func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte) sdk.CacheMultiStore {
 	if msCache.TracingEnabled() {
 		msCache = msCache.SetTracingContext(
 			map[string]interface{}{
-				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(height)),
+				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash()),
 			},
 		).(sdk.CacheMultiStore)
 	}
@@ -920,7 +920,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		// separate each result.
 
 		if isConvert {
-			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+			txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 			v, err := EvmResultConvert(txHash, msgResult.Data)
 			if err == nil {
 				msgResult.Data = v

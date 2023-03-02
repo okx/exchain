@@ -1,10 +1,8 @@
-//nolint
+// nolint
 package types
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 // Verify interface at compile time
@@ -46,11 +44,6 @@ func (msg MsgWithdrawDelegatorReward) ValidateBasic() error {
 		return ErrNilValidatorAddr()
 	}
 
-	//will delete it after upgrade venus2
-	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
-		return ErrCodeNotSupportWithdrawDelegationRewards()
-	}
-
 	return nil
 }
 
@@ -86,11 +79,6 @@ func (msg MsgWithdrawDelegatorAllRewards) GetSignBytes() []byte {
 func (msg MsgWithdrawDelegatorAllRewards) ValidateBasic() error {
 	if msg.DelegatorAddress.Empty() {
 		return ErrNilDelegatorAddr()
-	}
-
-	//will delete it after upgrade venus2
-	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
-		return ErrCodeNotSupportWithdrawDelegationRewards()
 	}
 
 	return nil

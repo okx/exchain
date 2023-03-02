@@ -89,7 +89,7 @@ func (AppModuleBasic) Name() string {
 
 // AppModule is the application module for the IBC interchain accounts module
 type AppModule struct {
-	*common.Veneus3BaseUpgradeModule
+	*common.Venus3BaseUpgradeModule
 	AppModuleBasic
 	controllerKeeper *controllerkeeper.Keeper
 	hostKeeper       *hostkeeper.Keeper
@@ -101,7 +101,7 @@ func NewAppModule(m *codec.CodecProxy, ck *controllerkeeper.Keeper, hk *hostkeep
 		controllerKeeper: ck,
 		hostKeeper:       hk,
 	}
-	ret.Veneus3BaseUpgradeModule = common.NewVeneus3BaseUpgradeModule(ret)
+	ret.Venus3BaseUpgradeModule = common.NewVenus3BaseUpgradeModule(ret)
 	return ret
 }
 

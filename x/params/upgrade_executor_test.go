@@ -150,13 +150,13 @@ func (suite *UpgradeInfoStoreSuite) Context(height int64) sdk.Context {
 
 func (suite *UpgradeInfoStoreSuite) TestStoreUpgrade() {
 	tests := []struct {
-		storeFn               func(sdk.Context, *Keeper, types.UpgradeInfo, uint64) sdk.Error
+		storeFn               func(sdk.Context, *Keeper, types.UpgradeProposal, uint64) sdk.Error
 		expectEffectiveHeight uint64
 		expectStatus          types.UpgradeStatus
 	}{
 		{
-			func(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, _ uint64) sdk.Error {
-				return storePreparingUpgrade(ctx, k, info)
+			func(ctx sdk.Context, k *Keeper, upgrade types.UpgradeProposal, _ uint64) sdk.Error {
+				return storePreparingUpgrade(ctx, k, upgrade)
 			},
 			0,
 			types.UpgradeStatusPreparing,
@@ -167,8 +167,8 @@ func (suite *UpgradeInfoStoreSuite) TestStoreUpgrade() {
 			types.UpgradeStatusWaitingEffective,
 		},
 		{
-			func(ctx sdk.Context, k *Keeper, info types.UpgradeInfo, h uint64) sdk.Error {
-				_, err := storeEffectiveUpgrade(ctx, k, info, h)
+			func(ctx sdk.Context, k *Keeper, upgrade types.UpgradeProposal, h uint64) sdk.Error {
+				_, err := storeEffectiveUpgrade(ctx, k, upgrade, h)
 				return err
 			},
 			22,
@@ -184,11 +184,12 @@ func (suite *UpgradeInfoStoreSuite) TestStoreUpgrade() {
 			Name:            upgradeName,
 			ExpectHeight:    111,
 			Config:          "",
-			EffectiveHeight: math.MaxUint64,
+			EffectiveHeight: 0,
 			Status:          math.MaxUint32,
 		}
+		upgrade := types.NewUpgradeProposal(fmt.Sprintf("title-%d", i), fmt.Sprintf("desc-%d", i), expectInfo.Name, expectInfo.ExpectHeight, expectInfo.Config)
 
-		err := tt.storeFn(ctx, &suite.keeper, expectInfo, tt.expectEffectiveHeight)
+		err := tt.storeFn(ctx, &suite.keeper, upgrade, tt.expectEffectiveHeight)
 		suite.NoError(err)
 
 		info, err := suite.keeper.readUpgradeInfo(ctx, upgradeName)
@@ -213,7 +214,8 @@ func (suite *UpgradeInfoStoreSuite) TestStoreEffectiveUpgrade() {
 		Status:          types.UpgradeStatusPreparing,
 	}
 
-	info, err := storeEffectiveUpgrade(ctx, &suite.keeper, expectInfo, effectiveHeight)
+	upgrade := types.NewUpgradeProposal("ttt", "ddd", expectInfo.Name, expectInfo.ExpectHeight, expectInfo.Config)
+	info, err := storeEffectiveUpgrade(ctx, &suite.keeper, upgrade, effectiveHeight)
 	suite.NoError(err)
 	expectInfo.EffectiveHeight = effectiveHeight
 	expectInfo.Status = types.UpgradeStatusEffective
@@ -264,7 +266,7 @@ func (suite *UpgradeInfoStoreSuite) TestCheckUpgradeVote() {
 
 	for _, tt := range tests {
 		ctx := suite.Context(tt.currentHeight)
-		proposal := types.UpgradeProposal{UpgradeInfo: types.UpgradeInfo{ExpectHeight: tt.expectHeight}}
+		proposal := types.UpgradeProposal{ExpectHeight: tt.expectHeight}
 
 		_, err := checkUpgradeVote(ctx, 0, proposal, govtypes.Vote{})
 		if tt.expectError {
@@ -340,9 +342,13 @@ func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
 		suite.GreaterOrEqual(confirmHeight, tt.currentHeight)
 		if confirmHeight != tt.currentHeight {
 			// proposal is inserted to gov waiting queue, execute it
-			expectInfo := upgradeProposal.UpgradeInfo
-			expectInfo.EffectiveHeight = effectiveHeight
-			expectInfo.Status = types.UpgradeStatusWaitingEffective
+			expectInfo := types.UpgradeInfo{
+				Name:            upgradeProposal.Name,
+				ExpectHeight:    upgradeProposal.ExpectHeight,
+				Config:          upgradeProposal.Config,
+				EffectiveHeight: effectiveHeight,
+				Status:          types.UpgradeStatusWaitingEffective,
+			}
 			info, err := suite.keeper.readUpgradeInfo(ctx, upgradeProposal.Name)
 			suite.NoError(err)
 			suite.Equal(expectInfo, info)
@@ -361,9 +367,13 @@ func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
 		}
 
 		// now proposal must be executed
-		expectInfo := upgradeProposal.UpgradeInfo
-		expectInfo.EffectiveHeight = effectiveHeight
-		expectInfo.Status = types.UpgradeStatusEffective
+		expectInfo := types.UpgradeInfo{
+			Name:            upgradeProposal.Name,
+			ExpectHeight:    upgradeProposal.ExpectHeight,
+			Config:          upgradeProposal.Config,
+			EffectiveHeight: effectiveHeight,
+			Status:          types.UpgradeStatusEffective,
+		}
 		info, err := suite.keeper.readUpgradeInfo(ctx, upgradeProposal.Name)
 		suite.NoError(err)
 		suite.Equal(expectInfo, info)
