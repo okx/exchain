@@ -178,10 +178,13 @@ func (ms *MptStore) getStorageTire(key []byte) (ethstate.Trie, ethcmn.Hash) {
 		root, realKey, err := DecodeStorageGet(key)
 		if err == nil {
 			trie, err := ms.db.OpenTrie(root)
-			if err != nil {
-				return nil, ethcmn.Hash{}
+			if err == nil {
+				return trie, realKey
 			}
-			return trie, realKey
+			if trie, err = ms.db.OpenTrie(ethcmn.Hash{}); err == nil {
+				return trie, realKey
+			}
+
 		}
 	}
 	return nil, ethcmn.Hash{}
