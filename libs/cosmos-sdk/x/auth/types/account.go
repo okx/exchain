@@ -239,7 +239,9 @@ func (acc *BaseAccount) SetAddress(addr sdk.AccAddress) error {
 	if len(acc.Address) != 0 {
 		return errors.New("cannot override BaseAccount address")
 	}
-	acc.Address = addr
+	//deep copy address
+	acc.Address = make([]byte, len(addr))
+	copy(acc.Address, addr)
 	return nil
 }
 

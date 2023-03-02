@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	types2 "github.com/ethereum/go-ethereum/core/types"
@@ -135,12 +136,17 @@ func (csdb *CommitStateDB) getHeightHashInRawDB(height uint64) ethcmn.Hash {
 func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObject {
 	// Prefer live objects if any is available
 	if obj := csdb.stateObjects[addr]; obj != nil {
+		var temp bool
 		if _, ok := csdb.updatedAccount[addr]; ok {
+			temp = true
 			delete(csdb.updatedAccount, addr)
 			if err := obj.UpdateAccInfo(); err != nil {
 				csdb.SetError(err)
 				return nil
 			}
+		}
+		if obj.address != addr || !bytes.Equal(obj.account.Address, addr.Bytes()) {
+			fmt.Println("unexpected:", temp, obj.address, obj.account.EthAddress(), addr)
 		}
 		return obj
 	}
