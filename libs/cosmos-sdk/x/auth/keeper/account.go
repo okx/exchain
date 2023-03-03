@@ -47,14 +47,16 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	}
 
 	key := ak.mptKey
-	store := ctx.GetReusableKVStore(key)
-	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
-	defer func() {
-		addrStoreKeyPool.Put(keyTarget)
-		ctx.ReturnKVStore(store)
-	}()
 
-	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
+	//store := ctx.GetReusableKVStore(key)
+	//keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	//defer func() {
+	//	addrStoreKeyPool.Put(keyTarget)
+	//	ctx.ReturnKVStore(store)
+	//}()
+
+	store := ctx.KVStore(key)
+	bz := store.Get(types.AddressStoreKey(addr))
 	if bz == nil {
 		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
