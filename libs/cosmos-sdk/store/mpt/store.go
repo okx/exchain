@@ -95,10 +95,10 @@ func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetriev
 func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
-		db:         db,
-		triegc:     triegc,
-		logger:     logger,
-		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
+		db:     db,
+		triegc: triegc,
+		logger: logger,
+		//kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
 		retrieval:  retrieval,
 		exitSignal: make(chan struct{}),
 	}
