@@ -5,6 +5,7 @@ import (
 	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
+	"github.com/okex/exchain/x/staking/types"
 )
 
 // StakingKeeper expected staking keeper (noalias)
@@ -12,6 +13,8 @@ type StakingKeeper interface {
 	// iterate through validators by operator address, execute func for each validator
 	IterateValidators(sdk.Context,
 		func(index int64, validator stakingexported.ValidatorI) (stop bool))
+
+	IterateDelegator(ctx sdk.Context, fn func(index int64, delegator types.Delegator) (stop bool))
 
 	// iterate through bonded validators by operator address, execute func for each validator
 	IterateBondedValidatorsByPower(sdk.Context,

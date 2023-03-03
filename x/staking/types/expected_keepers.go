@@ -98,4 +98,6 @@ type StakingHooks interface {
 	//BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec)
 	// Check modules enabled
 	CheckEnabled(ctx sdk.Context) bool
+
+	GetOfficeRewards() float64
 }
