@@ -5,7 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -252,4 +259,74 @@ func (suite *StoreTestSuite) TestMPTStoreQuery() {
 	qres = store.Query(query0)
 	suite.Require().Equal(uint32(0), qres.Code)
 	suite.Require().Equal(v3, qres.Value)
+}
+
+func TestTrieRead(t *testing.T) {
+	db := memorydb.New()
+
+	trie, err := state.NewDatabase(rawdb.NewDatabase(db)).OpenTrie(common.Hash{})
+	require.NoError(t, err)
+	require.NotNilf(t, trie, "trie is nil")
+
+	err = trie.TryUpdate([]byte("key1"), []byte("value1"))
+	require.NoError(t, err)
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 10000; i++ {
+			value, err := trie.TryGet([]byte("key1"))
+			require.NoError(t, err)
+			require.Equal(t, []byte("value1"), value)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 10000; i++ {
+			value, _ := trie.TryGet([]byte("key2"))
+			require.Len(t, value, 0)
+		}
+	}()
+	wg.Wait()
+}
+
+func TestTrieReadGood(t *testing.T) {
+	db := memorydb.New()
+
+	trie, err := state.NewDatabase(rawdb.NewDatabase(db)).OpenTrie(common.Hash{})
+	require.NoError(t, err)
+	require.NotNilf(t, trie, "trie is nil")
+
+	err = trie.TryUpdate([]byte("key1"), []byte("value1"))
+	require.NoError(t, err)
+
+	mtx := sync.Mutex{}
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 10000; i++ {
+			mtx.Lock()
+			value, err := trie.TryGet([]byte("key1"))
+			mtx.Unlock()
+			require.NoError(t, err)
+			require.Equal(t, []byte("value1"), value)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 10000; i++ {
+			mtx.Lock()
+			value, _ := trie.TryGet([]byte("key2"))
+			mtx.Unlock()
+			require.Len(t, value, 0)
+		}
+	}()
+	wg.Wait()
 }

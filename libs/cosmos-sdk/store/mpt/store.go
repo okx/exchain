@@ -2,9 +2,10 @@ package mpt
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 	"sync"
+
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -62,6 +63,8 @@ type MptStore struct {
 
 	//TODO by yxq
 	retrieval mpttypes.AccountStateRootRetrieval
+
+	trieMtx sync.Mutex
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -180,7 +183,9 @@ func (ms *MptStore) Get(key []byte) []byte {
 		}
 	}
 
+	ms.trieMtx.Lock()
 	value, err := ms.trie.TryGet(key)
+	ms.trieMtx.Unlock()
 	if err != nil {
 		return nil
 	}
@@ -210,7 +215,9 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.kvCache != nil {
 		ms.kvCache.Set(key, value)
 	}
+	ms.trieMtx.Lock()
 	err := ms.trie.TryUpdate(key, value)
+	ms.trieMtx.Unlock()
 	if err != nil {
 		return
 	}
@@ -225,7 +232,9 @@ func (ms *MptStore) Delete(key []byte) {
 	if ms.kvCache != nil {
 		ms.kvCache.Del(key)
 	}
+	ms.trieMtx.Lock()
 	err := ms.trie.TryDelete(key)
+	ms.trieMtx.Unlock()
 	if err != nil {
 		return
 	}
