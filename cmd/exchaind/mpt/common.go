@@ -2,7 +2,6 @@ package mpt
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"path/filepath"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -84,7 +83,7 @@ func getStorageTrie(db ethstate.Database, addrHash, stateRoot ethcmn.Hash) ethst
 }
 
 // pushData2Database commit the data to the database
-func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, isEvm bool, accRetrieval types.AccountStateRootRetrieval) {
+func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, isEvm bool) {
 
 	root, set, err := trie.Commit(true)
 	if err != nil {
@@ -96,7 +95,7 @@ func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, i
 			panic(err)
 		}
 	}
-	if err := db.TrieDB().UpdateForOKC(accRetrieval); err != nil {
+	if err := db.TrieDB().UpdateForOKC(mpt.AccountStateRootRetriever.RetrieveStateRoot); err != nil {
 		panic("fail to commit trie data: " + err.Error())
 	}
 
