@@ -1518,9 +1518,7 @@ func (rs *Store) StopStore() {
 			panic("unexpected multi store")
 		case types.StoreTypeMPT:
 			s := store.(*mpt.MptStore)
-			//TODO by yxq
 			s.OnStop()
-			//s.StopWithVersion(latestVersion)
 		case types.StoreTypeTransient:
 		default:
 		}
