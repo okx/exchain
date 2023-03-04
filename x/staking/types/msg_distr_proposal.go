@@ -2,8 +2,6 @@ package types
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 // ensure Msg interface compliance at compile time
@@ -48,9 +46,5 @@ func (msg MsgEditValidatorCommissionRate) ValidateBasic() error {
 		return ErrInvalidCommissionRate()
 	}
 
-	//will delete it after upgrade venus2
-	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
-		return ErrCodeNotSupportEditValidatorCommissionRate()
-	}
 	return nil
 }

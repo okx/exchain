@@ -12,13 +12,15 @@ import (
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	lru "github.com/hashicorp/golang-lru"
+
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 
 	"github.com/spf13/viper"
 
+	"golang.org/x/time/rate"
+
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm/watcher"
-	"golang.org/x/time/rate"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -30,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -281,10 +284,14 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 	if err != nil {
 		return nil, err
 	}
-
 	execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
 	if err != nil {
 		return nil, err
+	}
+
+	// Sometimes failed txs leave Logs which need to be cleared
+	if !txRes.TxResult.IsOK() && execRes.Logs != nil {
+		return []*ethtypes.Log{}, nil
 	}
 
 	return execRes.Logs, nil
@@ -464,7 +471,7 @@ func (b *EthermintBackend) GetLogs(height int64) ([][]*ethtypes.Log, error) {
 			return nil, ErrTimeout
 		default:
 			// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-			txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
+			txRes, err := b.clientCtx.Client.Tx(tx.Hash(), !b.clientCtx.TrustNode)
 			if err != nil {
 				continue
 			}

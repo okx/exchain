@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -81,11 +80,11 @@ func ParseChainID(chainID string) (*big.Int, error) {
 }
 
 func IsValidateChainIdWithGenesisHeight(chainID string) error {
-	if isMainNetChainID(chainID) && !tendermintTypes.IsMainNet() {
-		return fmt.Errorf("Must use <make mainnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
-	}
-	if isTestNetChainID(chainID) && !tendermintTypes.IsTestNet() {
-		return fmt.Errorf("Must use <make testnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
-	}
+	//if isMainNetChainID(chainID) && !tendermintTypes.IsMainNet() {
+	//	return fmt.Errorf("Must use <make mainnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
+	//}
+	//if isTestNetChainID(chainID) && !tendermintTypes.IsTestNet() {
+	//	return fmt.Errorf("Must use <make testnet> to rebuild if chain-id is <%s>, Current GenesisHeight is <%d>", chainID, tendermintTypes.GetStartBlockHeight())
+	//}
 	return nil
 }

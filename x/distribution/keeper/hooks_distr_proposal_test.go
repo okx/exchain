@@ -1,11 +1,11 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/staking"
 	"testing"
 	"time"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/staking"
 
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/stretchr/testify/require"
@@ -15,7 +15,6 @@ func TestHooksBeforeDelegationSharesModified(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.SetInitExistedValidatorFlag(ctx, true)
 
@@ -48,7 +47,6 @@ func TestHooksBeforeDelegationSharesModified(t *testing.T) {
 func TestHooksAfterValidatorRemoved(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, supplyKeeper := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.SetInitExistedValidatorFlag(ctx, true)
 

@@ -64,6 +64,7 @@ func NewProxyKeeper() keeper.Keeper {
 	ss := proxy.SubspaceProxy{}
 	akp := proxy.NewAccountKeeperProxy()
 	bkp := proxy.NewBankKeeperProxy(akp)
+	paramKP := proxy.ParamsKeeperProxy{}
 	pkp := proxy.PortKeeperProxy{}
 	ckp := proxy.CapabilityKeeperProxy{}
 	skp := proxy.SupplyKeeperProxy{}
@@ -72,7 +73,7 @@ func NewProxyKeeper() keeper.Keeper {
 	queryRouter := baseapp.NewGRPCQueryRouter()
 	queryRouter.SetInterfaceRegistry(interfaceReg)
 
-	k := keeper.NewSimulateKeeper(codec.NewCodecProxy(protoCdc, cdc), sdk.NewKVStoreKey(StoreKey), ss, akp, bkp, nil, pkp, ckp, nil, msgRouter, queryRouter, WasmDir(), WasmConfig(), SupportedFeatures)
+	k := keeper.NewSimulateKeeper(codec.NewCodecProxy(protoCdc, cdc), sdk.NewKVStoreKey(StoreKey), ss, akp, bkp, paramKP, nil, pkp, ckp, nil, msgRouter, queryRouter, WasmDir(), WasmConfig(), SupportedFeatures)
 	types.RegisterMsgServer(msgRouter, keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(k)))
 	types.RegisterQueryServer(queryRouter, NewQuerier(&k))
 	bank.RegisterBankMsgServer(msgRouter, bank.NewMsgServerImpl(bkp))
