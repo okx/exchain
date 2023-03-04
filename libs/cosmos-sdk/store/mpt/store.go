@@ -95,10 +95,10 @@ func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetriev
 func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
-		db:     db,
-		triegc: triegc,
-		logger: logger,
-		//kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
+		db:         db,
+		triegc:     triegc,
+		logger:     logger,
+		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
 		retrieval:  retrieval,
 		exitSignal: make(chan struct{}),
 	}
@@ -185,13 +185,14 @@ func (ms *MptStore) Get(key []byte) []byte {
 
 	ms.trieMtx.Lock()
 	value, err := ms.trie.TryGet(key)
-	ms.trieMtx.Unlock()
 	if err != nil {
+		ms.trieMtx.Unlock()
 		return nil
 	}
 	if ms.kvCache != nil && value != nil {
 		ms.kvCache.Set(key, value)
 	}
+	ms.trieMtx.Unlock()
 
 	return value
 }
@@ -212,15 +213,17 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
+	ms.trieMtx.Lock()
+	err := ms.trie.TryUpdate(key, value)
+	if err != nil {
+		ms.trieMtx.Unlock()
+		return
+	}
 	if ms.kvCache != nil {
 		ms.kvCache.Set(key, value)
 	}
-	ms.trieMtx.Lock()
-	err := ms.trie.TryUpdate(key, value)
 	ms.trieMtx.Unlock()
-	if err != nil {
-		return
-	}
+
 	return
 }
 
