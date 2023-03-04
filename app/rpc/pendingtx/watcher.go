@@ -58,7 +58,7 @@ func (w *Watcher) Start() {
 					w.logger.Error(fmt.Sprintf("invalid pending tx data type %T, expected EventDataTx", re.Data))
 					continue
 				}
-				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
+				txHash := common.BytesToHash(data.Tx.Hash())
 				w.logger.Debug("receive pending tx", "txHash=", txHash.String())
 
 				tx, err := evmtypes.TxDecoder(w.clientCtx.Codec)(data.Tx, data.Height)

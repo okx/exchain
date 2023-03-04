@@ -9,10 +9,9 @@ import (
 
 func TestQueryTxFor(t *testing.T) {
 	tx := Tx("foo")
-	height := int64(0)
 	assert.Equal(t,
-		fmt.Sprintf("tm.event='Tx' AND tx.hash='%X'", tx.Hash(height)),
-		EventQueryTxFor(tx, height).String(),
+		fmt.Sprintf("tm.event='Tx' AND tx.hash='%X'", tx.Hash()),
+		EventQueryTxFor(tx).String(),
 	)
 }
 

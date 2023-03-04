@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/hex"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"sort"
 	"strings"
 
@@ -53,22 +52,6 @@ func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			if evmTx.BaseTx.From == "" {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
-			}
-
-			// TODO by yxq, temporarily for test
-			if cfg.DynamicConfig.GetEnablePGU() {
-				return
-			}
-
-			if onlyVerifySig {
-				return
-			}
-
-			if from := evmTx.AccountAddress(); from != nil {
-				ak.LoadAccount(ctx, from)
-			}
-			if to := evmTx.Data.Recipient; to != nil {
-				ak.LoadAccount(ctx, to.Bytes())
 			}
 		}
 	}
