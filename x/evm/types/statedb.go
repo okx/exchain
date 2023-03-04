@@ -982,7 +982,6 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 
 // deleteStateObject removes the given state object from the state store.
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
-	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
 }
 
