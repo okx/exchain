@@ -1,7 +1,6 @@
 package mpt
 
 import (
-	"fmt"
 	"io"
 	"sync"
 
@@ -32,6 +31,15 @@ func NewImmutableMptStore(db ethstate.Database, root ethcmn.Hash) (*ImmutableMpt
 	return ms, nil
 }
 
+func NewImmutableMptStoreFromTrie(db ethstate.Database, trie ethstate.Trie) *ImmutableMptStore {
+	ms := &ImmutableMptStore{
+		trie: db.CopyTrie(trie),
+		db:   db,
+		root: trie.Hash(),
+	}
+	return ms
+}
+
 func (ms *ImmutableMptStore) Get(key []byte) []byte {
 	ms.mtx.Lock()
 	defer ms.mtx.Unlock()
@@ -56,11 +64,11 @@ func (ms *ImmutableMptStore) Delete(key []byte) {
 }
 
 func (ms *ImmutableMptStore) Iterator(start, end []byte) types.Iterator {
-	return newMptIterator(mustOpenRootTrie(ms.db, ms.root), start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 func (ms *ImmutableMptStore) ReverseIterator(start, end []byte) types.Iterator {
-	return newMptIterator(mustOpenRootTrie(ms.db, ms.root), start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 func (ms *ImmutableMptStore) GetStoreType() types.StoreType {
@@ -75,14 +83,6 @@ func (ms *ImmutableMptStore) CacheWrap() types.CacheWrap {
 func (ms *ImmutableMptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.CacheWrap {
 	//TODO implement me
 	return cachekv.NewStore(tracekv.NewStore(ms, w, tc))
-}
-
-func mustOpenRootTrie(db ethstate.Database, root ethcmn.Hash) ethstate.Trie {
-	tr, err := db.OpenTrie(root)
-	if err != nil {
-		panic(fmt.Errorf("fail to open root mpt: %x, error %w", root, err))
-	}
-	return tr
 }
 
 var _ types.KVStore = (*ImmutableMptStore)(nil)
