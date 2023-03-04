@@ -724,6 +724,10 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
 				continue
 			}
+			if version == 0 {
+				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
+				continue
+			}
 			// Attempt to lazy-load an already saved IAVL store version. If the
 			// version does not exist or is pruned, an error should be returned.
 			iavlStore, err := store.(*iavl.Store).GetImmutable(version)
