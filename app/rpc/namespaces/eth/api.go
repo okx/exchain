@@ -468,12 +468,8 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	useWatchBackend := api.useWatchBackend(blockNum)
 
-	qWatchdbKey := key
 	if useWatchBackend {
-		if !directlyKey {
-			qWatchdbKey = evmtypes.GetStorageByAddressKey(address.Bytes(), key).Bytes()
-		}
-		res, err := api.wrappedBackend.MustGetState(address, qWatchdbKey)
+		res, err := api.wrappedBackend.MustGetState(address, key)
 		if err == nil {
 			return res, nil
 		}
@@ -494,7 +490,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	if useWatchBackend {
-		api.watcherBackend.CommitStateToRpcDb(address, qWatchdbKey, out.Value)
+		api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
 	}
 	return out.Value, nil
 }
