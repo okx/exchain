@@ -13,14 +13,11 @@ import (
 	cosmossdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/tendermint/global"
-	tendertypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
-	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/params"
 
 	"github.com/stretchr/testify/require"
@@ -109,13 +106,9 @@ func TestProposalManager(t *testing.T) {
 	app := NewOKExChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0)
 
 	require.True(t, app.GovKeeper.Router().HasRoute(params.RouterKey))
-	require.True(t, app.GovKeeper.Router().HasRoute(dex.RouterKey))
 	require.True(t, app.GovKeeper.Router().HasRoute(distr.RouterKey))
-	require.True(t, app.GovKeeper.Router().HasRoute(farm.RouterKey))
 
 	require.True(t, app.GovKeeper.ProposalHandlerRouter().HasRoute(params.RouterKey))
-	require.True(t, app.GovKeeper.ProposalHandlerRouter().HasRoute(dex.RouterKey))
-	require.True(t, app.GovKeeper.ProposalHandlerRouter().HasRoute(farm.RouterKey))
 }
 
 func TestFakeBlockTxSuite(t *testing.T) {
@@ -164,7 +157,6 @@ func (suite *FakeBlockTxTestSuite) beginFakeBlock() {
 	err := suite.app.BankKeeper.SetCoins(suite.Ctx(), suite.stdSenderAccAddress, cosmossdk.NewCoins(txCoin1000))
 	suite.Require().NoError(err)
 
-	tendertypes.UnittestOnlySetMilestoneVenusHeight(blockHeight - 1)
 	global.SetGlobalHeight(blockHeight - 1)
 	suite.app.BeginBlocker(suite.Ctx(), abcitypes.RequestBeginBlock{Header: abcitypes.Header{Height: blockHeight}})
 }

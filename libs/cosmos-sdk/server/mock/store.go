@@ -22,6 +22,10 @@ func (ms multiStore) AppendVersionFilters(filters []store.VersionFilter) {
 	panic("not implemented")
 }
 
+func (ms multiStore) CleanVersionFilters() {
+	panic("not implemented")
+}
+
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 	panic("not implemented")
 }
@@ -29,11 +33,20 @@ func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 func (ms multiStore) CacheMultiStoreWithVersion(_ int64) (sdk.CacheMultiStore, error) {
 	panic("not implemented")
 }
+
 func (ms multiStore) AppendCommitFilters(filters []store.StoreFilter) {
 	panic("not implemented")
 }
 
+func (ms multiStore) CleanCommitFilters() {
+	panic("not implemented")
+}
+
 func (ms multiStore) AppendPruneFilters(filters []store.StoreFilter) {
+	panic("not implemented")
+}
+
+func (ms multiStore) CleanPruneFilters() {
 	panic("not implemented")
 }
 

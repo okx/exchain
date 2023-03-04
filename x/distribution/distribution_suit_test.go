@@ -7,7 +7,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
@@ -47,7 +46,6 @@ func initEnv(t *testing.T, validatorCount int64, newVersion bool) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, supplyKeeper = keeper.CreateTestInputAdvanced(t, false, 1000, communityTax)
 	if newVersion {
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 		dk.SetInitExistedValidatorFlag(ctx, true)
 	}
 
@@ -1554,7 +1552,6 @@ func (suite *DistributionSuite) TestUpgrade() {
 			}
 
 			// upgrade
-			tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			proposal := makeChangeDistributionTypeProposal(types.DistributionTypeOnChain)
 			hdlr := NewDistributionProposalHandler(dk)
 			require.NoError(suite.T(), hdlr(ctx, &proposal))

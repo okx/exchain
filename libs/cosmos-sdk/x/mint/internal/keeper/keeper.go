@@ -20,7 +20,6 @@ type Keeper struct {
 	supplyKeeper     types.SupplyKeeper
 	feeCollectorName string
 
-	farmModuleName         string
 	originalMintedPerBlock sdk.Dec
 	govKeeper              types.GovKeeper
 }
@@ -28,7 +27,7 @@ type Keeper struct {
 // NewKeeper creates a new mint Keeper instance
 func NewKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramSpace params.Subspace,
-	sk types.StakingKeeper, supplyKeeper types.SupplyKeeper, feeCollectorName, farmModule string,
+	sk types.StakingKeeper, supplyKeeper types.SupplyKeeper, feeCollectorName string,
 ) Keeper {
 
 	// ensure mint module account is set
@@ -43,7 +42,6 @@ func NewKeeper(
 		sk:                     sk,
 		supplyKeeper:           supplyKeeper,
 		feeCollectorName:       feeCollectorName,
-		farmModuleName:         farmModule,
 		originalMintedPerBlock: types.DefaultOriginalMintedPerBlock(),
 	}
 }

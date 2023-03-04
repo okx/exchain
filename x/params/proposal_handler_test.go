@@ -213,7 +213,15 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeProposal() {
 		upgradeProposal := types.NewUpgradeProposal("title", "desc", fmt.Sprintf("upgrade-name-%d", i), tt.expectHeight, "")
 		msg := govtypes.NewMsgSubmitProposal(upgradeProposal, tt.proposalInitDeposit, tt.proposer)
 		if tt.nameHasExist {
-			suite.NoError(suite.paramsKeeper.writeUpgradeInfo(ctx, upgradeProposal.UpgradeInfo, false))
+			info := types.UpgradeInfo{
+				Name:         upgradeProposal.Name,
+				ExpectHeight: upgradeProposal.ExpectHeight,
+				Config:       upgradeProposal.Config,
+
+				EffectiveHeight: 0,
+				Status:          0,
+			}
+			suite.NoError(suite.paramsKeeper.writeUpgradeInfo(ctx, info, false))
 		}
 
 		err = suite.paramsKeeper.CheckMsgSubmitProposal(ctx, msg)
@@ -246,7 +254,7 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeVote() {
 
 	for i, tt := range tests {
 		ctx := suite.Context(tt.currentHeight)
-		content := types.UpgradeProposal{UpgradeInfo: types.UpgradeInfo{ExpectHeight: tt.expectHeight}}
+		content := types.UpgradeProposal{ExpectHeight: tt.expectHeight}
 		proposal := govtypes.Proposal{Content: content, ProposalID: uint64(i)}
 		vote := govtypes.Vote{}
 
@@ -263,12 +271,14 @@ func (suite *ProposalHandlerSuite) TestAfterSubmitProposalHandler() {
 	ctx := suite.Context(10)
 	expectInfo := types.UpgradeInfo{
 		Name:            "name1",
-		EffectiveHeight: 111,
+		EffectiveHeight: 0,
 		Status:          types.UpgradeStatusEffective,
 	}
 	proposal := govtypes.Proposal{
 		Content: types.UpgradeProposal{
-			UpgradeInfo: expectInfo,
+			Name:         expectInfo.Name,
+			ExpectHeight: expectInfo.ExpectHeight,
+			Config:       expectInfo.Config,
 		},
 		ProposalID: 1,
 	}

@@ -6,10 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-
-	"github.com/okex/exchain/libs/tendermint/global"
-
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	ce "github.com/okex/exchain/libs/tendermint/crypto/encoding"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
@@ -132,16 +128,9 @@ func ValidatorFromProto(vp *tmproto.Validator) (*Validator, error) {
 	if vp == nil {
 		return nil, errors.New("nil validator")
 	}
-	pk, pubKeyType, err := ce.PubKeyFromProto(&vp.PubKey)
+	pk, _, err := ce.PubKeyFromProto(&vp.PubKey)
 	if err != nil {
 		return nil, err
-	}
-
-	if pubKeyType == ce.Secp256k1 {
-		gh := global.GetGlobalHeight()
-		if !HigherThanVenus2(gh) {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "not support secp256k1 pubkey before the veneus2 height")
-		}
 	}
 
 	v := new(Validator)

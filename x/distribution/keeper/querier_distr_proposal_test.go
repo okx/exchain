@@ -7,7 +7,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
@@ -80,7 +79,6 @@ func getQueriedCommunityPool(t *testing.T, ctx sdk.Context, querier sdk.Querier)
 }
 
 func TestRewards(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	ctx, _, keeper, sk, _ := CreateTestInputDefault(t, false, 1000)
 	querier := NewQuerier(keeper)
 
