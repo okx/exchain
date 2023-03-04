@@ -138,22 +138,10 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 	return nil
 }
 
-func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
+func (ms *MptStore) GetImmutable(height int64) (*ImmutableMptStore, error) {
 	rootHash := ms.GetMptRootHash(uint64(height))
-	tr, err := ms.db.OpenTrie(rootHash)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to open root mpt: " + err.Error())
-	}
-	mptStore := &MptStore{
-		db:           ms.db,
-		trie:         tr,
-		originalRoot: rootHash,
-		exitSignal:   make(chan struct{}),
-		version:      height,
-		startVersion: height,
-	}
 
-	return mptStore, nil
+	return NewImmutableMptStore(ms.db, rootHash)
 }
 
 /*

@@ -151,13 +151,8 @@ func (suite *StoreTestSuite) TestGetImmutable() {
 	suite.Require().NoError(err)
 	suite.Require().Equal(curStore.Get(key), newValue)
 
-	res := curStore.Query(abci.RequestQuery{Data: key, Height: cID.Version, Path: "/key", Prove: true})
-	suite.Require().Equal(res.Value, newValue)
-	suite.Require().NotNil(res.Proof)
-
 	suite.Require().Panics(func() { curStore.Set(nil, nil) })
 	suite.Require().NotPanics(func() { curStore.Delete(nil) })
-	suite.Require().Panics(func() { curStore.CommitterCommit(nil) })
 }
 
 func (suite *StoreTestSuite) TestTestIterator() {
