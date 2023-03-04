@@ -61,8 +61,6 @@ type MptStore struct {
 
 	//TODO by yxq
 	retrieval mpttypes.AccountStateRootRetrieval
-
-	trieMtx sync.Mutex
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -156,6 +154,14 @@ func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
 	return mptStore, nil
 }
 
+func (ms *MptStore) mustOpenRootTrie() ethstate.Trie {
+	tr, err := ms.db.OpenTrie(ms.originalRoot)
+	if err != nil {
+		panic(fmt.Errorf("fail to open root mpt: %x, error %w", ms.originalRoot, err))
+	}
+	return tr
+}
+
 /*
 *  implement KVStore
  */
@@ -174,13 +180,10 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-	ms.trieMtx.Lock()
-	value, err := ms.trie.TryGet(key)
+	value, err := ms.mustOpenRootTrie().TryGet(key)
 	if err != nil {
-		ms.trieMtx.Unlock()
 		return nil
 	}
-	ms.trieMtx.Unlock()
 
 	return value
 }
@@ -195,13 +198,10 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
-	ms.trieMtx.Lock()
 	err := ms.trie.TryUpdate(key, value)
 	if err != nil {
-		ms.trieMtx.Unlock()
 		return
 	}
-	ms.trieMtx.Unlock()
 
 	return
 }
@@ -210,20 +210,18 @@ func (ms *MptStore) Delete(key []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
-	ms.trieMtx.Lock()
 	err := ms.trie.TryDelete(key)
-	ms.trieMtx.Unlock()
 	if err != nil {
 		return
 	}
 }
 
 func (ms *MptStore) Iterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.mustOpenRootTrie(), start, end)
 }
 
 func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.mustOpenRootTrie(), start, end)
 }
 
 /*
