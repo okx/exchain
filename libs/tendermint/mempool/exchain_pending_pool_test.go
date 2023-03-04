@@ -115,9 +115,9 @@ func TestRemoveTxByHash(t *testing.T) {
 		tx := pool.getTx(exInfo.Tx.from, exInfo.Tx.realTx.GetNonce())
 		assert.Equal(t, tx, exInfo.Tx)
 	}
-	var height int64 = 0
+
 	for _, tc := range txs {
-		pool.removeTxByHash(txID(tc.Tx.tx, height))
+		pool.removeTxByHash(txID(tc.Tx.tx))
 		res := pool.getTx(tc.Tx.from, tc.Tx.realTx.GetNonce())
 		assert.Nil(t, res)
 	}

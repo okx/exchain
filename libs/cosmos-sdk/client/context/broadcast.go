@@ -45,17 +45,9 @@ func (ctx CLIContext) CheckTendermintError(err error, txBytes []byte) *sdk.TxRes
 	if err == nil {
 		return nil
 	}
-	var height int64
-	lastHeight, err2 := ctx.Client.LatestBlockNumber()
-	if err2 == nil {
-		height = lastHeight
-	} else {
-		// default new tx hash
-		height = types.GetMilestoneVenusHeight()
-	}
 
 	errStr := strings.ToLower(err.Error())
-	txHash := fmt.Sprintf("%X", types.Tx(txBytes).Hash(height))
+	txHash := fmt.Sprintf("%X", types.Tx(txBytes).Hash())
 
 	switch {
 	case strings.Contains(errStr, strings.ToLower(mempool.ErrTxInCache.Error())):

@@ -53,16 +53,8 @@ func ErrCodeDisabledWithdrawRewards() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeDisabledWithdrawRewards, "withdraw rewards disabled")
 }
 
-func ErrCodeNotSupportWithdrawRewardEnabledProposal() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNotSupportWithdrawRewardEnabledProposal, "do not support, withdraw reward enabled proposal invalid")
-}
-
 func ErrCodeProposerMustBeValidator() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeProposerMustBeValidator, "the proposal of proposer must be validator")
-}
-
-func ErrCodeNotSupportRewardTruncateProposal() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNotSupportRewardTruncatePrecisionProposal, "do not support,reward truncate precision proposal invalid")
 }
 
 func ErrCodeRewardTruncatePrecision() sdk.Error {

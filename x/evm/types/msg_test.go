@@ -32,6 +32,8 @@ import (
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func newSdkAddress() sdk.AccAddress {
@@ -155,6 +157,7 @@ func TestMsgEthereumTxRLPEncode(t *testing.T) {
 	raw, err := rlp.EncodeToBytes(&msg)
 	require.NoError(t, err)
 	require.Equal(t, ethcmn.FromHex("E48080830186A0940000000000000000746573745F61646472657373808474657374808080"), raw)
+	require.Equal(t, tmtypes.Tx(raw).Hash(), keccak256(raw))
 }
 
 func TestMsgEthereumTxRLPDecode(t *testing.T) {
@@ -328,6 +331,8 @@ func TestMsgEthereumTx_Amino(t *testing.T) {
 	for _, msg := range testCases {
 		raw, err := ModuleCdc.MarshalBinaryBare(msg)
 		require.NoError(t, err)
+
+		require.Equal(t, tmhash.Sum(raw), tmtypes.Tx(raw).Hash())
 
 		var msg2 MsgEthereumTx
 		err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)

@@ -26,10 +26,22 @@ func (rs *Store) AppendCommitFilters(filters []storetypes.StoreFilter) {
 	rs.commitFilters = append(rs.commitFilters, filters...)
 }
 
+func (rs *Store) CleanCommitFilters() {
+	rs.commitFilters = nil
+}
+
 func (rs *Store) AppendPruneFilters(filters []storetypes.StoreFilter) {
 	rs.pruneFilters = append(rs.pruneFilters, filters...)
 }
 
+func (rs *Store) CleanPruneFilters() {
+	rs.pruneFilters = nil
+}
+
 func (rs *Store) AppendVersionFilters(filters []storetypes.VersionFilter) {
 	rs.versionFilters = append(rs.versionFilters, filters...)
+}
+
+func (rs *Store) CleanVersionFilters() {
+	rs.versionFilters = nil
 }

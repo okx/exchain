@@ -157,7 +157,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 			select {
 			case ev := <-txsCh:
 				data, _ := ev.Data.(tmtypes.EventDataTx)
-				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
+				txHash := common.BytesToHash(data.Tx.Hash())
 
 				api.filtersMu.Lock()
 				if f, found := api.filters[pendingTxSub.ID()]; found {
@@ -202,7 +202,7 @@ func (api *PublicFilterAPI) NewPendingTransactions(ctx context.Context) (*rpc.Su
 			select {
 			case ev := <-txsCh:
 				data, _ := ev.Data.(tmtypes.EventDataTx)
-				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
+				txHash := common.BytesToHash(data.Tx.Hash())
 
 				// To keep the original behaviour, send a single tx hash in one notification.
 				// TODO(rjl493456442) Send a batch of tx hashes in one notification

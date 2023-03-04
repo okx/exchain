@@ -68,30 +68,6 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	return acc
 }
 
-// LoadAccount load account from store without return, only used in pre deliver tx
-func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
-	if _, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
-		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
-		return
-	}
-
-	key := ak.mptKey
-	store := ctx.GetReusableKVStore(key)
-	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
-	defer func() {
-		addrStoreKeyPool.Put(keyTarget)
-		ctx.ReturnKVStore(store)
-	}()
-
-	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
-	var acc exported.Account
-	if bz != nil {
-		acc = ak.decodeAccount(bz)
-	}
-	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
-	return
-}
-
 // GetAllAccounts returns all accounts in the accountKeeper.
 func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Account) {
 	ak.IterateAccounts(ctx,

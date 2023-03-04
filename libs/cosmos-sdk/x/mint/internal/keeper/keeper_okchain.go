@@ -6,14 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (k Keeper) AddYieldFarming(ctx sdk.Context, yieldAmt sdk.Coins) error {
-	// todo: verify farmModuleName
-	if len(k.farmModuleName) == 0 {
-		return nil
-	}
-	return k.supplyKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, k.farmModuleName, yieldAmt)
-}
-
 // get the minter custom
 func (k Keeper) GetMinterCustom(ctx sdk.Context) (minter types.MinterCustom) {
 	store := ctx.KVStore(k.storeKey)

@@ -14,7 +14,6 @@ import (
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/system/trace/persist"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -80,9 +79,6 @@ type Store struct {
 	commitFilters  []types.StoreFilter
 	pruneFilters   []types.StoreFilter
 	versionFilters []types.VersionFilter
-
-	//TODO by yxq
-	retrieval mpttypes.AccountStateRootRetrieval
 }
 
 var (
@@ -938,7 +934,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		return mem.NewStore(), nil
 
 	case types.StoreTypeMPT:
-		return mpt.NewMptStore(rs.logger, rs.retrieval, id)
+		return mpt.NewMptStore(rs.logger, id)
 
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
@@ -1522,9 +1518,7 @@ func (rs *Store) StopStore() {
 			panic("unexpected multi store")
 		case types.StoreTypeMPT:
 			s := store.(*mpt.MptStore)
-			//TODO by yxq
 			s.OnStop()
-			//s.StopWithVersion(latestVersion)
 		case types.StoreTypeTransient:
 		default:
 		}
@@ -1548,8 +1542,4 @@ func GetLatestStoredMptHeight() uint64 {
 
 func (rs *Store) SetUpgradeVersion(version int64) {
 	rs.upgradeVersion = version
-}
-
-func (rs *Store) SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval) {
-	rs.retrieval = retrieval
 }

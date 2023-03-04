@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -65,11 +63,6 @@ func (cdtp ChangeDistributionTypeProposal) ValidateBasic() error {
 		return ErrInvalidDistributionType()
 	}
 
-	//will delete it after upgrade venus2
-	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
-		return ErrCodeNotSupportDistributionProposal()
-	}
-
 	return nil
 }
 
@@ -118,11 +111,6 @@ func (proposal WithdrawRewardEnabledProposal) ValidateBasic() error {
 	err := govtypes.ValidateAbstract(ModuleName, proposal)
 	if err != nil {
 		return err
-	}
-
-	//will delete it after upgrade venus2
-	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
-		return ErrCodeNotSupportWithdrawRewardEnabledProposal()
 	}
 
 	return nil
@@ -177,11 +165,6 @@ func (proposal RewardTruncatePrecisionProposal) ValidateBasic() error {
 
 	if proposal.Precision < 0 || proposal.Precision > sdk.Precision {
 		return ErrCodeRewardTruncatePrecision()
-	}
-
-	//will delete it after upgrade venus2
-	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
-		return ErrCodeNotSupportRewardTruncateProposal()
 	}
 
 	return nil
