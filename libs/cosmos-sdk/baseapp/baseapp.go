@@ -8,7 +8,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -827,7 +826,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		msCache = msCache.SetTracingContext(
 			sdk.TraceContext(
 				map[string]interface{}{
-					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight())),
+					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash()),
 				},
 			),
 		).(sdk.CacheMultiStore)
@@ -837,11 +836,11 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 	return ctx, msCache
 }
 
-func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte, height int64) sdk.CacheMultiStore {
+func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte) sdk.CacheMultiStore {
 	if msCache.TracingEnabled() {
 		msCache = msCache.SetTracingContext(
 			map[string]interface{}{
-				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(height)),
+				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash()),
 			},
 		).(sdk.CacheMultiStore)
 	}
@@ -916,7 +915,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		// separate each result.
 
 		if isConvert {
-			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+			txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 			v, err := EvmResultConvert(txHash, msgResult.Data)
 			if err == nil {
 				msgResult.Data = v
@@ -1026,8 +1025,4 @@ func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 
 func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 	return app.txDecoder
-}
-
-func (app *BaseApp) SetAccountStateRetrievalForCMS(retrieval mpttypes.AccountStateRootRetrieval) {
-	app.cms.SetAccountStateRootRetrieval(retrieval)
 }

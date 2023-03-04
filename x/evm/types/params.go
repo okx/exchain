@@ -13,7 +13,7 @@ import (
 const (
 	// DefaultParamspace for params keeper
 	DefaultParamspace       = ModuleName
-	defaultMaxGasLimitPerTx = 30000000
+	defaultMaxGasLimitPerTx = 50000000
 )
 
 // Parameter keys
@@ -63,11 +63,11 @@ func NewParams(enableCreate, enableCall, enableContractDeploymentWhitelist, enab
 // DefaultParams returns default evm parameters
 func DefaultParams() Params {
 	return Params{
-		EnableCreate:                      false,
-		EnableCall:                        false,
+		EnableCreate:                      true,
+		EnableCall:                        true,
 		ExtraEIPs:                         []int(nil), // TODO: define default values
 		EnableContractDeploymentWhitelist: false,
-		EnableContractBlockedList:         false,
+		EnableContractBlockedList:         true,
 		MaxGasLimitPerTx:                  defaultMaxGasLimitPerTx,
 	}
 }
