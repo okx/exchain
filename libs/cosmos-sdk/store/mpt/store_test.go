@@ -261,7 +261,7 @@ func (suite *StoreTestSuite) TestMPTStoreQuery() {
 	suite.Require().Equal(v3, qres.Value)
 }
 
-func TestTrieRead(t *testing.T) {
+func TestTrieReadBad(t *testing.T) {
 	db := memorydb.New()
 
 	trie, err := state.NewDatabase(rawdb.NewDatabase(db)).OpenTrie(common.Hash{})
@@ -276,19 +276,33 @@ func TestTrieRead(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
+		var res = map[string]struct{}{}
 		for i := 0; i < 10000; i++ {
 			value, err := trie.TryGet([]byte("key1"))
 			require.NoError(t, err)
-			require.Equal(t, []byte("value1"), value)
+			res[string(value)] = struct{}{}
+			//require.Equal(t, []byte("value1"), value)
 		}
+		for v := range res {
+			t.Logf("bad read key1 value:\"%s\"", v)
+		}
+		delete(res, "value1")
+		require.NotEqual(t, 0, len(res))
 	}()
 
 	go func() {
 		defer wg.Done()
+		var res = map[string]struct{}{}
 		for i := 0; i < 10000; i++ {
 			value, _ := trie.TryGet([]byte("key2"))
-			require.Len(t, value, 0)
+			res[string(value)] = struct{}{}
+			//require.Len(t, value, 0)
 		}
+		for v := range res {
+			t.Logf("bad read key2 value:\"%s\"", v)
+		}
+		require.NotEqual(t, 0, len(res))
+		require.NotEqual(t, 1, len(res))
 	}()
 	wg.Wait()
 }
@@ -328,5 +342,65 @@ func TestTrieReadGood(t *testing.T) {
 			require.Len(t, value, 0)
 		}
 	}()
+	wg.Wait()
+}
+
+func TestSeparateTrieRead(t *testing.T) {
+	db := memorydb.New()
+	ethDb := rawdb.NewDatabase(db)
+	stateDb := state.NewDatabase(ethDb)
+
+	trie, err := stateDb.OpenTrie(common.Hash{})
+	require.NoError(t, err)
+	require.NotNilf(t, trie, "trie is nil")
+
+	for i := 0; i < 1000; i++ {
+		err = trie.TryUpdate([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i)))
+		require.NoError(t, err)
+	}
+
+	root, err := trie.Commit(nil)
+	require.NoError(t, err)
+
+	wg := sync.WaitGroup{}
+
+	goNum := 6
+
+	wg.Add(goNum)
+
+	for i := 0; i < goNum; i++ {
+		go func() {
+			defer wg.Done()
+
+			trie, err := stateDb.OpenTrie(root)
+			require.NoError(t, err)
+
+			for i := 0; i < 10000; i++ {
+				value, err := trie.TryGet([]byte("key1"))
+				require.NoError(t, err)
+				require.Equal(t, []byte("value1"), value)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	wg.Add(goNum)
+
+	for i := 0; i < goNum; i++ {
+		go func() {
+			defer wg.Done()
+
+			trie, err := stateDb.OpenTrie(root)
+			require.NoError(t, err)
+
+			for i := 0; i < 1000; i++ {
+				value, err := trie.TryGet([]byte(fmt.Sprintf("key%d", i)))
+				require.NoError(t, err)
+				require.Equal(t, []byte(fmt.Sprintf("value%d", i)), value)
+			}
+		}()
+	}
+
 	wg.Wait()
 }
