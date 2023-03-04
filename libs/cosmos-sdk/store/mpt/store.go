@@ -258,7 +258,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 			panic(err)
 		}
 	}
-	if err := ms.db.TrieDB().UpdateForOKC(ms.retrieval); err != nil {
+	if err := ms.db.TrieDB().UpdateForOKC(ms.retriever.RetrieveStateRoot); err != nil {
 		panic("fail to commit trie data: " + err.Error())
 	}
 	ms.SetMptRootHash(uint64(ms.version), root)
