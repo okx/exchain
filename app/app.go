@@ -751,7 +751,7 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
-	app.SetAccountStateRetrievalForCMS(app.AccountKeeper.RetrievalStateRoot)
+	mpt.AccountStateRootRetriever = app.AccountKeeper
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {

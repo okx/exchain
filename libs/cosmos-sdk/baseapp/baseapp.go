@@ -8,7 +8,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -1026,8 +1025,4 @@ func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 
 func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 	return app.txDecoder
-}
-
-func (app *BaseApp) SetAccountStateRetrievalForCMS(retrieval mpttypes.AccountStateRootRetrieval) {
-	app.cms.SetAccountStateRootRetrieval(retrieval)
 }
