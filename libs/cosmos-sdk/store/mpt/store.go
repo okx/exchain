@@ -137,10 +137,7 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 }
 
 func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
-	var rootHash ethcmn.Hash
-	if height != 0 {
-		rootHash = ms.GetMptRootHash(uint64(height))
-	}
+	rootHash := ms.GetMptRootHash(uint64(height))
 	tr, err := ms.db.OpenTrie(rootHash)
 	if err != nil {
 		return nil, fmt.Errorf("Fail to open root mpt: " + err.Error())
