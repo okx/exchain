@@ -1,7 +1,6 @@
 package mock
 
 import (
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -246,9 +245,5 @@ func (ms multiStore) GetCommitVersion() (int64, error) {
 }
 
 func (ms multiStore) CommitterCommitMap(inputDeltaMap iavl.TreeDeltaMap) (sdk.CommitID, iavl.TreeDeltaMap) {
-	panic("not implemented")
-}
-
-func (ms multiStore) SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval) {
 	panic("not implemented")
 }
