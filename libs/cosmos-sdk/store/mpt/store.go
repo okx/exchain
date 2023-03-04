@@ -61,7 +61,6 @@ type MptStore struct {
 	startVersion int64
 	cmLock       sync.Mutex
 
-	//TODO by yxq
 	retriever StateRootRetriever
 
 	trieMtx sync.Mutex
@@ -232,10 +231,10 @@ func (ms *MptStore) Delete(key []byte) {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
 
+	ms.trieMtx.Lock()
 	if ms.kvCache != nil {
 		ms.kvCache.Del(key)
 	}
-	ms.trieMtx.Lock()
 	err := ms.trie.TryDelete(key)
 	ms.trieMtx.Unlock()
 	if err != nil {
