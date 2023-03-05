@@ -78,7 +78,7 @@ func (AppModuleBasic) Name() string {
 }
 
 type AppModule struct {
-	*common.Veneus3BaseUpgradeModule
+	*common.Venus3BaseUpgradeModule
 	AppModuleBasic
 	keeper keeper.Keeper
 }
@@ -87,7 +87,7 @@ func NewAppModule(k keeper.Keeper) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
-	ret.Veneus3BaseUpgradeModule = common.NewVeneus3BaseUpgradeModule(ret)
+	ret.Venus3BaseUpgradeModule = common.NewVenus3BaseUpgradeModule(ret)
 	return ret
 }
 

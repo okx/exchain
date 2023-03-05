@@ -117,7 +117,7 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 }
 
 func TestMultistoreCommitLoad(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()
@@ -324,7 +324,7 @@ func newInitCommitID() types.CommitID {
 	}
 }
 func TestMultiStoreRestart(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	db := dbm.NewMemDB()
 	pruning := types.PruningOptions{
 		KeepRecent: 2,

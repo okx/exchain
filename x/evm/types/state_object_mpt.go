@@ -9,20 +9,22 @@ import (
 	types2 "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 const (
 	FlagTrieUseCompositeKey = "trie.use-composite-key"
-)
-
-var (
-	TrieUseCompositeKey = true
+	ContractStateCache      = 2048 // MB
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
 	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
-	newStateObj := newStateObject(db, acc, so.stateRoot)
+	//need to copy acc stateroot
+	ethermintAccount, ok := acc.(*types.EthAccount)
+	if !ok {
+		panic(fmt.Sprintf("invalid account type for state object: %T", acc))
+	}
+	ethermintAccount.StateRoot = so.account.GetStateRoot()
+	newStateObj := newStateObject(db, ethermintAccount)
 	if so.trie != nil {
 		newStateObj.trie = db.db.CopyTrie(so.trie)
 	}
@@ -58,11 +60,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	tmpKey := key
-	if TrieUseCompositeKey {
-		tmpKey = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-	}
-
+	tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 	if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
 		so.setError(err)
 		return ethcmn.Hash{}
@@ -101,15 +99,15 @@ func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 	if so.trie == nil {
 		// Try fetching from prefetcher first
 		// We don't prefetch empty tries
-		if so.stateRoot != types2.EmptyRootHash && so.stateDB.prefetcher != nil {
+		if so.account.StateRoot != types2.EmptyRootHash && so.stateDB.prefetcher != nil {
 			// When the miner is creating the pending state, there is no
 			// prefetcher
-			so.trie = so.stateDB.prefetcher.Trie(so.stateRoot)
+			so.trie = so.stateDB.prefetcher.Trie(so.account.StateRoot)
 		}
 
 		if so.trie == nil {
 			var err error
-			so.trie, err = db.OpenStorageTrie(so.addrHash, so.stateRoot)
+			so.trie, err = db.OpenStorageTrie(so.addrHash, so.account.StateRoot)
 			if err != nil {
 				so.setError(fmt.Errorf("failed to open storage trie: %v for addr: %s", err, so.account.EthAddress().String()))
 
@@ -124,10 +122,9 @@ func (so *stateObject) getTrie(db ethstate.Database) ethstate.Trie {
 // UpdateRoot sets the trie root to the current root hash of
 func (so *stateObject) updateRoot(db ethstate.Database) {
 	// If nothing changed, don't bother with hashing anything
-	if so.updateTrie(db) == nil {
-		return
+	if trie := so.updateTrie(db); trie != nil {
+		so.account.StateRoot = trie.Hash()
 	}
-	//so.stateRoot = so.trie.Hash()
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
@@ -149,9 +146,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		if TrieUseCompositeKey {
-			key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-		}
+		key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
@@ -163,7 +158,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 	}
 	if so.stateDB.prefetcher != nil {
-		so.stateDB.prefetcher.Used(so.stateRoot, usedStorage)
+		so.stateDB.prefetcher.Used(so.account.StateRoot, usedStorage)
 	}
 
 	if len(so.pendingStorage) > 0 {
@@ -185,7 +180,7 @@ func (so *stateObject) CommitTrie(db ethstate.Database) error {
 
 	root, err := so.trie.Commit(nil)
 	if err == nil {
-		so.stateRoot = root
+		so.account.StateRoot = root
 	}
 	return err
 }
@@ -193,19 +188,17 @@ func (so *stateObject) CommitTrie(db ethstate.Database) error {
 // finalise moves all dirty storage slots into the pending area to be hashed or
 // committed later. It is invoked at the end of every transaction.
 func (so *stateObject) finalise(prefetch bool) {
-	if so.stateDB.prefetcher != nil && prefetch && so.stateRoot != types2.EmptyRootHash {
+	if so.stateDB.prefetcher != nil && prefetch && so.account.StateRoot != types2.EmptyRootHash {
 		slotsToPrefetch := make([][]byte, 0, len(so.dirtyStorage))
 		for key, value := range so.dirtyStorage {
 			so.pendingStorage[key] = value
 			if value != so.originStorage[key] {
-				if TrieUseCompositeKey {
-					key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-				}
+				key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 				slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 			}
 		}
 		if len(slotsToPrefetch) > 0 {
-			so.stateDB.prefetcher.Prefetch(so.stateRoot, slotsToPrefetch)
+			so.stateDB.prefetcher.Prefetch(so.account.StateRoot, slotsToPrefetch)
 		}
 	} else {
 		for key, value := range so.dirtyStorage {
@@ -225,18 +218,14 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 	if so.code != nil {
 		return len(so.code)
 	}
-	if tmtypes.HigherThanMars(so.stateDB.ctx.BlockHeight()) {
-		if bytes.Equal(so.CodeHash(), emptyCodeHash) {
-			return 0
-		}
-		size, err := db.ContractCodeSize(so.addrHash, ethcmn.BytesToHash(so.CodeHash()))
-		if err != nil {
-			so.setError(fmt.Errorf("can't load code size %x: %v", so.CodeHash(), err))
-		}
-		return size
-	} else {
-		return len(so.Code(db))
+	if bytes.Equal(so.CodeHash(), emptyCodeHash) {
+		return 0
 	}
+	size, err := db.ContractCodeSize(so.addrHash, ethcmn.BytesToHash(so.CodeHash()))
+	if err != nil {
+		so.setError(fmt.Errorf("can't load code size %x: %v", so.CodeHash(), err))
+	}
+	return size
 }
 
 // SetStorage replaces the entire state storage with the given one.

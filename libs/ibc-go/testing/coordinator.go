@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/types"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +28,7 @@ type Coordinator struct {
 
 // NewCoordinator initializes Coordinator with N TestChain's
 func NewCoordinator(t *testing.T, n int) *Coordinator {
-	types.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	chains := make(map[string]TestChainI)
 	coord := &Coordinator{
 		t:           t,
@@ -46,7 +44,7 @@ func NewCoordinator(t *testing.T, n int) *Coordinator {
 	return coord
 }
 func NewEthCoordinator(t *testing.T, n int) *Coordinator {
-	types.UnittestOnlySetMilestoneVenus1Height(-1)
+
 	chains := make(map[string]TestChainI)
 	coord := &Coordinator{
 		t:           t,

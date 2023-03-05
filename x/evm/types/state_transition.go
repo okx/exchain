@@ -7,15 +7,13 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/okex/exchain/libs/system/trace"
 
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -380,12 +378,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	if !st.Simulate {
-		if types.HigherThanMars(ctx.BlockHeight()) {
-			if ctx.IsDeliver() {
-				csdb.IntermediateRoot(true)
-			}
-		} else {
-			csdb.Commit(true)
+		if ctx.IsDeliver() {
+			csdb.IntermediateRoot(true)
 		}
 	}
 

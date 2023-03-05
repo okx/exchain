@@ -144,7 +144,7 @@ func createTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	blacklistedAddrs[bondPool.GetAddress().String()] = true
 
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
-	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+	accountKeeper := auth.NewAccountKeeper(cdc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 	bankKeeper := bank.NewBaseKeeper(accountKeeper, pk.Subspace(bank.DefaultParamspace), blacklistedAddrs)
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms)
 

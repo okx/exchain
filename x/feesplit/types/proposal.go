@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -44,10 +42,6 @@ func (fp FeeSplitSharesProposal) GetDescription() string { return fp.Description
 func (fp FeeSplitSharesProposal) ProposalRoute() string  { return RouterKey }
 func (fp FeeSplitSharesProposal) ProposalType() string   { return proposalTypeFeeSplitShares }
 func (fp FeeSplitSharesProposal) ValidateBasic() sdk.Error {
-	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
-		return ErrNotFeesplitHeight
-	}
-
 	if len(strings.TrimSpace(fp.Title)) == 0 {
 		return govtypes.ErrInvalidProposalContent("title is required")
 	}

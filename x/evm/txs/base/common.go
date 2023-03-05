@@ -39,7 +39,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 		return
 	}
 
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethHash := common.BytesToHash(txHash)
 
 	st.AccountNonce = msg.Data.AccountNonce
@@ -55,7 +55,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 	st.TraceTx = ctx.IsTraceTx()
 	st.TraceTxLog = ctx.IsTraceTxLog()
 
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) && ctx.IsDeliver() {
+	if ctx.IsDeliver() {
 		st.Csdb = k.EvmStateDb.WithContext(*ctx)
 	} else {
 		csdb := getCommitStateDB()

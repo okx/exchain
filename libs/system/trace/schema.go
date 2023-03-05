@@ -47,6 +47,7 @@ const (
 	Evm         = "Evm"
 	Iavl        = "Iavl"
 	FlatKV      = "FlatKV"
+	Storage     = "Storage"
 	//RecvBlock        = "RecvBlock"
 	First2LastPart = "First2LastPart"
 

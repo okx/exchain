@@ -4,14 +4,12 @@ import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHandleChangeDistributionTypeProposal(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -21,7 +19,6 @@ func TestHandleChangeDistributionTypeProposal(t *testing.T) {
 
 	//distribution type proposal ok
 	proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	err := HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 	require.Nil(t, err)
 	require.Equal(t, types.DistributionTypeOnChain, dk.GetDistributionType(ctx))
@@ -34,7 +31,6 @@ func TestHandleChangeDistributionTypeProposal(t *testing.T) {
 
 func TestHandleWithdrawRewardEnabledProposal(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -44,7 +40,6 @@ func TestHandleWithdrawRewardEnabledProposal(t *testing.T) {
 
 	//set withdraw reward proposal false
 	proposal := types.NewWithdrawRewardEnabledProposal("title", "description", false)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	err := HandleWithdrawRewardEnabledProposal(ctx, dk, proposal)
 	require.Nil(t, err)
 	require.Equal(t, false, dk.GetWithdrawRewardEnabled(ctx))

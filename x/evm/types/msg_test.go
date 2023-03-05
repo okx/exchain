@@ -8,10 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 	"encoding/hex"
+
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -33,6 +32,8 @@ import (
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func newSdkAddress() sdk.AccAddress {
@@ -156,6 +157,7 @@ func TestMsgEthereumTxRLPEncode(t *testing.T) {
 	raw, err := rlp.EncodeToBytes(&msg)
 	require.NoError(t, err)
 	require.Equal(t, ethcmn.FromHex("E48080830186A0940000000000000000746573745F61646472657373808474657374808080"), raw)
+	require.Equal(t, tmtypes.Tx(raw).Hash(), keccak256(raw))
 }
 
 func TestMsgEthereumTxRLPDecode(t *testing.T) {
@@ -172,6 +174,22 @@ func TestMsgEthereumTxRLPDecode(t *testing.T) {
 	// value size exceeds available input length of stream
 	mockStream := rlp.NewStream(bytes.NewReader(raw), 1)
 	require.Error(t, msg.DecodeRLP(mockStream))
+}
+
+func TestMsgEthereumTxHomestead(t *testing.T) {
+	zeroChainID := big.NewInt(0)
+
+	priv1, _ := ethsecp256k1.GenerateKey()
+	addr1 := ethcmn.BytesToAddress(priv1.PubKey().Address().Bytes())
+
+	// require valid signature passes validation
+	msg := NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
+
+	// zero chainID
+	err := msg.Sign(zeroChainID, priv1.ToECDSA())
+	require.Nil(t, err)
+	err = msg.VerifySig(zeroChainID, 0)
+	require.Nil(t, err)
 }
 
 func TestMsgEthereumTxSig(t *testing.T) {
@@ -314,6 +332,8 @@ func TestMsgEthereumTx_Amino(t *testing.T) {
 		raw, err := ModuleCdc.MarshalBinaryBare(msg)
 		require.NoError(t, err)
 
+		require.Equal(t, tmhash.Sum(raw), tmtypes.Tx(raw).Hash())
+
 		var msg2 MsgEthereumTx
 		err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
 		require.NoError(t, err)
@@ -436,7 +456,6 @@ func newProxyDecoder() *codec.CodecProxy {
 	return codecProxy
 }
 func TestMsgIBCTxValidate(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneVenus1Height(1)
 
 	IBCRouterKey := "ibc"
 	cpcdc := newProxyDecoder()

@@ -14,7 +14,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/feesplit"
 	"github.com/okex/exchain/x/feesplit/types"
 	"github.com/stretchr/testify/suite"
@@ -34,7 +33,6 @@ func TestFeeSplitTestSuite(t *testing.T) {
 
 func (suite *FeeSplitTestSuite) SetupTest() {
 	checkTx := false
-	tmtypes.UnittestOnlySetMilestoneVenus3Height(1)
 
 	suite.app = app.Setup(false)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 2, ChainID: "ethermint-3", Time: time.Now().UTC()})

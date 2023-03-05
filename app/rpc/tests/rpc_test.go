@@ -34,7 +34,6 @@ import (
 	cosmos_context "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -188,13 +187,11 @@ func TestRPCTestSuite(t *testing.T) {
 }
 
 func TestRPCTestSuiteWithMarsHeight2(t *testing.T) {
-	mpt.TrieWriteAhead = true
 	tmtypes.UnittestOnlySetMilestoneMarsHeight(2)
 	suite.Run(t, new(RPCTestSuite))
 }
 
 func TestRPCTestSuiteWithMarsHeight1(t *testing.T) {
-	mpt.TrieWriteAhead = true
 	tmtypes.UnittestOnlySetMilestoneMarsHeight(1)
 	suite.Run(t, new(RPCTestSuite))
 }

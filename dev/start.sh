@@ -29,13 +29,14 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --dynamic-gp-mode=2 \
-      --consensus.timeout_commit 200ms \
+      --consensus.timeout_commit 2000ms \
       --enable-preruntx=1 \
       --iavl-enable-async-commit=false \
       --enable-gid \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
       --commit-gap-height 3 \
+      --trie.dirty-disabled=true \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &
@@ -66,7 +67,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install Venus1Height=1 Venus2Height=1 EarthHeight=1)
+(cd .. && make install)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
@@ -103,7 +104,7 @@ if [ "$(uname -s)" == "Darwin" ]; then
     sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
-else 
+else
     sed -i 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
     sed -i 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json

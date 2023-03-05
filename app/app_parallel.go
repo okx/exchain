@@ -12,7 +12,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -53,21 +52,6 @@ func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			if evmTx.BaseTx.From == "" {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
-			}
-
-			if types.HigherThanMars(ctx.BlockHeight()) {
-				return
-			}
-
-			if onlyVerifySig {
-				return
-			}
-
-			if from := evmTx.AccountAddress(); from != nil {
-				ak.LoadAccount(ctx, from)
-			}
-			if to := evmTx.Data.Recipient; to != nil {
-				ak.LoadAccount(ctx, to.Bytes())
 			}
 		}
 	}

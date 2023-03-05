@@ -23,6 +23,7 @@ const (
 var (
 	gMptDatabase ethstate.Database = nil
 	initMptOnce  sync.Once
+	gStatic      = NewRuntimeState()
 )
 
 func InstanceOfMptStore() ethstate.Database {
@@ -39,7 +40,8 @@ func InstanceOfMptStore() ethstate.Database {
 		if e != nil {
 			panic("fail to open database: " + e.Error())
 		}
-		db := rawdb.NewDatabase(kvstore)
+		nkvstore := NewStatKeyValueStore(kvstore, gStatic)
+		db := rawdb.NewDatabase(nkvstore)
 		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     int(TrieCacheSize),
 			Journal:   "",
@@ -84,4 +86,13 @@ func (ms *MptStore) SetMptRootHash(height uint64, hash ethcmn.Hash) {
 
 func (ms *MptStore) HasVersion(height int64) bool {
 	return ms.GetMptRootHash(uint64(height)) != ethcmn.Hash{}
+}
+
+func HasVersionByDiskDB(height int64) bool {
+	hhash := sdk.Uint64ToBigEndian(uint64(height))
+	rst, err := InstanceOfMptStore().TrieDB().DiskDB().Get(append(KeyPrefixAccRootMptHash, hhash...))
+	if err != nil || len(rst) == 0 {
+		return false
+	}
+	return true
 }

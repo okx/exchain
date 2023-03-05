@@ -4,17 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"reflect"
-	"strings"
-	"time"
-
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -27,10 +20,13 @@ import (
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
+	"io/ioutil"
+	"os"
+	"reflect"
+	"strings"
 )
 
 const (
@@ -198,11 +194,9 @@ type BaseApp struct { // nolint: maligned
 
 	parallelTxManage *parallelTxManager
 
-	customizeModuleOnStop []sdk.CustomizeOnStop
-	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	feeCollector          sdk.Coins
-	feeChanged            bool // used to judge whether should update the fee-collector account
-	FeeSplitCollector     []*sdk.FeeSplitInfo
+	feeCollector      sdk.Coins
+	feeChanged        bool // used to judge whether should update the fee-collector account
+	FeeSplitCollector []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -832,7 +826,7 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 		msCache = msCache.SetTracingContext(
 			sdk.TraceContext(
 				map[string]interface{}{
-					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(ctx.BlockHeight())),
+					"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash()),
 				},
 			),
 		).(sdk.CacheMultiStore)
@@ -842,11 +836,11 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 	return ctx, msCache
 }
 
-func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte, height int64) sdk.CacheMultiStore {
+func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte) sdk.CacheMultiStore {
 	if msCache.TracingEnabled() {
 		msCache = msCache.SetTracingContext(
 			map[string]interface{}{
-				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(height)),
+				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash()),
 			},
 		).(sdk.CacheMultiStore)
 	}
@@ -921,7 +915,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		// separate each result.
 
 		if isConvert {
-			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+			txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 			v, err := EvmResultConvert(txHash, msgResult.Data)
 			if err == nil {
 				msgResult.Data = v
@@ -957,11 +951,6 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 
 func (app *BaseApp) StopBaseApp() {
 	app.cms.StopStore()
-
-	ctx := sdk.NewContext(nil, abci.Header{Height: app.LastBlockHeight(), Time: time.Now()}, false, app.logger)
-	for _, fn := range app.customizeModuleOnStop {
-		fn(ctx)
-	}
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
@@ -1036,54 +1025,4 @@ func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 
 func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 	return app.txDecoder
-}
-
-//TODO by yxq
-func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
-	if !tmstate.EnableParaSender {
-		return
-	}
-	go func() {
-		if len(block.Data.Txs) < 20 {
-			return
-		}
-
-		poolChan := make(chan struct{}, 64)
-		for _, tx := range block.Data.Txs {
-			poolChan <- struct{}{}
-
-			go func(tx []byte) {
-				defer func() {
-					<-poolChan
-				}()
-
-				cmstx, err := app.txDecoder(tx)
-				if err != nil {
-					return
-				}
-
-				// load account from db into cache
-				app.checkState.ctx.SetTxBytes(tx)
-				from, to := cmstx.GetPartnerInfo(app.checkState.ctx)
-				if from != "" {
-					senderAddr, err := sdk.AccAddressFromBech32(from)
-					if err != nil {
-						return
-					}
-					app.accNonceHandler(app.checkState.ctx, senderAddr)
-				}
-				if to != "" {
-					receiverAddr, err := sdk.AccAddressFromBech32(to)
-					if err != nil {
-						return
-					}
-					app.accNonceHandler(app.checkState.ctx, receiverAddr)
-				}
-			}(tx)
-		}
-	}()
-}
-
-func (app *BaseApp) SetAccountStateRetrievalForCMS(retrieval mpttypes.AccountStateRootRetrieval) {
-	app.cms.SetAccountStateRootRetrieval(retrieval)
 }

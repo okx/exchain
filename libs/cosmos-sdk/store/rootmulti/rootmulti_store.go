@@ -14,7 +14,6 @@ import (
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/system/trace/persist"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -80,9 +79,6 @@ type Store struct {
 	commitFilters  []types.StoreFilter
 	pruneFilters   []types.StoreFilter
 	versionFilters []types.VersionFilter
-
-	//TODO by yxq
-	retrieval mpttypes.AccountStateRootRetrieval
 }
 
 var (
@@ -267,13 +263,8 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 
 // hasVersion means every storesParam in store has this version.
 func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
-	latestVersion := rs.GetLatestVersion()
 	for key, storeParams := range rs.storesParams {
 		if storeParams.typ == types.StoreTypeIAVL {
-			sName := storeParams.key.Name()
-			if evmAccStoreFilter(sName, latestVersion, true) {
-				continue
-			}
 
 			// filter block modules {}
 			if filter(storeParams.key.Name(), targetVersion, rs.stores[key], rs.commitFilters) {
@@ -290,10 +281,9 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 			}
 
 		} else if storeParams.typ == types.StoreTypeMPT {
-			if !tmtypes.HigherThanMars(targetVersion) {
-				continue
-			}
-			if ok := rs.stores[key].(*mpt.MptStore).HasVersion(targetVersion); !ok {
+
+			if !mpt.HasVersionByDiskDB(targetVersion) {
+
 				rs.logger.Info(fmt.Sprintf("mpt-%s does not have version: %d", key.Name(), targetVersion))
 				return false, nil
 			}
@@ -349,9 +339,6 @@ func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgra
 	roots := make(map[int64][]byte)
 	errs := []error{}
 	for key, sp := range rs.storesParams {
-		if evmAccStoreFilter(key.Name(), ver) {
-			continue
-		}
 		wg.Add(1)
 		go func(_key types.StoreKey, _sp storeParams) {
 			store, err := rs.loadSubStoreVersion(ver, _key, _sp, upgrades, infos)
@@ -401,19 +388,11 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			infos[storeInfo.Name] = storeInfo
 		}
 
-		mptInfo := infos[mpt.StoreKey]
-		if mptInfo.Core.CommitID.Version == 0 {
-			mptInfo.Core.CommitID.Version = ver
-			infos[mpt.StoreKey] = mptInfo
-		}
-
-		rs.commitInfoFilter(infos, ver, MptStore)
-
 		//if upgrade version ne
 		callback := func(name string, version int64) {
 			ibcInfo := infos[name]
 			if ibcInfo.Core.CommitID.Version == 0 {
-				ibcInfo.Core.CommitID.Version = version //tmtypes.GetVenus1Height()
+				ibcInfo.Core.CommitID.Version = version
 				infos[name] = ibcInfo
 				for key, param := range rs.storesParams {
 					if key.Name() == name {
@@ -440,10 +419,6 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		newStores = make(map[types.StoreKey]types.CommitKVStore)
 		roots = make(map[int64][]byte)
 		for key, sp := range rs.storesParams {
-			if evmAccStoreFilter(key.Name(), ver) {
-				continue
-			}
-
 			store, err := rs.loadSubStoreVersion(ver, key, sp, upgrades, infos)
 			if err != nil {
 				return err
@@ -686,12 +661,6 @@ func (rs *Store) pruneStores() {
 	//stores = rs.stores
 	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
-			sName := key.Name()
-
-			if evmAccStoreFilter(sName, rs.lastCommitInfo.Version) {
-				continue
-			}
-
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
@@ -746,11 +715,6 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
-
-			if evmAccStoreFilter(key.Name(), version) {
-				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
-				continue
-			}
 			// filter block modules {}
 			if filter(key.Name(), version, nil, rs.commitFilters) {
 				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
@@ -880,15 +844,7 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 		}
 	}
 
-	if tmtypes.HigherThanVenus1(req.Height) {
-		queryIbcProof(&res, &commitInfo, storeName)
-	} else {
-		// Restore origin path and append proof op.
-		res.Proof.Ops = append(res.Proof.Ops, NewMultiStoreProofOp(
-			[]byte(storeName),
-			NewMultiStoreProof(commitInfo.StoreInfos),
-		).ProofOp())
-	}
+	queryIbcProof(&res, &commitInfo, storeName)
 
 	// TODO: handle in another TM v0.26 update PR
 	// res.Proof = buildMultiStoreProof(res.Proof, storeName, commitInfo.StoreInfos)
@@ -974,7 +930,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		return mem.NewStore(), nil
 
 	case types.StoreTypeMPT:
-		return mpt.NewMptStore(rs.logger, rs.retrieval, id)
+		return mpt.NewMptStore(rs.logger, id)
 
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
@@ -1100,10 +1056,7 @@ type commitInfo struct {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) Hash() []byte {
-	if tmtypes.HigherThanVenus1(ci.Version) {
-		return ci.ibcHash()
-	}
-	return ci.originHash()
+	return ci.ibcHash()
 }
 
 func (ci commitInfo) originHash() []byte {
@@ -1117,6 +1070,9 @@ func (ci commitInfo) originHash() []byte {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) ibcHash() []byte {
+	if len(ci.StoreInfos) == 0 {
+		return nil
+	}
 	m := ci.toMap()
 	rootHash, _, _ := sdkmaps.ProofsFromMap(m)
 	return rootHash
@@ -1212,16 +1168,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		iavltree.UpdateCommitGapHeight(config.DynamicConfig.GetCommitGapHeight())
 	}
 	for key, store := range storeMap {
-		sName := key.Name()
-		if evmAccStoreFilter(sName, version) {
-			continue
-		}
-
-		if !mpt.TrieWriteAhead {
-			if newMptStoreFilter(sName, version) {
-				continue
-			}
-		}
 
 		if filter(key.Name(), version, store, filters) {
 			continue
@@ -1230,16 +1176,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
 		if store.GetStoreType() == types.StoreTypeTransient {
-			continue
-		}
-
-		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
-		if newMptStoreFilter(sName, version) {
-			continue
-		}
-
-		// evm and acc store should not participate in AppHash calculation process after Mars Height
-		if evmAccStoreFilter(sName, version, true) {
 			continue
 		}
 
@@ -1540,10 +1476,6 @@ func (rs *Store) CurrentVersion() int64 {
 		var version int64
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
-			sName := key.Name()
-			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
-				continue
-			}
 			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
@@ -1571,10 +1503,6 @@ func (rs *Store) StopStore() {
 	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
-			sName := key.Name()
-			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
-				continue
-			}
 			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
@@ -1586,9 +1514,7 @@ func (rs *Store) StopStore() {
 			panic("unexpected multi store")
 		case types.StoreTypeMPT:
 			s := store.(*mpt.MptStore)
-			//TODO by yxq
 			s.OnStop()
-			//s.StopWithVersion(latestVersion)
 		case types.StoreTypeTransient:
 		default:
 		}
@@ -1612,8 +1538,4 @@ func GetLatestStoredMptHeight() uint64 {
 
 func (rs *Store) SetUpgradeVersion(version int64) {
 	rs.upgradeVersion = version
-}
-
-func (rs *Store) SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval) {
-	rs.retrieval = retrieval
 }

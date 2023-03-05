@@ -2,13 +2,12 @@ package simulation
 
 import (
 	"encoding/binary"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -18,15 +17,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 )
@@ -60,7 +55,7 @@ func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccA
 	acc := types.EthAccount{
 		BaseAccount: &auth.BaseAccount{},
 		CodeHash:    ethcrypto.Keccak256(nil),
-		StateRoot:   mpt.EmptyRootHash,
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 	acc.SetAddress(addr)
 	a.cachedAcc[addr.String()] = &acc
@@ -109,16 +104,22 @@ func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderM
 }
 
 type SubspaceProxy struct {
-	q *watcher.Querier
+	q        *watcher.Querier
+	subspace params.Subspace
 }
 
 func (p SubspaceProxy) CustomKVStore(ctx sdk.Context) sdk.KVStore {
-	panic("implement me")
+	return p.subspace.CustomKVStore(ctx)
 }
 
-func NewSubspaceProxy() SubspaceProxy {
+func NewSubspaceProxy(key sdk.StoreKey, tkey sdk.StoreKey) SubspaceProxy {
+	paramSpace := params.NewSubspace(nil, key, tkey, evm.DefaultParamspace)
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(evmtypes.ParamKeyTable())
+	}
 	return SubspaceProxy{
-		q: watcher.NewQuerier(),
+		q:        watcher.NewQuerier(),
+		subspace: paramSpace,
 	}
 }
 
@@ -158,12 +159,6 @@ func NewBankKeeperProxy() BankKeeperProxy {
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		gov.ModuleName:            nil,
 		token.ModuleName:          {supply.Minter, supply.Burner},
-		dex.ModuleName:            nil,
-		order.ModuleName:          nil,
-		ammswap.ModuleName:        {supply.Minter, supply.Burner},
-		farm.ModuleName:           nil,
-		farm.YieldFarmingAccount:  nil,
-		farm.MintFarmingAccount:   {supply.Burner},
 	}
 
 	for acc := range maccPerms {

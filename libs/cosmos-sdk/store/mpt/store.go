@@ -2,7 +2,6 @@ package mpt
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 	"sync"
 
@@ -32,6 +31,8 @@ const (
 
 var (
 	TrieAccStoreCache uint = 32 // MB
+
+	AccountStateRootRetriever StateRootRetriever = EmptyStateRootRetriever{}
 )
 
 var cdc = codec.New()
@@ -60,8 +61,7 @@ type MptStore struct {
 	startVersion int64
 	cmLock       sync.Mutex
 
-	//TODO by yxq
-	retrieval mpttypes.AccountStateRootRetrieval
+	retriever StateRootRetriever
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -84,19 +84,19 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
+func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
-	return generateMptStore(logger, id, db, retrieval)
+	return generateMptStore(logger, id, db, AccountStateRootRetriever)
 }
 
-func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
+func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retriever StateRootRetriever) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
 		db:         db,
 		triegc:     triegc,
 		logger:     logger,
 		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
-		retrieval:  retrieval,
+		retriever:  retriever,
 		exitSignal: make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
@@ -106,7 +106,7 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
-	return generateMptStore(logger, id, db, nil)
+	return generateMptStore(logger, id, db, EmptyStateRootRetriever{})
 }
 
 func (ms *MptStore) openTrie(id types.CommitID) error {
@@ -248,7 +248,14 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	// stop pre round prefetch
 	ms.StopPrefetcher()
 
-	root, err := ms.trie.Commit(nil)
+	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+		storageRoot := ms.retriever.RetrieveStateRoot(leaf)
+		if storageRoot != ethtypes.EmptyRootHash && storageRoot != (ethcmn.Hash{}) {
+			ms.db.TrieDB().Reference(storageRoot, parent)
+		}
+		return nil
+	})
+
 	if err != nil {
 		panic("fail to commit trie data: " + err.Error())
 	}
@@ -258,6 +265,8 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	// TODO: use a thread to push data to database
 	// push data to database
 	ms.PushData2Database(ms.version)
+
+	ms.sprintDebugLog(ms.version)
 
 	// start next found prefetch
 	ms.StartPrefetcher("mptStore")
@@ -284,23 +293,24 @@ func (ms *MptStore) SetPruning(options types.PruningOptions) {
 }
 
 func (ms *MptStore) GetDBWriteCount() int {
-	return 0
+	return gStatic.getDBWriteCount()
 }
 
 func (ms *MptStore) GetDBReadCount() int {
-	return 0
+	return gStatic.getDBReadCount()
 }
 
 func (ms *MptStore) GetNodeReadCount() int {
-	return 0
+	return ms.db.TrieDB().GetNodeReadCount()
 }
 
 func (ms *MptStore) ResetCount() {
-	return
+	gStatic.resetCount()
+	ms.db.TrieDB().ResetCount()
 }
 
 func (ms *MptStore) GetDBReadTime() int {
-	return 0
+	return gStatic.getDBReadTime()
 }
 
 // PushData2Database writes all associated state in cache to the database
@@ -407,10 +417,6 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 
 	ms.cmLock.Lock()
 	defer ms.cmLock.Unlock()
-
-	if !tmtypes.HigherThanMars(ms.version) && !TrieWriteAhead {
-		return nil
-	}
 
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	if !TrieDirtyDisabled {
@@ -539,9 +545,6 @@ func getVersionedWithProof(trie ethstate.Trie, key []byte) ([]byte, [][]byte, er
 }
 
 func (ms *MptStore) StartPrefetcher(namespace string) {
-	if !tmtypes.HigherThanMars(ms.version) {
-		return
-	}
 
 	if ms.prefetcher != nil {
 		ms.prefetcher.Close()

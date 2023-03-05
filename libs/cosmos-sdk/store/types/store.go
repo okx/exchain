@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 
 	"github.com/okex/exchain/libs/iavl"
@@ -204,8 +203,6 @@ type CommitMultiStore interface {
 	StopStore()
 
 	SetLogger(log log.Logger)
-
-	SetAccountStateRootRetrieval(retrieval mpttypes.AccountStateRootRetrieval)
 }
 
 //---------subsp-------------------------------

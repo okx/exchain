@@ -145,7 +145,7 @@ func NewSimApp(
 	bApp.SetAppVersion(version.Version)
 
 	keys := sdk.NewKVStoreKeys(
-		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
+		bam.MainStoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey, mpt.StoreKey,
 	)
@@ -174,7 +174,7 @@ func NewSimApp(
 
 	// add keepers
 	app.AccountKeeper = auth.NewAccountKeeper(
-		app.cdc, keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
+		app.cdc, keys[mpt.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
 		app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
@@ -187,7 +187,7 @@ func NewSimApp(
 	)
 	app.MintKeeper = mint.NewKeeper(
 		app.cdc, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
-		app.SupplyKeeper, auth.FeeCollectorName, "",
+		app.SupplyKeeper, auth.FeeCollectorName,
 	)
 	app.DistrKeeper = distr.NewKeeper(
 		app.cdc, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,

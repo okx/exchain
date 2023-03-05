@@ -80,7 +80,6 @@ require (
 	github.com/tendermint/tm-db v0.6.7
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/valyala/fastjson v1.6.3
-	github.com/willf/bitset v1.1.11
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9
@@ -183,7 +182,8 @@ replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 	github.com/cosmos/gorocksdb => github.com/okex/grocksdb v1.6.45-okc2
-	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-okc1
+	//github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-okc1
+	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.9-0.20230228092220-b3baae55a993
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-okc4

@@ -21,13 +21,15 @@ type EvmFactory struct {
 	ChainId        string
 	WrappedQuerier *watcher.Querier
 	storeKey       *sdk.KVStoreKey
+	paramsKey      *sdk.KVStoreKey
+	paramsTKey     *sdk.TransientStoreKey
 	cms            sdk.CommitMultiStore
 	storePool      sync.Pool
 }
 
 func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
 	ef := EvmFactory{ChainId: chainId, WrappedQuerier: q, storeKey: sdk.NewKVStoreKey(evm.StoreKey)}
-	ef.cms = initCommitMultiStore(ef.storeKey)
+	ef.cms, ef.paramsKey, ef.paramsTKey = initCommitMultiStore(ef.storeKey)
 	ef.storePool = sync.Pool{
 		New: func() interface{} {
 			return ef.cms.CacheMultiStore()
@@ -36,7 +38,7 @@ func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
 	return ef
 }
 
-func initCommitMultiStore(storeKey *sdk.KVStoreKey) sdk.CommitMultiStore {
+func initCommitMultiStore(storeKey *sdk.KVStoreKey) (sdk.CommitMultiStore, *sdk.KVStoreKey, *sdk.TransientStoreKey) {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
@@ -47,7 +49,7 @@ func initCommitMultiStore(storeKey *sdk.KVStoreKey) sdk.CommitMultiStore {
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 	cms.LoadLatestVersion()
-	return cms
+	return cms, paramsKey, paramsTKey
 }
 
 func (ef *EvmFactory) PutBackStorePool(multiStore sdk.CacheMultiStore) {
@@ -122,7 +124,7 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 }
 
 func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
-	return evm.NewSimulateKeeper(qoc.GetCodec(), ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), StakingKeeperProxy{}, NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(qoc.GetCodec(), ef.storeKey, NewSubspaceProxy(ef.paramsKey, ef.paramsTKey), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), StakingKeeperProxy{}, NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
 func (ef EvmFactory) makeContext(multiStore sdk.CacheMultiStore, header abci.Header) sdk.Context {
