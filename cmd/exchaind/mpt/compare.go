@@ -21,8 +21,8 @@ import (
 
 func cmpIavlMptCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "cmpiavl <v2> <type> <iavl version>",
-		Short: "cmpiavl <v2> <type> <iavl version>",
+		Use:   "cmpiavl <v2> <type> <version>",
+		Short: "cmpiavl <v2> <type> <version>",
 		Long:  "compare iavl v2 mpt data",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- cmp mpt start ---------")
@@ -65,9 +65,10 @@ func cmpIavlEvm(v2 string, version int64) {
 	defer iavlIter.Close()
 
 	evmMptDb := getDB(v2)
-	hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
-	panicError(err)
-	v2rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, hhash...))
+	// hhash, err := evmMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	// panicError(err)
+	hhash := sdk.Uint64ToBigEndian(uint64(version))
+	v2rootHash, err := evmMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, hhash...))
 	panicError(err)
 	evmTrie, err := evmMptDb.OpenTrie(ethcmn.BytesToHash(v2rootHash))
 	panicError(err)
@@ -113,8 +114,10 @@ func cmpIavlEvm(v2 string, version int64) {
 
 func cmpIavlAcc(v2 string, version int64) {
 	accMptDb := mpt.InstanceOfMptStore()
-	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
-	panicError(err)
+
+	heightBytes := sdk.Uint64ToBigEndian(uint64(version))
+	// heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	// panicError(err)
 	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
