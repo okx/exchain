@@ -51,9 +51,6 @@ func (lh LogProcessEvmHook) PostTxProcessing(ctx sdk.Context, st *types.StateTra
 			continue
 		}
 		if handler, ok := lh.handlers[log.Topics[0]]; ok {
-			if ctx.Cache() != nil {
-				ctx.Cache().DisableCache()
-			}
 			if err := handler.Handle(ctx, log.Address, log.Data); err != nil {
 				return err
 			}

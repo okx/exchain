@@ -309,7 +309,6 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		prefixKey := key
 		if (value == ethcmn.Hash{}) {
 			store.Delete(prefixKey.Bytes())
-			so.stateDB.ctx.Cache().UpdateStorage(so.address, prefixKey, value.Bytes(), true)
 			if !so.stateDB.ctx.IsCheckTx() {
 				if so.stateDB.ctx.GetWatcher().Enabled() {
 					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), prefixKey.Bytes(), ethcmn.Hash{}.Bytes())
@@ -317,7 +316,6 @@ func (so *stateObject) commitState(db ethstate.Database) {
 			}
 		} else {
 			store.Set(prefixKey.Bytes(), value.Bytes())
-			so.stateDB.ctx.Cache().UpdateStorage(so.address, prefixKey, value.Bytes(), true)
 			if !so.stateDB.ctx.IsCheckTx() {
 				if so.stateDB.ctx.GetWatcher().Enabled() {
 					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), prefixKey.Bytes(), value.Bytes())
@@ -337,7 +335,6 @@ func (so *stateObject) commitCode() {
 	ctx := so.stateDB.ctx
 	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
 	store.Set(so.CodeHash(), so.code)
-	ctx.Cache().UpdateCode(so.CodeHash(), so.code, true)
 }
 
 // ----------------------------------------------------------------------------
