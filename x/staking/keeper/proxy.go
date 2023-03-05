@@ -71,7 +71,7 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 	if !found {
 		return types.ErrNoDelegatorExisted(delAddr.String())
 	}
-	minSelfDelegation := k.GetParams(ctx).MinSelfDelegation
+	minSelfDelegation := k.ParamsMinSelfDelegation(ctx)
 	for i := 0; i < lenVals; i++ {
 		if vals[i].MinSelfDelegation.LT(minSelfDelegation) {
 			return types.ErrAddSharesToDismission(vals[i].OperatorAddress.String())

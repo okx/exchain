@@ -187,7 +187,7 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	if sdkErr != nil {
 		return nil, sdkErr
 	}
-	minSelfDelegation := k.GetParams(ctx).MinSelfDelegation
+	minSelfDelegation := k.ParamsMinSelfDelegation(ctx)
 	if sdkErr = validateSharesAdding(vals, minSelfDelegation); sdkErr != nil {
 		return nil, sdkErr
 	}

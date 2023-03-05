@@ -232,7 +232,7 @@ func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, 
 			}
 		}
 
-		start, end := client.Paginate(len(filteredVals), params.Page, params.Limit, int(k.GetParams(ctx).MaxValidators))
+		start, end := client.Paginate(len(filteredVals), params.Page, params.Limit, int(k.MaxValidators(ctx)))
 		if start < 0 || end < 0 {
 			filteredVals = []types.Validator{}
 		} else {
@@ -490,7 +490,7 @@ func delegationsToDelegationResponses(
 	return resp, nil
 }
 
-/////
+// ///
 // utils
 func delegationToDelegationResponse(ctx sdk.Context, k Keeper, del stakingtypes.Delegation) (stakingtypes.DelegationResponse, error) {
 	val, found := k.GetValidator(ctx, del.ValidatorAddress)

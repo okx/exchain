@@ -25,7 +25,7 @@ import (
 func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate) {
 
 	store := ctx.KVStore(k.storeKey)
-	maxValidators := k.GetParams(ctx).MaxValidators
+	maxValidators := k.MaxValidators(ctx)
 	totalPower := sdk.ZeroInt()
 
 	// Retrieve the last validator set. The persistent set is updated later in this function (see LastValidatorPowerKey)
@@ -271,8 +271,7 @@ func (k Keeper) bondValidator(ctx sdk.Context, validator types.Validator) types.
 // beginUnbondingValidator performs all the store operations for when a validator begins unbonding
 func (k Keeper) beginUnbondingValidator(ctx sdk.Context, validator types.Validator) types.Validator {
 
-	params := k.GetParams(ctx)
-
+	unbondingTime := k.UnbondingTime(ctx)
 	// delete the validator by power index, as the key will change
 	k.DeleteValidatorByPowerIndex(ctx, validator)
 
@@ -285,7 +284,7 @@ func (k Keeper) beginUnbondingValidator(ctx sdk.Context, validator types.Validat
 	validator = validator.UpdateStatus(sdk.Unbonding)
 
 	// set the unbonding completion time and completion height appropriately
-	validator.UnbondingCompletionTime = ctx.BlockHeader().Time.Add(params.UnbondingTime)
+	validator.UnbondingCompletionTime = ctx.BlockHeader().Time.Add(unbondingTime)
 	validator.UnbondingHeight = ctx.BlockHeader().Height
 
 	// save the now unbonded validator record and power index

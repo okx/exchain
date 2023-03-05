@@ -21,26 +21,26 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case types.MsgCreateValidator:
-			if !k.GetParams(ctx).EnableOperation {
+			if !k.ParamsEnableOperation(ctx) {
 				return nil, types.ErrDisableOperation
 			}
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgEditValidatorCommissionRate:
-			if !k.GetParams(ctx).EnableOperation {
+			if !k.ParamsEnableOperation(ctx) {
 				return nil, types.ErrDisableOperation
 			}
 			return handleMsgEditValidatorCommissionRate(ctx, msg, k)
 		case types.MsgDeposit:
-			if !k.GetParams(ctx).EnableOperation {
+			if !k.ParamsEnableOperation(ctx) {
 				return nil, types.ErrDisableOperation
 			}
 			return handleMsgDeposit(ctx, msg, k)
 		case types.MsgWithdraw:
 			return handleMsgWithdraw(ctx, msg, k)
 		case types.MsgAddShares:
-			if !k.GetParams(ctx).EnableOperation {
+			if !k.ParamsEnableOperation(ctx) {
 				return nil, types.ErrDisableOperation
 			}
 			return handleMsgAddShares(ctx, msg, k)

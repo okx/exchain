@@ -21,7 +21,7 @@ func BeginBlocker(ctx sdk.Context, k Keeper) {
 func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
 	// calculate validator set changes
 	var validatorUpdates []abci.ValidatorUpdate
-	if k.GetParams(ctx).ConsensusType == common.PoA {
+	if k.ParamsConsensusType(ctx) == common.PoA {
 		validatorUpdates = PoAValidatorsUpdate(ctx, k)
 	} else {
 		validatorUpdates = DPoSValidatorsUpdate(ctx, k)

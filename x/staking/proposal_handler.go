@@ -67,7 +67,7 @@ func verifyProposalWithValSet(ctx sdk.Context, k *Keeper, valKey [sdk.AddrLen]by
 }
 
 func verifyValidatorCount(ctx sdk.Context, k *Keeper, valSetCount int, valKey [sdk.AddrLen]byte, isAdd bool) sdk.Error {
-	maxCount := k.GetParams(ctx).MaxValidators
+	maxCount := k.MaxValidators(ctx)
 	// proposed validators
 	proposedValidators := k.GetProposeValidators(ctx)
 	proposedValidators[valKey] = isAdd
