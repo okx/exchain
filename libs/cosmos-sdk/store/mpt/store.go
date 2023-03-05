@@ -304,6 +304,10 @@ func (ms *MptStore) GetNodeReadCount() int {
 	return ms.db.TrieDB().GetNodeReadCount()
 }
 
+func (ms *MptStore) GetCacheReadCount() int {
+	return ms.db.TrieDB().GetCacheReadCount()
+}
+
 func (ms *MptStore) ResetCount() {
 	gStatic.resetCount()
 	ms.db.TrieDB().ResetCount()
