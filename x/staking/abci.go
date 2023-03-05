@@ -72,8 +72,6 @@ func PoAValidatorsUpdate(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdat
 			k.SetEpoch(ctx, newEpoch)
 		}
 		k.SetTheEndOfLastEpoch(ctx)
-		// dont forget to delete in case that some validator need to kick out when an epoch ends
-		k.DeleteAbandonedValidatorAddrs(ctx)
 	}
 	return validatorUpdates
 }

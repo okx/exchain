@@ -34,8 +34,7 @@ const (
 
 	DefaultEpoch              uint16 = DefaultBlocksPerEpoch
 	DefaultMaxValsToAddShares uint16 = DefaultMaxValsToVote
-
-	DefaultConsensusType = common.DPoS
+	DefaultConsensusType             = common.PoA
 )
 
 var (
@@ -146,6 +145,20 @@ func DefaultParams() Params {
 		DefaultMinSelfDelegation,
 		DefaultHistoricalEntries,
 		DefaultConsensusType,
+		true,
+	)
+}
+
+func DefaultDposParams() Params {
+	return NewParams(
+		DefaultUnbondingTime,
+		DefaultMaxValidators,
+		DefaultEpoch,
+		DefaultMaxValsToAddShares,
+		DefaultMinDelegation,
+		DefaultMinSelfDelegation,
+		DefaultHistoricalEntries,
+		common.DPoS,
 		true,
 	)
 }
