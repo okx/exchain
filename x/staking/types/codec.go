@@ -17,6 +17,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgBindProxy{}, "okexchain/staking/MsgBindProxy", nil)
 	cdc.RegisterConcrete(MsgUnbindProxy{}, "okexchain/staking/MsgUnbindProxy", nil)
 	cdc.RegisterConcrete(ProposeValidatorProposal{}, ProposeValidatorProposalName, nil)
+	cdc.RegisterConcrete(MsgDepositMinSelfDelegation{}, "okexchain/staking/MsgDepositMinSelfDelegation", nil)
 }
 
 // ModuleCdc is generic sealed codec to be used throughout this module

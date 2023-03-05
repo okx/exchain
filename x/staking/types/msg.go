@@ -168,3 +168,36 @@ func (msg MsgEditValidator) ValidateBasic() error {
 
 	return nil
 }
+
+// MsgDepositMinSelfDelegation - struct for depositing min self delegation
+type MsgDepositMinSelfDelegation struct {
+	ValidatorAddress sdk.ValAddress `json:"address" yaml:"address"`
+}
+
+// NewMsgDepositMinSelfDelegation creates a msg of deposit-min-self-delegation
+func NewMsgDepositMinSelfDelegation(valAddr sdk.ValAddress) MsgDepositMinSelfDelegation {
+	return MsgDepositMinSelfDelegation{
+		ValidatorAddress: valAddr,
+	}
+}
+
+// nolint
+func (msg MsgDepositMinSelfDelegation) Route() string { return RouterKey }
+func (msg MsgDepositMinSelfDelegation) Type() string  { return "deposit_min_self_delegation" }
+func (msg MsgDepositMinSelfDelegation) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{sdk.AccAddress(msg.ValidatorAddress)}
+}
+
+// GetSignBytes gets the bytes for the message signer to sign on
+func (msg MsgDepositMinSelfDelegation) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// ValidateBasic gives a quick validity check
+func (msg MsgDepositMinSelfDelegation) ValidateBasic() error {
+	if msg.ValidatorAddress.Empty() {
+		return ErrNilValidatorAddr()
+	}
+	return nil
+}

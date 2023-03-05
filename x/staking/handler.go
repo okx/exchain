@@ -52,6 +52,11 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		//	return handleRegProxy(ctx, msg, k)
 		case types.MsgDestroyValidator:
 			return handleMsgDestroyValidator(ctx, msg, k)
+		case types.MsgDepositMinSelfDelegation:
+			if !k.ParamsEnableDposOp(ctx) {
+				return nil, types.ErrDisableOperation
+			}
+			return handleMsgDepositMinSelfDelegation(ctx, msg, k)
 		default:
 			return sdk.ErrUnknownRequest(errMsg).Result()
 		}
@@ -110,7 +115,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeCreateValidator,
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.MinSelfDelegation.Amount.String())),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, validator.MinSelfDelegation.String())),
 		sdk.NewEvent(sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String())),
@@ -142,6 +147,36 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 		sdk.NewEvent(sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddress.String()),
+		),
+	})
+
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+}
+
+func handleMsgDepositMinSelfDelegation(ctx sdk.Context, msg types.MsgDepositMinSelfDelegation, k keeper.Keeper) (*sdk.Result, error) {
+	validator, found := k.GetValidator(ctx, msg.ValidatorAddress)
+	if !found {
+		return nil, ErrNoValidatorFound(msg.ValidatorAddress.String())
+	}
+
+	minSelfDelegation := k.ParamsMinSelfDelegation(ctx)
+	if validator.MinSelfDelegation.GTE(minSelfDelegation) {
+		return nil, types.ErrMinSelfDelegationEnough
+	}
+	depositAmount := minSelfDelegation.Sub(validator.MinSelfDelegation)
+	depositCoin := sdk.NewDecCoinFromDec(k.BondDenom(ctx), depositAmount)
+	if err := k.AddSharesAsMinSelfDelegation(ctx, sdk.AccAddress(validator.OperatorAddress),
+		&validator, depositCoin); err != nil {
+		return nil, err
+	}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(types.EventTypeDepositMinSelfDelegation,
+			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
+		),
+		sdk.NewEvent(sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, depositAmount.String()),
 		),
 	})
 
