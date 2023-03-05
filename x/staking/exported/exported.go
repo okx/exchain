@@ -5,22 +5,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 )
 
-var (
-// NewHandler            = staking.NewHandler
-// EndBlocker            = staking.EndBlocker
-// NewMsgDeposit         = staking.NewMsgDeposit
-// NewMsgAddShares       = staking.NewMsgAddShares
-// NewDescription        = staking.NewDescription
-// NewMsgCreateValidator = staking.NewMsgCreateValidator
-// StoreKey          = types.StoreKey
-// TStoreKey         = types.TStoreKey
-// NotBondedPoolName = types.NotBondedPoolName
-// BondedPoolName    = types.BondedPoolName
-// NewKeeper         = keeper.NewKeeper
-// DefaultParamspace = keeper.DefaultParamspace
-// DefaultParams     = types.DefaultParams
-)
-
 // DelegatorI expected delegator functions
 type DelegatorI interface {
 	GetShareAddedValidatorAddresses() []sdk.ValAddress
