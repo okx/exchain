@@ -1,41 +1,40 @@
-package gov
+package ut
 
 import (
 	"testing"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
-
-	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitGenesisState(t *testing.T) {
-	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
+	ctx, _, gk, _, _ := CreateTestInput(t, false, 1000)
 
 	initialDeposit := sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 50)}
 	deposits := types.Deposits{
-		{ProposalID: 1, Depositor: keeper.Addrs[0], Amount: initialDeposit},
+		{ProposalID: 1, Depositor: Addrs[0], Amount: initialDeposit},
 	}
 	votes := types.Votes{
-		{ProposalID: 2, Voter: keeper.Addrs[1], Option: types.OptionYes},
+		{ProposalID: 2, Voter: Addrs[1], Option: types.OptionYes},
 	}
 	proposals := types.Proposals{
 		types.Proposal{
 			ProposalID:       1,
-			Status:           StatusDepositPeriod,
-			FinalTallyResult: EmptyTallyResult(sdk.ZeroDec()),
+			Status:           types.StatusDepositPeriod,
+			FinalTallyResult: types.EmptyTallyResult(sdk.ZeroDec()),
 		},
 		types.Proposal{
 			ProposalID:       2,
-			Status:           StatusVotingPeriod,
-			FinalTallyResult: EmptyTallyResult(sdk.ZeroDec()),
+			Status:           types.StatusVotingPeriod,
+			FinalTallyResult: types.EmptyTallyResult(sdk.ZeroDec()),
 		},
 	}
 	waitingProposals := map[string]uint64{"2": 1234}
 
-	data := GenesisState{
+	data := gov.GenesisState{
 		StartingProposalID: 3,
 		Deposits:           deposits,
 		Votes:              votes,
@@ -43,7 +42,7 @@ func TestInitGenesisState(t *testing.T) {
 		WaitingProposals:   waitingProposals,
 	}
 
-	InitGenesis(ctx, gk, gk.SupplyKeeper(), data)
+	gov.InitGenesis(ctx, gk, gk.SupplyKeeper(), data)
 	// 0x00
 	proposal0, ok := gk.GetProposal(ctx, data.Proposals[0].ProposalID)
 	require.True(t, ok)
@@ -99,12 +98,12 @@ func TestInitGenesisState(t *testing.T) {
 	require.True(t, activeQueue.Valid())
 	activeQueue.Close()
 
-	exportGenesis := ExportGenesis(ctx, gk)
+	exportGenesis := gov.ExportGenesis(ctx, gk)
 	require.Equal(t, data.Deposits, exportGenesis.Deposits)
 	require.Equal(t, data.Votes, exportGenesis.Votes)
 
-	newCtx, _, newgk, _, _ := keeper.CreateTestInput(t, false, 1000)
-	InitGenesis(newCtx, newgk, newgk.SupplyKeeper(), exportGenesis)
+	newCtx, _, newgk, _, _ := CreateTestInput(t, false, 1000)
+	gov.InitGenesis(newCtx, newgk, newgk.SupplyKeeper(), exportGenesis)
 	// 0x00
 	proposal0, ok = newgk.GetProposal(newCtx, exportGenesis.Proposals[0].ProposalID)
 	require.True(t, ok)
@@ -154,56 +153,56 @@ func TestInitGenesisState(t *testing.T) {
 }
 
 func TestValidateGenesis(t *testing.T) {
-	data := GenesisState{}
+	data := gov.GenesisState{}
 	var err sdk.Error
 	data.TallyParams.Threshold, err = sdk.NewDecFromStr("-23")
 	require.Nil(t, err)
-	require.NotNil(t, ValidateGenesis(data))
+	require.NotNil(t, gov.ValidateGenesis(data))
 
 	data.TallyParams.Threshold = sdk.NewDecWithPrec(334, 3)
 	data.TallyParams.Veto, err = sdk.NewDecFromStr("-23")
 	require.Nil(t, err)
-	require.NotNil(t, ValidateGenesis(data))
+	require.NotNil(t, gov.ValidateGenesis(data))
 
 	data.TallyParams.Veto = sdk.NewDecWithPrec(334, 3)
 	data.TallyParams.Quorum, err = sdk.NewDecFromStr("-23")
 	require.Nil(t, err)
-	require.NotNil(t, ValidateGenesis(data))
+	require.NotNil(t, gov.ValidateGenesis(data))
 
 	data.TallyParams.Quorum = sdk.NewDecWithPrec(334, 3)
 	data.TallyParams.YesInVotePeriod, err = sdk.NewDecFromStr("-23")
 	require.Nil(t, err)
-	require.NotNil(t, ValidateGenesis(data))
+	require.NotNil(t, gov.ValidateGenesis(data))
 
 	data.TallyParams.YesInVotePeriod = sdk.NewDecWithPrec(334, 3)
 	coin, err := sdk.NewDecFromStr("-23")
 	require.Nil(t, err)
 	data.DepositParams.MinDeposit = sdk.SysCoins{sdk.SysCoin{Denom: sdk.DefaultBondDenom, Amount: coin}}
-	require.NotNil(t, ValidateGenesis(data))
+	require.NotNil(t, gov.ValidateGenesis(data))
 }
 
 func TestGenesisState_Equal(t *testing.T) {
 	var minDeposit = sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}
-	expected := GenesisState{
+	expected := gov.GenesisState{
 		StartingProposalID: 1,
 		Proposals:          []types.Proposal{},
-		DepositParams: DepositParams{
+		DepositParams: types.DepositParams{
 			MinDeposit:       minDeposit,
 			MaxDepositPeriod: time.Hour * 24,
 		},
-		VotingParams: VotingParams{
+		VotingParams: types.VotingParams{
 			VotingPeriod: time.Hour * 72,
 		},
-		TallyParams: TallyParams{
+		TallyParams: types.TallyParams{
 			Quorum:          sdk.NewDecWithPrec(334, 3),
 			Threshold:       sdk.NewDecWithPrec(5, 1),
 			Veto:            sdk.NewDecWithPrec(334, 3),
 			YesInVotePeriod: sdk.NewDecWithPrec(667, 3),
 		},
 	}
-	require.True(t, expected.equal(DefaultGenesisState()))
+	require.True(t, expected.Equal(gov.DefaultGenesisState()))
 }
 
 func TestGenesisState_IsEmpty(t *testing.T) {
-	require.True(t, GenesisState{}.isEmpty())
+	require.True(t, gov.GenesisState{}.IsEmpty())
 }

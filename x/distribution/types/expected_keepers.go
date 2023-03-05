@@ -3,6 +3,7 @@ package types
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/x/common"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
@@ -39,6 +40,8 @@ type StakingKeeper interface {
 	Delegator(ctx sdk.Context, delAddr sdk.AccAddress) stakingexported.DelegatorI
 
 	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
+
+	ParamsConsensusType(ctx sdk.Context) (consensusType common.ConsensusType)
 }
 
 // StakingHooks event hooks for staking validator object (noalias)

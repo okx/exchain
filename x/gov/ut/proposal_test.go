@@ -1,31 +1,17 @@
-package keeper
+package ut
 
 import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/exchain/x/gov/types"
+	"github.com/stretchr/testify/require"
 )
-
-//func TestKeeper_SubmitProposal(t *testing.T) {
-//	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
-//
-//	// not registered router
-//	content := dexTypes.NewDexListProposal("Test", "", Addrs[0], "btc-123",
-//		common.NativeToken, sdk.NewDec(1000), 0, 4, 4,
-//		sdk.MustNewDecFromStr("0.0001"))
-//	proposal, err := keeper.SubmitProposal(ctx, content)
-//	require.NotNil(t, err)
-//	proposalID := proposal.ProposalID
-//	fmt.Println(proposalID)
-//}
 
 func TestKeeper_GetProposalID(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
 
-	store := ctx.KVStore(keeper.storeKey)
+	store := ctx.KVStore(keeper.StoreKey())
 	store.Delete(types.ProposalIDKey)
 	proposalID, err := keeper.GetProposalID(ctx)
 	require.NotNil(t, err)

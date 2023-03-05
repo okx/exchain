@@ -61,9 +61,16 @@ const (
 )
 
 var (
-	ErrInvalidHistoricalInfo           = sdkerrors.Register(ModuleName, 144, "invalid historical info")
-	ErrNoHistoricalInfo                = sdkerrors.Register(ModuleName, 145, "no historical info found")
+	ErrInvalidHistoricalInfo   = sdkerrors.Register(ModuleName, 144, "invalid historical info")
+	ErrNoHistoricalInfo        = sdkerrors.Register(ModuleName, 145, "no historical info found")
+	ErrUnexpectedProposalType  = sdkerrors.Register(ModuleName, 146, "unsupported proposal type of staking module")
+	ErrDisableOperation        = sdkerrors.Register(ModuleName, 147, "staking operation is disable when consensus type is PoA")
+	ErrProposedInValSet        = sdkerrors.Register(ModuleName, 148, "validator proposed is already in the validator set")
+	ErrProposedNotInValSet     = sdkerrors.Register(ModuleName, 149, "validator proposed for removal is not in the validator set")
+	ErrProposedExceedMax       = sdkerrors.Register(ModuleName, 150, "propose validator exceeds max validators")
+	ErrMinSelfDelegationEnough = sdkerrors.Register(ModuleName, 151, "min self delegation is enough, no need to deposit")
 )
+
 // ErrNoValidatorFound returns an error when a validator doesn't exist
 func ErrNoValidatorFound(valAddr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNoValidatorFound, fmt.Sprintf("validator %s does not exist", valAddr))}
@@ -191,7 +198,7 @@ func ErrCommissionGTMaxChangeRate() sdk.Error {
 
 // ErrMinSelfDelegationInvalid returns an error when the msd isn't positive
 func ErrMinSelfDelegationInvalid() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeMinSelfDelegationInvalid, "minimum self delegation must be a positive integer")
+	return sdkerrors.New(DefaultCodespace, CodeMinSelfDelegationInvalid, "minimum self delegation cannot be a negative integer")
 }
 
 // ErrNilDelegatorAddr returns an error when the delegator address is nil
@@ -222,8 +229,7 @@ func ErrNoUnbondingDelegation() sdk.Error {
 // ErrAddSharesToDismission returns an error when a zero-msd validator becomes the shares adding target
 func ErrAddSharesToDismission(valAddr string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeAddSharesToDismission,
-		fmt.Sprintf("failed. destroyed validator %s isn't allowed to add shares to. please get rid of it from the "+
-			"shares adding list by adding shares to other validators again or unbond all delegated tokens", valAddr))
+		fmt.Sprintf("failed. it isn't allowed to add shares to validator %s because its MinSelfDelegation is not enough", valAddr))
 }
 
 // ErrAddSharesDuringProxy returns an error when a delegator who has bound tries to add shares to validators by itself

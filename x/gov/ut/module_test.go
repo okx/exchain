@@ -1,20 +1,21 @@
-package gov
+package ut
 
 import (
+	"testing"
+
+	"github.com/okex/exchain/x/gov"
+
 	okexchaincodec "github.com/okex/exchain/app/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
-	"testing"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	cliLcd "github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/gov/client"
 	"github.com/okex/exchain/x/gov/client/rest"
-	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -33,9 +34,9 @@ func proposalRESTHandler(cliCtx context.CLIContext) rest.ProposalRESTHandler {
 }
 
 func TestNewAppModuleBasic(t *testing.T) {
-	ctx, _, gk, _, crisisKeeper := keeper.CreateTestInput(t, false, 1000)
+	ctx, _, gk, _, crisisKeeper := CreateTestInput(t, false, 1000)
 
-	moduleBasic := NewAppModuleBasic(client.ProposalHandler{
+	moduleBasic := gov.NewAppModuleBasic(client.ProposalHandler{
 		CLIHandler:  getCmdSubmitProposal,
 		RESTHandler: proposalRESTHandler,
 	})
@@ -72,7 +73,7 @@ func TestNewAppModuleBasic(t *testing.T) {
 	// todo: check diff after GetQueryCmd
 	moduleBasic.GetQueryCmd(cdc)
 
-	appModule := NewAppModule(gk, gk.SupplyKeeper())
+	appModule := gov.NewAppModule(gk, gk.SupplyKeeper())
 	require.Equal(t, types.ModuleName, appModule.Name())
 
 	// todo: check diff after RegisterInvariants
@@ -80,11 +81,11 @@ func TestNewAppModuleBasic(t *testing.T) {
 
 	require.Equal(t, types.RouterKey, appModule.Route())
 
-	require.IsType(t, NewHandler(gk), appModule.NewHandler())
+	require.IsType(t, gov.NewHandler(gk), appModule.NewHandler())
 
 	require.Equal(t, types.QuerierRoute, appModule.QuerierRoute())
 
-	require.IsType(t, NewQuerier(gk), appModule.NewQuerierHandler())
+	require.IsType(t, gov.NewQuerier(gk), appModule.NewQuerierHandler())
 
 	require.Equal(t, []abci.ValidatorUpdate{}, appModule.InitGenesis(ctx, jsonMsg))
 
