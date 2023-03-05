@@ -2,7 +2,6 @@ package mpt
 
 import (
 	"fmt"
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"io"
 	"sync"
 
@@ -32,6 +31,8 @@ const (
 
 var (
 	TrieAccStoreCache uint = 32 // MB
+
+	AccountStateRootRetriever StateRootRetriever = EmptyStateRootRetriever{}
 )
 
 var cdc = codec.New()
@@ -60,8 +61,7 @@ type MptStore struct {
 	startVersion int64
 	cmLock       sync.Mutex
 
-	//TODO by yxq
-	retrieval mpttypes.AccountStateRootRetrieval
+	retriever StateRootRetriever
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -84,19 +84,19 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
+func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
-	return generateMptStore(logger, id, db, retrieval)
+	return generateMptStore(logger, id, db, AccountStateRootRetriever)
 }
 
-func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
+func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retriever StateRootRetriever) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
 		db:         db,
 		triegc:     triegc,
 		logger:     logger,
 		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
-		retrieval:  retrieval,
+		retriever:  retriever,
 		exitSignal: make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
@@ -106,7 +106,7 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
-	return generateMptStore(logger, id, db, nil)
+	return generateMptStore(logger, id, db, EmptyStateRootRetriever{})
 }
 
 func (ms *MptStore) openTrie(id types.CommitID) error {
@@ -249,7 +249,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	ms.StopPrefetcher()
 
 	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot := ms.retrieval(leaf)
+		storageRoot := ms.retriever.RetrieveStateRoot(leaf)
 		if storageRoot != ethtypes.EmptyRootHash && storageRoot != (ethcmn.Hash{}) {
 			ms.db.TrieDB().Reference(storageRoot, parent)
 		}

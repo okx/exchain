@@ -47,10 +47,8 @@ func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
 
 func queryBlockRewards(ctx sdk.Context, k Keeper) ([]byte, error) {
 	minter := k.GetMinterCustom(ctx)
-	params := k.GetParams(ctx)
 
-	farmingAmount := minter.MintedPerBlock.MulDecTruncate(params.FarmProportion)
-	blockAmount := minter.MintedPerBlock.Sub(farmingAmount)
+	blockAmount := minter.MintedPerBlock
 
 	res, err := codec.MarshalJSONIndent(k.cdc, types.MinterCustom{
 		MintedPerBlock:    blockAmount,

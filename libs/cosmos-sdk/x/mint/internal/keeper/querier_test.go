@@ -44,5 +44,4 @@ func TestQueryParams(t *testing.T) {
 	require.Equal(t, expected.BlocksPerYear, params.BlocksPerYear)
 	require.Equal(t, expected.DeflationRate, params.DeflationRate)
 	require.Equal(t, expected.DeflationEpoch, params.DeflationEpoch)
-	require.Equal(t, expected.FarmProportion, params.FarmProportion)
 }

@@ -28,9 +28,7 @@ import (
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	"github.com/okex/exchain/x/dex"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/order"
 	tokencmd "github.com/okex/exchain/x/token/client/cli"
 	"github.com/spf13/cobra"
 )
@@ -142,8 +140,6 @@ func txCmd(proxy *sdkcodec.CodecProxy, reg interfacetypes.InterfaceRegistry) *co
 
 	for _, cmd := range txCmd.Commands() {
 		if cmd.Use == auth.ModuleName ||
-			cmd.Use == order.ModuleName ||
-			cmd.Use == dex.ModuleName ||
 			cmd.Use == bank.ModuleName {
 			cmdsToRemove = append(cmdsToRemove, cmd)
 		}

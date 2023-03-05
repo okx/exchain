@@ -44,7 +44,7 @@ func (q *GasTxQueue) Insert(memTx *mempoolTx) error {
 		return fmt.Errorf("failed to replace tx for acccount %s with nonce %d, "+
 			"the provided gas price %d is not bigger enough", memTx.from, memTx.realTx.GetNonce(), memTx.realTx.GetGasPrice())
 	}
-	txHash := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), memTx.height)
+	txHash := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash())
 
 	q.sortedTxsMap.Store(txHash, ele)
 

@@ -267,7 +267,7 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 func (es *EventSystem) handleTxsEvent(ev coretypes.ResultEvent) {
 	data, _ := ev.Data.(tmtypes.EventDataTx)
 	for _, f := range es.index[filters.PendingTransactionsSubscription] {
-		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash(data.Height))}
+		f.hashes <- []common.Hash{common.BytesToHash(data.Tx.Hash())}
 	}
 }
 

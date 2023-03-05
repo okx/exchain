@@ -60,8 +60,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-	if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
+	if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
 		so.setError(err)
 		return ethcmn.Hash{}
 	}
@@ -146,8 +145,6 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
@@ -193,7 +190,6 @@ func (so *stateObject) finalise(prefetch bool) {
 		for key, value := range so.dirtyStorage {
 			so.pendingStorage[key] = value
 			if value != so.originStorage[key] {
-				key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 				slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 			}
 		}

@@ -63,7 +63,7 @@ func TestBroadcastError(t *testing.T) {
 	}
 
 	txBytes := []byte{0xA, 0xB}
-	txHash := fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(0))
+	txHash := fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash())
 
 	for _, mode := range modes {
 		for err, code := range errors {

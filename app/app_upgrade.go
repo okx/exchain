@@ -3,17 +3,13 @@ package app
 import (
 	"sort"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-
 	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 )
@@ -33,6 +29,10 @@ func (app *OKExChainApp) setupUpgradeModules() {
 	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
+
+	app.GetCMS().CleanCommitFilters()
+	app.GetCMS().CleanPruneFilters()
+	app.GetCMS().CleanVersionFilters()
 
 	app.GetCMS().AppendCommitFilters(cf)
 	app.GetCMS().AppendPruneFilters(pf)

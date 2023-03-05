@@ -80,16 +80,6 @@ func (genDoc *GenesisDoc) SaveAs(file string) error {
 	return tmos.WriteFile(file, genDocBytes, 0644)
 }
 
-// ValidatorHash returns the hash of the validator set contained in the GenesisDoc
-func (genDoc *GenesisDoc) ValidatorHash() []byte {
-	vals := make([]*Validator, len(genDoc.Validators))
-	for i, v := range genDoc.Validators {
-		vals[i] = NewValidator(v.PubKey, v.Power)
-	}
-	vset := NewValidatorSet(vals)
-	return vset.Hash(genesisHeight)
-}
-
 // ValidateAndComplete checks that all necessary fields are present
 // and fills in defaults for optional fields left empty
 func (genDoc *GenesisDoc) ValidateAndComplete() error {

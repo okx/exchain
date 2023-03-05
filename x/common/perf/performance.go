@@ -21,14 +21,10 @@ func init() {
 }
 
 const (
-	orderModule        = "order"
-	dexModule          = "dex"
-	swapModule         = "ammswap"
 	tokenModule        = "token"
 	stakingModule      = "staking"
 	govModule          = "gov"
 	distributionModule = "distribution"
-	farmModule         = "farm"
 	evmModule          = "evm"
 	summaryFormat      = "Summary: Height<%d>, Interval<%ds>, " +
 		"Abci<%dms>, " +
@@ -156,14 +152,10 @@ func newPerf() *performance {
 	p.app = &appInfo{
 		info: info{},
 	}
-	p.moduleInfoMap[orderModule] = newHanlderMetrics()
-	p.moduleInfoMap[dexModule] = newHanlderMetrics()
-	p.moduleInfoMap[swapModule] = newHanlderMetrics()
 	p.moduleInfoMap[tokenModule] = newHanlderMetrics()
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
-	p.moduleInfoMap[farmModule] = newHanlderMetrics()
 	p.moduleInfoMap[evmModule] = newHanlderMetrics()
 
 	p.check = false
@@ -416,14 +408,10 @@ func (p *performance) OnCommitExit(height int64, seq uint64, l log.Logger) {
 	p.msgQueue = nil
 
 	p.app = &appInfo{seqNum: p.app.seqNum}
-	p.moduleInfoMap[orderModule] = newHanlderMetrics()
-	p.moduleInfoMap[dexModule] = newHanlderMetrics()
-	p.moduleInfoMap[swapModule] = newHanlderMetrics()
 	p.moduleInfoMap[tokenModule] = newHanlderMetrics()
 	p.moduleInfoMap[govModule] = newHanlderMetrics()
 	p.moduleInfoMap[distributionModule] = newHanlderMetrics()
 	p.moduleInfoMap[stakingModule] = newHanlderMetrics()
-	p.moduleInfoMap[farmModule] = newHanlderMetrics()
 	p.moduleInfoMap[evmModule] = newHanlderMetrics()
 }
 

@@ -21,8 +21,8 @@ import (
 
 const (
 	tagKeySeparator = "/"
-	defaultTimeOut = 5 * time.Second
-	maxQueryRange = 256
+	defaultTimeOut  = 5 * time.Second
+	maxQueryRange   = 256
 )
 
 var _ txindex.TxIndexer = (*TxIndex)(nil)
@@ -105,7 +105,7 @@ func (txi *TxIndex) AddBatch(b *txindex.Batch) error {
 	defer storeBatch.Close()
 
 	for _, result := range b.Ops {
-		hash := result.Tx.Hash(result.Height)
+		hash := result.Tx.Hash()
 
 		// index tx by events
 		txi.indexEvents(result, hash, storeBatch)
@@ -135,7 +135,7 @@ func (txi *TxIndex) Index(result *types.TxResult) error {
 	b := txi.store.NewBatch()
 	defer b.Close()
 
-	hash := result.Tx.Hash(result.Height)
+	hash := result.Tx.Hash()
 
 	// index tx by events
 	txi.indexEvents(result, hash, b)

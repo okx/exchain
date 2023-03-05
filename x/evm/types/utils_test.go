@@ -15,7 +15,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -119,6 +118,11 @@ func TestTxDecoder(t *testing.T) {
 	txbytes := cdc.MustMarshalBinaryLengthPrefixed(expectedEthMsg)
 	txDecoder := TxDecoder(cdc)
 	tx, err := txDecoder(txbytes)
+	require.Error(t, err)
+
+	rlpBytes, err := rlp.EncodeToBytes(&expectedEthMsg)
+	require.Nil(t, err)
+	tx, err = txDecoder(rlpBytes)
 	require.NoError(t, err)
 
 	msgs := tx.GetMsgs()
@@ -136,23 +140,16 @@ func TestTxDecoder(t *testing.T) {
 	_, err = txDecoder(txbytes[1:])
 	require.Error(t, err)
 
-	oldHeight := types.GetMilestoneVenusHeight()
-	defer types.UnittestOnlySetMilestoneVenusHeight(oldHeight)
-	rlpBytes, err := rlp.EncodeToBytes(&expectedEthMsg)
-	require.Nil(t, err)
-
 	for _, c := range []struct {
 		curHeight          int64
-		venusHeight        int64
 		enableAminoDecoder bool
 		enableRLPDecoder   bool
 	}{
-		{999, 0, true, false},
-		{999, 1000, true, false},
-		{1000, 1000, false, true},
-		{1500, 1000, false, true},
+		{999, false, true},
+		{999, false, true},
+		{1000, false, true},
+		{1500, false, true},
 	} {
-		types.UnittestOnlySetMilestoneVenusHeight(c.venusHeight)
 		_, err = TxDecoder(cdc)(txbytes, c.curHeight)
 		require.Equal(t, c.enableAminoDecoder, err == nil)
 		_, err = TxDecoder(cdc)(rlpBytes, c.curHeight)
