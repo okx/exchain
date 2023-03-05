@@ -58,7 +58,7 @@ var (
 
 	KeyHistoricalEntries = []byte("HistoricalEntries")
 	KeyConsensusType     = []byte("ConsensusType")
-	KeyEnableOperation   = []byte("EnableOperation")
+	KeyEnableDposOp      = []byte("EnableDposOp")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -80,12 +80,12 @@ type Params struct {
 
 	HistoricalEntries uint32               `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
 	ConsensusType     common.ConsensusType `json:"consensus_type"`
-	EnableOperation   bool                 `json:"enable_operation"`
+	EnableDposOp      bool                 `json:"enable_dpos_op"`
 }
 
 // NewParams creates a new Params instance
 func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, maxValsToAddShares uint16, minDelegation sdk.Dec,
-	minSelfDelegation sdk.Dec, historicalEntries uint32, consensusType common.ConsensusType, enableOperation bool) Params {
+	minSelfDelegation sdk.Dec, historicalEntries uint32, consensusType common.ConsensusType, enableDposOp bool) Params {
 	return Params{
 		UnbondingTime:      unbondingTime,
 		MaxValidators:      maxValidators,
@@ -95,7 +95,7 @@ func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, 
 		MinSelfDelegation:  minSelfDelegation,
 		HistoricalEntries:  historicalEntries,
 		ConsensusType:      consensusType,
-		EnableOperation:    enableOperation,
+		EnableDposOp:       enableDposOp,
 	}
 }
 
@@ -115,7 +115,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecNotNeg("min self delegation")},
 		{Key: KeyHistoricalEntries, Value: &p.HistoricalEntries, ValidatorFn: validateHistoricalEntries},
 		{Key: KeyConsensusType, Value: &p.ConsensusType, ValidatorFn: common.ValidateConsensusType("consensus type")},
-		{Key: KeyEnableOperation, Value: &p.EnableOperation, ValidatorFn: common.ValidateBool("enable operation")},
+		{Key: KeyEnableDposOp, Value: &p.EnableDposOp, ValidatorFn: common.ValidateBool("enable operation")},
 	}
 }
 func validateHistoricalEntries(i interface{}) error {
@@ -160,9 +160,9 @@ func (p *Params) String() string {
   MinDelegation				%d
   MinSelfDelegation         %d
   ConsensusType:            %s
-  EnableOperation           %t,`,
+  EnableDposOp              %t,`,
 		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation,
-		p.MinSelfDelegation, p.ConsensusType, p.EnableOperation)
+		p.MinSelfDelegation, p.ConsensusType, p.EnableDposOp)
 }
 
 // Validate gives a quick validity check for a set of params

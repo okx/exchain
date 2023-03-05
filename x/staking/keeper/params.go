@@ -48,7 +48,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.ParamsMinSelfDelegation(ctx),
 		k.HistoricalEntries(ctx),
 		k.ParamsConsensusType(ctx),
-		k.ParamsEnableOperation(ctx),
+		k.ParamsEnableDposOp(ctx),
 	)
 }
 
@@ -129,8 +129,8 @@ func (k Keeper) ParamsConsensusType(ctx sdk.Context) (consensusType common.Conse
 	return
 }
 
-// ParamsEnableOperation returns the param EnableOperation
-func (k Keeper) ParamsEnableOperation(ctx sdk.Context) (enableOperation bool) {
-	k.paramstore.Get(ctx, types.KeyEnableOperation, &enableOperation)
+// ParamsEnableDposOp returns the param EnableDposOp
+func (k Keeper) ParamsEnableDposOp(ctx sdk.Context) (enableDposOp bool) {
+	k.paramstore.Get(ctx, types.KeyEnableDposOp, &enableDposOp)
 	return
 }
