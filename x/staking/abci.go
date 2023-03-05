@@ -60,6 +60,10 @@ func PoAValidatorsUpdate(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdat
 	if len(proposedValidators) > 0 {
 		validatorUpdates = k.PoAApplyAndReturnValidatorSetUpdates(ctx, proposedValidators)
 		k.DeleteProposeValidators(ctx)
+	} else if k.IsKickedOut(ctx) {
+		// if there are some validators to kick out in an epoch
+		validatorUpdates = k.KickOutAndReturnValidatorSetUpdates(ctx)
+		k.DeleteAbandonedValidatorAddrs(ctx)
 	}
 	// update epoch
 	if k.IsEndOfEpoch(ctx) {
