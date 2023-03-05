@@ -63,7 +63,6 @@ Where proposal.json contains:
   "title": "propose-validator",
   "description": "propose a validator",
   "is_add": true,
-  "block_num":"820",
   "deposit": [
     {
       "denom": "okt",
@@ -103,7 +102,6 @@ Where proposal.json contains:
 				proposal.Title,
 				proposal.Description,
 				proposal.IsAdd,
-				proposal.BlockNum,
 				proposal.Validator,
 			)
 
@@ -122,7 +120,6 @@ type ProposeValidatorJSON struct {
 	Title       string                 `json:"title" yaml:"title"`
 	Description string                 `json:"description" yaml:"description"`
 	IsAdd       bool                   `json:"is_add" yaml:"is_add"`
-	BlockNum    uint64                 `json:"block_num" yaml:"block_num"`
 	Deposit     sdk.SysCoins           `json:"deposit" yaml:"deposit"`
 	Validator   types.ProposeValidator `json:"validator" yaml:"validator"`
 }

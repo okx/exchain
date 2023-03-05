@@ -47,18 +47,15 @@ type ProposeValidatorProposal struct {
 	Title       string           `json:"title" yaml:"title"`
 	Description string           `json:"description" yaml:"description"`
 	IsAdd       bool             `json:"is_add" yaml:"is_add"`
-	BlockNum    uint64           `json:"block_num" yaml:"block_num"`
 	Validator   ProposeValidator `json:"validator" yaml:"validator"`
 }
 
 // NewProposeValidatorProposal creates a new instance of ProposeValidatorProposal
-func NewProposeValidatorProposal(title, description string, isAdd bool, blockNum uint64,
-	validator ProposeValidator) ProposeValidatorProposal {
+func NewProposeValidatorProposal(title, description string, isAdd bool, validator ProposeValidator) ProposeValidatorProposal {
 	return ProposeValidatorProposal{
 		Title:       title,
 		Description: description,
 		IsAdd:       isAdd,
-		BlockNum:    blockNum,
 		Validator:   validator,
 	}
 }
@@ -133,9 +130,8 @@ func (pv ProposeValidatorProposal) String() string {
  Description:        	%s
  IsADD:                 %t
  Type:                	%s
- BlockNum:				%d
 `,
-			pv.Title, pv.Description, pv.IsAdd, pv.ProposalType(), pv.BlockNum),
+			pv.Title, pv.Description, pv.IsAdd, pv.ProposalType()),
 	)
 
 	return strings.TrimSpace(builder.String())
