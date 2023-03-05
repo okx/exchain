@@ -286,6 +286,71 @@ func TestEthAccountAmino(t *testing.T) {
 	}
 }
 
+func TestEthAccountDeepCopy(t *testing.T) {
+	cdc := codec.New()
+	cdc.RegisterInterface((*exported.Account)(nil), nil)
+	RegisterCodec(cdc)
+
+	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
+	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
+		ed25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(sr25519.PubKeySr25519{},
+		sr25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(secp256k1.PubKeySecp256k1{},
+		secp256k1.PubKeyAminoName, nil)
+
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	accounts := []EthAccount{
+		{
+			auth.NewBaseAccount(
+				addr,
+				sdk.NewCoins(NewPhotonCoin(sdk.OneInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}}),
+				pubKey,
+				1,
+				1,
+			),
+			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
+		},
+		{
+			auth.NewBaseAccount(
+				addr,
+				sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(0)}}),
+				pubKey,
+				0,
+				0,
+			),
+			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
+		},
+		{
+			auth.NewBaseAccount(
+				addr,
+				nil,
+				nil,
+				0,
+				0,
+			),
+			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
+		},
+	}
+
+	for i, testAccount := range accounts {
+		temp := testAccount.DeepCopy()
+		require.NotEqual(t, testAccount, temp)
+
+		expectValue, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
+		require.NoError(t, err)
+
+		gotVaule, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(temp)
+		require.EqualValues(t, expectValue, gotVaule, fmt.Errorf("error index %d", i))
+	}
+}
+
 func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
