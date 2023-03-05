@@ -229,8 +229,7 @@ func ErrNoUnbondingDelegation() sdk.Error {
 // ErrAddSharesToDismission returns an error when a zero-msd validator becomes the shares adding target
 func ErrAddSharesToDismission(valAddr string) sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeAddSharesToDismission,
-		fmt.Sprintf("failed. destroyed validator %s isn't allowed to add shares to. please get rid of it from the "+
-			"shares adding list by adding shares to other validators again or unbond all delegated tokens", valAddr))
+		fmt.Sprintf("failed. it isn't allowed to add shares to validator %s because its MinSelfDelegation is not enough", valAddr))
 }
 
 // ErrAddSharesDuringProxy returns an error when a delegator who has bound tries to add shares to validators by itself

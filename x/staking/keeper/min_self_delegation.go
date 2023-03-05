@@ -89,3 +89,25 @@ func (k Keeper) addSharesAsDefaultMinSelfDelegation(ctx sdk.Context, pValidator 
 func (k Keeper) getSharesFromDefaultMinSelfDelegation() sdk.Dec {
 	return sdk.OneDec()
 }
+
+func (k Keeper) DepositMinSelfDelegation(ctx sdk.Context, delAddr sdk.AccAddress, validator *types.Validator,
+	defaultMSDToken sdk.SysCoin) (err error) {
+	// 0. transfer account's okt (0.001okt as default) into bondPool
+	coins := sdk.SysCoins{defaultMSDToken}
+	if coins.AmountOf(k.BondDenom(ctx)).GT(sdk.ZeroDec()) {
+		err = k.supplyKeeper.DelegateCoinsFromAccountToModule(ctx, delAddr, types.BondedPoolName, coins)
+		if err != nil {
+			return err
+		}
+	}
+
+	shares := validator.GetDelegatorShares()
+	// only update default min self delegation when there are no shares
+	if shares.IsZero() {
+		k.DeleteValidatorByPowerIndex(ctx, *validator)
+		validator.DelegatorShares = k.getSharesFromDefaultMinSelfDelegation()
+		k.SetValidator(ctx, *validator)
+		k.SetValidatorByPowerIndex(ctx, *validator)
+	}
+	return nil
+}

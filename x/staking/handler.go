@@ -165,11 +165,12 @@ func handleMsgDepositMinSelfDelegation(ctx sdk.Context, msg types.MsgDepositMinS
 	}
 	depositAmount := minSelfDelegation.Sub(validator.MinSelfDelegation)
 	depositCoin := sdk.NewDecCoinFromDec(k.BondDenom(ctx), depositAmount)
-	if err := k.AddSharesAsMinSelfDelegation(ctx, sdk.AccAddress(validator.OperatorAddress),
+	if err := k.DepositMinSelfDelegation(ctx, sdk.AccAddress(validator.OperatorAddress),
 		&validator, depositCoin); err != nil {
 		return nil, err
 	}
-
+	validator.MinSelfDelegation = minSelfDelegation
+	k.SetValidator(ctx, validator)
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeDepositMinSelfDelegation,
 			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
