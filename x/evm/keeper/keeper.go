@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -63,7 +62,6 @@ type Keeper struct {
 	// add inner block data
 	innerBlockData BlockInnerData
 
-	stateCache     *fastcache.Cache
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
 
@@ -133,7 +131,6 @@ func NewKeeper(
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 		LogsManages:    NewLogManager(),
@@ -170,7 +167,6 @@ func NewSimulateKeeper(
 		LogSize:        0,
 		Watcher:        watcher.NewWatcher(nil),
 		Ada:            ada,
-		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 
 		db: mpt.InstanceOfMptStore(),
@@ -208,7 +204,6 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
 		DB:            k.db,
-		StateCache:    k.stateCache,
 	}
 }
 
@@ -220,8 +215,7 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Ada:        k.Ada,
 		Cdc:        k.cdc,
 
-		DB:         k.db,
-		StateCache: k.stateCache,
+		DB: k.db,
 	}
 }
 
