@@ -125,7 +125,7 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
-	config.SetCoinType(60)
+	config.SetCoinType(system.CoinType)
 	okexchain.SetBech32Prefixes(config)
 	okexchain.SetBip44CoinType(config)
 }

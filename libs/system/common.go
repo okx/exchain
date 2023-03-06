@@ -9,4 +9,5 @@ const (
 	ClientHome = "$HOME/."+Client
 	ServerLog = Server+".log"
 	EnvPrefix = "OKEXCHAIN"
+	CoinType uint32 = 60
 )
