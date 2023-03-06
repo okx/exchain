@@ -5,7 +5,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -47,11 +46,10 @@ var (
 // MptStore Implements types.KVStore and CommitKVStore.
 // Its main purpose is to own the same interface as iavl store in libs/cosmos-sdk/store/iavl/iavl_store.go
 type MptStore struct {
-	trie    ethstate.Trie
-	db      ethstate.Database
-	triegc  *prque.Prque
-	logger  tmlog.Logger
-	kvCache *fastcache.Cache
+	trie   ethstate.Trie
+	db     ethstate.Database
+	triegc *prque.Prque
+	logger tmlog.Logger
 
 	prefetcher   *TriePrefetcher
 	originalRoot ethcmn.Hash
@@ -95,7 +93,6 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 		db:         db,
 		triegc:     triegc,
 		logger:     logger,
-		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
 		retriever:  retriever,
 		exitSignal: make(chan struct{}),
 	}
@@ -162,29 +159,15 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-	if ms.kvCache != nil {
-		if enc := ms.kvCache.Get(nil, key); len(enc) > 0 {
-			return enc
-		}
-	}
 	value, err := ms.trie.TryGet(key)
 	if err != nil {
 		return nil
-	}
-	if ms.kvCache != nil && value != nil {
-		ms.kvCache.Set(key, value)
 	}
 
 	return value
 }
 
 func (ms *MptStore) Has(key []byte) bool {
-	if ms.kvCache != nil {
-		if ms.kvCache.Has(key) {
-			return true
-		}
-	}
-
 	return ms.Get(key) != nil
 }
 
@@ -198,9 +181,6 @@ func (ms *MptStore) Set(key, value []byte) {
 	if err != nil {
 		return
 	}
-	if ms.kvCache != nil {
-		ms.kvCache.Set(key, value)
-	}
 
 	return
 }
@@ -210,9 +190,6 @@ func (ms *MptStore) Delete(key []byte) {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
 
-	if ms.kvCache != nil {
-		ms.kvCache.Del(key)
-	}
 	err := ms.trie.TryDelete(key)
 	if err != nil {
 		return
