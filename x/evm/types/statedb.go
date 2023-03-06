@@ -145,7 +145,7 @@ type CommitStateDB struct {
 
 	// snapshots
 	snaps         *snapshot.Tree
-	snap          snapshot.Snapshot
+	Snap          snapshot.Snapshot
 	SnapDestructs map[ethcmn.Hash]struct{}
 	SnapAccounts  map[ethcmn.Hash][]byte
 	SnapStorage   map[ethcmn.Hash]map[ethcmn.Hash][]byte
@@ -182,7 +182,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		db: csdbParams.DB,
 
 		snaps: csdbParams.Snapshot,
-		snap:  csdbParams.Snap,
+		Snap:  csdbParams.Snap,
 
 		storeKey:      csdbParams.StoreKey,
 		paramSpace:    csdbParams.ParamSpace,
@@ -211,7 +211,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	root := csdb.getMptRootHash(latestHeight)
 
 	if csdb.snaps != nil {
-		if csdb.snap = csdb.snaps.Snapshot(root); csdb.snap != nil {
+		if csdb.Snap = csdb.snaps.Snapshot(root); csdb.Snap != nil {
 			csdb.SnapDestructs = make(map[common.Hash]struct{})
 			csdb.SnapAccounts = make(map[common.Hash][]byte)
 			csdb.SnapStorage = make(map[common.Hash]map[common.Hash][]byte)
@@ -922,7 +922,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 			// Note, we can't do this only at the end of a block because multiple
 			// transactions within the same block might self destruct and then
 			// resurrect an account; but the snapshotter needs both events.
-			if csdb.snap != nil {
+			if csdb.Snap != nil {
 				csdb.SnapDestructs[obj.addrHash] = struct{}{} // We need to maintain account deletions explicitly (will remain set indefinitely)
 				delete(csdb.SnapAccounts, obj.addrHash)       // Clear out any previously updated account data (may be recreated via a ressurrect)
 				delete(csdb.SnapStorage, obj.addrHash)        // Clear out any previously updated storage data (may be recreated via a ressurrect)
@@ -1019,7 +1019,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	// update mechanism is not symmetric to the deletion, because whereas it is
 	// enough to track account updates at commit time, deletions need tracking
 	// at transaction boundary level to ensure we capture state clearing.
-	if csdb.snap != nil {
+	if csdb.Snap != nil {
 		csdb.SnapAccounts[so.addrHash] = snapshot.SlimAccountRLP(so.account.Sequence, so.Balance(), so.account.StateRoot, so.CodeHash())
 	}
 
@@ -1249,7 +1249,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 	prevObj = csdb.getStateObject(addr)
 
 	var prevdestruct bool
-	if csdb.snap != nil && prevObj != nil {
+	if csdb.Snap != nil && prevObj != nil {
 		_, prevdestruct = csdb.SnapDestructs[prevObj.addrHash]
 		if !prevdestruct {
 			csdb.SnapDestructs[prevObj.addrHash] = struct{}{}

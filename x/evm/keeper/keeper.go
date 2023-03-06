@@ -153,6 +153,8 @@ func NewKeeper(
 	k.openSnapshot()
 
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
+	k.snap = k.EvmStateDb.Snap
+
 	return k
 }
 

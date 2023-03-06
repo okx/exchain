@@ -252,7 +252,6 @@ func (k *Keeper) openSnapshot() error {
 		k.logger.Error("open snapshot error ", "error", err)
 		return fmt.Errorf("open snapshot error %v", err)
 	}
-	k.snap = k.snaps.Snapshot(latestRootHash)
 
 	return nil
 }

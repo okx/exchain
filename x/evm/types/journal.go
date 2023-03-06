@@ -146,7 +146,7 @@ func (ch createObjectChange) dirtied() *ethcmn.Address {
 func (ch resetObjectChange) revert(s *CommitStateDB) {
 	s.setStateObject(ch.prev)
 	// todo giskook prevdestruct
-	if !ch.prevdestruct && s.snap != nil {
+	if !ch.prevdestruct && s.Snap != nil {
 		delete(s.SnapDestructs, ch.prev.addrHash)
 	}
 }

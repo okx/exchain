@@ -152,9 +152,9 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 		acc authexported.Account
 		err error
 	)
-	if csdb.snap != nil {
+	if csdb.Snap != nil {
 		var sacc *snapshot.Account
-		if sacc, err = csdb.snap.Account(crypto.HashData(csdb.hasher, addr.Bytes())); err == nil {
+		if sacc, err = csdb.Snap.Account(crypto.HashData(csdb.hasher, addr.Bytes())); err == nil {
 			if sacc == nil {
 				return nil
 			}
@@ -176,7 +176,7 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 		}
 	}
 
-	if csdb.snap == nil || err != nil {
+	if csdb.Snap == nil || err != nil {
 		// otherwise, attempt to fetch the account from the account mapper
 		acc = csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 		if acc == nil {

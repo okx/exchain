@@ -60,7 +60,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	if so.stateDB.snap != nil {
+	if so.stateDB.Snap != nil {
 		// If the object was destructed in *this* block (and potentially resurrected),
 		// the storage has been cleared out, and we should *not* consult the previous
 		// snapshot about any storage values. The only possible alternatives are:
@@ -70,10 +70,10 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		if _, destructed := so.stateDB.SnapDestructs[so.addrHash]; destructed {
 			return ethcmn.Hash{}
 		}
-		enc, err = so.stateDB.snap.Storage(so.addrHash, crypto.Keccak256Hash(key.Bytes()))
+		enc, err = so.stateDB.Snap.Storage(so.addrHash, crypto.Keccak256Hash(key.Bytes()))
 	}
 
-	if so.stateDB.snap == nil || err != nil {
+	if so.stateDB.Snap == nil || err != nil {
 		tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 		if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
 			so.setError(err)
@@ -179,7 +179,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 
 		// If state snapshotting is active, cache the data til commit
-		if so.stateDB.snap != nil {
+		if so.stateDB.Snap != nil {
 			if storage == nil {
 				// Retrieve the old storage map, if available, create a new one otherwise
 				if storage = so.stateDB.SnapStorage[so.addrHash]; storage == nil {
