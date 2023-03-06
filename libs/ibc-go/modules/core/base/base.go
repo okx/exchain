@@ -17,49 +17,7 @@ var (
 		"transfer":       struct{}{},
 		"erc20":          struct{}{},
 	}
-	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
-		_, exist := ibcMap[module]
-		if !exist {
-			return false
-		}
-		return true
-	}
-	defaultIBCCommitFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
-		_, exist := ibcMap[module]
-		if !exist {
-			return false
-		}
 
-		// ==veneus1
-		if h == types.GetVenus1Height() {
-			if store != nil {
-				store.SetUpgradeVersion(h)
-			}
-			return false
-		}
-
-		// ibc modules
-		if types.HigherThanVenus1(h) {
-			return false
-		}
-
-		// < veneus1
-		return true
-	}
-	defaultIBCPruneFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
-		_, exist := ibcMap[module]
-		if !exist {
-			return false
-		}
-
-		// ibc modulee && >=veneus1
-		if types.HigherThanVenus1(h) {
-			return false
-		}
-
-		// < veneus1
-		return true
-	}
 	defaultIBCVersionFilter cosmost.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
 		if h < 0 {
 			return func(cb func(name string, version int64)) {}
@@ -96,16 +54,53 @@ func (b *BaseIBCUpgradeModule) UpgradeHeight() int64 {
 }
 
 func (b *BaseIBCUpgradeModule) CommitFilter() *cosmost.StoreFilter {
-	if b.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
+	var filter cosmost.StoreFilter
+	filter = func(module string, h int64, s cosmost.CommitKVStore) bool {
+		_, exist := ibcMap[module]
+		if !exist {
+			return false
+		}
+
+		if b.UpgradeHeight() == 0 {
+			return true
+		}
+		// ==veneus1
+		if h == types.GetVenus1Height() && s != nil {
+			s.SetUpgradeVersion(h)
+			return false
+		}
+
+		// ibc modules
+		if types.HigherThanVenus1(h) {
+			return false
+		}
+
+		// < veneus1
+		return true
 	}
-	return &defaultIBCCommitFilter
+	return &filter
 }
+
 func (b *BaseIBCUpgradeModule) PruneFilter() *cosmost.StoreFilter {
-	if b.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
+	var filter cosmost.StoreFilter
+	filter = func(module string, h int64, s cosmost.CommitKVStore) bool {
+		_, exist := ibcMap[module]
+		if !exist {
+			return false
+		}
+
+		if b.UpgradeHeight() == 0 {
+			return true
+		}
+		// ibc modulee && >=veneus1
+		if types.HigherThanVenus1(h) {
+			return false
+		}
+
+		// < veneus1
+		return true
 	}
-	return &defaultIBCPruneFilter
+	return &filter
 }
 
 func (b *BaseIBCUpgradeModule) VersionFilter() *cosmost.VersionFilter {
