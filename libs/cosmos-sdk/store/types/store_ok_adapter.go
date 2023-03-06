@@ -19,11 +19,8 @@ type VersionCallback = func(name string, version int64)
 
 type CommitMultiStorePipeline interface {
 	AppendVersionFilters(filters []VersionFilter)
-	CleanVersionFilters()
 	AppendCommitFilters(filters []StoreFilter)
-	CleanCommitFilters()
 	AppendPruneFilters(filters []StoreFilter)
-	CleanPruneFilters()
 }
 
 // CommitmentOp implements merkle.ProofOperator by wrapping an ics23 CommitmentProof

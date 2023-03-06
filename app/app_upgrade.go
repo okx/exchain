@@ -30,10 +30,6 @@ func (app *OKExChainApp) setupUpgradeModules() {
 
 	app.heightTasks = heightTasks
 
-	app.GetCMS().CleanCommitFilters()
-	app.GetCMS().CleanPruneFilters()
-	app.GetCMS().CleanVersionFilters()
-
 	app.GetCMS().AppendCommitFilters(cf)
 	app.GetCMS().AppendPruneFilters(pf)
 	app.GetCMS().AppendVersionFilters(vf)
