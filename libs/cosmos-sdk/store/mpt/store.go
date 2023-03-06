@@ -159,7 +159,7 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-	value, err := ms.trie.TryGet(key)
+	value, err := ms.db.CopyTrie(ms.trie).TryGet(key)
 	if err != nil {
 		return nil
 	}
@@ -197,11 +197,11 @@ func (ms *MptStore) Delete(key []byte) {
 }
 
 func (ms *MptStore) Iterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 /*
