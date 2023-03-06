@@ -50,6 +50,7 @@ func InstanceOfMptStore() ethstate.Database {
 			Journal:   "",
 			Preimages: true,
 		})
+		gMptDatabase.TrieDB().EnableAsyncCommit(!TrieDirtyDisabled)
 	})
 
 	return gMptDatabase
