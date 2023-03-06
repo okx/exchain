@@ -50,7 +50,7 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 				}
 			case stakingtypes.ProposeValidatorProposal:
 				if !ad.sk.IsValidator(ctx, msg.Proposer) {
-					return ctx, evmtypes.ErrCodeProposerMustBeValidator()
+					return ctx, stakingtypes.ErrCodeProposerMustBeValidator
 				}
 			case paramstypes.UpgradeProposal:
 				if err := ad.pk.CheckMsgSubmitProposal(ctx, msg); err != nil {
