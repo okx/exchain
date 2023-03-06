@@ -157,8 +157,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams, log.NewNopLogger())
 
 	accountKeeper := auth.NewAccountKeeper(
-		cdc,    // amino codec
-		keyAcc, // target store
+		cdc, // amino codec
 		keyMpt,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype

@@ -303,7 +303,7 @@ func createTestInput(
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		types.ModuleName:            nil,
 	}
-	accountKeeper := auth.NewAccountKeeper(legacyAmino, keys[authtypes.StoreKey], keys[mpt.StoreKey], subspace(authtypes.ModuleName), okexchain.ProtoAccount)
+	accountKeeper := auth.NewAccountKeeper(legacyAmino, keys[mpt.StoreKey], subspace(authtypes.ModuleName), okexchain.ProtoAccount)
 	blockedAddrs := make(map[string]bool)
 	for acc := range maccPerms {
 		blockedAddrs[authtypes.NewModuleAddress(acc).String()] = true

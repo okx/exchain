@@ -3,27 +3,25 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 	"testing"
 
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/stretchr/testify/require"
-
-	"github.com/stretchr/testify/suite"
-
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
+
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 func init() {
@@ -45,6 +43,7 @@ func (suite *AccountTestSuite) SetupTest() {
 	suite.account = &EthAccount{
 		BaseAccount: baseAcc,
 		CodeHash:    []byte{1, 2},
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 }
 
@@ -128,6 +127,7 @@ func (suite *AccountTestSuite) TestEthermintAccount_String() {
   account_number: 10
   sequence: 50
   code_hash: "0102"
+  state_root: 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421
 `, suite.account.Address, suite.account.EthAddress().String(), sdk.DefaultBondDenom, bech32pubkey)
 
 	suite.Require().Equal(accountStr, suite.account.String())
@@ -214,6 +214,7 @@ func TestEthAccountAmino(t *testing.T) {
 				1,
 			),
 			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
 		},
 		{
 			auth.NewBaseAccount(
@@ -224,6 +225,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 			),
 			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
 		},
 		{
 			auth.NewBaseAccount(
@@ -234,6 +236,7 @@ func TestEthAccountAmino(t *testing.T) {
 				0,
 			),
 			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
 		},
 		{
 			BaseAccount: &auth.BaseAccount{},
@@ -283,6 +286,71 @@ func TestEthAccountAmino(t *testing.T) {
 	}
 }
 
+func TestEthAccountDeepCopy(t *testing.T) {
+	cdc := codec.New()
+	cdc.RegisterInterface((*exported.Account)(nil), nil)
+	RegisterCodec(cdc)
+
+	cdc.RegisterInterface((*tmcrypto.PubKey)(nil), nil)
+	cdc.RegisterConcrete(ed25519.PubKeyEd25519{},
+		ed25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(sr25519.PubKeySr25519{},
+		sr25519.PubKeyAminoName, nil)
+	cdc.RegisterConcrete(secp256k1.PubKeySecp256k1{},
+		secp256k1.PubKeyAminoName, nil)
+
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	accounts := []EthAccount{
+		{
+			auth.NewBaseAccount(
+				addr,
+				sdk.NewCoins(NewPhotonCoin(sdk.OneInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(1)}}),
+				pubKey,
+				1,
+				1,
+			),
+			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
+		},
+		{
+			auth.NewBaseAccount(
+				addr,
+				sdk.NewCoins(NewPhotonCoin(sdk.ZeroInt()), sdk.Coin{"heco", sdk.Dec{big.NewInt(0)}}),
+				pubKey,
+				0,
+				0,
+			),
+			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
+		},
+		{
+			auth.NewBaseAccount(
+				addr,
+				nil,
+				nil,
+				0,
+				0,
+			),
+			ethcrypto.Keccak256(nil),
+			ethtypes.EmptyRootHash,
+		},
+	}
+
+	for i, testAccount := range accounts {
+		temp := testAccount.DeepCopy()
+		require.NotEqual(t, testAccount, temp)
+
+		expectValue, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
+		require.NoError(t, err)
+
+		gotVaule, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(temp)
+		require.EqualValues(t, expectValue, gotVaule, fmt.Errorf("error index %d", i))
+	}
+}
+
 func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	cdc := codec.New()
 	cdc.RegisterInterface((*exported.Account)(nil), nil)
@@ -304,6 +372,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 
 	data, _ := cdc.MarshalBinaryBare(&testAccount)
@@ -349,6 +418,7 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	testAccount := EthAccount{
 		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
 		CodeHash:    ethcrypto.Keccak256(nil),
+		StateRoot:   ethtypes.EmptyRootHash,
 	}
 
 	b.ResetTimer()
@@ -383,6 +453,7 @@ func (acc EthAccount) utOldCopy() sdk.Account {
 	return &EthAccount{
 		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
 		acc.CodeHash,
+		acc.StateRoot,
 	}
 }
 

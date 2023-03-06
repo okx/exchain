@@ -74,7 +74,6 @@ func NewApp() *App {
 
 	app.AccountKeeper = auth.NewAccountKeeper(
 		app.Cdc.GetCdc(),
-		app.KeyAccount,
 		app.KeyAccMpt,
 		app.ParamsKeeper.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount,

@@ -20,9 +20,6 @@ import (
 // BeginBlock sets the block hash -> block height map for the previous block height
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	if req.Header.GetHeight() == tmtypes.GetMarsHeight() {
-		migrateDataInMarsHeight(ctx, k)
-	}
 
 	if req.Header.LastBlockId.GetHash() == nil || req.Header.GetHeight() < 1 {
 		return
@@ -124,43 +121,7 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 
 	k.UpdateInnerBlockData()
 
-	k.Commit(ctx)
+	k.EvmStateDb.WithContext(ctx).Commit(true)
 
 	return []abci.ValidatorUpdate{}
-}
-
-// migrateDataInMarsHeight migrates data from evm store to param store
-// 0. chainConfig
-// 1. white address list
-// 2. blocked addresses list
-func migrateDataInMarsHeight(ctx sdk.Context, k *Keeper) {
-	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	newStore := k.paramSpace.CustomKVStore(ctx)
-
-	// 0. migrate chainConfig
-	config, _ := k.GetChainConfig(ctx)
-	newStore.Set(types.KeyPrefixChainConfig, k.cdc.MustMarshalBinaryBare(config))
-
-	// 1、migrate white list
-	whiteList := csdb.GetContractDeploymentWhitelist()
-	for i := 0; i < len(whiteList); i++ {
-		newStore.Set(types.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte(""))
-	}
-
-	// 2.1、deploy blocked list
-	blockedList := csdb.GetContractBlockedList()
-	for i := 0; i < len(blockedList); i++ {
-		newStore.Set(types.GetContractBlockedListMemberKey(blockedList[i]), []byte(""))
-	}
-
-	// 2.2、migrate blocked method list
-	methodBlockedList := csdb.GetContractMethodBlockedList()
-	for i := 0; i < len(methodBlockedList); i++ {
-		if !methodBlockedList[i].IsAllMethodBlocked() {
-			types.SortContractMethods(methodBlockedList[i].BlockMethods)
-			value := k.cdc.MustMarshalJSON(methodBlockedList[i].BlockMethods)
-			sortedValue := sdk.MustSortJSON(value)
-			newStore.Set(types.GetContractBlockedListMemberKey(methodBlockedList[i].Address), sortedValue)
-		}
-	}
 }

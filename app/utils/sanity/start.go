@@ -7,7 +7,6 @@ import (
 	apptype "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -69,11 +68,6 @@ var (
 		// --enable-preruntx conflict with --download-delta
 		{
 			configA: boolItem{name: consensus.EnablePrerunTx, expect: true},
-			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
-		},
-		// --multi-cache conflict with --download-delta
-		{
-			configA: boolItem{name: sdk.FlagMultiCache, expect: true},
 			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
 		},
 		{

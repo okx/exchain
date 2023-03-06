@@ -8,11 +8,8 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -30,6 +27,7 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -197,14 +195,9 @@ type BaseApp struct { // nolint: maligned
 
 	parallelTxManage *parallelTxManager
 
-	customizeModuleOnStop []sdk.CustomizeOnStop
-	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	feeCollector          sdk.Coins
-	feeChanged            bool // used to judge whether should update the fee-collector account
-	FeeSplitCollector     []*sdk.FeeSplitInfo
-
-	chainCache *sdk.Cache
-	blockCache *sdk.Cache
+	feeCollector      sdk.Coins
+	feeChanged        bool // used to judge whether should update the fee-collector account
+	FeeSplitCollector []*sdk.FeeSplitInfo
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
@@ -250,7 +243,6 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
-		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
 		blockDataCache:   NewBlockDataCache(),
@@ -956,11 +948,6 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 
 func (app *BaseApp) StopBaseApp() {
 	app.cms.StopStore()
-
-	ctx := sdk.NewContext(nil, abci.Header{Height: app.LastBlockHeight(), Time: time.Now()}, false, app.logger)
-	for _, fn := range app.customizeModuleOnStop {
-		fn(ctx)
-	}
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {

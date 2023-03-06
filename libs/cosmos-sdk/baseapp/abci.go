@@ -149,7 +149,6 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			SetBlockHeight(req.Header.Height)
 	}
 
-	app.newBlockCache()
 	// add block gas meter
 	var gasMeter sdk.GasMeter
 	if maxGas := app.getMaximumBlockGas(); maxGas > 0 {
@@ -236,10 +235,10 @@ func (app *BaseApp) addCommitTraceInfo() {
 	dbReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetDBReadTime()).Milliseconds(), 10)
 	dbWriteCountStr := strconv.Itoa(app.cms.GetDBWriteCount())
 
-	iavlInfo := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
+	info := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
 
 	elapsedInfo := trace.GetElapsedInfo()
-	elapsedInfo.AddInfo(trace.Iavl, iavlInfo)
+	elapsedInfo.AddInfo(trace.Storage, info)
 
 	flatKvReadCountStr := strconv.Itoa(app.cms.GetFlatKVReadCount())
 	flatKvReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), 10)
@@ -282,9 +281,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	}()
 	header := app.deliverState.ctx.BlockHeader()
 
-	if app.mptCommitHandler != nil {
-		app.mptCommitHandler(app.deliverState.ctx)
-	}
 	if mptStore := app.cms.GetCommitKVStore(sdk.NewKVStoreKey(mpt.StoreKey)); mptStore != nil {
 		// notify mptStore to tryUpdateTrie, must call before app.deliverState.ms.Write()
 		mpt.GAccTryUpdateTrieChannel <- struct{}{}
@@ -294,7 +290,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
-	app.commitBlockCache()
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap

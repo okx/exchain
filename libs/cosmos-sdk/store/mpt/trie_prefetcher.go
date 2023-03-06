@@ -126,7 +126,7 @@ func (p *TriePrefetcher) Copy() *TriePrefetcher {
 // prefetch schedules a batch of trie items to prefetch.
 func (p *TriePrefetcher) Prefetch(root common.Hash, keys [][]byte) {
 	// If the prefetcher is an inactive one, bail out
-	if p.fetches != nil || p.fetchers == nil{
+	if p.fetches != nil || p.fetchers == nil {
 		return
 	}
 	// Active fetcher, schedule the retrievals

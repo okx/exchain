@@ -275,9 +275,7 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-	logger.Info("Starting "+system.ChainName,
-		"MarsHeight", tmtypes.GetMarsHeight(),
-	)
+	logger.Info("Starting " + system.ChainName)
 	onceLog.Do(func() {
 		iavl.SetLogger(logger.With("module", "iavl"))
 		logStartingFlags(logger)
@@ -296,7 +294,7 @@ func NewOKExChainApp(
 	bApp.SetInterfaceRegistry(interfaceReg)
 
 	keys := sdk.NewKVStoreKeys(
-		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
+		bam.MainStoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		evm.StoreKey, token.StoreKey, token.KeyLock,
@@ -348,7 +346,7 @@ func NewOKExChainApp(
 	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		codecProxy.GetCdc(), keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		codecProxy.GetCdc(), keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
@@ -691,8 +689,7 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
-	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
-	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
+
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
@@ -700,7 +697,7 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
-
+	mpt.AccountStateRootRetriever = app.AccountKeeper
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -910,23 +907,6 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
 	return nil
-}
-
-func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
-	return func(ctx sdk.Context) error {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
-			return ak.OnStop(ctx)
-		}
-		return nil
-	}
-}
-
-func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
-	return func(ctx sdk.Context) {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
-			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
-		}
-	}
 }
 
 func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHandler {

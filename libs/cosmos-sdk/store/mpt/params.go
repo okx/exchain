@@ -2,7 +2,6 @@ package mpt
 
 import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 )
@@ -17,7 +16,6 @@ const (
 )
 
 const (
-	FlagTrieWriteAhead    = "trie.write-ahead"
 	FlagTrieDirtyDisabled = "trie.dirty-disabled"
 	FlagTrieCacheSize     = "trie.cache-size"
 	FlagTrieNodesLimit    = "trie.nodes-limit"
@@ -25,7 +23,6 @@ const (
 )
 
 var (
-	TrieWriteAhead          = false
 	TrieDirtyDisabled       = false
 	TrieCacheSize     uint  = 2048 // MB
 	TrieNodesLimit    uint  = 256  // MB
@@ -36,8 +33,6 @@ var (
 var (
 	KeyPrefixAccRootMptHash        = []byte{0x11}
 	KeyPrefixAccLatestStoredHeight = []byte{0x12}
-	KeyPrefixEvmRootMptHash        = []byte{0x13}
-	KeyPrefixEvmLatestStoredHeight = []byte{0x14}
 
 	GAccToPrefetchChannel    = make(chan [][]byte, 2000)
 	GAccTryUpdateTrieChannel = make(chan struct{})
@@ -50,8 +45,4 @@ var (
 	// EmptyCodeHash is the known hash of an empty code.
 	EmptyCodeHash      = crypto.Keccak256Hash(nil)
 	EmptyCodeHashBytes = crypto.Keccak256(nil)
-
-	// EmptyRootHash is the known root hash of an empty trie.
-	EmptyRootHash      = ethtypes.EmptyRootHash
-	EmptyRootHashBytes = EmptyRootHash.Bytes()
 )

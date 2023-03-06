@@ -146,8 +146,7 @@ func CreateTestInput(
 	pk.SetParams(ctx, params.DefaultParams())
 
 	accountKeeper := auth.NewAccountKeeper(
-		cdc,    // amino codec
-		keyAcc, // target store
+		cdc, // amino codec
 		keyMpt,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype

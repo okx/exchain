@@ -12,9 +12,6 @@ import (
 // 4. ibc
 
 var (
-	MILESTONE_MARS_HEIGHT string
-	milestoneMarsHeight   int64
-
 	milestoneEarthHeight  int64
 	milestoneVenus4Height int64
 
@@ -38,9 +35,7 @@ const (
 )
 
 func init() {
-	once.Do(func() {
-		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
-	})
+	once.Do(func() {})
 }
 
 func string2number(input string) int64 {
@@ -62,14 +57,6 @@ func SetupTestNetEnvironment(pruneH int64) {
 	nodePruneHeight = pruneH
 }
 
-// use MPT storage model to replace IAVL storage model
-func HigherThanMars(height int64) bool {
-	if milestoneMarsHeight == 0 {
-		return false
-	}
-	return height >= milestoneMarsHeight
-}
-
 // 2322600 is mainnet GenesisHeight
 func IsMainNet() bool {
 	//return MILESTONE_GENESIS_HEIGHT == "2322600"
@@ -88,15 +75,6 @@ func GetStartBlockHeight() int64 {
 
 func GetNodePruneHeight() int64 {
 	return nodePruneHeight
-}
-
-func GetMarsHeight() int64 {
-	return milestoneMarsHeight
-}
-
-// can be used in unit test only
-func UnittestOnlySetMilestoneMarsHeight(height int64) {
-	milestoneMarsHeight = height
 }
 
 // ==================================

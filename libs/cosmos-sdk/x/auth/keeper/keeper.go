@@ -1,10 +1,12 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -12,13 +14,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // AccountKeeper encodes/decodes accounts using the go-amino (binary)
 // encoding/decoding library.
 type AccountKeeper struct {
 	// The (unexposed) key used to access the store from the Context.
+	// Deprecated: Use mptKey instead.
 	key sdk.StoreKey
 
 	mptKey sdk.StoreKey
@@ -38,11 +40,10 @@ type AccountKeeper struct {
 // (binary) encode and decode concrete sdk.Accounts.
 // nolint
 func NewAccountKeeper(
-	cdc *codec.Codec, key, keyMpt sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
+	cdc *codec.Codec, keyMpt sdk.StoreKey, paramstore subspace.Subspace, proto func() exported.Account,
 ) AccountKeeper {
 
 	return AccountKeeper{
-		key:           key,
 		mptKey:        keyMpt,
 		proto:         proto,
 		cdc:           cdc,
@@ -77,28 +78,14 @@ func (ak AccountKeeper) GetSequence(ctx sdk.Context, addr sdk.AccAddress) (uint6
 // If the global account number is not set, it initializes it with value 0.
 func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	var accNumber uint64
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
+	store := ak.paramSubspace.CustomKVStore(ctx)
 	bz := store.Get(types.GlobalAccountNumberKey)
-	if bz == nil {
-		// initialize the account numbers
-		accNumber = 0
-	} else {
-		err := ak.cdc.UnmarshalBinaryLengthPrefixed(bz, &accNumber)
-		if err != nil {
-			panic(err)
-		}
+	if len(bz) != 0 {
+		accNumber = binary.BigEndian.Uint64(bz)
 	}
-
-	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
-	store.Set(types.GlobalAccountNumberKey, bz)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
-		ctx.MultiStore().GetKVStore(ak.mptKey).Set(types.GlobalAccountNumberKey, bz)
-	}
+	temp := make([]byte, 8)
+	binary.BigEndian.PutUint64(temp, accNumber+1)
+	store.Set(types.GlobalAccountNumberKey, temp)
 
 	return accNumber
 }
@@ -117,4 +104,18 @@ func (ak AccountKeeper) decodeAccount(bz []byte) exported.Account {
 		panic(err)
 	}
 	return acc
+}
+
+func (ak AccountKeeper) RetrieveStateRoot(bz []byte) ethcmn.Hash {
+	var acc exported.Account
+	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
+	if err == nil {
+		acc = val.(exported.Account)
+		return acc.GetStateRoot()
+	}
+	err = ak.cdc.UnmarshalBinaryBare(bz, &acc)
+	if err == nil {
+		return acc.GetStateRoot()
+	}
+	return ethtypes.EmptyRootHash
 }

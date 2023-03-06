@@ -29,13 +29,14 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --dynamic-gp-mode=2 \
-      --consensus.timeout_commit 200ms \
+      --consensus.timeout_commit 2000ms \
       --enable-preruntx=1 \
       --iavl-enable-async-commit=false \
       --enable-gid \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
       --commit-gap-height 3 \
+      --trie.dirty-disabled=true \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &

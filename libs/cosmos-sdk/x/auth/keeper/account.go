@@ -3,12 +3,10 @@ package keeper
 import (
 	"sync"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
 )
 
@@ -38,22 +36,8 @@ var addrStoreKeyPool = &sync.Pool{
 
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
-	if data, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
-		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
-		if data == nil {
-			return nil
-		}
 
-		return data.Copy()
-	}
-
-	var key sdk.StoreKey
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		key = ak.mptKey
-	} else {
-		key = ak.key
-	}
-
+	key := ak.mptKey
 	store := ctx.GetReusableKVStore(key)
 	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
 	defer func() {
@@ -63,45 +47,11 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 
 	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	if bz == nil {
-		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
 	}
 	acc := ak.decodeAccount(bz)
 
-	if ctx.Cache().IsEnabled() {
-		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
-	}
-
 	return acc
-}
-
-// LoadAccount load account from store without return, only used in pre deliver tx
-func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
-	if _, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
-		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
-		return
-	}
-
-	var key sdk.StoreKey
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		key = ak.mptKey
-	} else {
-		key = ak.key
-	}
-	store := ctx.GetReusableKVStore(key)
-	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
-	defer func() {
-		addrStoreKeyPool.Put(keyTarget)
-		ctx.ReturnKVStore(store)
-	}()
-
-	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
-	var acc exported.Account
-	if bz != nil {
-		acc = ak.decodeAccount(bz)
-	}
-	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
-	return
 }
 
 // GetAllAccounts returns all accounts in the accountKeeper.
@@ -118,12 +68,7 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 
-	var key sdk.StoreKey
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		key = ak.mptKey
-	} else {
-		key = ak.key
-	}
+	key := ak.mptKey
 	store := ctx.GetReusableKVStore(key)
 	defer ctx.ReturnKVStore(store)
 
@@ -131,14 +76,8 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Set(storeAccKey, bz)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
-		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
-	}
-	if ctx.Cache().IsEnabled() {
-		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
-	}
 
-	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead) {
+	if ctx.IsDeliver() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
 
@@ -176,34 +115,19 @@ func (ak *AccountKeeper) encodeAccount(acc exported.Account) (bz []byte) {
 // NOTE: this will cause supply invariant violation if called
 func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
-
+	store := ctx.KVStore(ak.mptKey)
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Delete(storeAccKey)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
-		ctx.MultiStore().GetKVStore(ak.mptKey).Delete(storeAccKey)
-	}
 
-	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead) {
+	if ctx.IsDeliver() {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}
 	}
-
-	ctx.Cache().UpdateAccount(addr, nil, 0, true)
 }
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function
 func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exported.Account) (stop bool)) {
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
+
+	store := ctx.KVStore(ak.mptKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.AddressStoreKeyPrefix)
 
 	defer iterator.Close()
@@ -217,19 +141,15 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 }
 
 // IterateAccounts iterates over all the stored accounts and performs a callback function
+// 	TODO by yxq: deprecated
 func (ak AccountKeeper) MigrateAccounts(ctx sdk.Context, cb func(account exported.Account, key, value []byte) (stop bool)) {
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
-	iterator := sdk.KVStorePrefixIterator(store, types.AddressStoreKeyPrefix)
 
+	store := ctx.KVStore(ak.mptKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.AddressStoreKeyPrefix)
 	defer iterator.Close()
+
 	for ; iterator.Valid(); iterator.Next() {
 		account := ak.decodeAccount(iterator.Value())
-
 		if cb(account, iterator.Key(), iterator.Value()) {
 			break
 		}

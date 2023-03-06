@@ -34,27 +34,32 @@ func (k *Keeper) SetNonce(ctx sdk.Context, addr ethcmn.Address, nonce uint64) {
 
 // GetBalance calls CommitStateDB.GetBalance using the passed in context
 func (k *Keeper) GetBalance(ctx sdk.Context, addr ethcmn.Address) *big.Int {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).WithHistoricalTrie().GetBalance(addr)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetBalance(addr)
 }
 
 // GetCode calls CommitStateDB.GetCode using the passed in context
 func (k *Keeper) GetCode(ctx sdk.Context, addr ethcmn.Address) []byte {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).WithHistoricalTrie().GetCode(addr)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetCode(addr)
 }
 
 // GetCodeByHash calls CommitStateDB.GetCode using the passed in context
 func (k *Keeper) GetCodeByHash(ctx sdk.Context, hash ethcmn.Hash) []byte {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).WithHistoricalTrie().GetCodeByHash(hash)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetCodeByHash(hash)
 }
 
 // GetState calls CommitStateDB.GetState using the passed in context
 func (k *Keeper) GetState(ctx sdk.Context, addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).WithHistoricalTrie().GetState(addr, hash)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetState(addr, hash)
+}
+
+// GetState calls CommitStateDB.GetState using the passed in context
+func (k *Keeper) GetStorageProof(ctx sdk.Context, addr ethcmn.Address, key ethcmn.Hash) ([][]byte, error) {
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetStorageProof(addr, key)
 }
 
 // GetStateByKey calls CommitStateDB.GetState using the passed in context
 func (k *Keeper) GetStateByKey(ctx sdk.Context, addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).WithHistoricalTrie().GetStateByKey(addr, key)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetStateByKey(addr, key)
 }
 
 // ----------------------------------------------------------------------------
@@ -63,10 +68,10 @@ func (k *Keeper) GetStateByKey(ctx sdk.Context, addr ethcmn.Address, key ethcmn.
 
 // ForEachStorage calls CommitStateDB.ForEachStorage using passed in context
 func (k *Keeper) ForEachStorage(ctx sdk.Context, addr ethcmn.Address, cb func(key, value ethcmn.Hash) bool) error {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).WithHistoricalTrie().ForEachStorage(addr, cb)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).ForEachStorage(addr, cb)
 }
 
 // GetOrNewStateObject calls CommitStateDB.GetOrNetStateObject using the passed in context
 func (k *Keeper) GetOrNewStateObject(ctx sdk.Context, addr ethcmn.Address) types.StateObject {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).WithHistoricalTrie().GetOrNewStateObject(addr)
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetOrNewStateObject(addr)
 }
