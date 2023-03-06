@@ -2,11 +2,12 @@ package types
 
 // staking module event types
 const (
-	EventTypeCompleteUnbonding = "complete_unbonding"
-	EventTypeCreateValidator   = "create_validator"
-	EventTypeEditValidator     = "edit_validator"
-	EventTypeDelegate          = "delegate"
-	EventTypeUnbond            = "unbond"
+	EventTypeCompleteUnbonding        = "complete_unbonding"
+	EventTypeCreateValidator          = "create_validator"
+	EventTypeEditValidator            = "edit_validator"
+	EventTypeDelegate                 = "delegate"
+	EventTypeUnbond                   = "unbond"
+	EventTypeDepositMinSelfDelegation = "deposit_min_self_delegation"
 
 	AttributeKeyValidator         = "validator"
 	AttributeKeyCommissionRate    = "commission_rate"

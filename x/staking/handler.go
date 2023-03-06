@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
@@ -22,77 +21,46 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case types.MsgCreateValidator:
+			if !k.ParamsEnableDposOp(ctx) {
+				return nil, types.ErrDisableOperation
+			}
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgEditValidatorCommissionRate:
+			if !k.ParamsEnableDposOp(ctx) {
+				return nil, types.ErrDisableOperation
+			}
 			return handleMsgEditValidatorCommissionRate(ctx, msg, k)
 		case types.MsgDeposit:
+			if !k.ParamsEnableDposOp(ctx) {
+				return nil, types.ErrDisableOperation
+			}
 			return handleMsgDeposit(ctx, msg, k)
 		case types.MsgWithdraw:
 			return handleMsgWithdraw(ctx, msg, k)
 		case types.MsgAddShares:
+			if !k.ParamsEnableDposOp(ctx) {
+				return nil, types.ErrDisableOperation
+			}
 			return handleMsgAddShares(ctx, msg, k)
-		case types.MsgBindProxy:
-			return handleMsgBindProxy(ctx, msg, k)
-		case types.MsgUnbindProxy:
-			return handleMsgUnbindProxy(ctx, msg, k)
-		case types.MsgRegProxy:
-			return handleRegProxy(ctx, msg, k)
+		//case types.MsgBindProxy:
+		//	return handleMsgBindProxy(ctx, msg, k)
+		//case types.MsgUnbindProxy:
+		//	return handleMsgUnbindProxy(ctx, msg, k)
+		//case types.MsgRegProxy:
+		//	return handleRegProxy(ctx, msg, k)
 		case types.MsgDestroyValidator:
 			return handleMsgDestroyValidator(ctx, msg, k)
+		case types.MsgDepositMinSelfDelegation:
+			if !k.ParamsEnableDposOp(ctx) {
+				return nil, types.ErrDisableOperation
+			}
+			return handleMsgDepositMinSelfDelegation(ctx, msg, k)
 		default:
 			return sdk.ErrUnknownRequest(errMsg).Result()
 		}
 	}
-}
-
-// EndBlocker is called every block, update validator set
-func EndBlocker(ctx sdk.Context, k keeper.Keeper) []abci.ValidatorUpdate {
-	// calculate validator set changes
-	validatorUpdates := make([]abci.ValidatorUpdate, 0)
-	if k.IsEndOfEpoch(ctx) {
-		oldEpoch, newEpoch := k.GetEpoch(ctx), k.ParamsEpoch(ctx)
-		if oldEpoch != newEpoch {
-			k.SetEpoch(ctx, newEpoch)
-		}
-		k.SetTheEndOfLastEpoch(ctx)
-		//ctx.Logger().Debug("validatorUpdates epoch", "old", oldEpoch, "new", newEpoch)
-		//ctx.Logger().Debug(fmt.Sprintf("old epoch end blockHeight: %d", lastEpochEndHeight))
-
-		validatorUpdates = k.ApplyAndReturnValidatorSetUpdates(ctx)
-		// dont forget to delete in case that some validator need to kick out when an epoch ends
-		k.DeleteAbandonedValidatorAddrs(ctx)
-	} else if k.IsKickedOut(ctx) {
-		// if there are some validators to kick out in an epoch
-		validatorUpdates = k.KickOutAndReturnValidatorSetUpdates(ctx)
-		k.DeleteAbandonedValidatorAddrs(ctx)
-	}
-
-	// Unbond all mature validators from the unbonding queue.
-	k.UnbondAllMatureValidatorQueue(ctx)
-
-	k.IterateKeysBeforeCurrentTime(ctx, ctx.BlockHeader().Time,
-		func(index int64, key []byte) (stop bool) {
-			oldTime, delAddr := types.SplitCompleteTimeWithAddrKey(key)
-			k.DeleteAddrByTimeKey(ctx, oldTime, delAddr)
-
-			quantity, err := k.CompleteUndelegation(ctx, delAddr)
-			if err != nil {
-				ctx.Logger().Error(fmt.Sprintf("complete withdraw failed: %s", err))
-			} else {
-				ctx.EventManager().EmitEvent(
-					sdk.NewEvent(
-						types.EventTypeCompleteUnbonding,
-						sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
-						sdk.NewAttribute(sdk.AttributeKeyAmount, quantity.String()),
-					),
-				)
-			}
-			return false
-		})
-
-	return validatorUpdates
 }
 
 // StringInSlice returns true if a is found the list.
@@ -147,7 +115,7 @@ func handleMsgCreateValidator(ctx sdk.Context, msg types.MsgCreateValidator, k k
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeCreateValidator,
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress.String()),
-			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.MinSelfDelegation.Amount.String())),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, validator.MinSelfDelegation.String())),
 		sdk.NewEvent(sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String())),
@@ -179,6 +147,37 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 		sdk.NewEvent(sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
 			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddress.String()),
+		),
+	})
+
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+}
+
+func handleMsgDepositMinSelfDelegation(ctx sdk.Context, msg types.MsgDepositMinSelfDelegation, k keeper.Keeper) (*sdk.Result, error) {
+	validator, found := k.GetValidator(ctx, msg.ValidatorAddress)
+	if !found {
+		return nil, ErrNoValidatorFound(msg.ValidatorAddress.String())
+	}
+
+	minSelfDelegation := k.ParamsMinSelfDelegation(ctx)
+	if validator.MinSelfDelegation.GTE(minSelfDelegation) {
+		return nil, types.ErrMinSelfDelegationEnough
+	}
+	depositAmount := minSelfDelegation.Sub(validator.MinSelfDelegation)
+	depositCoin := sdk.NewDecCoinFromDec(k.BondDenom(ctx), depositAmount)
+	if err := k.DepositMinSelfDelegation(ctx, sdk.AccAddress(validator.OperatorAddress),
+		&validator, depositCoin); err != nil {
+		return nil, err
+	}
+	validator.MinSelfDelegation = minSelfDelegation
+	k.SetValidator(ctx, validator)
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(types.EventTypeDepositMinSelfDelegation,
+			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
+		),
+		sdk.NewEvent(sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, depositAmount.String()),
 		),
 	})
 

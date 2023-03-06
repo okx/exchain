@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -10,7 +11,8 @@ import (
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params"
 	paramstypes "github.com/okex/exchain/x/params/types"
-	stakingkeeper "github.com/okex/exchain/x/staking"
+	stakingkeeper "github.com/okex/exchain/x/staking/exported"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 )
 
 type AnteDecorator struct {
@@ -45,6 +47,10 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 				substituteAcc, ok := substitute.(*ethermint.EthAccount)
 				if !ok || !substituteAcc.IsContract() {
 					return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.SubstituteContract).String()))
+				}
+			case stakingtypes.ProposeValidatorProposal:
+				if !ad.sk.IsValidator(ctx, msg.Proposer) {
+					return ctx, stakingtypes.ErrCodeProposerMustBeValidator
 				}
 			case paramstypes.UpgradeProposal:
 				if err := ad.pk.CheckMsgSubmitProposal(ctx, msg); err != nil {

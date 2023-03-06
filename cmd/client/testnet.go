@@ -6,6 +6,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"net"
+	"os"
+	"path/filepath"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -36,9 +39,6 @@ import (
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"net"
-	"os"
-	"path/filepath"
 )
 
 var (
@@ -298,7 +298,7 @@ func InitTestnet(
 			return err
 		}
 
-		if !isEqualVotingPower {
+		if stakingtypes.DefaultConsensusType == common.DPoS && !isEqualVotingPower {
 			//make and save deposit tx
 			sequence++
 			msgDeposit := stakingtypes.NewMsgDeposit(addr, sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000*int64(i+1))))

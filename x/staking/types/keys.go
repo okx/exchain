@@ -30,7 +30,7 @@ const (
 	RouterKey = ModuleName
 )
 
-//nolint
+// nolint
 var (
 	// Keys for store prefixes
 	// Last* values are constant during a block.
@@ -43,12 +43,12 @@ var (
 
 	ValidatorQueueKey = []byte{0x43} // prefix for the timestamps in validator queue
 
-	SharesKey           = []byte{0x51}
-	DelegatorKey        = []byte{0x52}
-	UnDelegationInfoKey = []byte{0x53}
-	UnDelegateQueueKey  = []byte{0x54}
-	ProxyKey            = []byte{0x55}
-
+	SharesKey            = []byte{0x51}
+	DelegatorKey         = []byte{0x52}
+	UnDelegationInfoKey  = []byte{0x53}
+	UnDelegateQueueKey   = []byte{0x54}
+	ProxyKey             = []byte{0x55}
+	ProposeValidatorsKey = []byte{0x56}
 	// prefix key for vals info to enforce the update of validator-set
 	ValidatorAbandonedKey = []byte{0x60}
 
@@ -83,6 +83,11 @@ func GetValidatorsByPowerIndexKey(validator Validator) []byte {
 // GetLastValidatorPowerKey gets the bonded validator index key for an operator address
 func GetLastValidatorPowerKey(operator sdk.ValAddress) []byte {
 	return append(LastValidatorPowerKey, operator...)
+}
+
+// GetProposeValidatorKey gets the propose validator key
+func GetProposeValidatorKey(operator sdk.ValAddress) []byte {
+	return append(ProposeValidatorsKey, operator...)
 }
 
 // GetValidatorQueueTimeKey gets the prefix for all unbonding delegations from a delegator

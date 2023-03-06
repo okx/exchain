@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"io"
 	"os"
 	"strings"
@@ -44,7 +45,7 @@ import (
 )
 
 const flagInvCheckPeriod = "inv-check-period"
-const OkcEnvPrefix = "OKEXCHAIN"
+const OkcEnvPrefix = system.EnvPrefix
 
 var invCheckPeriod uint
 

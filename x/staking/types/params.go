@@ -34,13 +34,14 @@ const (
 
 	DefaultEpoch              uint16 = DefaultBlocksPerEpoch
 	DefaultMaxValsToAddShares uint16 = DefaultMaxValsToVote
+	DefaultConsensusType             = common.PoA
 )
 
 var (
 	// DefaultMinDelegation is the limit value of delegation or undelegation
 	DefaultMinDelegation = sdk.NewDecWithPrec(1, 4)
 	// DefaultMinSelfDelegation is the default value of each validator's msd (hard code)
-	DefaultMinSelfDelegation = sdk.NewDec(10000)
+	DefaultMinSelfDelegation = sdk.NewDec(0)
 )
 
 // nolint - Keys for parameter access
@@ -55,6 +56,8 @@ var (
 	KeyMinSelfDelegation  = []byte("MinSelfDelegation")
 
 	KeyHistoricalEntries = []byte("HistoricalEntries")
+	KeyConsensusType     = []byte("ConsensusType")
+	KeyEnableDposOp      = []byte("EnableDposOp")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -74,12 +77,14 @@ type Params struct {
 	// validator's self declared minimum self delegation
 	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
 
-	HistoricalEntries uint32 `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
+	HistoricalEntries uint32               `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
+	ConsensusType     common.ConsensusType `json:"consensus_type"`
+	EnableDposOp      bool                 `json:"enable_dpos_op"`
 }
 
 // NewParams creates a new Params instance
 func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, maxValsToAddShares uint16, minDelegation sdk.Dec,
-	minSelfDelegation sdk.Dec, historicalEntries uint32) Params {
+	minSelfDelegation sdk.Dec, historicalEntries uint32, consensusType common.ConsensusType, enableDposOp bool) Params {
 	return Params{
 		UnbondingTime:      unbondingTime,
 		MaxValidators:      maxValidators,
@@ -88,6 +93,8 @@ func NewParams(unbondingTime time.Duration, maxValidators uint16, epoch uint16, 
 		MinDelegation:      minDelegation,
 		MinSelfDelegation:  minSelfDelegation,
 		HistoricalEntries:  historicalEntries,
+		ConsensusType:      consensusType,
+		EnableDposOp:       enableDposOp,
 	}
 }
 
@@ -104,8 +111,10 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyEpoch, Value: &p.Epoch, ValidatorFn: common.ValidateUint16Positive("epoch")},
 		{Key: KeyMaxValsToAddShares, Value: &p.MaxValsToAddShares, ValidatorFn: common.ValidateUint16Positive("max vals to add shares")},
 		{Key: KeyMinDelegation, Value: &p.MinDelegation, ValidatorFn: common.ValidateDecPositive("min delegation")},
-		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
+		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecNotNeg("min self delegation")},
 		{Key: KeyHistoricalEntries, Value: &p.HistoricalEntries, ValidatorFn: validateHistoricalEntries},
+		{Key: KeyConsensusType, Value: &p.ConsensusType, ValidatorFn: common.ValidateConsensusType("consensus type")},
+		{Key: KeyEnableDposOp, Value: &p.EnableDposOp, ValidatorFn: common.ValidateBool("enable operation")},
 	}
 }
 func validateHistoricalEntries(i interface{}) error {
@@ -135,6 +144,22 @@ func DefaultParams() Params {
 		DefaultMinDelegation,
 		DefaultMinSelfDelegation,
 		DefaultHistoricalEntries,
+		DefaultConsensusType,
+		true,
+	)
+}
+
+func DefaultDposParams() Params {
+	return NewParams(
+		DefaultUnbondingTime,
+		DefaultMaxValidators,
+		DefaultEpoch,
+		DefaultMaxValsToAddShares,
+		DefaultMinDelegation,
+		DefaultMinSelfDelegation,
+		DefaultHistoricalEntries,
+		common.DPoS,
+		true,
 	)
 }
 
@@ -146,8 +171,11 @@ func (p *Params) String() string {
   Epoch: 					%d
   MaxValsToAddShares:       %d
   MinDelegation				%d
-  MinSelfDelegation         %d`,
-		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation, p.MinSelfDelegation)
+  MinSelfDelegation         %d
+  ConsensusType:            %s
+  EnableDposOp              %t,`,
+		p.UnbondingTime, p.MaxValidators, p.Epoch, p.MaxValsToAddShares, p.MinDelegation,
+		p.MinSelfDelegation, p.ConsensusType, p.EnableDposOp)
 }
 
 // Validate gives a quick validity check for a set of params

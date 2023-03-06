@@ -2,8 +2,9 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/common"
 	"time"
+
+	"github.com/okex/exchain/x/common"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 

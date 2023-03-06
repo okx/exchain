@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"os"
 	"time"
 
@@ -158,7 +159,7 @@ func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error
 	}
 
 	api.logger.Info("Your new key was generated", "address", addr.String())
-	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/.exchaind/"+name)
+	api.logger.Info("Please backup your key file!", "path", os.Getenv("HOME")+"/."+system.Server+"/"+name)
 	api.logger.Info("Please remember your password!")
 	return addr, nil
 }

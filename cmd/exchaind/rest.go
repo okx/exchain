@@ -29,6 +29,7 @@ import (
 	fsrest "github.com/okex/exchain/x/feesplit/client/rest"
 	govrest "github.com/okex/exchain/x/gov/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	stakingclient "github.com/okex/exchain/x/staking/client"
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
@@ -83,6 +84,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			evmclient.ManageContractByteCodeProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
+			stakingclient.ProposeValidatorProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
 	mintrest.RegisterRoutes(rs.CliCtx, v1Router)

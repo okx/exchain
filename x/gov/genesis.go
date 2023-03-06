@@ -46,16 +46,16 @@ func DefaultGenesisState() GenesisState {
 }
 
 // Checks whether 2 GenesisState structs are equivalent.
-func (data GenesisState) equal(data2 GenesisState) bool {
+func (data GenesisState) Equal(data2 GenesisState) bool {
 	b1 := types.ModuleCdc.MustMarshalBinaryBare(data)
 	b2 := types.ModuleCdc.MustMarshalBinaryBare(data2)
 	return bytes.Equal(b1, b2)
 }
 
 // Returns if a GenesisState is empty or has data in it
-func (data GenesisState) isEmpty() bool {
+func (data GenesisState) IsEmpty() bool {
 	emptyGenState := GenesisState{}
-	return data.equal(emptyGenState)
+	return data.Equal(emptyGenState)
 }
 
 // ValidateGenesis checks if parameters are within valid ranges
