@@ -25,10 +25,13 @@ func (app *OKExChainApp) grpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result,
 	return app.Simulate(txBytes, tx, 0, nil)
 }
 
-func (app *OKExChainApp) setupUpgradeModules() {
+func (app *OKExChainApp) setupUpgradeModules(onlyTask bool) {
 	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
+	if onlyTask {
+		return
+	}
 
 	app.GetCMS().AppendCommitFilters(cf)
 	app.GetCMS().AppendPruneFilters(pf)

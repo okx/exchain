@@ -675,7 +675,7 @@ func setupTestApp(db dbm.DB, cases []UpgradeCase, modules []*simpleAppModule) *t
 			a.mm.OrderExportGenesis = append(a.mm.OrderExportGenesis, m.Name())
 		}
 	}, func(a *testSimApp) {
-		a.setupUpgradeModules()
+		a.setupUpgradeModules(false)
 	})
 	return app
 }
@@ -698,7 +698,7 @@ func createKeysByCases(caseas []UpgradeCase) map[string]*sdk.KVStoreKey {
 	return keys
 }
 
-///
+// /
 type RecordMemDB struct {
 	db *dbm.MemDB
 	common.PlaceHolder
