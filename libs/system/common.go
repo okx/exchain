@@ -8,4 +8,5 @@ const (
 	ServerHome = "$HOME/."+Server
 	ClientHome = "$HOME/."+Client
 	ServerLog = Server+".log"
+	EnvPrefix = "OKEXCHAIN"
 )
