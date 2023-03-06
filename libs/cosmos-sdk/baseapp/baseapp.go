@@ -556,10 +556,7 @@ func (app *BaseApp) IsSealed() bool { return app.sealed }
 // provided header, and minimum gas prices set. It is set on InitChain and reset
 // on Commit.
 func (app *BaseApp) setCheckState(header abci.Header) {
-	ms, err := app.cms.CacheMultiStoreWithVersion(header.Height)
-	if err != nil {
-		panic(fmt.Errorf("failed to cache ms store at version %d: %w", header.Height, err))
-	}
+	ms := app.cms.CacheMultiStore()
 	app.checkState = &state{
 		ms:  ms,
 		ctx: sdk.NewContext(ms, header, true, app.logger),
