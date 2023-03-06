@@ -75,15 +75,7 @@ import (
 var (
 	_ upgradetypes.UpgradeModule = (*SimpleBaseUpgradeModule)(nil)
 
-	test_prefix       = "upgrade_module_"
-	blockModules      map[string]struct{}
-	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
-		_, exist := blockModules[module]
-		if !exist {
-			return false
-		}
-		return true
-	}
+	test_prefix = "upgrade_module_"
 )
 
 type SimpleBaseUpgradeModule struct {
@@ -96,13 +88,13 @@ type SimpleBaseUpgradeModule struct {
 }
 
 func (b *SimpleBaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
-	if b.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
-	}
 	var ret cosmost.StoreFilter
 	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		if b.appModule.Name() != module {
 			return false
+		}
+		if b.UpgradeHeight() == 0 {
+			return true
 		}
 		if b.h == h {
 			store.SetUpgradeVersion(h)
@@ -118,14 +110,13 @@ func (b *SimpleBaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
 }
 
 func (b *SimpleBaseUpgradeModule) PruneFilter() *cosmost.StoreFilter {
-	if b.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
-	}
-
 	var ret cosmost.StoreFilter
 	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		if b.appModule.Name() != module {
 			return false
+		}
+		if b.UpgradeHeight() == 0 {
+			return true
 		}
 		if b.h >= h {
 			return false
@@ -644,7 +635,7 @@ func setupTestApp(db dbm.DB, cases []UpgradeCase, modules []*simpleAppModule) *t
 			a.mm.OrderExportGenesis = append(a.mm.OrderExportGenesis, m.Name())
 		}
 	}, func(a *testSimApp) {
-		a.setupUpgradeModules()
+		a.setupUpgradeModules(false)
 	})
 	return app
 }

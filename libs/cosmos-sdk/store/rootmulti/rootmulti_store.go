@@ -265,9 +265,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	for key, storeParams := range rs.storesParams {
 		if storeParams.typ == types.StoreTypeIAVL {
-
-			// filter block modules {}
-			if filter(storeParams.key.Name(), targetVersion, rs.stores[key], rs.commitFilters) {
+			if isUseless(storeParams.key.Name(), targetVersion, rs.stores[key], rs.commitFilters) {
 				continue
 			}
 
@@ -715,8 +713,7 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
-			// filter block modules {}
-			if filter(key.Name(), version, nil, rs.commitFilters) {
+			if isUseless(key.Name(), version, nil, rs.commitFilters) {
 				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
 				continue
 			}
@@ -1168,8 +1165,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		iavltree.UpdateCommitGapHeight(config.DynamicConfig.GetCommitGapHeight())
 	}
 	for key, store := range storeMap {
-
-		if filter(key.Name(), version, store, filters) {
+		if isUseless(key.Name(), version, store, filters) {
 			continue
 		}
 
@@ -1191,7 +1187,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	}, outputDeltaMap
 }
 
-func filter(name string, h int64, st types.CommitKVStore, filters []types.StoreFilter) bool {
+// isUseless check if store is useless and needs to be ignored.
+// Only if all filters return false, then the store is useful and cannot be ignored.
+func isUseless(name string, h int64, st types.CommitKVStore, filters []types.StoreFilter) bool {
 	for _, filter := range filters {
 		if filter(name, h, st) {
 			return true
@@ -1476,7 +1474,7 @@ func (rs *Store) CurrentVersion() int64 {
 		var version int64
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
-			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
+			if isUseless(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
 			s := store.(*iavl.Store)
@@ -1503,7 +1501,7 @@ func (rs *Store) StopStore() {
 	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
-			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
+			if isUseless(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
 			s := store.(*iavl.Store)
