@@ -3,6 +3,7 @@ package simapp
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 
 	evm2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/evm"
 
@@ -125,13 +126,13 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
-	config.SetCoinType(60)
+	config.SetCoinType(system.CoinType)
 	okexchain.SetBech32Prefixes(config)
 	okexchain.SetBip44CoinType(config)
 }
 
 const (
-	appName = "OKExChain"
+	appName = system.AppName
 )
 const (
 	MockFeePort string = mock.ModuleName + ibcfeetypes.ModuleName
@@ -139,10 +140,10 @@ const (
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
+	DefaultCLIHome = os.ExpandEnv(system.ClientHome)
 
 	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.exchaind")
+	DefaultNodeHome = os.ExpandEnv(system.ServerHome)
 
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration

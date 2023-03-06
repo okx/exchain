@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"github.com/okex/exchain/libs/system"
 	"net"
 	"os"
 	"os/signal"
@@ -135,7 +136,7 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 		config.WriteConfigFile(appConfigFilePath, appConf)
 	}
 
-	viper.SetConfigName("exchaind")
+	viper.SetConfigName(system.Server)
 	err = viper.MergeInConfig()
 
 	return conf, err

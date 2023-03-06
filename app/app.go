@@ -119,10 +119,10 @@ const (
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
+	DefaultCLIHome = os.ExpandEnv(system.ClientHome)
 
 	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.exchaind")
+	DefaultNodeHome = os.ExpandEnv(system.ServerHome)
 
 	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
 	// non-dependant module elements, such as codec registration
