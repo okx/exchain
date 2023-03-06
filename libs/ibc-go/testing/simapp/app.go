@@ -131,7 +131,7 @@ func init() {
 }
 
 const (
-	appName = "OKExChain"
+	appName = system.AppName
 )
 const (
 	MockFeePort string = mock.ModuleName + ibcfeetypes.ModuleName
