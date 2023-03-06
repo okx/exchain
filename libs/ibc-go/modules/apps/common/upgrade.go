@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	_ upgrade.UpgradeModule = (*Veneus3BaseUpgradeModule)(nil)
+	_ upgrade.UpgradeModule = (*Venus3BaseUpgradeModule)(nil)
 
 	ibcV4Map = map[string]struct{}{
 		"feeibc":             {},
@@ -32,7 +32,7 @@ var (
 			return false
 		}
 
-		// ==veneus1
+		// ==venus4
 		if h == tmtypes.GetVenus4Height() {
 			if store != nil {
 				store.SetUpgradeVersion(h)
@@ -45,7 +45,6 @@ var (
 			return false
 		}
 
-		// < veneus1
 		return true
 	}
 	defaultIBCPruneFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
@@ -54,12 +53,11 @@ var (
 			return false
 		}
 
-		// ibc modulee && >=veneus1
+		// ibc module && >=venus4
 		if tmtypes.HigherThanVenus4(h) {
 			return false
 		}
 
-		// < veneus1
 		return true
 	}
 	defaultIBCVersionFilter cosmost.VersionFilter = func(h int64) func(callback cosmost.VersionCallback) {
@@ -75,35 +73,35 @@ var (
 	}
 )
 
-type Veneus3BaseUpgradeModule struct {
+type Venus3BaseUpgradeModule struct {
 	*base.BaseIBCUpgradeModule
 }
 
-func NewVeneus3BaseUpgradeModule(m module.AppModuleBasic) *Veneus3BaseUpgradeModule {
-	ret := &Veneus3BaseUpgradeModule{}
+func NewVenus3BaseUpgradeModule(m module.AppModuleBasic) *Venus3BaseUpgradeModule {
+	ret := &Venus3BaseUpgradeModule{}
 	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(m)
 
 	return ret
 }
 
-func (v *Veneus3BaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
+func (v *Venus3BaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
 	if v.UpgradeHeight() == 0 {
 		return &defaultDenyFilter
 	}
 	return &defaultIBCCommitFilter
 }
 
-func (v *Veneus3BaseUpgradeModule) PruneFilter() *cosmost.StoreFilter {
+func (v *Venus3BaseUpgradeModule) PruneFilter() *cosmost.StoreFilter {
 	if v.UpgradeHeight() == 0 {
 		return &defaultDenyFilter
 	}
 	return &defaultIBCPruneFilter
 }
 
-func (v *Veneus3BaseUpgradeModule) VersionFilter() *cosmost.VersionFilter {
+func (v *Venus3BaseUpgradeModule) VersionFilter() *cosmost.VersionFilter {
 	return &defaultIBCVersionFilter
 }
 
-func (v *Veneus3BaseUpgradeModule) UpgradeHeight() int64 {
+func (v *Venus3BaseUpgradeModule) UpgradeHeight() int64 {
 	return tmtypes.GetVenus4Height()
 }

@@ -12,14 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCalculateRewardsBasic(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.SetInitExistedValidatorFlag(ctx, true)
 
@@ -69,7 +67,6 @@ func TestCalculateRewardsBasic(t *testing.T) {
 func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.SetInitExistedValidatorFlag(ctx, true)
 
@@ -141,7 +138,6 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.SetInitExistedValidatorFlag(ctx, true)
 
@@ -204,7 +200,6 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.SetInitExistedValidatorFlag(ctx, true)
 
@@ -403,20 +398,6 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationSt
 		err                           error
 	}{
 		{
-			"ErrCodeNotSupportWithdrawDelegationRewards",
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {
-				ctx.SetBlockTime(time.Now())
-			},
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {},
-			0,
-			0,
-			0,
-			sdk.Coins(nil),
-			types.ErrCodeNotSupportWithdrawDelegationRewards(),
-		},
-		{
 			"NO ERROR Before create validator",
 			func(ctx *sdk.Context, dk Keeper) {
 				changeDistribution(*ctx, dk)
@@ -499,7 +480,6 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationSt
 		suite.Run(tc.title, func() {
 			communityTax := sdk.NewDecWithPrec(2, 2)
 			ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(suite.T(), false, 1000, communityTax)
-			tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
 			//set module account coins
 			distrAcc := dk.GetDistributionAccount(ctx)
@@ -612,7 +592,6 @@ func TestIncrementValidatorPeriod(t *testing.T) {
 func TestRewardToCommunity(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.SetInitExistedValidatorFlag(ctx, true)
 

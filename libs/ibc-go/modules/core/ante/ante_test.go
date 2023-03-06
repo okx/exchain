@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
 	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/order"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -494,7 +493,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 				1,
 				suite.chainB.SenderAccountPV(),
 			)
-			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, k, app.StakingKeeper, app.ParamsKeeper)
+			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(), app.WasmHandler, k, app.StakingKeeper, app.ParamsKeeper)
 			antehandler(deliverCtx, ibcTx, false)
 			//_, err = decorator.AnteHandle(deliverCtx, ibcTx, false, next)
 			suite.Require().NoError(err, "antedecorator should not error on DeliverTx")
@@ -520,7 +519,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 	}
 }
 
-func validateMsgHook(orderKeeper order.Keeper) appante.ValidateMsgHandler {
+func validateMsgHook() appante.ValidateMsgHandler {
 	return func(newCtx sdk.Context, msgs []sdk.Msg) error {
 
 		wrongMsgErr := sdk.ErrUnknownRequest(
@@ -528,17 +527,7 @@ func validateMsgHook(orderKeeper order.Keeper) appante.ValidateMsgHandler {
 		var err error
 
 		for _, msg := range msgs {
-			switch assertedMsg := msg.(type) {
-			case order.MsgNewOrders:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-				_, err = order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
-			case order.MsgCancelOrders:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+			switch msg.(type) {
 			case *evmtypes.MsgEthereumTx:
 				if len(msgs) > 1 {
 					return wrongMsgErr

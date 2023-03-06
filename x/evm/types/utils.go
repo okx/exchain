@@ -4,21 +4,21 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"math/big"
 	"math/bits"
 	"strings"
 	"sync"
 
-	"github.com/tendermint/go-amino"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type KV struct {

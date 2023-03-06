@@ -468,12 +468,8 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	clientCtx := api.clientCtx.WithHeight(blockNum.Int64())
 	useWatchBackend := api.useWatchBackend(blockNum)
 
-	qWatchdbKey := key
 	if useWatchBackend {
-		if !directlyKey {
-			qWatchdbKey = evmtypes.GetStorageByAddressKey(address.Bytes(), key).Bytes()
-		}
-		res, err := api.wrappedBackend.MustGetState(address, qWatchdbKey)
+		res, err := api.wrappedBackend.MustGetState(address, key)
 		if err == nil {
 			return res, nil
 		}
@@ -494,7 +490,7 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 	if useWatchBackend {
-		api.watcherBackend.CommitStateToRpcDb(address, qWatchdbKey, out.Value)
+		api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
 	}
 	return out.Value, nil
 }
@@ -710,10 +706,6 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	defer monitor.OnEnd("args", args)
 	// TODO: Change this functionality to find an unlocked account by address
 
-	height, err := api.BlockNumber()
-	if err != nil {
-		return common.Hash{}, err
-	}
 	key, exist := rpctypes.GetKeyByAddress(api.keys, *args.From)
 	if !exist {
 		api.logger.Debug("failed to find key in keyring", "key", args.From)
@@ -744,12 +736,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	var txEncoder sdk.TxEncoder
-	if tmtypes.HigherThanVenus(int64(height)) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
-	}
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 
 	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)
@@ -758,7 +745,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 	}
 
 	// send chanData to txPool
-	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
+	if api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -781,10 +768,7 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Hash, error) {
 	monitor := monitor.GetMonitor("eth_sendRawTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("data", data)
-	height, err := api.BlockNumber()
-	if err != nil {
-		return common.Hash{}, err
-	}
+
 	txBytes := data
 	tx := new(evmtypes.MsgEthereumTx)
 
@@ -798,15 +782,8 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
 	}
 
-	if !tmtypes.HigherThanVenus(int64(height)) {
-		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
-		if err != nil {
-			return common.Hash{}, err
-		}
-	}
-
 	// send chanData to txPool
-	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
+	if api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -974,15 +951,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
-	var txEncoder sdk.TxEncoder
-
-	// get block height
-	height := global.GetGlobalHeight()
-	if tmtypes.HigherThanVenus(height) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
-	}
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 
 	// rlp encoder need pointer type, amino encoder will first dereference pointers.
 	txBytes, err := txEncoder(msg)
@@ -1337,9 +1306,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		status = 0 // transaction failed
 	}
 
-	if len(data.Logs) == 0 {
+	if len(data.Logs) == 0 || status == 0 {
 		data.Logs = []*ethtypes.Log{}
+		data.Bloom = ethtypes.BytesToBloom(make([]byte, 256))
 	}
+
 	contractAddr := &data.ContractAddress
 	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
 		contractAddr = nil
@@ -1647,11 +1618,6 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 	monitor := monitor.GetMonitor("eth_fillTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
 
-	height, err := api.BlockNumber()
-	if err != nil {
-		return nil, err
-	}
-
 	// Mutex lock the address' nonce to avoid assigning it to multiple requests
 	if args.Nonce == nil {
 		api.nonceLock.LockAddr(*args.From)
@@ -1670,12 +1636,7 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 		return nil, err
 	}
 
-	var txEncoder sdk.TxEncoder
-	if tmtypes.HigherThanVenus(int64(height)) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(api.clientCtx.Codec)
-	}
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 
 	// Encode transaction by RLP encoder
 	txBytes, err := txEncoder(tx)

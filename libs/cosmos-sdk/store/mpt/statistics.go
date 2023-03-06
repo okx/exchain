@@ -168,17 +168,21 @@ func (ms *MptStore) sprintDebugLog(version int64) {
 	if ms.logger == nil {
 		return
 	}
-	nodeAllReadCount := ms.GetNodeReadCount() + ms.GetDBReadCount()
-	cacheReadCount := ms.GetNodeReadCount()
+	nodeReadCount := ms.GetNodeReadCount()
+	cacheReadCount := ms.GetCacheReadCount()
+	nodeFromDBCount := 0
+	if nodeReadCount > cacheReadCount {
+		nodeFromDBCount = nodeReadCount - cacheReadCount
+	}
 	header := fmt.Sprintf("Save mpt Version<%d> , ", version)
 
-	printLog := fmt.Sprintf("getNodeFrom<dbRCnt:%d, nodeCache=%d, nodeRCnt:%d>, dbWCnt:%d",
-		ms.GetDBReadCount(), ms.GetNodeReadCount(), nodeAllReadCount, ms.GetDBWriteCount())
+	printLog := fmt.Sprintf("getNodeFrom<dbRCnt:%d, nodeCache=%d, nodeRCnt:%d>, DBCount<dbRCnt:%d, dbWCnt:%d>",
+		nodeFromDBCount, cacheReadCount, ms.GetNodeReadCount(), ms.GetDBReadCount(), ms.GetDBWriteCount())
 
-	if nodeAllReadCount > 0 {
-		printLog += fmt.Sprintf(", CHit:%.2f", float64(cacheReadCount)/float64(nodeAllReadCount)*100)
+	if nodeReadCount > 0 {
+		printLog += fmt.Sprintf(", NodeCHit:%.2f", float64(cacheReadCount)/float64(nodeReadCount)*100)
 	} else {
-		printLog += ", CHit:0"
+		printLog += ", NodeCHit:0"
 	}
 	printLog += fmt.Sprintf(", TPersisCnt:%d", gStatic.getPersistedCount())
 	printLog += fmt.Sprintf(", TPersisSize:%d", gStatic.getPersistedSize())

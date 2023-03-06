@@ -14,17 +14,15 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 		info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
 	}
 
-	info.ctx.Cache().Write(false)
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	if err == nil {
 		info.msCache.Write()
-		info.ctx.Cache().Write(true)
 		info.PutCacheMultiStore(info.msCache)
 		info.msCache = nil
 	}
 
 	info.runMsgFinished = true
-	err = m.checkHigherThanMercury(err, info)
+	err = m.wrapError(err, info)
 	return
 }
 
@@ -34,7 +32,6 @@ type CacheTxContextFunc func(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.
 //in this func, edit any member in BaseApp is prohibited
 func handleGasRefund(info *runTxInfo, cacheTxCtxFunc CacheTxContextFunc, gasRefundHandler sdk.GasRefundHandler) sdk.DecCoins {
 	var gasRefundCtx sdk.Context
-	info.ctx.Cache().Write(false)
 	if cms, ok := info.GetCacheMultiStore(); ok {
 		gasRefundCtx, info.msCache = info.ctx, cms
 		gasRefundCtx.SetMultiStore(info.msCache)
@@ -49,7 +46,6 @@ func handleGasRefund(info *runTxInfo, cacheTxCtxFunc CacheTxContextFunc, gasRefu
 	info.msCache.Write()
 	info.PutCacheMultiStore(info.msCache)
 	info.msCache = nil
-	info.ctx.Cache().Write(true)
 	return refund
 }
 func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {

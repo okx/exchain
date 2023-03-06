@@ -33,12 +33,6 @@ var (
 			return ethcrypto.NewKeccakState()
 		},
 	}
-
-	addressKeyBytesPool = &sync.Pool{
-		New: func() interface{} {
-			return &[ethcmn.AddressLength + ethcmn.HashLength]byte{}
-		},
-	}
 )
 
 func keccak256HashWithSyncPool(data ...[]byte) (h ethcmn.Hash) {
@@ -294,58 +288,6 @@ func (so *stateObject) markSuicided() {
 	so.suicided = true
 }
 
-// commitState commits all dirty storage to a KVStore and resets
-// the dirty storage slice to the empty state.
-func (so *stateObject) commitState(db ethstate.Database) {
-	// Make sure all dirty slots are finalized into the pending storage area
-	so.finalise(false) // Don't prefetch any more, pull directly if need be
-	if len(so.pendingStorage) == 0 {
-		return
-	}
-
-	ctx := so.stateDB.ctx
-	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
-	for key, value := range so.pendingStorage {
-		// Skip noop changes, persist actual changes
-		if value == so.originStorage[key] {
-			continue
-		}
-		so.originStorage[key] = value
-
-		prefixKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-		if (value == ethcmn.Hash{}) {
-			store.Delete(prefixKey.Bytes())
-			so.stateDB.ctx.Cache().UpdateStorage(so.address, prefixKey, value.Bytes(), true)
-			if !so.stateDB.ctx.IsCheckTx() {
-				if so.stateDB.ctx.GetWatcher().Enabled() {
-					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), prefixKey.Bytes(), ethcmn.Hash{}.Bytes())
-				}
-			}
-		} else {
-			store.Set(prefixKey.Bytes(), value.Bytes())
-			so.stateDB.ctx.Cache().UpdateStorage(so.address, prefixKey, value.Bytes(), true)
-			if !so.stateDB.ctx.IsCheckTx() {
-				if so.stateDB.ctx.GetWatcher().Enabled() {
-					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), prefixKey.Bytes(), value.Bytes())
-				}
-			}
-		}
-	}
-	if len(so.pendingStorage) > 0 {
-		so.pendingStorage = make(ethstate.Storage)
-	}
-
-	return
-}
-
-// commitCode persists the state object's code to the KVStore.
-func (so *stateObject) commitCode() {
-	ctx := so.stateDB.ctx
-	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
-	store.Set(so.CodeHash(), so.code)
-	ctx.Cache().UpdateCode(so.CodeHash(), so.code, true)
-}
-
 // ----------------------------------------------------------------------------
 // Getters
 // ----------------------------------------------------------------------------
@@ -446,23 +388,6 @@ func (so *stateObject) touch() {
 		// flattened journals.
 		so.stateDB.journal.dirty(so.address)
 	}
-}
-
-// GetStorageByAddressKey returns a hash of the composite key for a state
-// object's storage prefixed with it's address.
-func GetStorageByAddressKey(prefix, key []byte) ethcmn.Hash {
-	var compositeKey []byte
-	if len(prefix)+len(key) == ethcmn.AddressLength+ethcmn.HashLength {
-		p := addressKeyBytesPool.Get().(*[ethcmn.AddressLength + ethcmn.HashLength]byte)
-		defer addressKeyBytesPool.Put(p)
-		compositeKey = p[:]
-	} else {
-		compositeKey = make([]byte, len(prefix)+len(key))
-	}
-
-	copy(compositeKey, prefix)
-	copy(compositeKey[len(prefix):], key)
-	return Keccak256HashWithCache(compositeKey)
 }
 
 // stateEntry represents a single key value pair from the StateDB's stateObject mappindg.

@@ -2,8 +2,6 @@ package distribution
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
@@ -14,7 +12,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx.SetEventManager(sdk.NewEventManager())
 
-		if tmtypes.HigherThanVenus2(ctx.BlockHeight()) && !k.GetWithdrawRewardEnabled(ctx) {
+		if !k.GetWithdrawRewardEnabled(ctx) {
 			return nil, types.ErrCodeDisabledWithdrawRewards()
 		}
 
@@ -82,21 +80,11 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 		case types.CommunityPoolSpendProposal:
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 		case types.ChangeDistributionTypeProposal:
-			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-				return keeper.HandleChangeDistributionTypeProposal(ctx, k, c)
-			}
-			return types.ErrUnknownDistributionCommunityPoolProposaType()
+			return keeper.HandleChangeDistributionTypeProposal(ctx, k, c)
 		case types.WithdrawRewardEnabledProposal:
-			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-				return keeper.HandleWithdrawRewardEnabledProposal(ctx, k, c)
-			}
-			return types.ErrUnknownDistributionCommunityPoolProposaType()
+			return keeper.HandleWithdrawRewardEnabledProposal(ctx, k, c)
 		case types.RewardTruncatePrecisionProposal:
-			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-				return keeper.HandleRewardTruncatePrecisionProposal(ctx, k, c)
-			}
-			return types.ErrUnknownDistributionCommunityPoolProposaType()
-
+			return keeper.HandleRewardTruncatePrecisionProposal(ctx, k, c)
 		default:
 			return types.ErrUnknownDistributionCommunityPoolProposaType()
 		}

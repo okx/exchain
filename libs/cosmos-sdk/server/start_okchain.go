@@ -20,7 +20,6 @@ import (
 	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdkstoretypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -225,10 +224,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 
-	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
-	cmd.Flags().MarkHidden(sdk.FlagMultiCache)
-	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
-	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	cmd.Flags().Bool(FlagEventBlockTime, false, "Enable to publish event of latest block time")
@@ -261,13 +256,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, ChainID, "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
-
-	//cmd.Flags().UintVar(&mpttypes.TrieCacheSize, mpttypes.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
-	//cmd.Flags().BoolVar(&mpttypes.TrieDirtyDisabled, mpttypes.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
-	//cmd.Flags().BoolVar(&mpttypes.EnableDoubleWrite, mpttypes.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
-	//cmd.Flags().BoolVar(&types3.UseCompositeKey, types3.FlagUseCompositeKey, true, "Use composite key to store contract state")
-	//cmd.Flags().UintVar(&types3.ContractStateCache, types3.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
-	//cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
 
 	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
 	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie nodes")

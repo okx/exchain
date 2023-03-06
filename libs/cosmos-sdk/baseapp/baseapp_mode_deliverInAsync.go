@@ -44,7 +44,7 @@ func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	if err == nil {
 		info.msCache.Write()
 	}
-	err = m.checkHigherThanMercury(err, info)
+	err = m.wrapError(err, info)
 
 	return
 }

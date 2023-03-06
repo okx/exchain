@@ -46,7 +46,6 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
 	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
-	cmd.Flags().Bool(sdk.FlagMultiCache, true, "Enable multi cache")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:6060", "Address and port of pprof HTTP server listening")
 	cmd.Flags().Bool(tmiavl.FlagIavlDiscardFastStorage, false, "Discard fast storage")
 	cmd.Flags().MarkHidden(tmiavl.FlagIavlDiscardFastStorage)
