@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
 // IsFastStorageStrategy check the db is FSS

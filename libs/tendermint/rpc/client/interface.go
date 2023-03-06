@@ -24,10 +24,10 @@ import (
 	"context"
 	"crypto/sha256"
 
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	"github.com/okx/okbchain/libs/tendermint/libs/service"
+	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // Client wraps most important rpc calls a client would make if you want to

@@ -1,6 +1,6 @@
 package types
 
-import abci "github.com/okex/exchain/libs/tendermint/abci/types"
+import abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 
 // InitChainer initializes application state at genesis
 type InitChainer func(ctx Context, req abci.RequestInitChain) abci.ResponseInitChain

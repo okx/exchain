@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	watcher "github.com/okex/exchain/x/evm/watcher"
+	watcher "github.com/okx/okbchain/x/evm/watcher"
 )
 
 // Copied the Account and StorageResult types since they are registered under an

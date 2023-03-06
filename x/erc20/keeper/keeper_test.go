@@ -11,16 +11,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/okex/exchain/app"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/x/erc20/keeper"
-	"github.com/okex/exchain/x/erc20/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/app"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	minttypes "github.com/okx/okbchain/libs/cosmos-sdk/x/mint"
+	transfertypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	"github.com/okx/okbchain/x/erc20/keeper"
+	"github.com/okx/okbchain/x/erc20/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 )
 
 var (

@@ -8,30 +8,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	types2 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
 
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/okbchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/x/params"
-	//distr "github.com/okex/exchain/x/distribution"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/bank"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/supply"
+	"github.com/okx/okbchain/x/params"
+	//distr "github.com/okx/okbchain/x/distribution"
 )
 
 // dummy addresses used for testing

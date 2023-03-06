@@ -6,9 +6,9 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 )
 
 type ImmutableMptStore struct {

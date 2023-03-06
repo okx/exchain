@@ -14,9 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )

@@ -2,11 +2,12 @@ package types
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"strings"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkgovtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkgovtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/gov/types"
+	govtypes "github.com/okx/okbchain/x/gov/types"
 )
 
 type UpgradeStatus uint32
@@ -29,7 +30,7 @@ var _ govtypes.Content = UpgradeProposal{}
 
 func init() {
 	govtypes.RegisterProposalType(ProposalTypeUpgrade)
-	govtypes.RegisterProposalTypeCodec(UpgradeProposal{}, "okexchain/params/UpgradeProposal")
+	govtypes.RegisterProposalTypeCodec(UpgradeProposal{}, system.Chain+"/params/UpgradeProposal")
 }
 
 // UpgradeProposal is the struct of param change proposal

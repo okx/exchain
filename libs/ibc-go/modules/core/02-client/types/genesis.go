@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
 )
 
 // ClientsConsensusStates defines a slice of ClientConsensusStates that supports the sort interface

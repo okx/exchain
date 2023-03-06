@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"log"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/slashing"
-	"github.com/okex/exchain/x/staking"
-	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/simapp"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/slashing"
+	"github.com/okx/okbchain/x/staking"
+	"github.com/okx/okbchain/x/staking/exported"
 
-	ethcdc "github.com/okex/exchain/app/codec"
+	ethcdc "github.com/okx/okbchain/app/codec"
 )
 
 // NewDefaultGenesisState generates the default state for the application.

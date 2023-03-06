@@ -2,8 +2,8 @@ package types
 
 import (
 	ics23 "github.com/confio/ics23/go"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
 )
 
 // ConvertProofs converts crypto.ProofOps into MerkleProof

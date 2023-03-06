@@ -6,7 +6,7 @@ package iavl
 import (
 	"errors"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
 var errIteratorNilTreeGiven = errors.New("iterator must be created with an immutable tree but the tree was nil")

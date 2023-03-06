@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 )
 

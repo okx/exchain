@@ -3,13 +3,13 @@ package keys
 import (
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/tests"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/tests"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli"
 )
 
 func Test_runMigrateCmd(t *testing.T) {

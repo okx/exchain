@@ -1,6 +1,6 @@
 package types
 
-import "github.com/okex/exchain/x/params"
+import "github.com/okx/okbchain/x/params"
 
 var (
 	_ params.ParamSet = KeyHistoricalEntriesParamsSet{}

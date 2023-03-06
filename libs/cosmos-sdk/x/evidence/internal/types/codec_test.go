@@ -3,13 +3,13 @@ package types_test
 import (
 	"testing"
 
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/exported"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/internal/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/evidence/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/evidence/internal/types"
 )
 
 var _ exported.Evidence = (*testEvidence)(nil)

@@ -1,12 +1,12 @@
 package core
 
 import (
-	cm "github.com/okex/exchain/libs/tendermint/consensus"
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	rpctypes "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cm "github.com/okx/okbchain/libs/tendermint/consensus"
+	tmmath "github.com/okx/okbchain/libs/tendermint/libs/math"
+	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
+	rpctypes "github.com/okx/okbchain/libs/tendermint/rpc/jsonrpc/types"
+	sm "github.com/okx/okbchain/libs/tendermint/state"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // Validators gets the validator set at the given block height.

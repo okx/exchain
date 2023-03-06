@@ -7,8 +7,8 @@
 package distribution
 
 import (
-	"github.com/okex/exchain/x/distribution/keeper"
-	"github.com/okex/exchain/x/distribution/types"
+	"github.com/okx/okbchain/x/distribution/keeper"
+	"github.com/okx/okbchain/x/distribution/types"
 )
 
 const (

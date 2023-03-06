@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
 )
 
 // DefaultKeyringServiceName defines a default service name for the keyring.

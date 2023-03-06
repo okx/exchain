@@ -1,22 +1,22 @@
 package types
 
 import (
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	"strings"
 	"time"
 
 	ics23 "github.com/confio/ics23/go"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	common2 "github.com/okex/exchain/libs/ibc-go/modules/core/common"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	lite "github.com/okex/exchain/libs/tendermint/lite2"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	common2 "github.com/okx/okbchain/libs/ibc-go/modules/core/common"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	lite "github.com/okx/okbchain/libs/tendermint/lite2"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)

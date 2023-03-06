@@ -1,13 +1,13 @@
 package mint_test
 
 import (
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okx/okbchain/app"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint/internal/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	govtypes "github.com/okx/okbchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"

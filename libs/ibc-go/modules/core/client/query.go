@@ -3,11 +3,11 @@ package client
 import (
 	"fmt"
 
-	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	clictx "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 // QueryTendermintProof performs an ABCI query with the given key and returns

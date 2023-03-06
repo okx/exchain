@@ -1,9 +1,9 @@
 package simulation
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
 
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/okbchain/x/wasm/types"
 )
 
 // RandomizeGenState generates a random GenesisState for wasm

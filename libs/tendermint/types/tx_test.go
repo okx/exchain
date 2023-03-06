@@ -7,12 +7,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/abci/types"
 
 	"github.com/stretchr/testify/assert"
 
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	ctest "github.com/okex/exchain/libs/tendermint/libs/test"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
+	ctest "github.com/okx/okbchain/libs/tendermint/libs/test"
 )
 
 func makeTxs(cnt, size int) Txs {

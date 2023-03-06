@@ -1,9 +1,9 @@
 package infura
 
 import (
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/x/common/monitor"
-	evm "github.com/okex/exchain/x/evm/watcher"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/x/common/monitor"
+	evm "github.com/okx/okbchain/x/evm/watcher"
 )
 
 // nolint

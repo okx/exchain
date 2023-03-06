@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/app"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/erc20"
-	"github.com/okex/exchain/x/erc20/types"
+	"github.com/okx/okbchain/app"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/x/erc20"
+	"github.com/okx/okbchain/x/erc20/types"
 	"github.com/stretchr/testify/suite"
 )
 

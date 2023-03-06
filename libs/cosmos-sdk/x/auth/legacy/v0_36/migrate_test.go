@@ -3,8 +3,8 @@ package v0_36
 import (
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
-	v034auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types"
+	v034auth "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
 
 	"github.com/stretchr/testify/require"
 )

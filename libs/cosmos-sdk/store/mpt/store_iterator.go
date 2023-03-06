@@ -3,7 +3,7 @@ package mpt
 import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 )
 
 var _ types.Iterator = (*mptIterator)(nil)

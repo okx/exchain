@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/okex/exchain/x/params"
+	"github.com/okx/okbchain/x/params"
 )
 
 const (

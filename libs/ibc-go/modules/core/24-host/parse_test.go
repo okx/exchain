@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
 )
 
 func TestParseIdentifier(t *testing.T) {

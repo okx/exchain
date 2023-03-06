@@ -1,8 +1,8 @@
 package exported
 
 import (
-	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	storetypes "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 var kvGasConfig storetypes.GasConfig

@@ -8,18 +8,18 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/client/cli"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/client/rest"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/simulation"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
-	sim "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
-	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/client/cli"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/client/rest"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/simulation"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/types"
+	sim "github.com/okx/okbchain/libs/cosmos-sdk/x/simulation"
+	stakingkeeper "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/keeper"
 )
 
 var (

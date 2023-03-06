@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	pc "github.com/okex/exchain/libs/tendermint/proto/crypto/keys"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
+	pc "github.com/okx/okbchain/libs/tendermint/proto/crypto/keys"
 )
 
 type PubKeyType uint8

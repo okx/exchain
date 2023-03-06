@@ -1,7 +1,7 @@
 package exported
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // Account is an interface used to store coins at a given address within state.

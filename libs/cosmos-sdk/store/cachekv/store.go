@@ -8,14 +8,14 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/system/trace"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/okbchain/libs/iavl"
+	"github.com/okx/okbchain/libs/system/trace"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	kv "github.com/okex/exchain/libs/cosmos-sdk/types/kv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	kv "github.com/okx/okbchain/libs/cosmos-sdk/types/kv"
 )
 
 // If value is nil but deleted is false, it means the parent doesn't have the

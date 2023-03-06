@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 
 	yaml "gopkg.in/yaml.v2"
 )

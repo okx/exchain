@@ -1,6 +1,6 @@
 package capability
 
-import "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+import "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/types"
 
 var (
 	ModuleCdc    = types.ModuleCdc

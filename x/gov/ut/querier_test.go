@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/okex/exchain/x/gov/keeper"
-	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/staking"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli/flags"
+	"github.com/okx/okbchain/x/gov/keeper"
+	"github.com/okx/okbchain/x/gov/types"
+	"github.com/okx/okbchain/x/staking"
 	"github.com/stretchr/testify/require"
 )
 

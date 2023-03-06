@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/okbchain/x/common"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/supply"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/x/staking/exported"
-	"github.com/okex/exchain/x/staking/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/x/staking/exported"
+	"github.com/okx/okbchain/x/staking/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +66,7 @@ func TestInitGenesis(t *testing.T) {
 	genesisState.AllShares = sharesExportedSlice
 	genesisState.UnbondingDelegations = unbondingDelegations
 	// for the token sum check in staking init-genesis
-	//coinsToModuleAcc := sdk.SysCoins{sdk.NewDecCoinFromDec("okt", sdk.NewDec(100))}.ToCoins()
+	//coinsToModuleAcc := sdk.SysCoins{sdk.NewDecCoinFromDec(system.Currency, sdk.NewDec(100))}.ToCoins()
 	coinsToModuleAcc := sdk.NewCoin(common.NativeToken, sdk.NewInt(100)).ToCoins()
 	_ = supplyKeeper.SendCoinsFromAccountToModule(ctx, Addrs[11], types.NotBondedPoolName, coinsToModuleAcc)
 	vals := InitGenesis(ctx, keeper, nil, supplyKeeper, genesisState)

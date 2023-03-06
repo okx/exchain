@@ -1,14 +1,14 @@
 package config
 
 import (
-	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okx/okbchain/libs/system/trace"
 	"path"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 
 	"github.com/mosn/holmes"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
 	"github.com/spf13/viper"
 )
 

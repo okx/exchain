@@ -3,14 +3,14 @@ package fee_test
 import (
 	"testing"
 
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/okbchain/libs/tendermint/types"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	ibcmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
+	ibcmock "github.com/okx/okbchain/libs/ibc-go/testing/mock"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
-	core_grpc "github.com/okex/exchain/libs/tendermint/rpc/grpc"
-	rpctest "github.com/okex/exchain/libs/tendermint/rpc/test"
+	"github.com/okx/okbchain/libs/tendermint/abci/example/kvstore"
+	core_grpc "github.com/okx/okbchain/libs/tendermint/rpc/grpc"
+	rpctest "github.com/okx/okbchain/libs/tendermint/rpc/test"
 	"github.com/stretchr/testify/require"
 )
 

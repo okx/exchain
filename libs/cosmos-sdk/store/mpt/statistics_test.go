@@ -3,7 +3,7 @@ package mpt
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

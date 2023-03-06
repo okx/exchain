@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/gov/types"
 )
 
 func TestIncrementProposalNumber(t *testing.T) {

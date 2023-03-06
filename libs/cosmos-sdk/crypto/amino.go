@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	cryptoAmino "github.com/okx/okbchain/libs/tendermint/crypto/encoding/amino"
 	amino "github.com/tendermint/go-amino"
 )
 

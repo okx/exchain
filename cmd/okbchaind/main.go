@@ -3,45 +3,45 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/system"
+	"github.com/okx/okbchain/libs/system"
 	"io"
 	"os"
 	"strings"
 
-	"github.com/okex/exchain/app/logevents"
-	"github.com/okex/exchain/cmd/exchaind/fss"
-	"github.com/okex/exchain/cmd/exchaind/mpt"
+	"github.com/okx/okbchain/app/logevents"
+	"github.com/okx/okbchain/cmd/okbchaind/fss"
+	"github.com/okx/okbchain/cmd/okbchaind/mpt"
 
-	"github.com/okex/exchain/app/rpc"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/app/rpc"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	tmamino "github.com/okx/okbchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okx/okbchain/libs/tendermint/crypto/multisig"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	clientkeys "github.com/okex/exchain/libs/cosmos-sdk/client/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	clientkeys "github.com/okx/okbchain/libs/cosmos-sdk/client/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/app/codec"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	okexchain "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/cmd/client"
-	"github.com/okex/exchain/x/genutil"
-	genutilcli "github.com/okex/exchain/x/genutil/client/cli"
-	genutiltypes "github.com/okex/exchain/x/genutil/types"
-	"github.com/okex/exchain/x/staking"
+	"github.com/okx/okbchain/app"
+	"github.com/okx/okbchain/app/codec"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	okexchain "github.com/okx/okbchain/app/types"
+	"github.com/okx/okbchain/cmd/client"
+	"github.com/okx/okbchain/x/genutil"
+	genutilcli "github.com/okx/okbchain/x/genutil/client/cli"
+	genutiltypes "github.com/okx/okbchain/x/genutil/types"
+	"github.com/okx/okbchain/x/staking"
 )
 
 const flagInvCheckPeriod = "inv-check-period"
@@ -71,7 +71,7 @@ func main() {
 	ctx := server.NewDefaultContext()
 
 	rootCmd := &cobra.Command{
-		Use:               "exchaind",
+		Use:               system.Server,
 		Short:             "ExChain App Daemon (server)",
 		PersistentPreRunE: preRun(ctx),
 	}

@@ -3,12 +3,12 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/x/distribution/types"
-	"github.com/okex/exchain/x/staking/exported"
-	stakingexported "github.com/okex/exchain/x/staking/exported"
+	"github.com/okx/okbchain/x/distribution/types"
+	"github.com/okx/okbchain/x/staking/exported"
+	stakingexported "github.com/okx/okbchain/x/staking/exported"
 )
 
 var (

@@ -1,6 +1,6 @@
 package adapter
 
-import "github.com/okex/exchain/libs/cosmos-sdk/codec"
+import "github.com/okx/okbchain/libs/cosmos-sdk/codec"
 
 var (
 	//amino = codec.NewLegacyAmino()

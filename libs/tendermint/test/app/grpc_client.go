@@ -9,7 +9,7 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	coregrpc "github.com/okex/exchain/libs/tendermint/rpc/grpc"
+	coregrpc "github.com/okx/okbchain/libs/tendermint/rpc/grpc"
 )
 
 var grpcAddr = "tcp://localhost:36656"

@@ -5,18 +5,18 @@ import (
 	"sort"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	extypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
-	v036 "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/legacy/v0_36"
-	v038 "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/legacy/v0_38"
-	v039 "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/legacy/v0_39"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	extypes "github.com/okx/okbchain/libs/cosmos-sdk/x/genutil"
+	v036 "github.com/okx/okbchain/libs/cosmos-sdk/x/genutil/legacy/v0_36"
+	v038 "github.com/okx/okbchain/libs/cosmos-sdk/x/genutil/legacy/v0_38"
+	v039 "github.com/okx/okbchain/libs/cosmos-sdk/x/genutil/legacy/v0_39"
 )
 
 const (

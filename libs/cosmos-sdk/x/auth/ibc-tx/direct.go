@@ -2,10 +2,10 @@ package ibc_tx
 
 import (
 	"fmt"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	signing2 "github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	signing "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	ibctx "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	signing2 "github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	signing "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 )
 
 // signModeDirectHandler defines the SIGN_MODE_DIRECT SignModeHandler

@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
 	amino "github.com/tendermint/go-amino"
 )
 

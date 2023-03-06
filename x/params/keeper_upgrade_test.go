@@ -5,13 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store"
-	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmdb "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/params/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store"
+	storetypes "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmdb "github.com/okx/okbchain/libs/tm-db"
+	"github.com/okx/okbchain/x/params/types"
 	"github.com/stretchr/testify/suite"
 )
 

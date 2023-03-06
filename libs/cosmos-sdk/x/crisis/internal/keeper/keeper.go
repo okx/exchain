@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis/internal/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/crisis/internal/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/params"
 )
 
 // Keeper - crisis keeper

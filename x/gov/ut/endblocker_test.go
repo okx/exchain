@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/params"
-	paramsTypes "github.com/okex/exchain/x/params/types"
-	"github.com/okex/exchain/x/staking"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/gov"
+	"github.com/okx/okbchain/x/gov/types"
+	"github.com/okx/okbchain/x/params"
+	paramsTypes "github.com/okx/okbchain/x/params/types"
+	"github.com/okx/okbchain/x/staking"
 	"github.com/stretchr/testify/require"
 )
 

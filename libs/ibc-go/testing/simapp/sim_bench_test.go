@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmproto "github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/simulation"
 )
 
 // Profile with:

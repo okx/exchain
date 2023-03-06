@@ -18,13 +18,13 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
+	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
 
-	client "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/client"
-	server "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
-	types "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
+	client "github.com/okx/okbchain/libs/tendermint/rpc/jsonrpc/client"
+	server "github.com/okx/okbchain/libs/tendermint/rpc/jsonrpc/server"
+	types "github.com/okx/okbchain/libs/tendermint/rpc/jsonrpc/types"
 )
 
 // Client and Server should work over tcp or unix sockets

@@ -8,12 +8,12 @@ package keeper
 //
 //	wasmvm "github.com/CosmWasm/wasmvm"
 //	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+//	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 //
-//	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
-//	"github.com/okex/exchain/x/wasm/types"
+//	"github.com/okx/okbchain/x/wasm/keeper/wasmtesting"
+//	"github.com/okx/okbchain/x/wasm/types"
 //)
 //
 //func TestOnOpenChannel(t *testing.T) {

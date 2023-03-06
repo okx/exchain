@@ -1,14 +1,14 @@
 package keeper_test
 
 import (
-	govtypes "github.com/okex/exchain/x/gov/types"
+	govtypes "github.com/okx/okbchain/x/gov/types"
 
 	// govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	// upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	ibctmtypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 )
 
 func (suite *KeeperTestSuite) TestClientUpdateProposal() {

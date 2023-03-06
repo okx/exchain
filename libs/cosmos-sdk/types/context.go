@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/system/trace"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/system/trace"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
-	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/gaskv"
+	stypes "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 )
 
 /*

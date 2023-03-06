@@ -4,22 +4,22 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/common"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/client/cli"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/client/cli"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/keeper"
 
-	cliCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	cliCtx "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	anytypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
 )
 

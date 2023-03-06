@@ -3,20 +3,20 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	interfacetypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/spf13/cobra"
 
-	govTypes "github.com/okex/exchain/x/gov/types"
-	paramscutils "github.com/okex/exchain/x/params/client/utils"
-	"github.com/okex/exchain/x/params/types"
+	govTypes "github.com/okx/okbchain/x/gov/types"
+	paramscutils "github.com/okx/okbchain/x/params/client/utils"
+	"github.com/okx/okbchain/x/params/types"
 )
 
 // GetCmdSubmitProposal implements a command handler for submitting a parameter change proposal transaction

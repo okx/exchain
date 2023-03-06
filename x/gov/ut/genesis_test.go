@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/gov"
+	"github.com/okx/okbchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 )
 

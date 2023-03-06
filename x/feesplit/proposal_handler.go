@@ -2,11 +2,11 @@ package feesplit
 
 import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/feesplit/types"
-	govTypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/x/common"
+	"github.com/okx/okbchain/x/feesplit/types"
+	govTypes "github.com/okx/okbchain/x/gov/types"
 )
 
 // NewProposalHandler handles "gov" type message in "feesplit"

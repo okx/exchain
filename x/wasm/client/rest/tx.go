@@ -2,15 +2,15 @@ package rest
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/okex/exchain/x/wasm/ioutils"
+	"github.com/okx/okbchain/x/wasm/ioutils"
 	"net/http"
 	"strconv"
 
-	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	wasmUtils "github.com/okex/exchain/x/wasm/client/utils"
-	"github.com/okex/exchain/x/wasm/types"
+	clientCtx "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/rest"
+	wasmUtils "github.com/okx/okbchain/x/wasm/client/utils"
+	"github.com/okx/okbchain/x/wasm/types"
 )
 
 func registerTxRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {

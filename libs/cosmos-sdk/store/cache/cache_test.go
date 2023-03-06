@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cache"
-	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/cache"
+	iavlstore "github.com/okx/okbchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/okbchain/libs/iavl"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,6 +1,6 @@
 package store
 
-import "github.com/okex/exchain/libs/tendermint/types"
+import "github.com/okx/okbchain/libs/tendermint/types"
 
 // Store is anything that can persistenly store headers.
 type Store interface {

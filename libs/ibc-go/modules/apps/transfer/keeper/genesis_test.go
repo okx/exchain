@@ -3,7 +3,7 @@ package keeper_test
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
 )
 
 func (suite *KeeperTestSuite) TestGenesis() {

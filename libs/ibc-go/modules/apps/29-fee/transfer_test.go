@@ -1,12 +1,12 @@
 package fee_test
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	txmsg "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
+	transfertypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 )
 
 // Integration test to ensure ics29 works with ics20

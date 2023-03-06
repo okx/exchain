@@ -1,12 +1,12 @@
 package v0_18
 
 import (
-	"github.com/okex/exchain/x/staking/legacy/v0_11"
+	"github.com/okx/okbchain/x/staking/legacy/v0_11"
 	"time"
 
-	"github.com/okex/exchain/x/staking/legacy/v0_10"
+	"github.com/okx/okbchain/x/staking/legacy/v0_10"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 var DefaultMinSelfDelegation = sdk.NewDec(10000)

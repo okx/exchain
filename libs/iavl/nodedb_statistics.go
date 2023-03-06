@@ -2,7 +2,7 @@ package iavl
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okx/okbchain/libs/system/trace"
 	"sync/atomic"
 )
 

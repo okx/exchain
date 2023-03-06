@@ -2,10 +2,10 @@ package channel
 
 import (
 	"github.com/gogo/protobuf/grpc"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/client/cli"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/client/cli"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/spf13/cobra"
 )
 

@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/okbchain/x/common"
 
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/okbchain/x/staking/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 func Deprecated_TestValidatorSMProxyDelegationSmoke(t *testing.T) {

@@ -7,9 +7,9 @@
 package staking
 
 import (
-	"github.com/okex/exchain/x/staking/exported"
-	"github.com/okex/exchain/x/staking/keeper"
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/okbchain/x/staking/exported"
+	"github.com/okx/okbchain/x/staking/keeper"
+	"github.com/okx/okbchain/x/staking/types"
 )
 
 const (

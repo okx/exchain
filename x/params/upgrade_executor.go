@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"math"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/x/common"
-	govtypes "github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/params/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/x/common"
+	govtypes "github.com/okx/okbchain/x/gov/types"
+	"github.com/okx/okbchain/x/params/types"
 )
 
 func NewUpgradeProposalHandler(k *Keeper) govtypes.Handler {

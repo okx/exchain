@@ -1,11 +1,12 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/system"
 )
 
 const (
-	ManageTreasuresProposalName = "okexchain/mint/ManageTreasuresProposal"
+	ManageTreasuresProposalName = system.Chain+"/mint/ManageTreasuresProposal"
 )
 
 // ModuleCdc is a generic sealed codec to be used throughout this module

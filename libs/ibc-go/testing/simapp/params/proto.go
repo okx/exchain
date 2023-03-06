@@ -4,7 +4,7 @@
 package params
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 )
 
 // MakeTestEncodingConfig creates an EncodingConfig for a non-amino based test configuration.

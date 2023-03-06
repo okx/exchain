@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	cstypes "github.com/okx/okbchain/libs/tendermint/consensus/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/automation"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // SetProposal inputs a proposal.

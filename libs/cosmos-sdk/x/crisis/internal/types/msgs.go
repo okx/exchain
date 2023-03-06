@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // MsgVerifyInvariant - message struct to verify a particular invariance

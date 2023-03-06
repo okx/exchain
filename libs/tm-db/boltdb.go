@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/okex/exchain/libs/tm-db/common"
+	"github.com/okx/okbchain/libs/tm-db/common"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 )

@@ -2,12 +2,13 @@ package types
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	govtypes "github.com/okx/okbchain/x/gov/types"
 )
 
 const (
@@ -26,9 +27,9 @@ func init() {
 	govtypes.RegisterProposalType(proposalTypeTokenMapping)
 	govtypes.RegisterProposalType(proposalTypeProxyContractRedirect)
 	govtypes.RegisterProposalType(proposalTypeContractTemplate)
-	govtypes.RegisterProposalTypeCodec(TokenMappingProposal{}, "okexchain/erc20/TokenMappingProposal")
-	govtypes.RegisterProposalTypeCodec(ProxyContractRedirectProposal{}, "okexchain/erc20/ProxyContractRedirectProposal")
-	govtypes.RegisterProposalTypeCodec(ContractTemplateProposal{}, "okexchain/erc20/ContractTemplateProposal")
+	govtypes.RegisterProposalTypeCodec(TokenMappingProposal{}, system.Chain+"/erc20/TokenMappingProposal")
+	govtypes.RegisterProposalTypeCodec(ProxyContractRedirectProposal{}, system.Chain+"/erc20/ProxyContractRedirectProposal")
+	govtypes.RegisterProposalTypeCodec(ContractTemplateProposal{}, system.Chain+"/erc20/ContractTemplateProposal")
 }
 
 var (

@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/gov"
 )
 
 const (

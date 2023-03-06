@@ -3,22 +3,22 @@ package ibc_test
 import (
 	"testing"
 
-	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmproto "github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	// tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
+	// tmproto "github.com/okx/okbchain/libs/tendermint/proto/tendermint/types"
 	"github.com/stretchr/testify/suite"
 
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	localhosttypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/09-localhost/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+	ibc "github.com/okx/okbchain/libs/ibc-go/modules/core"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/types"
+	ibctmtypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	localhosttypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/09-localhost/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp"
 )
 
 const (

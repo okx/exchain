@@ -6,9 +6,9 @@ package types
 import (
 	context "context"
 	fmt "fmt"
-	types1 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	types1 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/query"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
 
 	//types1 "github.com/cosmos/cosmos-sdk/codec/types"
 	//query "github.com/cosmos/cosmos-sdk/types/query"

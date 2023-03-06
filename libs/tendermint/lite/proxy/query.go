@@ -7,14 +7,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/libs/tendermint/lite"
-	lerr "github.com/okex/exchain/libs/tendermint/lite/errors"
-	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/global"
+	"github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	"github.com/okx/okbchain/libs/tendermint/lite"
+	lerr "github.com/okx/okbchain/libs/tendermint/lite/errors"
+	rpcclient "github.com/okx/okbchain/libs/tendermint/rpc/client"
+	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // GetWithProof will query the key on the given node, and verify it has

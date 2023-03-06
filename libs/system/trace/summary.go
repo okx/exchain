@@ -2,7 +2,7 @@ package trace
 
 import (
 	"fmt"
-	//"github.com/okex/exchain/libs/tendermint/libs/log"
+	//"github.com/okx/okbchain/libs/tendermint/libs/log"
 )
 
 var sum *Summary

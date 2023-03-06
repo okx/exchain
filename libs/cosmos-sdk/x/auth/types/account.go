@@ -8,12 +8,12 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 	"gopkg.in/yaml.v2"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
+	cryptoamino "github.com/okx/okbchain/libs/tendermint/crypto/encoding/amino"
 )
 
 //-----------------------------------------------------------------------------

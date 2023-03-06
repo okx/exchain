@@ -6,14 +6,14 @@ import (
 	"strconv"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	apptypes "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/app/utils"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/evm/types"
+	apptypes "github.com/okx/okbchain/app/types"
+	"github.com/okx/okbchain/app/utils"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/x/evm/types"
 )
 
 // NewQuerier is the module level router for state queries

@@ -5,11 +5,11 @@ import (
 	"io"
 	"sync"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/dbadapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 )
 
 //----------------------------------------

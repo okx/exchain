@@ -6,15 +6,15 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	cliContext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	cosmost "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/upgrade"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	authinternaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/typesadapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	authinternaltypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/typesadapter"
 	"github.com/spf13/cobra"
 )
 

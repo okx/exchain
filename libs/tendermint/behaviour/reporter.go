@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/okex/exchain/libs/tendermint/p2p"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
 )
 
 // Reporter provides an interface for reactors to report the behaviour

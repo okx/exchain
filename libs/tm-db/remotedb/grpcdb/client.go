@@ -4,7 +4,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	protodb "github.com/okex/exchain/libs/tm-db/remotedb/proto"
+	protodb "github.com/okx/okbchain/libs/tm-db/remotedb/proto"
 )
 
 // NewClient creates a gRPC client connected to the bound gRPC server at serverAddr.

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/go-errors/errors"
-	"github.com/okex/exchain/libs/system/trace"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/okbchain/libs/system/trace"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
 )
 

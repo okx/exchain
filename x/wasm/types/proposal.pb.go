@@ -12,8 +12,8 @@ import (
 
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_cosmos_cosmos_sdk_types "github.com/okex/exchain/libs/cosmos-sdk/types"
-	types "github.com/okex/exchain/libs/cosmos-sdk/types"
+	github_com_cosmos_cosmos_sdk_types "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	types "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

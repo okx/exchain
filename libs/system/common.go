@@ -1,13 +1,14 @@
 package system
 
 const (
-	Chain = "exchain"
-	AppName = "OKExChain"
+	Chain = "okbchain"
+	AppName = "OKBChain"
 	Server = Chain+"d"
 	Client = Chain+"cli"
 	ServerHome = "$HOME/."+Server
 	ClientHome = "$HOME/."+Client
 	ServerLog = Server+".log"
-	EnvPrefix = "OKEXCHAIN"
+	EnvPrefix = "OKBCHAIN"
 	CoinType uint32 = 60
+	Currency = "okb"
 )

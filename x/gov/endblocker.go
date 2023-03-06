@@ -3,12 +3,12 @@ package gov
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/x/gov/types"
 
-	"github.com/okex/exchain/x/common/perf"
-	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okx/okbchain/x/common/perf"
+	"github.com/okx/okbchain/x/gov/keeper"
 )
 
 // EndBlocker called every block, process inflation, update validator set.

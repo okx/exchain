@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
-	cm40types "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types"
+	cm40types "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 func ConvCM39SimulateResultTCM40(cm39 *types.Result) *cm40types.Result {

@@ -1,7 +1,8 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/system"
 )
 
 // module codec
@@ -12,12 +13,12 @@ var ModuleCdc = codec.New()
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterInterface((*Content)(nil), nil)
 
-	cdc.RegisterConcrete(MsgSubmitProposal{}, "okexchain/gov/MsgSubmitProposal", nil)
-	cdc.RegisterConcrete(MsgDeposit{}, "okexchain/gov/MsgDeposit", nil)
-	cdc.RegisterConcrete(MsgVote{}, "okexchain/gov/MsgVote", nil)
+	cdc.RegisterConcrete(MsgSubmitProposal{}, system.Chain+"/gov/MsgSubmitProposal", nil)
+	cdc.RegisterConcrete(MsgDeposit{}, system.Chain+"/gov/MsgDeposit", nil)
+	cdc.RegisterConcrete(MsgVote{}, system.Chain+"/gov/MsgVote", nil)
 
-	cdc.RegisterConcrete(TextProposal{}, "okexchain/gov/TextProposal", nil)
-	cdc.RegisterConcrete(SoftwareUpgradeProposal{}, "okexchain/gov/SoftwareUpgradeProposal", nil)
+	cdc.RegisterConcrete(TextProposal{}, system.Chain+"/gov/TextProposal", nil)
+	cdc.RegisterConcrete(SoftwareUpgradeProposal{}, system.Chain+"/gov/SoftwareUpgradeProposal", nil)
 }
 
 // RegisterProposalTypeCodec registers an external proposal content type defined

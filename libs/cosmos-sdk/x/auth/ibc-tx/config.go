@@ -2,11 +2,11 @@ package ibc_tx
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	signing2 "github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	signing "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	ibctx "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	signing2 "github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	signing "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibcsigning"
 )
 
 type config struct {

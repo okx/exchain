@@ -11,8 +11,8 @@ package wasm_test
 //	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 //	"github.com/stretchr/testify/require"
 //
-//	wasmibctesting "github.com/okex/exchain/x/wasm/ibctesting"
-//	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+//	wasmibctesting "github.com/okx/okbchain/x/wasm/ibctesting"
+//	wasmkeeper "github.com/okx/okbchain/x/wasm/keeper"
 //)
 //
 //func TestIBCReflectContract(t *testing.T) {

@@ -19,7 +19,7 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 )
 
 const maxPingPongPacketSize = 1024 // bytes

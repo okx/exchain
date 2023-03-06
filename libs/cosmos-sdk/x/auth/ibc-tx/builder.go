@@ -2,15 +2,15 @@ package ibc_tx
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	sigtx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	cryptotypes "github.com/okx/okbchain/libs/cosmos-sdk/crypto/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	ibcmsg "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	sigtx "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibcsigning"
 )
 
 // wrapper is a wrapper around the tx.Tx proto.Message which retain the raw

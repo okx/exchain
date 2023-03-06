@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
 )
 
 // IBC channel events

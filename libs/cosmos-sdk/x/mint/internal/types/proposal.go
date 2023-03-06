@@ -2,8 +2,9 @@ package types
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/system"
+	govtypes "github.com/okx/okbchain/x/gov/types"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ const (
 
 func init() {
 	govtypes.RegisterProposalType(proposalTypeManageTreasures)
-	govtypes.RegisterProposalTypeCodec(ManageTreasuresProposal{}, "okexchain/mint/ManageTreasuresProposal")
+	govtypes.RegisterProposalTypeCodec(ManageTreasuresProposal{}, system.Chain+"/mint/ManageTreasuresProposal")
 }
 
 var (

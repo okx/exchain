@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	lite "github.com/okex/exchain/libs/tendermint/lite2"
-	"github.com/okex/exchain/libs/tendermint/lite2/provider"
-	mockp "github.com/okex/exchain/libs/tendermint/lite2/provider/mock"
-	dbs "github.com/okex/exchain/libs/tendermint/lite2/store/db"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	lite "github.com/okx/okbchain/libs/tendermint/lite2"
+	"github.com/okx/okbchain/libs/tendermint/lite2/provider"
+	mockp "github.com/okx/okbchain/libs/tendermint/lite2/provider/mock"
+	dbs "github.com/okx/okbchain/libs/tendermint/lite2/store/db"
 )
 
 // NOTE: block is produced every minute. Make sure the verification time

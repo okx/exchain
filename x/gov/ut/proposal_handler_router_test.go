@@ -3,8 +3,8 @@ package ut
 import (
 	"testing"
 
-	"github.com/okex/exchain/x/gov/keeper"
-	"github.com/okex/exchain/x/gov/types"
+	"github.com/okx/okbchain/x/gov/keeper"
+	"github.com/okx/okbchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 )
 

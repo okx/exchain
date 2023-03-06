@@ -1,7 +1,7 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )

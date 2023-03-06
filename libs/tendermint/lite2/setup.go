@@ -3,9 +3,9 @@ package lite
 import (
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/lite2/provider"
-	"github.com/okex/exchain/libs/tendermint/lite2/provider/http"
-	"github.com/okex/exchain/libs/tendermint/lite2/store"
+	"github.com/okx/okbchain/libs/tendermint/lite2/provider"
+	"github.com/okx/okbchain/libs/tendermint/lite2/provider/http"
+	"github.com/okx/okbchain/libs/tendermint/lite2/store"
 )
 
 // NewHTTPClient initiates an instance of a lite client using HTTP addresses

@@ -1,10 +1,10 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	wasmtypes "github.com/okex/exchain/x/wasm/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+	wasmtypes "github.com/okx/okbchain/x/wasm/types"
 )
 
 type EVMKeeper interface {

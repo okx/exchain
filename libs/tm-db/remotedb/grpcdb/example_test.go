@@ -5,8 +5,8 @@ import (
 	"context"
 	"log"
 
-	grpcdb "github.com/okex/exchain/libs/tm-db/remotedb/grpcdb"
-	protodb "github.com/okex/exchain/libs/tm-db/remotedb/proto"
+	grpcdb "github.com/okx/okbchain/libs/tm-db/remotedb/grpcdb"
+	protodb "github.com/okx/okbchain/libs/tm-db/remotedb/proto"
 )
 
 func Example() {

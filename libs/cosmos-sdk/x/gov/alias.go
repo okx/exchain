@@ -3,8 +3,8 @@ package gov
 // nolint
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/keeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/gov/keeper"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/gov/types"
 )
 
 const (

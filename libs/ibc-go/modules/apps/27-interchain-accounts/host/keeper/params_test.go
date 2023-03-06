@@ -1,6 +1,6 @@
 package keeper_test
 
-import "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+import "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
 
 func (suite *KeeperTestSuite) TestParams() {
 	expParams := types.DefaultParams()

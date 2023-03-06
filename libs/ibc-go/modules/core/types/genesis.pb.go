@@ -9,9 +9,9 @@ import (
 	math "math"
 	math_bits "math/bits"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	conntypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltyeps "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	conntypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltyeps "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
 
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"

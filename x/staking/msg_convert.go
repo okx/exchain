@@ -3,11 +3,12 @@ package staking
 import (
 	"encoding/json"
 	"errors"
+	"github.com/okx/okbchain/libs/system"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/common"
+	"github.com/okx/okbchain/x/staking/types"
 )
 
 var (
@@ -19,9 +20,9 @@ func init() {
 }
 
 func RegisterConvert() {
-	baseapp.RegisterCmHandle("okexchain/staking/MsgDeposit", baseapp.NewCMHandle(ConvertDepositMsg, 0))
-	baseapp.RegisterCmHandle("okexchain/staking/MsgWithdraw", baseapp.NewCMHandle(ConvertWithdrawMsg, 0))
-	baseapp.RegisterCmHandle("okexchain/staking/MsgAddShares", baseapp.NewCMHandle(ConvertAddSharesMsg, 0))
+	baseapp.RegisterCmHandle(system.Chain+"/staking/MsgDeposit", baseapp.NewCMHandle(ConvertDepositMsg, 0))
+	baseapp.RegisterCmHandle(system.Chain+"/staking/MsgWithdraw", baseapp.NewCMHandle(ConvertWithdrawMsg, 0))
+	baseapp.RegisterCmHandle(system.Chain+"/staking/MsgAddShares", baseapp.NewCMHandle(ConvertAddSharesMsg, 0))
 }
 
 func ConvertDepositMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {

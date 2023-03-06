@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
 )
 
 const ProofOpIAVLAbsence = "iavl:a"

@@ -1,7 +1,7 @@
 package proto
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 )
 
 // keys

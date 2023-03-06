@@ -8,17 +8,17 @@ package ibctesting
 //	"io/ioutil"
 //	"strings"
 //
-//	wasmd "github.com/okex/exchain/app"
+//	wasmd "github.com/okx/okbchain/app"
 //
 //	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 //
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+//	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 //	"github.com/golang/protobuf/proto" //nolint
 //	"github.com/stretchr/testify/require"
 //	abci "github.com/tendermint/tendermint/abci/types"
 //	"github.com/tendermint/tendermint/libs/rand"
 //
-//	"github.com/okex/exchain/x/wasm/types"
+//	"github.com/okx/okbchain/x/wasm/types"
 //)
 //
 //var wasmIdent = []byte("\x00\x61\x73\x6D")

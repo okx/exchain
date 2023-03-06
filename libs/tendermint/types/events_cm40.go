@@ -1,7 +1,7 @@
 package types
 
 import (
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 type CM40EventDataNewBlock struct {

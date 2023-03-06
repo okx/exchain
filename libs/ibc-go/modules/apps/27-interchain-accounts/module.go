@@ -4,31 +4,31 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/upgrade"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/common"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/client/cli"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/client/cli"
 
-	controllertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
-	hosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+	controllertypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	hosttypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	cliCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	cliCtx "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	anytypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	porttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/05-port/types"
 	"github.com/spf13/cobra"
 
-	controllerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
-	hostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	controllerkeeper "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
+	hostkeeper "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 var (

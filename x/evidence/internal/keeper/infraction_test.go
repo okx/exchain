@@ -3,12 +3,12 @@ package keeper_test
 import (
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/evidence/internal/types"
-	"github.com/okex/exchain/x/staking"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/evidence/internal/types"
+	"github.com/okx/okbchain/x/staking"
+	stakingtypes "github.com/okx/okbchain/x/staking/types"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 )
 
 const EPOCH = 252

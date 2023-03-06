@@ -3,7 +3,7 @@ package proxy
 import (
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/libs/service"
+	"github.com/okx/okbchain/libs/tendermint/libs/service"
 )
 
 //-----------------------------

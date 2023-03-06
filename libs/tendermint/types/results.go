@@ -3,10 +3,10 @@ package types
 import (
 	gobytes "bytes"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/bytes"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
 	"github.com/tendermint/go-amino"
 )
 

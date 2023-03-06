@@ -1,6 +1,6 @@
 package types_test
 
-import "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+import "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 
 func (suite *TypesTestSuite) TestKeyActiveChannel() {
 	key := types.KeyActiveChannel("port-id", "connection-id")

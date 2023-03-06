@@ -1,8 +1,8 @@
 package types_test
 
 import (
-	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	ibctmtypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 )
 
 func (suite *TypesTestSuite) TestMarshalHeader() {

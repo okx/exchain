@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 )
 

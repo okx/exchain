@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"text/template"
 
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
 	"github.com/spf13/viper"
 )
 

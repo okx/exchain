@@ -6,26 +6,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 
-	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okx/okbchain/libs/tendermint/global"
 
 	lru "github.com/hashicorp/golang-lru"
 
-	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	coretypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
 
 	"github.com/spf13/viper"
 
 	"golang.org/x/time/rate"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/x/evm/watcher"
 
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	rpctypes "github.com/okx/okbchain/app/rpc/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	clientcontext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/bitutil"
@@ -33,8 +33,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
 const (

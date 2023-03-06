@@ -3,8 +3,8 @@
 package v0_36
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	v034distr "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/legacy/v0_34"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	v034distr "github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/legacy/v0_34"
 )
 
 // ----------------------------------------------------------------------------

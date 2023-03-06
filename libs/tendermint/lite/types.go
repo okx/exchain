@@ -1,7 +1,7 @@
 package lite
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // Verifier checks the votes to make sure the block really is signed properly.

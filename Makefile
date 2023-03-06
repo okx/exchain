@@ -13,13 +13,13 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.6.8.2
+Version=v0.1.0.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
-Name=exchain
-ServerName=exchaind
-ClientName=exchaincli
+Name=okbchain
+ServerName=okbchaind
+ClientName=okbchaincli
 
 MarsHeight=1
 
@@ -61,23 +61,23 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
-	-X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Name=$(Name) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.ServerName=$(ServerName) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.ClientName=$(ClientName) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Commit=$(COMMIT) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
+ldflags = -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.Version=$(Version) \
+	-X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.Name=$(Name) \
+  -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.ServerName=$(ServerName) \
+  -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.ClientName=$(ClientName) \
+  -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.Commit=$(COMMIT) \
+  -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
+  -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
+  -X "$(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
+  -X $(GithubTop)/okx/okbchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
 
 
 ifeq ($(WITH_ROCKSDB),true)
-  ldflags += -X github.com/okex/exchain/libs/tendermint/types.DBBackend=rocksdb
+  ldflags += -X github.com/okx/okbchain/libs/tendermint/types.DBBackend=rocksdb
 endif
 
 ifeq ($(MAKECMDGOALS),testnet)
-  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/server.ChainID=exchain-65
+  ldflags += -X github.com/okx/okbchain/libs/cosmos-sdk/server.ChainID=okbchain-65
 endif
 
 ifeq ($(LINK_STATICALLY),true)
@@ -100,29 +100,26 @@ endif
 
 all: install
 
-install: exchain
+install: okbchain
 
 
-exchain: check_version
-	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
-	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+okbchain: check_version
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/okbchaind
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/okbchaincli
 
 check_version:
 	@sh $(shell pwd)/dev/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
 
-mainnet: exchain
+mainnet: okbchain
 
-testnet: exchain
+testnet: okbchain
 
 test-unit:
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./app/...
-	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/backend/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/common/...
-	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/dex/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/distribution/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/genutil/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/gov/...
-#	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/order/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/params/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/staking/...
 	@VERSION=$(VERSION) go test -mod=readonly -tags='ledger test_ledger_mock' ./x/token/...
@@ -149,21 +146,21 @@ go.sum: go.mod
 	@go mod tidy
 
 cli:
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/okbchaincli
 
 server:
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
+	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/okbchaind
 
 format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gofmt -w -s
 
 build:
 ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind.exe ./cmd/exchaind
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli.exe ./cmd/exchaincli
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/okbchaind.exe ./cmd/okbchaind
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/okbchaincli.exe ./cmd/okbchaincli
 else
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind ./cmd/exchaind
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli ./cmd/exchaincli
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/okbchaind ./cmd/okbchaind
+	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/okbchaincli ./cmd/okbchaincli
 endif
 
 
@@ -195,12 +192,12 @@ testibc:
 build-linux:
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 
-build-docker-exchainnode:
+build-docker-okbchainnode:
 	$(MAKE) -C networks/local
 
 # Run a 4-node testnet locally
 localnet-start: localnet-stop
-	@if ! [ -f build/node0/exchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/exchaind:Z exchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
+	@if ! [ -f build/node0/okbchaind/config/genesis.json ]; then docker run --rm -v $(CURDIR)/build:/okbchaind:Z okbchain/node testnet --v 4 -o . --starting-ip-address 192.168.10.2 --keyring-backend=test ; fi
 	docker-compose up -d
 
 # Stop testnet

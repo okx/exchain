@@ -3,8 +3,8 @@ package cache
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 
 	lru "github.com/hashicorp/golang-lru"
 )

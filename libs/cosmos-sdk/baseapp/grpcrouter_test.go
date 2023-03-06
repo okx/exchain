@@ -2,22 +2,22 @@ package baseapp_test
 
 import (
 	"context"
-	okexchaincodec "github.com/okex/exchain/app/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
-	simapp2 "github.com/okex/exchain/libs/ibc-go/testing/simapp"
-	"github.com/okex/exchain/x/evm"
+	okexchaincodec "github.com/okx/okbchain/app/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/simapp"
+	simapp2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp"
+	"github.com/okx/okbchain/x/evm"
 	"os"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	//"github.com/okex/exchain/libs/cosmos-sdk/simapp"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/evm/types/testdata"
+	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	//"github.com/okx/okbchain/libs/cosmos-sdk/simapp"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/evm/types/testdata"
 )
 
 func TestGRPCGatewayRouter(t *testing.T) {

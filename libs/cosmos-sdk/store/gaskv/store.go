@@ -3,7 +3,7 @@ package gaskv
 import (
 	"io"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 )
 
 var _ types.KVStore = &Store{}

@@ -1,6 +1,6 @@
 package context
 
-import "github.com/okex/exchain/libs/cosmos-sdk/codec"
+import "github.com/okx/okbchain/libs/cosmos-sdk/codec"
 
 type TxRequest interface {
 	GetData() []byte

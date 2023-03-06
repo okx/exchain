@@ -1,7 +1,7 @@
 package mpt
 
 import (
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
 )
 
 type ProofList [][]byte

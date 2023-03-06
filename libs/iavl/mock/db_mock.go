@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	db "github.com/okex/exchain/libs/tm-db"
+	db "github.com/okx/okbchain/libs/tm-db"
 )
 
 // MockDB is a mock of DB interface.

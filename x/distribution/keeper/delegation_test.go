@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/distribution/types"
-	"github.com/okex/exchain/x/staking"
-	stakingexported "github.com/okex/exchain/x/staking/exported"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/distribution/types"
+	"github.com/okx/okbchain/x/staking"
+	stakingexported "github.com/okx/okbchain/x/staking/exported"
+	stakingtypes "github.com/okx/okbchain/x/staking/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 

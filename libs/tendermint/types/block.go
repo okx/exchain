@@ -10,23 +10,23 @@ import (
 	"time"
 
 	gogotypes "github.com/gogo/protobuf/types"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/compress"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/okx/okbchain/libs/system/trace"
+	"github.com/okx/okbchain/libs/tendermint/libs/compress"
+	tmtime "github.com/okx/okbchain/libs/tendermint/types/time"
 
 	"github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/bits"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
-	tmversion "github.com/okex/exchain/libs/tendermint/proto/version"
-	"github.com/okex/exchain/libs/tendermint/version"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
+	"github.com/okx/okbchain/libs/tendermint/libs/bits"
+	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	tmmath "github.com/okx/okbchain/libs/tendermint/libs/math"
+	tmproto "github.com/okx/okbchain/libs/tendermint/proto/types"
+	tmversion "github.com/okx/okbchain/libs/tendermint/proto/version"
+	"github.com/okx/okbchain/libs/tendermint/version"
 )
 
 const (

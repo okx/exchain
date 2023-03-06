@@ -3,7 +3,7 @@ package mempool
 import (
 	"sync"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 const (

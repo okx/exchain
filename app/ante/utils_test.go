@@ -6,33 +6,33 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	"github.com/okex/exchain/libs/ibc-go/testing/mock"
-	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	types2 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/simapp/helpers"
+	ibcmsg "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibc_tx "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okx/okbchain/libs/ibc-go/testing/mock"
+	helpers2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp/helpers"
 
 	"github.com/stretchr/testify/suite"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 
-	"github.com/okex/exchain/app"
-	ante "github.com/okex/exchain/app/ante"
-	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	okexchain "github.com/okex/exchain/app/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/app"
+	ante "github.com/okx/okbchain/app/ante"
+	appconfig "github.com/okx/okbchain/app/config"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	okexchain "github.com/okx/okbchain/app/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	tmcrypto "github.com/okx/okbchain/libs/tendermint/crypto"
 )
 
 type AnteTestSuite struct {

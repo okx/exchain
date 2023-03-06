@@ -4,10 +4,10 @@ import (
 	"runtime"
 	"time"
 
-	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/libs/system/trace"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/wasm/watcher"
+	appconfig "github.com/okx/okbchain/app/config"
+	"github.com/okx/okbchain/libs/system/trace"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/x/wasm/watcher"
 )
 
 // BeginBlock implements the Application interface

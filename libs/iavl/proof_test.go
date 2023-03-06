@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	cmn "github.com/okex/exchain/libs/iavl/common"
+	cmn "github.com/okx/okbchain/libs/iavl/common"
 	amino "github.com/tendermint/go-amino"
 )
 

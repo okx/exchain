@@ -3,10 +3,10 @@ package keys
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 var _ Keybase = lazyKeybase{}

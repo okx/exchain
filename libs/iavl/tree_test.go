@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"testing"
 
-	cmn "github.com/okex/exchain/libs/iavl/common"
-	"github.com/okex/exchain/libs/tendermint/libs/rand"
-	db "github.com/okex/exchain/libs/tm-db"
+	cmn "github.com/okx/okbchain/libs/iavl/common"
+	"github.com/okx/okbchain/libs/tendermint/libs/rand"
+	db "github.com/okx/okbchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

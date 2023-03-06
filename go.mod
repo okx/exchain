@@ -1,4 +1,4 @@
-module github.com/okex/exchain
+module github.com/okx/okbchain
 
 go 1.17
 
@@ -181,10 +181,10 @@ require (
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
-	github.com/cosmos/gorocksdb => github.com/okex/grocksdb v1.6.45-okc2
-	//github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-okc1
-	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.9-0.20230304105959-416ab4d761a9
+	github.com/cosmos/gorocksdb => github.com/okx/grocksdb v1.6.45-okc2
+	//github.com/ethereum/go-ethereum => github.com/okx/go-ethereum v1.10.8-okc1
+	github.com/ethereum/go-ethereum => github.com/okx/go-ethereum v1.10.9-0.20230304105959-416ab4d761a9
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
-	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-okc4
+	github.com/tendermint/go-amino => github.com/okx/go-amino v0.15.1-okc4
 )

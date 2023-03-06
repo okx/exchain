@@ -3,10 +3,10 @@ package types
 import (
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	stakingexported "github.com/okex/exchain/libs/cosmos-sdk/x/staking/exported"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	stakingexported "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/exported"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 )
 
 type (

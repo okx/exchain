@@ -12,8 +12,8 @@ import (
 
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	types "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	github_com_tendermint_tendermint_libs_bytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	types "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	github_com_tendermint_tendermint_libs_bytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
 	_ "github.com/regen-network/cosmos-proto"
 )
 

@@ -6,8 +6,8 @@
 package wasm
 
 import (
-	"github.com/okex/exchain/x/wasm/keeper"
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/okbchain/x/wasm/keeper"
+	"github.com/okx/okbchain/x/wasm/types"
 )
 
 const (

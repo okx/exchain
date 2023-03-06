@@ -1,8 +1,8 @@
 package transfer
 
 import (
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/keeper"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
 )
 
 var (

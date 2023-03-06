@@ -3,10 +3,10 @@ package client
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/system"
+	"github.com/okx/okbchain/libs/system"
 	"strings"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 )
 

@@ -1,7 +1,7 @@
 package infura
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // BeginBlocker runs the logic of BeginBlocker with version 0.

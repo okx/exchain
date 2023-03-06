@@ -11,10 +11,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	nm "github.com/okex/exchain/libs/tendermint/node"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
+	nm "github.com/okx/okbchain/libs/tendermint/node"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 var (

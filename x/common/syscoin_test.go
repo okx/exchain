@@ -1,11 +1,12 @@
 package common
 
 import (
+	"github.com/okx/okbchain/libs/system"
 	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // ----------------------------------------------------------------------------
@@ -13,7 +14,7 @@ import (
 
 var (
 	syscoinTestDenom1 = "eos"
-	syscoinTestDenom2 = "okt"
+	syscoinTestDenom2 = system.Currency
 )
 
 func TestCoin(t *testing.T) {

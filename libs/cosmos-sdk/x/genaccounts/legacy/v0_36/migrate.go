@@ -5,13 +5,13 @@ package v0_36
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	v034distr "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/legacy/v0_34"
-	v034accounts "github.com/okex/exchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_34"
-	v034gov "github.com/okex/exchain/libs/cosmos-sdk/x/gov/legacy/v0_34"
-	v034staking "github.com/okex/exchain/libs/cosmos-sdk/x/staking/legacy/v0_34"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	v034distr "github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/legacy/v0_34"
+	v034accounts "github.com/okx/okbchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_34"
+	v034gov "github.com/okx/okbchain/libs/cosmos-sdk/x/gov/legacy/v0_34"
+	v034staking "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/legacy/v0_34"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 )
 
 const (

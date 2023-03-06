@@ -3,9 +3,9 @@ package staking
 // nolint
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/exported"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/staking/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/staking/keeper"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/staking/types"
 )
 
 const (

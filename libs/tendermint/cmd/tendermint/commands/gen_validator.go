@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/tendermint/privval"
+	"github.com/okx/okbchain/libs/tendermint/privval"
 )
 
 // GenValidatorCmd allows the generation of a keypair for a
