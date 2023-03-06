@@ -121,6 +121,19 @@ func (acc EthAccount) Copy() sdk.Account {
 	return &cacc.ethAccount
 }
 
+func (acc EthAccount) DeepCopy() sdk.Account {
+	newAccount := ProtoAccount().(*EthAccount)
+	buff, err := acc.MarshalJSON()
+	if err != nil {
+		return nil
+	}
+	err = newAccount.UnmarshalJSON(buff)
+	if err != nil {
+		return nil
+	}
+	return newAccount
+}
+
 func (acc EthAccount) AminoSize(cdc *amino.Codec) int {
 	size := 0
 	if acc.BaseAccount != nil {
