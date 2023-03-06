@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/VictoriaMetrics/fastcache"
@@ -206,10 +207,15 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 
 		hasher: crypto.NewKeccakState(),
 	}
-	if csdb.snap != nil {
-		csdb.SnapDestructs = make(map[common.Hash]struct{})
-		csdb.SnapAccounts = make(map[common.Hash][]byte)
-		csdb.SnapStorage = make(map[common.Hash]map[common.Hash][]byte)
+	latestHeight := csdb.getLatestStoredBlockHeight()
+	root := csdb.getMptRootHash(latestHeight)
+
+	if csdb.snaps != nil {
+		if csdb.snap = csdb.snaps.Snapshot(root); csdb.snap != nil {
+			csdb.SnapDestructs = make(map[common.Hash]struct{})
+			csdb.SnapAccounts = make(map[common.Hash][]byte)
+			csdb.SnapStorage = make(map[common.Hash]map[common.Hash][]byte)
+		}
 	}
 
 	return csdb
@@ -1653,4 +1659,22 @@ func (csdb *CommitStateDB) getInitContractCodeHash(addr sdk.AccAddress) []byte {
 	store := csdb.paramSpace.CustomKVStore(csdb.ctx)
 	key := GetInitContractCodeHashKey(addr)
 	return store.Get(key)
+}
+
+func (csdb *CommitStateDB) getLatestStoredBlockHeight() uint64 {
+	rst, err := csdb.db.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
+}
+
+func (csdb *CommitStateDB) getMptRootHash(height uint64) ethcmn.Hash {
+	hhash := sdk.Uint64ToBigEndian(height)
+	rst, err := csdb.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, hhash...))
+	if err != nil || len(rst) == 0 {
+		return ethcmn.Hash{}
+	}
+
+	return ethcmn.BytesToHash(rst)
 }
