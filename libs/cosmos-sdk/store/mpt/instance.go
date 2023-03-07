@@ -49,8 +49,8 @@ func InstanceOfMptStore() ethstate.Database {
 			Cache:     int(TrieCacheSize),
 			Journal:   "",
 			Preimages: true,
+			EnableAC:  !TrieDirtyDisabled,
 		})
-		gMptDatabase.TrieDB().EnableAsyncCommit(!TrieDirtyDisabled)
 	})
 
 	return gMptDatabase
