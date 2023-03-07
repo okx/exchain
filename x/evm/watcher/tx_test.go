@@ -18,7 +18,6 @@ type TxTestSuite struct {
 	TxDecoder sdk.TxDecoder
 }
 
-// 要在最开始通过函数建立tesing.T和suite的关系
 func TestWatcherTx(t *testing.T) {
 	suite.Run(t, new(TxTestSuite))
 }
@@ -32,15 +31,14 @@ func (suite *TxTestSuite) TestGetRealTx() {
 		buildTx func() (tm.TxEssentials, sdk.Tx)
 	}{
 		{
-			//直接生成一个sdk.Tx类型的交易
-			title: "Tx directly assert as realTx",
+			title: "Tx directly asserted as realTx",
 			buildTx: func() (tm.TxEssentials, sdk.Tx) {
 				realTx := etypes.NewMsgEthereumTx(1, nil, big.NewInt(1), 1, nil, nil)
 				return realTx, realTx
 			},
 		},
 		{
-			//生成一个可以被转化的交易
+			//still has a bug
 			title: "Tx convert to realTx by txDecoder",
 			buildTx: func() (tm.TxEssentials, sdk.Tx) {
 
