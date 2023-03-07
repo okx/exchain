@@ -9,8 +9,6 @@ import (
 const (
 	StoreTypeMPT = types.StoreTypeMPT
 
-	TriesInMemory = 100
-
 	// StoreKey is string representation of the store key for mpt
 	StoreKey = "mpt"
 )
@@ -46,3 +44,7 @@ var (
 	EmptyCodeHash      = crypto.Keccak256Hash(nil)
 	EmptyCodeHashBytes = crypto.Keccak256(nil)
 )
+
+func UpdateCommitGapHeight(gap int64) {
+	TrieCommitGap = gap
+}
