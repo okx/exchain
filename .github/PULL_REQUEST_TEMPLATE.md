@@ -4,7 +4,7 @@ v    Before smashing the submit button please review the checkboxes.
 v    If a checkbox is n/a - please still include it but + a little note why
 ☺ > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > >  -->
 
-- Targeted PR against correct branch (see [CONTRIBUTING.md](https://github.com/okex/okexchain/blob/develop/CONTRIBUTING.md#pr-targeting))
+- Targeted PR against correct branch (see [CONTRIBUTING.md](https://github.com/okx/okbchain/blob/develop/CONTRIBUTING.md#pr-targeting))
 
 - [ ] Linked to github-issue with discussion and accepted design OR link to spec that describes this work.
 - [ ] Wrote tests
@@ -17,4 +17,4 @@ ______
 For Admin Use:
 - Added appropriate labels to PR (ex. wip, ready-for-review, docs)
 - Reviewers Assigned
-- Squashed all commits, uses message "Merge PR #XYZ: [title]" ([coding standards](https://github.com/okex/coding/blob/master/README.md#merging-a-pr))
+- Squashed all commits, uses message "Merge PR #XYZ: [title]" ([coding standards](https://github.com/okx/coding/blob/master/README.md#merging-a-pr))
