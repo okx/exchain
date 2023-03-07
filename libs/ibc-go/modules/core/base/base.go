@@ -65,8 +65,10 @@ func (b *BaseIBCUpgradeModule) CommitFilter() *cosmost.StoreFilter {
 			return true
 		}
 		// ==veneus1
-		if h == types.GetVenus1Height() && s != nil {
-			s.SetUpgradeVersion(h)
+		if h == types.GetVenus1Height() {
+			if s != nil {
+				s.SetUpgradeVersion(h)
+			}
 			return false
 		}
 
