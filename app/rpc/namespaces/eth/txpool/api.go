@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/x/evm/watcher"
+	clientcontext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/x/evm/watcher"
 
-	"github.com/okex/exchain/app/rpc/backend"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/app/rpc/backend"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 )
 
 // PublicTxPoolAPI offers and API for the transaction pool. It only operates on data that is non confidential.

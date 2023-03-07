@@ -1,9 +1,9 @@
 package staking
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/staking/keeper"
-	"github.com/okex/exchain/x/staking/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/staking/keeper"
+	"github.com/okx/okbchain/x/staking/types"
 )
 
 func handleMsgEditValidatorCommissionRate(ctx sdk.Context, msg types.MsgEditValidatorCommissionRate, k keeper.Keeper) (*sdk.Result, error) {

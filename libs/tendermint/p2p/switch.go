@@ -8,11 +8,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/libs/cmap"
-	"github.com/okex/exchain/libs/tendermint/libs/rand"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
-	"github.com/okex/exchain/libs/tendermint/p2p/conn"
+	"github.com/okx/okbchain/libs/tendermint/config"
+	"github.com/okx/okbchain/libs/tendermint/libs/cmap"
+	"github.com/okx/okbchain/libs/tendermint/libs/rand"
+	"github.com/okx/okbchain/libs/tendermint/libs/service"
+	"github.com/okx/okbchain/libs/tendermint/p2p/conn"
 )
 
 const (

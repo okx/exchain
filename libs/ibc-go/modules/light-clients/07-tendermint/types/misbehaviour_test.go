@@ -1,11 +1,11 @@
 package types_test
 
 import (
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 )
 
 func (suite *TendermintTestSuite) TestMisbehaviour() {

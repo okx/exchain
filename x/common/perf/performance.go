@@ -2,9 +2,9 @@ package perf
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/x/common/monitor"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/x/common/monitor"
 	"sync"
 	"time"
 )

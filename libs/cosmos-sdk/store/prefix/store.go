@@ -5,9 +5,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 )
 
 var _ types.KVStore = Store{}

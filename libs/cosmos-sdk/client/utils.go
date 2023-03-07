@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/query"
 	"github.com/spf13/pflag"
 )
 

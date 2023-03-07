@@ -2,13 +2,13 @@ package cli
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
 	"github.com/spf13/cobra"
 )
 

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 	yaml "gopkg.in/yaml.v2"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 )
 
 // ensure Msg interface compliance at compile time

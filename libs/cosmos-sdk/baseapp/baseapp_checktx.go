@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/global"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/global"
 )
 
 // CheckTx implements the ABCI interface and executes a tx in CheckTx mode. In

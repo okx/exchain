@@ -2,6 +2,7 @@ package baseapp_test
 
 import (
 	"encoding/json"
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"reflect"
 	"testing"
@@ -9,17 +10,17 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	types3 "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	simapp2 "github.com/okex/exchain/libs/ibc-go/testing/simapp"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/evm/types"
-	types4 "github.com/okex/exchain/x/token/types"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	types3 "github.com/okx/okbchain/app/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/simapp/helpers"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
+	simapp2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	types2 "github.com/okx/okbchain/libs/tendermint/types"
+	"github.com/okx/okbchain/x/evm/types"
+	types4 "github.com/okx/okbchain/x/token/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,7 +53,7 @@ func NewChain(env *Env) *Chain {
 		chain.acc[i] = &types3.EthAccount{
 			BaseAccount: &auth.BaseAccount{
 				Address: env.addr[i],
-				Coins:   sdk.Coins{sdk.NewInt64Coin("okt", 1000000)},
+				Coins:   sdk.Coins{sdk.NewInt64Coin(system.Currency, 1000000)},
 			},
 			//CodeHash: []byte{1, 2},
 		}
@@ -156,7 +157,7 @@ func callContract(t *testing.T, chain *Chain, i int) []byte {
 }
 
 func createCosmosTx(t *testing.T, chain *Chain, i int) []byte {
-	msg := types4.NewMsgTokenSend(chain.addr[i], chain.addr[i+1], sdk.Coins{sdk.NewInt64Coin("okt", 10)})
+	msg := types4.NewMsgTokenSend(chain.addr[i], chain.addr[i+1], sdk.Coins{sdk.NewInt64Coin(system.Currency, 10)})
 
 	tx := helpers.GenTx(
 		[]sdk.Msg{msg},

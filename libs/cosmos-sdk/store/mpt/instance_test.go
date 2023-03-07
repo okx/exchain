@@ -8,8 +8,8 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )
@@ -25,8 +25,8 @@ func TestInstanceTestSuite(t *testing.T) {
 }
 
 func (suite *InstanceTestSuite) SetupTest() {
-	// set exchaind path
-	serverDir, err := ioutil.TempDir("", ".exchaind")
+	// set okbchaind path
+	serverDir, err := ioutil.TempDir("", ".okbchaind")
 	if err != nil {
 		panic(err)
 	}

@@ -3,12 +3,12 @@ package lite_test
 import (
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
 
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/okx/okbchain/libs/tendermint/types"
+	tmtime "github.com/okx/okbchain/libs/tendermint/types/time"
 )
 
 // privKeys is a helper type for testing.

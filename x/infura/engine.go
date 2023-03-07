@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/x/infura/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/x/infura/types"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

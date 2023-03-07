@@ -4,11 +4,11 @@ import (
 	"context"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
+	clictx "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	anytypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 	"github.com/spf13/cobra"
 )
 

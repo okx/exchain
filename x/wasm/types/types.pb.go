@@ -12,8 +12,8 @@ import (
 
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	types "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	github_com_tendermint_tendermint_libs_bytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	types "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	github_com_tendermint_tendermint_libs_bytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
 	_ "github.com/regen-network/cosmos-proto"
 )
 
@@ -436,7 +436,7 @@ var xxx_messageInfo_AbsoluteTxPosition proto.InternalMessageInfo
 // Model is a struct that holds a KV pair
 type Model struct {
 	// hex-encode key to read it better (this is often ascii)
-	Key github_com_tendermint_tendermint_libs_bytes.HexBytes `protobuf:"bytes,1,opt,name=key,proto3,casttype=github.com/okex/exchain/libs/tendermint/libs/bytes.HexBytes" json:"key,omitempty"`
+	Key github_com_tendermint_tendermint_libs_bytes.HexBytes `protobuf:"bytes,1,opt,name=key,proto3,casttype=github.com/okx/okbchain/libs/tendermint/libs/bytes.HexBytes" json:"key,omitempty"`
 	// base64-encode raw value
 	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }

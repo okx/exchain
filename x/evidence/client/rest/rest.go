@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 
 	"github.com/gorilla/mux"
 )

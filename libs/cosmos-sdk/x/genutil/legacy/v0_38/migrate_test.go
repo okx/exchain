@@ -3,11 +3,11 @@ package v038_test
 import (
 	"testing"
 
-	v036auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/v0_36"
-	v036genaccounts "github.com/okex/exchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_36"
-	v038 "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/legacy/v0_38"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
-	v036staking "github.com/okex/exchain/libs/cosmos-sdk/x/staking/legacy/v0_36"
+	v036auth "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/legacy/v0_36"
+	v036genaccounts "github.com/okx/okbchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_36"
+	v038 "github.com/okx/okbchain/libs/cosmos-sdk/x/genutil/legacy/v0_38"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/genutil/types"
+	v036staking "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/legacy/v0_36"
 
 	"github.com/stretchr/testify/require"
 )

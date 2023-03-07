@@ -1,11 +1,11 @@
 package client
 
 import (
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	merkle "github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
-	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	merkle "github.com/okx/okbchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	coretypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 type CM39ResultBroadcastTxCommit struct {

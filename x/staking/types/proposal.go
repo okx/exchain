@@ -3,18 +3,19 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"strings"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/okbchain/x/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	govtypes "github.com/okx/okbchain/x/gov/types"
 )
 
 const (
 	proposalTypeProposeValidator = "ProposeValidator"
-	ProposeValidatorProposalName = "okexchain/staking/ProposeValidatorProposal"
+	ProposeValidatorProposalName = system.Chain+"/staking/ProposeValidatorProposal"
 )
 
 var _ govtypes.Content = (*ProposeValidatorProposal)(nil)

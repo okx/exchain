@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	govtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/gov/types"
 )
 
 const (

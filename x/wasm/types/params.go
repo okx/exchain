@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/gogo/protobuf/jsonpb"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	paramtypes "github.com/okex/exchain/x/params"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	paramtypes "github.com/okx/okbchain/x/params"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )

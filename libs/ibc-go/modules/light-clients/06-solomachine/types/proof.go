@@ -1,16 +1,16 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types/multisig"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	cryptotypes "github.com/okx/okbchain/libs/cosmos-sdk/crypto/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/types/multisig"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
 )
 
 // VerifySignature verifies if the the provided public key generated the signature

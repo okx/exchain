@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/okex/exchain/libs/tm-db/common"
+	"github.com/okx/okbchain/libs/tm-db/common"
 	"github.com/pkg/errors"
 
-	db "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/libs/tm-db/remotedb/grpcdb"
-	protodb "github.com/okex/exchain/libs/tm-db/remotedb/proto"
+	db "github.com/okx/okbchain/libs/tm-db"
+	"github.com/okx/okbchain/libs/tm-db/remotedb/grpcdb"
+	protodb "github.com/okx/okbchain/libs/tm-db/remotedb/proto"
 )
 
 type RemoteDB struct {

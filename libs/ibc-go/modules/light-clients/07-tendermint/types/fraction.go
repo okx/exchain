@@ -1,7 +1,7 @@
 package types
 
 import (
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
+	tmmath "github.com/okx/okbchain/libs/tendermint/libs/math"
 )
 
 // DefaultTrustLevel is the tendermint light client default trust level

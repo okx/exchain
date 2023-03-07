@@ -10,11 +10,11 @@ import (
 	ethaccounts "github.com/ethereum/go-ethereum/accounts"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	tmcrypto "github.com/okx/okbchain/libs/tendermint/crypto"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
 
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
 )
 
 const (

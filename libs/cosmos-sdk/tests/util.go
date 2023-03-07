@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	rpchttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	tmjsonrpc "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/client"
+	rpchttp "github.com/okx/okbchain/libs/tendermint/rpc/client/http"
+	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
+	tmjsonrpc "github.com/okx/okbchain/libs/tendermint/rpc/jsonrpc/client"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 )
 
 // Wait for the next tendermint block from the Tendermint RPC

@@ -2,10 +2,10 @@ package maps
 
 import (
 	"encoding/binary"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	merkle2 "github.com/okex/exchain/libs/tendermint/proto/crypto/merkle"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/kv"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
+	merkle2 "github.com/okx/okbchain/libs/tendermint/proto/crypto/merkle"
 )
 
 // merkleMap defines a merkle-ized tree from a map. Leave values are treated as

@@ -1,10 +1,10 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // nolint:deadcode,unused

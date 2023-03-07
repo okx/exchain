@@ -1,10 +1,10 @@
 package state
 
 import (
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 //

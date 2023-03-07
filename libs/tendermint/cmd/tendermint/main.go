@@ -4,11 +4,11 @@ import (
 	"os"
 	"path/filepath"
 
-	cmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
-	"github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands/debug"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	nm "github.com/okex/exchain/libs/tendermint/node"
+	cmd "github.com/okx/okbchain/libs/tendermint/cmd/tendermint/commands"
+	"github.com/okx/okbchain/libs/tendermint/cmd/tendermint/commands/debug"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli"
+	nm "github.com/okx/okbchain/libs/tendermint/node"
 )
 
 func main() {

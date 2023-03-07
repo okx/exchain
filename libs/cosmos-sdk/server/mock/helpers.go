@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 )
 
 // SetupApp returns an application as well as a clean-up function

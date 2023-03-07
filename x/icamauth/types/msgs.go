@@ -4,13 +4,13 @@ import (
 	fmt "fmt"
 	"strings"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
 	proto "github.com/gogo/protobuf/proto"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 )
 
 var (

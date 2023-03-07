@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmpubsub "github.com/okex/exchain/libs/tendermint/libs/pubsub"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
+	"github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmpubsub "github.com/okx/okbchain/libs/tendermint/libs/pubsub"
+	"github.com/okx/okbchain/libs/tendermint/libs/service"
 )
 
 const defaultCapacity = 0

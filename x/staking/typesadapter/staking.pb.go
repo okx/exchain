@@ -15,11 +15,11 @@ import (
 	strings "strings"
 	time "time"
 
-	"github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	github_com_cosmos_cosmos_sdk_types "github.com/okex/exchain/libs/cosmos-sdk/types"
+	github_com_cosmos_cosmos_sdk_types "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	types1 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	types1 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 
 	_ "github.com/cosmos/cosmos-proto"
 	_ "github.com/gogo/protobuf/gogoproto"

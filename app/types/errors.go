@@ -1,12 +1,12 @@
 package types
 
 import (
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 )
 
 const (
 	// RootCodespace is the codespace for all errors defined in this package
-	RootCodespace = "okexchain"
+	RootCodespace = "okbchain"
 )
 
 // NOTE: We can't use 1 since that error code is reserved for internal errors.

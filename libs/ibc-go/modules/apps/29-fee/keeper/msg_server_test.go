@@ -3,14 +3,14 @@ package keeper_test
 import (
 	"fmt"
 
-	ibcmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
+	ibcmock "github.com/okx/okbchain/libs/ibc-go/testing/mock"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
+	transfertypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 )
 
 func (suite *KeeperTestSuite) TestRegisterPayee() {

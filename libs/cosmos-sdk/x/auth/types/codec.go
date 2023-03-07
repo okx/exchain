@@ -1,8 +1,9 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/okbchain/libs/system"
 	"github.com/tendermint/go-amino"
 )
 
@@ -24,7 +25,7 @@ func RegisterCodec(cdc *codec.Codec) {
 		}
 		return &tx, len(bytes), nil
 	})
-	cdc.RegisterConcrete(&ProtobufViewMsg{}, "okexchain/ProtobufMsgWrapper", nil)
+	cdc.RegisterConcrete(&ProtobufViewMsg{}, system.Chain+"/ProtobufMsgWrapper", nil)
 }
 
 // RegisterAccountTypeCodec registers an external account type defined in

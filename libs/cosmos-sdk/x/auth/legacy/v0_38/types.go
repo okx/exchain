@@ -11,11 +11,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	v034auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	v034auth "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
 )
 
 const (

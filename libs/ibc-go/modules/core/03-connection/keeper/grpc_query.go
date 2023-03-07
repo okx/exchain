@@ -3,14 +3,14 @@ package keeper
 import (
 	"context"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/common"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/query"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

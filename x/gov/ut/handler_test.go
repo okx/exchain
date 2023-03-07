@@ -3,11 +3,11 @@ package ut
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/staking"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli/flags"
+	"github.com/okx/okbchain/x/gov"
+	"github.com/okx/okbchain/x/gov/types"
+	"github.com/okx/okbchain/x/staking"
 	"github.com/stretchr/testify/require"
 )
 

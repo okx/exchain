@@ -2,9 +2,9 @@ package consensus
 
 import (
 	"fmt"
-	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cstypes "github.com/okx/okbchain/libs/tendermint/consensus/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/automation"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // Enter: `timeoutPropose` after entering Propose.

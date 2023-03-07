@@ -5,14 +5,14 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	erc20types "github.com/okex/exchain/x/erc20/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/okex/exchain/x/vmbridge/types"
+	ethermint "github.com/okx/okbchain/app/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	erc20types "github.com/okx/okbchain/x/erc20/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+	"github.com/okx/okbchain/x/evm/watcher"
+	"github.com/okx/okbchain/x/vmbridge/types"
 )
 
 // event __SendToWasmEventName(string wasmAddr,string recipient, string amount)

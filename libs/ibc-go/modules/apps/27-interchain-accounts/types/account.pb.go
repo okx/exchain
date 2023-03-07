@@ -10,7 +10,7 @@ package types
 //	math "math"
 //	math_bits "math/bits"
 //
-//	types "github.com/okex/exchain/libs/cosmos-sdk/x/auth/typesadapter"
+//	types "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/typesadapter"
 //
 //	_ "github.com/gogo/protobuf/gogoproto"
 //	proto "github.com/gogo/protobuf/proto"

@@ -10,11 +10,11 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto/multisig"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/crypto/sr25519"
 )
 
 type byter interface {

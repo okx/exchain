@@ -3,10 +3,10 @@ package baseapp
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/grpc/reflection"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/grpc/reflection"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 
 	gogogrpc "github.com/gogo/protobuf/grpc"
 	"google.golang.org/grpc"

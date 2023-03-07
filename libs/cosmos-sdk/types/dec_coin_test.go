@@ -2,12 +2,13 @@ package types
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"math"
 	"math/big"
 	"strings"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 
 	"github.com/stretchr/testify/require"
 )
@@ -898,7 +899,7 @@ func BenchmarkDecCoinAmino(b *testing.B) {
 func BenchmarkDecCoinString(b *testing.B) {
 	amount := Dec{new(big.Int).SetInt64(math.MaxInt64)}
 	amount.Int.Mul(amount.Int, big.NewInt(2))
-	dc := DecCoin{"okt", amount}
+	dc := DecCoin{system.Currency, amount}
 
 	b.Run("opt", func(b *testing.B) {
 		b.ReportAllocs()

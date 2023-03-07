@@ -3,7 +3,7 @@ package automation
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"sync"

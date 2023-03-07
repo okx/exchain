@@ -1,13 +1,13 @@
 package wasmtesting
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	capabilitytypes "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	ibcexported "github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
 
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/okbchain/x/wasm/types"
 )
 
 type MockChannelKeeper struct {

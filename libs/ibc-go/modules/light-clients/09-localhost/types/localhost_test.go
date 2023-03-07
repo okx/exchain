@@ -3,14 +3,14 @@ package types_test
 import (
 	"testing"
 
-	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmproto "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp"
 )
 
 const (

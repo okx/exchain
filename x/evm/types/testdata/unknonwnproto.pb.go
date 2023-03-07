@@ -6,8 +6,8 @@ package testdata
 import (
 	encoding_binary "encoding/binary"
 	fmt "fmt"
-	types "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+	types "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	tx "github.com/okx/okbchain/libs/cosmos-sdk/types/tx"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"

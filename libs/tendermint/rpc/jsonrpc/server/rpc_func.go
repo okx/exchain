@@ -9,7 +9,7 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 )
 
 // RegisterRPCFuncs adds a route for each function in the funcMap, as well as

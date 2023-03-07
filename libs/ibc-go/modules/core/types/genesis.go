@@ -1,10 +1,10 @@
 package types
 
 import (
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
 )
 
 var _ codectypes.UnpackInterfacesMessage = GenesisState{}

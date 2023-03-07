@@ -1,16 +1,16 @@
 package codec
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	cosmoscryptocodec "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/vesting"
 
-	cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
-	ethermint "github.com/okex/exchain/app/types"
+	cryptocodec "github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okx/okbchain/app/types"
 )
 
 // MakeCodec registers the necessary types and interfaces for an sdk.App. This

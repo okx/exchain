@@ -3,8 +3,8 @@ package types
 import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	capabilitytypes "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/types"
 )
 
 // ViewKeeper provides read only operations

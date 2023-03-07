@@ -1,9 +1,9 @@
 package exported
 
 import (
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // DelegationI delegation bond for a delegated proof of stake system

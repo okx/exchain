@@ -4,12 +4,12 @@ import (
 	"container/list"
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/params"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/staking/types"
 )
 
 const aminoCacheSize = 500

@@ -1,7 +1,7 @@
 package listenkv
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	"io"
 )
 

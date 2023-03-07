@@ -3,12 +3,12 @@ package keeper
 import (
 	"context"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/okex/exchain/x/staking/typesadapter"
+	"github.com/okx/okbchain/x/staking/typesadapter"
 )
 
 // Querier is used as Keeper will have duplicate methods if used directly, and gRPC names take precedence over keeper

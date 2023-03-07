@@ -5,9 +5,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/app/rpc/monitor"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/app/rpc/monitor"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 	"github.com/spf13/viper"
 )
 

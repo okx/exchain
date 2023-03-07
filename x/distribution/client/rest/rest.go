@@ -5,15 +5,15 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/rest"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/client/utils"
 
-	comm "github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/distribution/types"
-	"github.com/okex/exchain/x/gov"
-	govrest "github.com/okex/exchain/x/gov/client/rest"
+	comm "github.com/okx/okbchain/x/common"
+	"github.com/okx/okbchain/x/distribution/types"
+	"github.com/okx/okbchain/x/gov"
+	govrest "github.com/okx/okbchain/x/gov/client/rest"
 )
 
 // RegisterRoutes register distribution REST routes.

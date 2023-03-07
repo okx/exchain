@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"errors"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/input"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

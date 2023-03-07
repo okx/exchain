@@ -4,29 +4,29 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/okex/exchain/libs/system"
+	"github.com/okx/okbchain/libs/system"
 	"os"
 	"time"
 
 	"github.com/spf13/viper"
 
 	"github.com/google/uuid"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys/mintkey"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/exchain/app/crypto/ethkeystore"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/app/rpc/namespaces/eth"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okx/okbchain/app/crypto/ethkeystore"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	"github.com/okx/okbchain/app/crypto/hd"
+	"github.com/okx/okbchain/app/rpc/namespaces/eth"
+	rpctypes "github.com/okx/okbchain/app/rpc/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 )
 
 // PrivateAccountAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.

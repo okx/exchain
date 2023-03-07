@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 	"github.com/stretchr/testify/require"
 )
 

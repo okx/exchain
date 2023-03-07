@@ -1,10 +1,10 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/distribution/types"
-	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okx/okbchain/x/distribution/types"
+	"github.com/okx/okbchain/x/staking/exported"
 )
 
 // initialize rewards for a new validator

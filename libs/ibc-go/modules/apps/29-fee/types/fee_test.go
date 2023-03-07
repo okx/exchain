@@ -3,10 +3,10 @@ package types_test
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 )
 

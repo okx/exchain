@@ -1,11 +1,11 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // MultiStakingHooks combines multiple staking hooks, all hook functions are run in array sequence
-// TODO:need to trim the staking hooks as the okexchain design
+// TODO:need to trim the staking hooks as the okbchain design
 type MultiStakingHooks []StakingHooks
 
 // NewMultiStakingHooks creates a new object of MultiStakingHooks

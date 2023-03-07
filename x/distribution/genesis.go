@@ -3,9 +3,9 @@ package distribution
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/distribution/types"
+	"github.com/okx/okbchain/x/distribution/types"
 )
 
 // InitGenesis sets distribution information for genesis

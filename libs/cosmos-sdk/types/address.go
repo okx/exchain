@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	tmamino "github.com/okx/okbchain/libs/tendermint/crypto/encoding/amino"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/okex/exchain/libs/tendermint/libs/bech32"
+	"github.com/okx/okbchain/libs/tendermint/libs/bech32"
 )
 
 const (

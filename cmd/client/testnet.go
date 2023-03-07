@@ -12,31 +12,31 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/app/crypto/hd"
-	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	clientkeys "github.com/okex/exchain/libs/cosmos-sdk/client/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	srvconfig "github.com/okex/exchain/libs/cosmos-sdk/server/config"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
-	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	tmconfig "github.com/okex/exchain/libs/tendermint/config"
-	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/genutil"
-	"github.com/okex/exchain/x/gov"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
+	"github.com/okx/okbchain/app/crypto/hd"
+	ethermint "github.com/okx/okbchain/app/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	clientkeys "github.com/okx/okbchain/libs/cosmos-sdk/client/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
+	srvconfig "github.com/okx/okbchain/libs/cosmos-sdk/server/config"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/crisis"
+	genutiltypes "github.com/okx/okbchain/libs/cosmos-sdk/x/genutil/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint"
+	tmconfig "github.com/okx/okbchain/libs/tendermint/config"
+	tmcrypto "github.com/okx/okbchain/libs/tendermint/crypto"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	tmtime "github.com/okx/okbchain/libs/tendermint/types/time"
+	"github.com/okx/okbchain/x/common"
+	"github.com/okx/okbchain/x/genutil"
+	"github.com/okx/okbchain/x/gov"
+	stakingtypes "github.com/okx/okbchain/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -73,13 +73,13 @@ func TestnetCmd(ctx *server.Context, cdc *codec.Codec,
 ) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "testnet",
-		Short: "Initialize files for an OKExChain testnet",
+		Short: "Initialize files for an OKBChain testnet",
 		Long: `testnet will create "v" number of directories and populate each with
 necessary files (private validator, genesis, config, etc.).
 
 Note, strict routability for addresses is turned off in the config file.`,
 
-		Example: "exchaind testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
+		Example: "okbchaind testnet --v 4 --keyring-backend test --output-dir ./output --starting-ip-address 192.168.10.2",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			config := ctx.Config
 
@@ -108,8 +108,8 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().Int(flagNumValidators, 4, "Number of validators to initialize the testnet with")
 	cmd.Flags().StringP(flagOutputDir, "o", "./build", "Directory to store initialization data for the testnet")
 	cmd.Flags().String(flagNodeDirPrefix, "node", "Prefix the directory name for each node with (node results in node0, node1, ...)")
-	cmd.Flags().String(flagNodeDaemonHome, "exchaind", "Home directory of the node's daemon configuration")
-	cmd.Flags().String(flagNodeCLIHome, "exchaincli", "Home directory of the node's cli configuration")
+	cmd.Flags().String(flagNodeDaemonHome, "okbchaind", "Home directory of the node's daemon configuration")
+	cmd.Flags().String(flagNodeCLIHome, "okbchaincli", "Home directory of the node's cli configuration")
 	cmd.Flags().String(flagStartingIPAddress, "192.168.0.1", "Starting IP address (192.168.0.1 results in persistent peers list ID0@192.168.0.1:46656, ID1@192.168.0.2:46656, ...)")
 	cmd.Flags().StringSlice(flagIPAddrs, []string{}, "List of IP addresses to use (i.e. `192.168.0.1,172.168.0.1` results in persistent peers list ID0@192.168.0.1:46656, ID1@172.168.0.1)")
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
@@ -152,7 +152,7 @@ func InitTestnet(
 ) error {
 
 	if chainID == "" {
-		chainID = fmt.Sprintf("exchain-%d", tmrand.Int63n(9999999999999)+1)
+		chainID = fmt.Sprintf("okbchain-%d", tmrand.Int63n(9999999999999)+1)
 	}
 
 	if !ethermint.IsValidChainID(chainID) {

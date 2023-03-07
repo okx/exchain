@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
 )
 
 type voteData struct {

@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	typestx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
-	ibctxdecoder "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	typestx "github.com/okx/okbchain/libs/cosmos-sdk/types/tx"
+	ibctxdecoder "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/okbchain/libs/tendermint/global"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 const IGNORE_HEIGHT_CHECKING = -1

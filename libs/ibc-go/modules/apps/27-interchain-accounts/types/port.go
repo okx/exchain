@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 )
 
 // NewControllerPortID creates and returns a new prefixed controller port identifier using the provided owner string

@@ -3,11 +3,11 @@ package gov
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/gov/keeper"
-	"github.com/okex/exchain/x/gov/types"
+	"github.com/okx/okbchain/x/common"
+	"github.com/okx/okbchain/x/gov/keeper"
+	"github.com/okx/okbchain/x/gov/types"
 )
 
 // NewHandler handle all "gov" type messages.

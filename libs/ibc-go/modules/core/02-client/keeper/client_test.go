@@ -9,13 +9,13 @@ import (
 	// tmtypes "github.com/tendermint/tendermint/types"
 
 	// 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	localhosttypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/09-localhost/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	ibctmtypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	localhosttypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/09-localhost/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 )
 
 const (

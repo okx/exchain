@@ -5,11 +5,11 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/okex/exchain/app/utils/appstatus"
-	"github.com/okex/exchain/cmd/exchaind/base"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/okbchain/app/utils/appstatus"
+	"github.com/okx/okbchain/cmd/okbchaind/base"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/iavl"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

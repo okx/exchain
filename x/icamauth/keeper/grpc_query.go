@@ -3,9 +3,9 @@ package keeper
 import (
 	"context"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-	"github.com/okex/exchain/x/icamauth/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	icatypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	"github.com/okx/okbchain/x/icamauth/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

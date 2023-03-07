@@ -2,9 +2,9 @@ package types
 
 import (
 	fmt "fmt"
-	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
-	sdkproofs "github.com/okex/exchain/libs/cosmos-sdk/store/internal/proofs"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	sdkmaps "github.com/okx/okbchain/libs/cosmos-sdk/store/internal/maps"
+	sdkproofs "github.com/okx/okbchain/libs/cosmos-sdk/store/internal/proofs"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
 
 	ics23 "github.com/confio/ics23/go"
 )

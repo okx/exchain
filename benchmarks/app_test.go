@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"strconv"
 	"strings"
@@ -14,23 +15,23 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/okex/exchain/app"
-	types3 "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
-	types2 "github.com/okex/exchain/x/evm/types"
-	wasmtypes "github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/okbchain/app"
+	types3 "github.com/okx/okbchain/app/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/simapp"
+	"github.com/okx/okbchain/libs/cosmos-sdk/simapp/helpers"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
+	banktypes "github.com/okx/okbchain/libs/cosmos-sdk/x/bank"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/global"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/types"
+	dbm "github.com/okx/okbchain/libs/tm-db"
+	types2 "github.com/okx/okbchain/x/evm/types"
+	wasmtypes "github.com/okx/okbchain/x/wasm/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,7 +41,7 @@ func TestTxSending(t *testing.T) {
 	appInfo := InitializeOKXApp(t, db, 50)
 	height := int64(2)
 	global.SetGlobalHeight(height - 1)
-	appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: height, Time: time.Now()}})
+	appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: system.Chain + "-67", Height: height, Time: time.Now()}})
 	txs := GenSequenceOfTxs(&appInfo, bankSendMsg, 100)
 	for _, tx := range txs {
 		res := appInfo.App.DeliverTx(abci.RequestDeliverTx{Tx: tx})
@@ -59,7 +60,7 @@ func TestOip20TxSending(t *testing.T) {
 	require.NoError(t, err)
 	global.SetGlobalHeight(appInfo.height)
 	height := appInfo.height + 1
-	appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: height, Time: time.Now()}})
+	appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: system.Chain + "-67", Height: height, Time: time.Now()}})
 	txs := buildOip20Transfer(100, &appInfo)
 	for _, tx := range txs {
 		res := appInfo.App.DeliverTx(abci.RequestDeliverTx{Tx: tx})
@@ -80,7 +81,7 @@ func TestCw20TxSending(t *testing.T) {
 	require.NoError(t, err)
 
 	height := appInfo.height + 1
-	appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: height, Time: time.Now()}})
+	appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: system.Chain + "-67", Height: height, Time: time.Now()}})
 	txs := buildTxFromMsg(cw20TransferMsg)(100, &appInfo)
 	for _, tx := range txs {
 		res := appInfo.App.DeliverTx(abci.RequestDeliverTx{Tx: tx})
@@ -94,7 +95,7 @@ func TestCw20TxSending(t *testing.T) {
 type AppInfo struct {
 	height int64
 
-	App              *app.OKExChainApp
+	App              *app.OKBChainApp
 	evmMintKey       *ecdsa.PrivateKey
 	evmMintAddr      sdk.AccAddress
 	MinterKey        crypto.PrivKey
@@ -118,7 +119,7 @@ func InitializeOKXApp(b testing.TB, db dbm.DB, numAccounts int) AppInfo {
 	// constants
 	minter := secp256k1.GenPrivKey()
 	addr := sdk.AccAddress(minter.PubKey().Address())
-	denom := "okt"
+	denom := system.Currency
 
 	// genesis setup (with a bunch of random accounts)
 	genAccs := make([]authexported.GenesisAccount, numAccounts+2)
@@ -160,17 +161,17 @@ func InitializeOKXApp(b testing.TB, db dbm.DB, numAccounts int) AppInfo {
 	return info
 }
 
-func setup(db dbm.DB, withGenesis bool, invCheckPeriod uint) (*app.OKExChainApp, simapp.GenesisState) {
-	okxApp := app.NewOKExChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, invCheckPeriod)
+func setup(db dbm.DB, withGenesis bool, invCheckPeriod uint) (*app.OKBChainApp, simapp.GenesisState) {
+	okxApp := app.NewOKBChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, invCheckPeriod)
 	if withGenesis {
 		return okxApp, app.NewDefaultGenesisState()
 	}
 	return okxApp, simapp.GenesisState{}
 }
 
-// SetupWithGenesisAccounts initializes a new OKExChainApp with the provided genesis
+// SetupWithGenesisAccounts initializes a new OKBChainApp with the provided genesis
 // accounts and possible balances.
-func SetupWithGenesisAccounts(b testing.TB, db dbm.DB, genAccs []authexported.GenesisAccount) *app.OKExChainApp {
+func SetupWithGenesisAccounts(b testing.TB, db dbm.DB, genAccs []authexported.GenesisAccount) *app.OKBChainApp {
 	okxApp, genesisState := setup(db, true, 0)
 	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
 	appCodec := okxApp.Codec()
@@ -213,7 +214,7 @@ func deployOip20(info *AppInfo) error {
 	// add oip20 contract
 	global.SetGlobalHeight(info.height)
 	height := info.height + 1
-	info.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: height, Time: time.Now()}})
+	info.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: system.Chain + "-67", Height: height, Time: time.Now()}})
 
 	// deploy oip20
 	OipBytes, err := hex.DecodeString(Oip20Bin)
@@ -246,7 +247,7 @@ func deployCw20(info *AppInfo) error {
 	// add cw20 contract
 	global.SetGlobalHeight(info.height)
 	height := info.height + 1
-	info.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: height, Time: time.Now()}})
+	info.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: system.Chain + "-67", Height: height, Time: time.Now()}})
 
 	// upload cw20
 	txs := buildTxFromMsg(cw20StoreMsg)(1, info)
@@ -278,7 +279,7 @@ func deployCw20(info *AppInfo) error {
 func emptyBlock(info *AppInfo) {
 	global.SetGlobalHeight(info.height)
 	height := info.height + 1
-	info.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: height, Time: time.Now()}})
+	info.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: system.Chain + "-67", Height: height, Time: time.Now()}})
 	info.App.EndBlock(abci.RequestEndBlock{Height: height})
 	info.App.Commit(abci.RequestCommit{})
 
@@ -294,11 +295,12 @@ func GenSequenceOfTxs(info *AppInfo, msgGen func(*AppInfo) ([]sdk.Msg, error), n
 		if err != nil {
 			panic(err)
 		}
+		chainID := system.Chain + "-67"
 		tx := helpers.GenTx(
 			msgs,
 			fees,
 			1e8,
-			"exchain-67",
+			chainID,
 			[]uint64{info.AccNum},
 			[]uint64{info.SeqNum},
 			info.MinterKey,

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
 )
 
 // DefaultDirPerm is the default permissions used when creating directories.

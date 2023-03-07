@@ -11,8 +11,8 @@ import (
 
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	types "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
-	types1 "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+	types "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	types1 "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

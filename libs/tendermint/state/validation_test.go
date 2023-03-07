@@ -6,13 +6,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/mock"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/mock"
+	sm "github.com/okx/okbchain/libs/tendermint/state"
+	"github.com/okx/okbchain/libs/tendermint/types"
+	tmtime "github.com/okx/okbchain/libs/tendermint/types/time"
 )
 
 const validationTestsStopHeight int64 = 10

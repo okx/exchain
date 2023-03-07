@@ -3,17 +3,17 @@ package types_test
 import (
 	"math/big"
 
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/okbchain/libs/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okx/okbchain/app/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/x/evm/types"
 )
 
 const maxGasLimitPerTx = 30000000

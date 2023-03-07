@@ -8,14 +8,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/feesplit"
-	"github.com/okex/exchain/x/feesplit/types"
+	"github.com/okx/okbchain/app"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okx/okbchain/app/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/x/feesplit"
+	"github.com/okx/okbchain/x/feesplit/types"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -24,7 +24,7 @@ type FeeSplitTestSuite struct {
 
 	ctx     sdk.Context
 	handler sdk.Handler
-	app     *app.OKExChainApp
+	app     *app.OKBChainApp
 }
 
 func TestFeeSplitTestSuite(t *testing.T) {

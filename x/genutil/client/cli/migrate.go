@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	extypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
-	v018 "github.com/okex/exchain/x/genutil/client/legacy/v0_18"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	extypes "github.com/okx/okbchain/libs/cosmos-sdk/x/genutil"
+	v018 "github.com/okx/okbchain/x/genutil/client/legacy/v0_18"
 )
 
 var migrationMap = extypes.MigrationMap{
@@ -32,7 +32,7 @@ func MigrateGenesisCmd(_ *server.Context, cdc *codec.Codec) *cobra.Command {
 		Long: fmt.Sprintf(`Migrate the source genesis into the target version and print to STDOUT.
 
 Example:
-$ %s migrate v0.11 /path/to/genesis.json --chain-id=exchain --genesis-time=2019-04-22T17:00:00Z
+$ %s migrate v0.11 /path/to/genesis.json --chain-id=okbchain --genesis-time=2019-04-22T17:00:00Z
 `, version.ServerName),
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {

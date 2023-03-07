@@ -1,8 +1,9 @@
 package params
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/x/params/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/system"
+	"github.com/okx/okbchain/x/params/types"
 )
 
 // ModuleCdc is the codec of module
@@ -16,7 +17,7 @@ func init() {
 
 // RegisterCodec registers all necessary param module types with a given codec.
 func RegisterCodec(cdc *codec.Codec) {
-	cdc.RegisterConcrete(types.ParameterChangeProposal{}, "okexchain/params/ParameterChangeProposal", nil)
-	cdc.RegisterConcrete(types.UpgradeProposal{}, "okexchain/params/UpgradeProposal", nil)
-	cdc.RegisterConcrete(types.UpgradeInfo{}, "okexchain/params/UpgradeInfo", nil)
+	cdc.RegisterConcrete(types.ParameterChangeProposal{}, system.Chain+"/params/ParameterChangeProposal", nil)
+	cdc.RegisterConcrete(types.UpgradeProposal{}, system.Chain+"/params/UpgradeProposal", nil)
+	cdc.RegisterConcrete(types.UpgradeInfo{}, system.Chain+"/params/UpgradeInfo", nil)
 }

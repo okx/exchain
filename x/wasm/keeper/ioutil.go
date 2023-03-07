@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/okbchain/x/wasm/types"
 )
 
 // magic bytes to identify gzip.

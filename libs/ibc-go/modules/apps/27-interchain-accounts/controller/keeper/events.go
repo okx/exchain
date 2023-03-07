@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	icatypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
 )
 
 // EmitAcknowledgementEvent emits an event signalling a successful or failed acknowledgement and including the error

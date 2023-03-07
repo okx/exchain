@@ -1,10 +1,10 @@
 package types
 
 import (
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	cryptotypes "github.com/okx/okbchain/libs/cosmos-sdk/crypto/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
 	"strings"
 )
 

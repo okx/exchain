@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 func validateNoOp(_ interface{}) error { return nil }

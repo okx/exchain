@@ -7,7 +7,7 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
 	io "io"
 	math "math"
 	math_bits "math/bits"

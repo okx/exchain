@@ -5,14 +5,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/slashing/internal/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/okbchain/x/slashing/internal/types"
 )
 
 // GetTxCmd returns the transaction commands for this module

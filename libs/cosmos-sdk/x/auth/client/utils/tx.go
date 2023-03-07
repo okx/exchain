@@ -8,23 +8,23 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	types2 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	txmsg "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	ibctx "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	signingtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibcsigning"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/input"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 )
 
 // GasEstimateResponse defines a response definition for tx gas estimation.

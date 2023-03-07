@@ -8,17 +8,17 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
-	tmdb "github.com/okex/exchain/libs/tm-db"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/app"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
+	iavlstore "github.com/okx/okbchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/rootmulti"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/okbchain/libs/iavl"
+	dbm "github.com/okx/okbchain/libs/tm-db"
+	tmdb "github.com/okx/okbchain/libs/tm-db"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 )
 
 const (
@@ -52,9 +52,9 @@ func checkValidKey(key string) error {
  * Common functions about cosmos-sdk
  */
 // newMigrationApp generates a new app with the given key and application.db
-func newMigrationApp(ctx *server.Context) *app.OKExChainApp {
+func newMigrationApp(ctx *server.Context) *app.OKBChainApp {
 	appDb := openApplicationDb(ctx.Config.RootDir)
-	return app.NewOKExChainApp(
+	return app.NewOKBChainApp(
 		ctx.Logger,
 		appDb,
 		nil,

@@ -14,9 +14,9 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/okbchain/app/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
 )
 
 const keccak256HashSize = 100000

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/okbchain/x/staking/types"
 	"github.com/spf13/cobra"
 )
 
@@ -22,9 +22,9 @@ func GetCmdDestroyValidator(cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "destroy-validator [flags]",
 		Args:  cobra.NoArgs,
-		Short: "deregister the validator from the ExChain and unbond the min self delegation",
+		Short: "deregister the validator from the OKBChain and unbond the min self delegation",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Deregister the validator from the ExChain and unbond the min self delegation.
+			fmt.Sprintf(`Deregister the validator from the OKBChain and unbond the min self delegation.
 
 Example:
 $ %s tx staking destroy-validator --from mykey

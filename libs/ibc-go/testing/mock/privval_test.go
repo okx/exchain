@@ -7,7 +7,7 @@ package mock_test
 // 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 // 	tmtypes "github.com/tendermint/tendermint/types"
 
-// 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
+// 	"github.com/okx/okbchain/libs/ibc-go/testing/mock"
 // )
 
 const chainID = "testChain"

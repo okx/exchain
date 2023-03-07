@@ -8,18 +8,18 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log/term"
-	"github.com/okex/exchain/libs/tendermint/libs/cmap"
+	"github.com/okx/okbchain/libs/tendermint/libs/cmap"
 	"github.com/stretchr/testify/assert"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/service"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // mockPeer for testing the PeerSet

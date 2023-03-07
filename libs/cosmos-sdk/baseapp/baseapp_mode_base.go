@@ -3,11 +3,11 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	//"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 )
 
 type modeHandler interface {

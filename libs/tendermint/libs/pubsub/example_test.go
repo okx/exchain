@@ -6,10 +6,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/tendermint/libs/pubsub"
-	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
+	"github.com/okx/okbchain/libs/tendermint/libs/pubsub"
+	"github.com/okx/okbchain/libs/tendermint/libs/pubsub/query"
 )
 
 func TestExample(t *testing.T) {

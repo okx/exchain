@@ -1,8 +1,8 @@
 package types_test
 
 import (
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 )
 
 // use TestVersion as metadata being compared against

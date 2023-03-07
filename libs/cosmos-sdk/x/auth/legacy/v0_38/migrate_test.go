@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	v034auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
-	v036auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/v0_36"
-	v036genaccounts "github.com/okex/exchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_36"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	v034auth "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
+	v036auth "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/legacy/v0_36"
+	v036genaccounts "github.com/okx/okbchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_36"
 
 	"github.com/stretchr/testify/require"
 )

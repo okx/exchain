@@ -1,11 +1,11 @@
 package ante
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 )
 
 // IncrementSenderSequenceDecorator increments the sequence of the signers. The

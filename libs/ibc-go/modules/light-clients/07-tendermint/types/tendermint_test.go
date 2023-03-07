@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
-	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	tmproto "github.com/okx/okbchain/libs/tendermint/abci/types"
+	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	ibctestingmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	ibctmtypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
+	ibctestingmock "github.com/okx/okbchain/libs/ibc-go/testing/mock"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp"
 )
 
 const (

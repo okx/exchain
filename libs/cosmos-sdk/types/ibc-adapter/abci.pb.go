@@ -5,11 +5,11 @@ package types
 
 import (
 	fmt "fmt"
-	types "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	types "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	types1 "github.com/okex/exchain/libs/tendermint/abci/types"
-	//costypes "github.com/okex/exchain/libs/cosmos-sdk/types"
+	types1 "github.com/okx/okbchain/libs/tendermint/abci/types"
+	//costypes "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	io "io"
 	math "math"
 	math_bits "math/bits"

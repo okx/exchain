@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,11 +1,11 @@
 package types
 
 import (
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	tmkv "github.com/okx/okbchain/libs/tendermint/libs/kv"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 )
 
 // nolint - reexport

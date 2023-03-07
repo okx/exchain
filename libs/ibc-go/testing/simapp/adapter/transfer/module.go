@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	capabilitytypes "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/types"
+	porttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/05-port/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/keeper"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 var (

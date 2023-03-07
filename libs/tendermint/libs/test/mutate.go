@@ -1,7 +1,7 @@
 package test
 
 import (
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
 )
 
 // Contract: !bytes.Equal(input, output) && len(input) >= len(output)

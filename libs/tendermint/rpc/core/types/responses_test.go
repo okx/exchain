@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/okex/exchain/libs/tendermint/p2p"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
 )
 
 func TestStatusIndexer(t *testing.T) {

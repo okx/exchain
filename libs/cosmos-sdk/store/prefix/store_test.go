@@ -4,16 +4,16 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/dbadapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/gaskv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
 	"github.com/stretchr/testify/require"
 
-	tiavl "github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	tiavl "github.com/okx/okbchain/libs/iavl"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
 // copied from iavl/store_test.go

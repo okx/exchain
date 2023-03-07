@@ -5,34 +5,34 @@ import (
 	"testing"
 	"time"
 
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+	ibc "github.com/okx/okbchain/libs/ibc-go/modules/core"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/bank"
 
-	//cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
+	//cryptocodec "github.com/okx/okbchain/app/crypto/ethsecp256k1"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
 
-	//authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	//authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 
-	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
-	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/evm"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	stakingkeeper "github.com/okex/exchain/x/staking"
+	capabilitykeeper "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/keeper"
+	stakingtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	dbm "github.com/okx/okbchain/libs/tm-db"
+	"github.com/okx/okbchain/x/evm"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+	stakingkeeper "github.com/okx/okbchain/x/staking"
 	"github.com/stretchr/testify/require"
 
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+	bam "github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/keeper"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp"
 )
 
 var DefaultTestingAppInit func() (TestingApp, map[string]json.RawMessage) = SetupTestingApp

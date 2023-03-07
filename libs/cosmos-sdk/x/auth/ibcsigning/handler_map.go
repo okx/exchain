@@ -2,8 +2,8 @@ package signing
 
 import (
 	"fmt"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	ibctx "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
 )
 
 // SignModeHandlerMap is SignModeHandler that aggregates multiple SignModeHandler's into

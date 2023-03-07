@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -10,30 +11,30 @@ import (
 
 	"encoding/hex"
 
-	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
+	ibcfee "github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	okexchaincodec "github.com/okex/exchain/app/codec"
+	chaincodec "github.com/okx/okbchain/app/codec"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	ibctxdecode "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
+	ibctxdecode "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	ibctransfer "github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer"
+	ibc "github.com/okx/okbchain/libs/ibc-go/modules/core"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 )
 
 func newSdkAddress() sdk.AccAddress {
@@ -449,8 +450,8 @@ func newProxyDecoder() *codec.CodecProxy {
 		ibctransfer.AppModuleBasic{},
 		ibcfee.AppModuleBasic{},
 	)
-	cdc := okexchaincodec.MakeCodec(ModuleBasics)
-	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
+	cdc := chaincodec.MakeCodec(ModuleBasics)
+	interfaceReg := chaincodec.MakeIBC(ModuleBasics)
 	protoCodec := codec.NewProtoCodec(interfaceReg)
 	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 	return codecProxy
@@ -484,7 +485,7 @@ func TestMsgIBCTxValidate(t *testing.T) {
 }
 
 func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
-	chainID := "exchain-101"
+	chainID := system.Chain + "-101"
 	accnum := 1
 	sequence := 0
 	memo := "memo"

@@ -6,18 +6,18 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	ibctmtypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	types2 "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-	"github.com/okex/exchain/x/erc20/keeper"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	types2 "github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okx/okbchain/x/erc20/keeper"
 )
 
 const CorrectIbcDenom2 = "ibc/3EF3B49764DB0E2284467F8BF7A08C18EACACB30E1AD7ABA8E892F1F679443F9"

@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/distribution/types"
-	stakingexported "github.com/okex/exchain/x/staking/exported"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/distribution/types"
+	stakingexported "github.com/okx/okbchain/x/staking/exported"
 )
 
 // initialize starting info for a new delegation

@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 
 	"github.com/99designs/keyring"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
 )
 
 // available output formats.

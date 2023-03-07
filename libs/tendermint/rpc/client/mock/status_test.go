@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	"github.com/okx/okbchain/libs/tendermint/rpc/client/mock"
+	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
 )
 
 func TestStatus(t *testing.T) {

@@ -3,8 +3,8 @@ package exported
 import (
 	ics23 "github.com/confio/ics23/go"
 	proto "github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // Status represents the status of a client

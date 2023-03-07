@@ -1,12 +1,12 @@
 package v018
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
-	v016evm "github.com/okex/exchain/x/evm/legacy/v0_16"
-	v018evm "github.com/okex/exchain/x/evm/legacy/v0_18"
-	v011staking "github.com/okex/exchain/x/staking/legacy/v0_11"
-	v018staking "github.com/okex/exchain/x/staking/legacy/v0_18"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/genutil"
+	v016evm "github.com/okx/okbchain/x/evm/legacy/v0_16"
+	v018evm "github.com/okx/okbchain/x/evm/legacy/v0_18"
+	v011staking "github.com/okx/okbchain/x/staking/legacy/v0_11"
+	v018staking "github.com/okx/okbchain/x/staking/legacy/v0_18"
 )
 
 // Migrate migrates exported state from v0.16 to a v0.17 genesis state.

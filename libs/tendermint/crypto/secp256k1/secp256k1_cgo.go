@@ -4,8 +4,8 @@
 package secp256k1
 
 import (
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1/internal/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1/internal/secp256k1"
 )
 
 // Sign creates an ECDSA signature on curve Secp256k1, using SHA256 on the msg.

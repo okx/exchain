@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	paramtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/params"
 )
 
 // DefaultTimePerBlock is the default value for maximum expected time per block (in nanoseconds).

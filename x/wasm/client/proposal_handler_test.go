@@ -10,12 +10,12 @@ package client
 //	"testing"
 //
 //	"github.com/gorilla/mux"
-//	"github.com/okex/exchain/libs/cosmos-sdk/client"
-//	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-//	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+//	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+//	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+//	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 //	"github.com/stretchr/testify/require"
 //
-//	"github.com/okex/exchain/x/wasm/keeper"
+//	"github.com/okx/okbchain/x/wasm/keeper"
 //)
 //
 //func TestGovRestHandlers(t *testing.T) {

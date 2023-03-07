@@ -1,19 +1,19 @@
 package v036
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	v034auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
-	v036auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/v0_36"
-	v034distr "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/legacy/v0_34"
-	v036distr "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/legacy/v0_36"
-	v034genAccounts "github.com/okex/exchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_34"
-	v036genAccounts "github.com/okex/exchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_36"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
-	v034gov "github.com/okex/exchain/libs/cosmos-sdk/x/gov/legacy/v0_34"
-	v036gov "github.com/okex/exchain/libs/cosmos-sdk/x/gov/legacy/v0_36"
-	v034staking "github.com/okex/exchain/libs/cosmos-sdk/x/staking/legacy/v0_34"
-	v036staking "github.com/okex/exchain/libs/cosmos-sdk/x/staking/legacy/v0_36"
-	v036supply "github.com/okex/exchain/libs/cosmos-sdk/x/supply/legacy/v0_36"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	v034auth "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/legacy/v0_34"
+	v036auth "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/legacy/v0_36"
+	v034distr "github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/legacy/v0_34"
+	v036distr "github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/legacy/v0_36"
+	v034genAccounts "github.com/okx/okbchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_34"
+	v036genAccounts "github.com/okx/okbchain/libs/cosmos-sdk/x/genaccounts/legacy/v0_36"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/genutil"
+	v034gov "github.com/okx/okbchain/libs/cosmos-sdk/x/gov/legacy/v0_34"
+	v036gov "github.com/okx/okbchain/libs/cosmos-sdk/x/gov/legacy/v0_36"
+	v034staking "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/legacy/v0_34"
+	v036staking "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/legacy/v0_36"
+	v036supply "github.com/okx/okbchain/libs/cosmos-sdk/x/supply/legacy/v0_36"
 )
 
 // Migrate migrates exported state from v0.34 to a v0.36 genesis state.

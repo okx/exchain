@@ -3,13 +3,13 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	"github.com/okx/okbchain/libs/tendermint/libs/automation"
 	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/libs/bits"
+	"github.com/okx/okbchain/libs/tendermint/libs/bits"
 )
 
 const (

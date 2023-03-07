@@ -3,11 +3,11 @@ package keeper_test
 import (
 	"math/big"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	ethermint "github.com/okx/okbchain/app/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 )

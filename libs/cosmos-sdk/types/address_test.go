@@ -7,15 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 var invalidStrs = []string{

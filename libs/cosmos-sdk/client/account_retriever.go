@@ -1,9 +1,9 @@
 package client
 
 import (
-	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	clictx "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 )
 
 // Account defines a read-only version of the auth module's AccountI.

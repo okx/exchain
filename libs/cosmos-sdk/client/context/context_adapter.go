@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 	"gopkg.in/yaml.v2"
 )
 

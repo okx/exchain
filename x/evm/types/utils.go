@@ -17,8 +17,8 @@ import (
 	"github.com/tendermint/go-amino"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 type KV struct {

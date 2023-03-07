@@ -4,11 +4,11 @@ import (
 	"math/big"
 	"sync"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/x/evm/types"
 )
 
 func (k *Keeper) FixLog(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) [][]byte {

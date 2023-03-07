@@ -2,13 +2,13 @@ package keeper
 
 import (
 	"context"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	porttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/05-port/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/types"
 )
 
 // ClientState implements the IBC QueryServer interface

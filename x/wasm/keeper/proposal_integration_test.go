@@ -8,19 +8,19 @@ package keeper
 //	"io/ioutil"
 //	"testing"
 //
-//	"github.com/okex/exchain/libs/cosmos-sdk/x/params/client/utils"
+//	"github.com/okx/okbchain/libs/cosmos-sdk/x/params/client/utils"
 //
 //	wasmvm "github.com/CosmWasm/wasmvm"
 //
-//	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
+//	"github.com/okx/okbchain/x/wasm/keeper/wasmtesting"
 //
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-//	"github.com/okex/exchain/libs/cosmos-sdk/x/params/types/proposal"
+//	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+//	govtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/gov/types"
+//	"github.com/okx/okbchain/libs/cosmos-sdk/x/params/types/proposal"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 //
-//	"github.com/okex/exchain/x/wasm/types"
+//	"github.com/okx/okbchain/x/wasm/types"
 //)
 //
 //func TestStoreCodeProposal(t *testing.T) {

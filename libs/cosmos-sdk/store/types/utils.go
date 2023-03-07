@@ -3,7 +3,7 @@ package types
 import (
 	"bytes"
 
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	tmkv "github.com/okx/okbchain/libs/tendermint/libs/kv"
 )
 
 // Iterator over all the keys with a certain prefix in ascending order

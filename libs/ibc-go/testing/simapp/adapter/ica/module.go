@@ -3,15 +3,15 @@ package ica
 import (
 	"encoding/json"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
-	controllerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
-	hostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	ica "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts"
+	controllerkeeper "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
+	hostkeeper "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 type TestICAModuleBaisc struct {

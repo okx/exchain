@@ -4,18 +4,18 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/okbchain/x/wasm/keeper/wasmtesting"
+	"github.com/okx/okbchain/x/wasm/types"
 )
 
 func TestIBCQuerier(t *testing.T) {

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	tmprotobits "github.com/okex/exchain/libs/tendermint/proto/libs/bits"
+	tmmath "github.com/okx/okbchain/libs/tendermint/libs/math"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
+	tmprotobits "github.com/okx/okbchain/libs/tendermint/proto/libs/bits"
 )
 
 // BitArray is a thread-safe implementation of a bit array.

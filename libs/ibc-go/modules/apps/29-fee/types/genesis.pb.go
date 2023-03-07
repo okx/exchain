@@ -9,7 +9,7 @@ import (
 	math "math"
 	math_bits "math/bits"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
 
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"

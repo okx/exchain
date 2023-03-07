@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/iavl"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/ed25519"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
+	"github.com/okx/okbchain/libs/tendermint/proxy"
+	"github.com/okx/okbchain/libs/tendermint/types"
+	tmtime "github.com/okx/okbchain/libs/tendermint/types/time"
 )
 
 var (

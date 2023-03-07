@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"github.com/okex/exchain/libs/system"
+	"github.com/okx/okbchain/libs/system"
 	"net"
 	"os"
 	"os/signal"
@@ -13,17 +13,17 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/google/gops/agent"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/state"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/lcd"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server/config"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	tcmd "github.com/okx/okbchain/libs/tendermint/cmd/tendermint/commands"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli"
+	tmflags "github.com/okx/okbchain/libs/tendermint/libs/cli/flags"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/state"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -130,7 +130,7 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 		}
 	}
 
-	appConfigFilePath := filepath.Join(rootDir, "config/exchaind.toml")
+	appConfigFilePath := filepath.Join(rootDir, "config/"+system.Server+".toml")
 	if _, err := os.Stat(appConfigFilePath); os.IsNotExist(err) {
 		appConf, _ := config.ParseConfig()
 		config.WriteConfigFile(appConfigFilePath, appConf)

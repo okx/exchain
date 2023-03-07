@@ -3,16 +3,16 @@ package keeper
 import (
 	"bytes"
 
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/okbchain/libs/tendermint/types"
 
 	//"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/gogo/protobuf/proto"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
 )
 
 // ConnOpenInit initialises a connection attempt on chain A. The generated connection identifier

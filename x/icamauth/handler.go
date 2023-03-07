@@ -3,10 +3,10 @@ package icamauth
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/icamauth/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	"github.com/okx/okbchain/x/icamauth/types"
 )
 
 // NewHandler returns sdk.Handler for IBC token transfer module messages

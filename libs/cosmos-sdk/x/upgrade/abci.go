@@ -3,9 +3,9 @@ package upgrade
 import (
 	"fmt"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // BeginBlock will check if there is a scheduled plan and if it is ready to be executed.

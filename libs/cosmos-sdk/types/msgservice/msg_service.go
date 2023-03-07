@@ -3,8 +3,8 @@ package msgservice
 import (
 	"context"
 	"fmt"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
 	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"

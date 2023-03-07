@@ -7,15 +7,15 @@ import (
 
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/x/evm/client/rest"
-	"github.com/okex/exchain/x/evm/client/utils"
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/version"
+	"github.com/okx/okbchain/x/evm/client/rest"
+	"github.com/okx/okbchain/x/evm/client/utils"
+	"github.com/okx/okbchain/x/evm/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -279,7 +279,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query all the modifiable parameters of gov proposal",
 		Long: strings.TrimSpace(`Query the all the parameters for the governance process:
 
-$ exchaincli query evm params
+$ okbchaincli query evm params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {

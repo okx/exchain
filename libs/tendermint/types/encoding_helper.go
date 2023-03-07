@@ -2,9 +2,9 @@ package types
 
 import (
 	//gogotypes "github.com/gogo/protobuf/types"
-	//"github.com/okex/exchain/libs/tendermint/libs/bytes"
+	//"github.com/okx/okbchain/libs/tendermint/libs/bytes"
 	gogotypes "github.com/gogo/protobuf/types"
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
+	"github.com/okx/okbchain/libs/tendermint/libs/bytes"
 )
 
 // cdcEncode returns nil if the input is nil, otherwise returns

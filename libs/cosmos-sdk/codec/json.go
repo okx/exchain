@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 )
 
 // ProtoMarshalJSON provides an auxiliary function to return Proto3 JSON encoded

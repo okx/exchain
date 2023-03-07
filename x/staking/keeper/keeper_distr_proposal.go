@@ -1,9 +1,9 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okx/okbchain/x/staking/exported"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 func (k Keeper) Delegation(ctx sdk.Context, delAddr sdk.AccAddress, address2 sdk.ValAddress) exported.DelegatorI {

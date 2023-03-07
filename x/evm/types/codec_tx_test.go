@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"strings"
 	"testing"
@@ -8,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )
@@ -32,7 +33,7 @@ const (
 
 var (
 	rawEthMsgName = "raw/eth_tx"
-	exEthMsgName  = "exchain/eth_tx"
+	exEthMsgName  = system.Chain + "/eth_tx"
 	testPrivKey   = "52692529cc36735d4ee1084846f4f5ef8916d0f823b0a0e834c8a4ece30c45e4"
 )
 
@@ -131,7 +132,7 @@ func (ee *exAminoEncoder) decodeTx(b []byte, tx interface{}) error {
 	_, err := ee.cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(b, tx)
 	return err
 }
-func (ee *exAminoEncoder) name() string { return "exchain-amino" }
+func (ee *exAminoEncoder) name() string { return system.Chain + "-amino" }
 
 type jsonEncoder struct{}
 
@@ -143,8 +144,8 @@ func (je *jsonEncoder) name() string                            { return "json" 
 func TestEncoder(t *testing.T) {
 	testEncoder(t, newTestEncoder(rawAminoEnc)) // test go-amino
 	testEncoder(t, newTestEncoder(rlpEnc))      // test ethereum-rlp
-	testEncoder(t, newTestEncoder(exAminoEnc))  // test exchain-amino
-	testEncoder(t, newTestEncoder(jsonEnc))     // test exchain-json
+	testEncoder(t, newTestEncoder(exAminoEnc))  // test chain-amino
+	testEncoder(t, newTestEncoder(jsonEnc))     // test chain-json
 }
 func testEncoder(t *testing.T, enc encoder) {
 	// encode

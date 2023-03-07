@@ -1,10 +1,10 @@
 package client
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	ibcmsg "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	signingtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibcsigning"
 )
 
 type (

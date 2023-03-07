@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"testing"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	keep "github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/keeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	keep "github.com/okx/okbchain/libs/cosmos-sdk/x/supply/internal/keeper"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/supply/internal/types"
 )
 
 func TestNewQuerier(t *testing.T) {

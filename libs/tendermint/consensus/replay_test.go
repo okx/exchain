@@ -17,21 +17,21 @@ import (
 
 	"sort"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	mempl "github.com/okex/exchain/libs/tendermint/mempool"
-	"github.com/okex/exchain/libs/tendermint/mock"
-	"github.com/okex/exchain/libs/tendermint/privval"
-	"github.com/okex/exchain/libs/tendermint/proxy"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/libs/tendermint/version"
+	"github.com/okx/okbchain/libs/tendermint/abci/example/kvstore"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
+	mempl "github.com/okx/okbchain/libs/tendermint/mempool"
+	"github.com/okx/okbchain/libs/tendermint/mock"
+	"github.com/okx/okbchain/libs/tendermint/privval"
+	"github.com/okx/okbchain/libs/tendermint/proxy"
+	sm "github.com/okx/okbchain/libs/tendermint/state"
+	"github.com/okx/okbchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/version"
 )
 
 func TestMain(m *testing.M) {

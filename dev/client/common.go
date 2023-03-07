@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/okex/exchain-ethereum-compatible/utils"
+	"github.com/okx/okbchain-ethereum-compatible/utils"
 
 	"io/ioutil"
 	"log"

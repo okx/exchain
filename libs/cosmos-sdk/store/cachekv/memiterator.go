@@ -2,8 +2,8 @@ package cachekv
 
 import (
 	"errors"
-	kv "github.com/okex/exchain/libs/cosmos-sdk/types/kv"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	kv "github.com/okx/okbchain/libs/cosmos-sdk/types/kv"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
 // Iterates over iterKVCache items.

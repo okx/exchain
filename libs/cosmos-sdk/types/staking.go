@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 )
 
@@ -8,7 +9,7 @@ import (
 const (
 
 	// default bond denomination
-	DefaultBondDenom = "okt"
+	DefaultBondDenom = system.Currency
 
 	// Delay, in blocks, between when validator updates are returned to the
 	// consensus-engine and when they are applied. For example, if

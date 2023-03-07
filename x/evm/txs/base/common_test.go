@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	ethereumTx "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	ethereumTx "github.com/okx/okbchain/app/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/x/evm/types"
 )
 
 func Test_getSender(t *testing.T) {

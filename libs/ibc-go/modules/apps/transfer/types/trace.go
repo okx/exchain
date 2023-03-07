@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // ParseDenomTrace parses a string with the ibc prefix (denom trace) and the base denomination

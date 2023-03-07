@@ -1,7 +1,7 @@
 package multisig
 
 import (
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 )
 
 // PubKeyMultisigThreshold implements a K of N threshold multisig.

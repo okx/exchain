@@ -3,9 +3,9 @@ package types_test
 import (
 	"fmt"
 
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 )
 
 func (suite *TypesTestSuite) TestNewControllerPortID() {

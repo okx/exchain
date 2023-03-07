@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 )
 
 // x/bank module sentinel errors

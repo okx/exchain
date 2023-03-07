@@ -3,8 +3,8 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/libs/automation"
 	"reflect"
 	"sync"
 	"time"
@@ -13,14 +13,14 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
-	"github.com/okex/exchain/libs/tendermint/libs/bits"
-	tmevents "github.com/okex/exchain/libs/tendermint/libs/events"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	cstypes "github.com/okx/okbchain/libs/tendermint/consensus/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/bits"
+	tmevents "github.com/okx/okbchain/libs/tendermint/libs/events"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
+	sm "github.com/okx/okbchain/libs/tendermint/state"
+	"github.com/okx/okbchain/libs/tendermint/types"
+	tmtime "github.com/okx/okbchain/libs/tendermint/types/time"
 )
 
 type bpType int

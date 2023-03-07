@@ -5,7 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okx/okbchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )

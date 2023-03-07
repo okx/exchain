@@ -1,8 +1,8 @@
 package vmbridge
 
 import (
-	"github.com/okex/exchain/x/vmbridge/keeper"
-	"github.com/okex/exchain/x/vmbridge/types"
+	"github.com/okx/okbchain/x/vmbridge/keeper"
+	"github.com/okx/okbchain/x/vmbridge/types"
 )
 
 var (

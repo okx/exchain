@@ -1,6 +1,6 @@
 package wasmtesting
 
-import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+import sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
 type MockCoinTransferrer struct {
 	TransferCoinsFn func(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error

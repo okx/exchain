@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/params"
 
 	"gopkg.in/yaml.v2"
 )

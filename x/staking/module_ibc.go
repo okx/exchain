@@ -3,22 +3,22 @@ package staking
 import (
 	"context"
 
-	"github.com/okex/exchain/x/staking/keeper"
+	"github.com/okx/okbchain/x/staking/keeper"
 
-	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/x/staking/typesadapter"
+	cosmost "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/x/staking/typesadapter"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	clictx "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	anytypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/x/staking/client/rest"
-	_ "github.com/okex/exchain/x/staking/typesadapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okx/okbchain/x/params"
+	"github.com/okx/okbchain/x/staking/client/rest"
+	_ "github.com/okx/okbchain/x/staking/typesadapter"
 	"github.com/spf13/cobra"
 )
 

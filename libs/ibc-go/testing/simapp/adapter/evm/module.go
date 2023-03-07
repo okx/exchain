@@ -2,11 +2,11 @@ package evm
 
 import (
 	"encoding/json"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/evm"
-	"github.com/okex/exchain/x/evm/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/x/evm"
+	"github.com/okx/okbchain/x/evm/types"
 )
 
 type EvmModuleAdapter struct {

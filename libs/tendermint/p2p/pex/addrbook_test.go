@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	"github.com/okex/exchain/libs/tendermint/p2p"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmmath "github.com/okx/okbchain/libs/tendermint/libs/math"
+	tmrand "github.com/okx/okbchain/libs/tendermint/libs/rand"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
 )
 
 // FIXME These tests should not rely on .(*addrBook) assertions

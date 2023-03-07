@@ -9,14 +9,14 @@ package rpc
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 
-//	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
-//	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-//	"github.com/okex/exchain/libs/tendermint/lite"
-//	certclient "github.com/okex/exchain/libs/tendermint/lite/client"
-//	nm "github.com/okex/exchain/libs/tendermint/node"
-//	"github.com/okex/exchain/libs/tendermint/rpc/client"
-//	rpctest "github.com/okex/exchain/libs/tendermint/rpc/test"
-//	"github.com/okex/exchain/libs/tendermint/types"
+//	"github.com/okx/okbchain/libs/tendermint/abci/example/kvstore"
+//	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
+//	"github.com/okx/okbchain/libs/tendermint/lite"
+//	certclient "github.com/okx/okbchain/libs/tendermint/lite/client"
+//	nm "github.com/okx/okbchain/libs/tendermint/node"
+//	"github.com/okx/okbchain/libs/tendermint/rpc/client"
+//	rpctest "github.com/okx/okbchain/libs/tendermint/rpc/test"
+//	"github.com/okx/okbchain/libs/tendermint/types"
 //)
 
 //var node *nm.Node

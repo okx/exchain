@@ -12,7 +12,7 @@ package ibctesting
 //	"github.com/stretchr/testify/require"
 //	abci "github.com/tendermint/tendermint/abci/types"
 //
-//	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+//	wasmkeeper "github.com/okx/okbchain/x/wasm/keeper"
 //)
 //
 //const ChainIDPrefix = "testchain"

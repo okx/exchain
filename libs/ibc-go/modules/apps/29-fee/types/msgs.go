@@ -3,13 +3,13 @@ package types
 import (
 	"strings"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
 )
 
 var (

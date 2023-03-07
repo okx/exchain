@@ -2,12 +2,12 @@ package params
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/x/params/types"
+	"github.com/okx/okbchain/x/params/types"
 )
 
 // NewQuerier returns all query handlers

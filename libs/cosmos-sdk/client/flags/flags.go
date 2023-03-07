@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	tmcli "github.com/okex/exchain/libs/tendermint/libs/cli"
+	tmcli "github.com/okx/okbchain/libs/tendermint/libs/cli"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
 )
 
 // nolint

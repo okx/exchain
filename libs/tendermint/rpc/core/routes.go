@@ -1,7 +1,7 @@
 package core
 
 import (
-	rpc "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
+	rpc "github.com/okx/okbchain/libs/tendermint/rpc/jsonrpc/server"
 )
 
 // TODO: better system than "unsafe" prefix

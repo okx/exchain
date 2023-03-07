@@ -1,20 +1,20 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	clientkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/keeper"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectionkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/keeper"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channelkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/keeper"
-	portkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/keeper"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	types2 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	capabilitykeeper "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/keeper"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/params"
+	paramtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/params"
+	clientkeeper "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/keeper"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectionkeeper "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/keeper"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channelkeeper "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/keeper"
+	portkeeper "github.com/okx/okbchain/libs/ibc-go/modules/core/05-port/keeper"
+	porttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/05-port/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/types"
 )
 
 var _ types.QueryServer = (*Keeper)(nil)

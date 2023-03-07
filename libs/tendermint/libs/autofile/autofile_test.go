@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
 )
 
 func TestSIGHUP(t *testing.T) {

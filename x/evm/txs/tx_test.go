@@ -8,12 +8,12 @@ import (
 	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/x/evm/txs/base"
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/x/evm/txs/base"
+	"github.com/okx/okbchain/x/evm/types"
 )
 
 var sdkResult sdk.Result

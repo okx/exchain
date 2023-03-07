@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"time"
 
-	blockindex "github.com/okex/exchain/libs/tendermint/state/indexer"
+	blockindex "github.com/okx/okbchain/libs/tendermint/state/indexer"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/consensus"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	mempl "github.com/okex/exchain/libs/tendermint/mempool"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/proxy"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/state/txindex"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	"github.com/okx/okbchain/libs/tendermint/consensus"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	mempl "github.com/okx/okbchain/libs/tendermint/mempool"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
+	"github.com/okx/okbchain/libs/tendermint/proxy"
+	sm "github.com/okx/okbchain/libs/tendermint/state"
+	"github.com/okx/okbchain/libs/tendermint/state/txindex"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 const (

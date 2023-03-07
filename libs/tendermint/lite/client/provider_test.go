@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
-	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
-	rpctest "github.com/okex/exchain/libs/tendermint/rpc/test"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/tendermint/abci/example/kvstore"
+	rpcclient "github.com/okx/okbchain/libs/tendermint/rpc/client"
+	rpctest "github.com/okx/okbchain/libs/tendermint/rpc/test"
+	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
 func TestMain(m *testing.M) {

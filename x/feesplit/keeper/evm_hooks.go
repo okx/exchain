@@ -5,9 +5,9 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/feesplit/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+	"github.com/okx/okbchain/x/feesplit/types"
 )
 
 var _ evmtypes.EvmHooks = Hooks{}

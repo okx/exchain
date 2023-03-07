@@ -14,14 +14,14 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/app/rpc/monitor"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okx/okbchain/app/rpc/monitor"
+	rpctypes "github.com/okx/okbchain/app/rpc/types"
+	clientcontext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	coretypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+	"github.com/okx/okbchain/x/evm/watcher"
 
 	"golang.org/x/time/rate"
 )

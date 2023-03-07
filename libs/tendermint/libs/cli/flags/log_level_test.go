@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmflags "github.com/okx/okbchain/libs/tendermint/libs/cli/flags"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
 )
 
 const (

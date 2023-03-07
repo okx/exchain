@@ -3,10 +3,10 @@ package server
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
 
-	clkeys "github.com/okex/exchain/libs/cosmos-sdk/client/keys"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	clkeys "github.com/okx/okbchain/libs/cosmos-sdk/client/keys"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // GenerateCoinKey returns the address of a public key, along with the secret

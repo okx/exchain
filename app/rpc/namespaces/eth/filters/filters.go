@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/okex/exchain/app/rpc/backend"
+	"github.com/okx/okbchain/app/rpc/backend"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth/filters"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	rpctypes "github.com/okx/okbchain/app/rpc/types"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 )
 

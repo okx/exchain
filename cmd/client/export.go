@@ -11,12 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/okex/exchain/app/crypto/ethkeystore"
-	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/input"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/app/crypto/ethkeystore"
+	"github.com/okx/okbchain/app/crypto/hd"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/okbchain/libs/cosmos-sdk/client/input"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // UnsafeExportEthKeyCommand exports a key with the given name as a private key in hex format.
@@ -84,14 +84,14 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 func ExportEthCompCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:    "export-eth-comp [name] [dir]",
-		Short:  "Export an Ethereum private keystore directory (This command has been deprecated,please use 'exchaincli keys export-eth-keystore')",
+		Short:  "Export an Ethereum private keystore directory (This command has been deprecated,please use 'okbchaincli keys export-eth-keystore')",
 		Hidden: true,
 		Long: `Export an Ethereum private keystore file encrypted to use in eth client import.
 
 	The parameters of scrypt encryption algorithm is StandardScryptN and StandardScryptN`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("This command has been deprecated,please use 'exchaincli keys export-eth-keystore'")
+			return fmt.Errorf("This command has been deprecated,please use 'okbchaincli keys export-eth-keystore'")
 		},
 	}
 }

@@ -3,8 +3,8 @@ package ibc_tx
 import (
 	"fmt"
 	"github.com/gogo/protobuf/proto"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	ibctx "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 )
 
 func IbcTxEncoder() ibctx.IBCTxEncoder {

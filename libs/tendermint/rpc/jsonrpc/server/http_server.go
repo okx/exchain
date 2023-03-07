@@ -15,8 +15,8 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/net/netutil"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	types "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	types "github.com/okx/okbchain/libs/tendermint/rpc/jsonrpc/types"
 )
 
 // Config is a RPC server configuration.

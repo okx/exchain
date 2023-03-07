@@ -4,20 +4,20 @@ import (
 	"testing"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	okexchain "github.com/okex/exchain/app"
-	app "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/common/version"
-	"github.com/okex/exchain/x/token"
-	"github.com/okex/exchain/x/token/types"
+	chain "github.com/okx/okbchain/app"
+	app "github.com/okx/okbchain/app/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/mock"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	dbm "github.com/okx/okbchain/libs/tm-db"
+	"github.com/okx/okbchain/x/common"
+	"github.com/okx/okbchain/x/common/version"
+	"github.com/okx/okbchain/x/token"
+	"github.com/okx/okbchain/x/token/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,14 +72,14 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 	}
 }
 
-// Setup initializes a new OKExChainApp. A Nop logger is set in OKExChainApp.
-func initApp(isCheckTx bool) *okexchain.OKExChainApp {
+// Setup initializes a new OKBChainApp. A Nop logger is set in OKBChainApp.
+func initApp(isCheckTx bool) *chain.OKBChainApp {
 	db := dbm.NewMemDB()
-	app := okexchain.NewOKExChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
+	app := chain.NewOKBChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
 
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
-		genesisState := okexchain.NewDefaultGenesisState()
+		genesisState := chain.NewDefaultGenesisState()
 		stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
 		if err != nil {
 			panic(err)

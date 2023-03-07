@@ -4,15 +4,15 @@ import (
 	"math/big"
 	"time"
 
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	clientcontext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
+	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 )
 
 // NewTransaction returns a transaction that will serialize to the RPC

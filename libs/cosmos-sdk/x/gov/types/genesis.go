@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 // GenesisState - all staking state that must be provided at genesis

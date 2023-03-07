@@ -3,7 +3,7 @@ package monitor
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 	"github.com/spf13/viper"
 	"os/exec"
 	"strconv"

@@ -3,8 +3,8 @@ package keeper_test
 import (
 	"errors"
 
-	erc20Keeper "github.com/okex/exchain/x/erc20/keeper"
-	"github.com/okex/exchain/x/erc20/types"
+	erc20Keeper "github.com/okx/okbchain/x/erc20/keeper"
+	"github.com/okx/okbchain/x/erc20/types"
 )
 
 func (suite *KeeperTestSuite) TestGetSourceChannelID() {

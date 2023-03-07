@@ -3,10 +3,10 @@ package types
 import (
 	"regexp"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
 )
 
 // DefaultMaxAddrLength defines the default maximum character length used in validation of addresses

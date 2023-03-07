@@ -1,9 +1,9 @@
 package types
 
 import (
-	controllertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
-	hosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	controllertypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	hosttypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
 )
 
 // DefaultGenesis creates and returns the interchain accounts GenesisState

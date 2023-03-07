@@ -3,7 +3,7 @@ package log
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/system"
+	"github.com/okx/okbchain/libs/system"
 	"io"
 	"sync"
 	"time"

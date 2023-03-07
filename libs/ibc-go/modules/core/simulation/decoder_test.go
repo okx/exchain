@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"testing"
 
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	tmkv "github.com/okx/okbchain/libs/tendermint/libs/kv"
 
 	"github.com/stretchr/testify/require"
 
 	//"github.com/cosmos/cosmos-sdk/types/kv"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/simulation"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/kv"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/simulation"
+	ibctmtypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp"
 )
 
 func TestDecodeStore(t *testing.T) {

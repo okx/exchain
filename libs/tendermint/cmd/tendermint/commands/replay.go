@@ -3,7 +3,7 @@ package commands
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/tendermint/consensus"
+	"github.com/okx/okbchain/libs/tendermint/consensus"
 )
 
 // ReplayCmd allows replaying of messages from the WAL.

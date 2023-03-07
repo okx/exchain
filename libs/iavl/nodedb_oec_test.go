@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
-	db "github.com/okex/exchain/libs/tm-db"
+	db "github.com/okx/okbchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 )
 

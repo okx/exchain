@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"time"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/privval"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	tmos "github.com/okx/okbchain/libs/tendermint/libs/os"
+	"github.com/okx/okbchain/libs/tendermint/p2p"
+	"github.com/okx/okbchain/libs/tendermint/privval"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // ExportGenesisFile creates and writes the genesis configuration to disk. An

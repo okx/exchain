@@ -5,14 +5,14 @@ import (
 
 	ics23 "github.com/confio/ics23/go"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	ibcmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/okbchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
+	ibcmock "github.com/okx/okbchain/libs/ibc-go/testing/mock"
 )
 
 const (
@@ -95,7 +95,7 @@ func (suite *TendermintTestSuite) TestValidate() {
 		{
 			// NOTE: if this test fails, the code must account for the change in chainID length across tendermint versions!
 			// Do not only fix the test, fix the code!
-			// https://github.com/okex/exchain/libs/ibc-go/issues/177
+			// https://github.com/okx/okbchain/libs/ibc-go/issues/177
 			name:        "valid chainID - chainID validation failed for chainID of length 50! ",
 			clientState: types.NewClientState(fiftyCharChainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
 			expPass:     true,
@@ -103,7 +103,7 @@ func (suite *TendermintTestSuite) TestValidate() {
 		{
 			// NOTE: if this test fails, the code must account for the change in chainID length across tendermint versions!
 			// Do not only fix the test, fix the code!
-			// https://github.com/okex/exchain/libs/ibc-go/issues/177
+			// https://github.com/okx/okbchain/libs/ibc-go/issues/177
 			name:        "invalid chainID - chainID validation did not fail for chainID of length 51! ",
 			clientState: types.NewClientState(fiftyOneCharChainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
 			expPass:     false,
@@ -286,18 +286,18 @@ func (suite *TendermintTestSuite) TestVerifyConnectionState() {
 		},
 		{
 			"ApplyPrefix failed", func() {
-				prefix = commitmenttypes.MerklePrefix{}
-			}, false,
+			prefix = commitmenttypes.MerklePrefix{}
+		}, false,
 		},
 		{
 			"latest client height < height", func() {
-				proofHeight = clientState.LatestHeight.Increment()
-			}, false,
+			proofHeight = clientState.LatestHeight.Increment()
+		}, false,
 		},
 		{
 			"proof verification failed", func() {
-				proof = invalidProof
-			}, false,
+			proof = invalidProof
+		}, false,
 		},
 	}
 
@@ -360,18 +360,18 @@ func (suite *TendermintTestSuite) TestVerifyChannelState() {
 		},
 		{
 			"ApplyPrefix failed", func() {
-				prefix = commitmenttypes.MerklePrefix{}
-			}, false,
+			prefix = commitmenttypes.MerklePrefix{}
+		}, false,
 		},
 		{
 			"latest client height < height", func() {
-				proofHeight = clientState.LatestHeight.Increment()
-			}, false,
+			proofHeight = clientState.LatestHeight.Increment()
+		}, false,
 		},
 		{
 			"proof verification failed", func() {
-				proof = invalidProof
-			}, false,
+			proof = invalidProof
+		}, false,
 		},
 	}
 
@@ -466,18 +466,18 @@ func (suite *TendermintTestSuite) TestVerifyPacketCommitment() {
 
 		{
 			"ApplyPrefix failed", func() {
-				prefix = commitmenttypes.MerklePrefix{}
-			}, false,
+			prefix = commitmenttypes.MerklePrefix{}
+		}, false,
 		},
 		{
 			"latest client height < height", func() {
-				proofHeight = clientState.LatestHeight.Increment()
-			}, false,
+			proofHeight = clientState.LatestHeight.Increment()
+		}, false,
 		},
 		{
 			"proof verification failed", func() {
-				proof = invalidProof
-			}, false,
+			proof = invalidProof
+		}, false,
 		},
 	}
 
@@ -580,18 +580,18 @@ func (suite *TendermintTestSuite) TestVerifyPacketAcknowledgement() {
 
 		{
 			"ApplyPrefix failed", func() {
-				prefix = commitmenttypes.MerklePrefix{}
-			}, false,
+			prefix = commitmenttypes.MerklePrefix{}
+		}, false,
 		},
 		{
 			"latest client height < height", func() {
-				proofHeight = clientState.LatestHeight.Increment()
-			}, false,
+			proofHeight = clientState.LatestHeight.Increment()
+		}, false,
 		},
 		{
 			"proof verification failed", func() {
-				proof = invalidProof
-			}, false,
+			proof = invalidProof
+		}, false,
 		},
 	}
 
@@ -699,18 +699,18 @@ func (suite *TendermintTestSuite) TestVerifyPacketReceiptAbsence() {
 
 		{
 			"ApplyPrefix failed", func() {
-				prefix = commitmenttypes.MerklePrefix{}
-			}, false,
+			prefix = commitmenttypes.MerklePrefix{}
+		}, false,
 		},
 		{
 			"latest client height < height", func() {
-				proofHeight = clientState.LatestHeight.Increment()
-			}, false,
+			proofHeight = clientState.LatestHeight.Increment()
+		}, false,
 		},
 		{
 			"proof verification failed", func() {
-				proof = invalidProof
-			}, false,
+			proof = invalidProof
+		}, false,
 		},
 	}
 
@@ -814,18 +814,18 @@ func (suite *TendermintTestSuite) TestVerifyNextSeqRecv() {
 
 		{
 			"ApplyPrefix failed", func() {
-				prefix = commitmenttypes.MerklePrefix{}
-			}, false,
+			prefix = commitmenttypes.MerklePrefix{}
+		}, false,
 		},
 		{
 			"latest client height < height", func() {
-				proofHeight = clientState.LatestHeight.Increment()
-			}, false,
+			proofHeight = clientState.LatestHeight.Increment()
+		}, false,
 		},
 		{
 			"proof verification failed", func() {
-				proof = invalidProof
-			}, false,
+			proof = invalidProof
+		}, false,
 		},
 	}
 

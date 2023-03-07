@@ -7,16 +7,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/iavl"
-	iavlconfig "github.com/okex/exchain/libs/iavl/config"
-	"github.com/okex/exchain/libs/system/trace/persist"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/flatkv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/okbchain/libs/iavl"
+	iavlconfig "github.com/okx/okbchain/libs/iavl/config"
+	"github.com/okx/okbchain/libs/system/trace/persist"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	tmkv "github.com/okx/okbchain/libs/tendermint/libs/kv"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
 var (

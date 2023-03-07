@@ -7,7 +7,7 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	pc "github.com/okex/exchain/libs/tendermint/proto/crypto/keys"
+	pc "github.com/okx/okbchain/libs/tendermint/proto/crypto/keys"
 	io "io"
 	math "math"
 )

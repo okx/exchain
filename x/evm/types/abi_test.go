@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/rand"
+	"github.com/okx/okbchain/libs/tendermint/libs/rand"
 	"github.com/stretchr/testify/require"
 	"testing"
 )

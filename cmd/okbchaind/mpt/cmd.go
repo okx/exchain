@@ -1,10 +1,10 @@
 package mpt
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 )
 

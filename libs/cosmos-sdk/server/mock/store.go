@@ -3,11 +3,11 @@ package mock
 import (
 	"io"
 
-	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	store "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/iavl"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
 var _ sdk.MultiStore = multiStore{}

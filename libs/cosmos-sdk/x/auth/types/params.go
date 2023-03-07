@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/params"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/params/subspace"
 )
 
 // DefaultParamspace defines the default auth module parameter subspace

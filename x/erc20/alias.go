@@ -1,8 +1,8 @@
 package erc20
 
 import (
-	"github.com/okex/exchain/x/erc20/keeper"
-	"github.com/okex/exchain/x/erc20/types"
+	"github.com/okx/okbchain/x/erc20/keeper"
+	"github.com/okx/okbchain/x/erc20/types"
 )
 
 // nolint

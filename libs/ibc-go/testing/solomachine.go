@@ -1,17 +1,17 @@
 package ibctesting
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	solomachinetypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	ibc_tx "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+	solomachinetypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
+	"github.com/okx/okbchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -28,11 +28,11 @@ import (
 // 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 // 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 // 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-// 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-// 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-// 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-// 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-// 	solomachinetypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
+// 	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+// 	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
+// 	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
+// 	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
+// 	solomachinetypes "github.com/okx/okbchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
 // )
 
 // Solomachine is a testing helper used to simulate a counterparty

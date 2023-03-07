@@ -3,13 +3,13 @@ package keeper_test
 import (
 	"testing"
 
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/okbchain/libs/tendermint/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	icatypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	channeltypes "github.com/okx/okbchain/libs/ibc-go/modules/core/04-channel/types"
+	ibctesting "github.com/okx/okbchain/libs/ibc-go/testing"
+	"github.com/okx/okbchain/libs/tendermint/crypto"
 	"github.com/stretchr/testify/suite"
 )
 

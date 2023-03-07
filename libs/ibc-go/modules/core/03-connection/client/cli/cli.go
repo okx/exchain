@@ -1,9 +1,9 @@
 package cli
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/core/03-connection/types"
 	"github.com/spf13/cobra"
 )
 

@@ -1,8 +1,8 @@
 package types
 
 import (
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	cryptotypes "github.com/okx/okbchain/libs/cosmos-sdk/crypto/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"time"
 )
 

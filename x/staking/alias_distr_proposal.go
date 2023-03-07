@@ -1,9 +1,9 @@
 // nolint
-// ALIASGEN: github.com/okex/exchain/x/staking/types
+// ALIASGEN: github.com/okx/okbchain/x/staking/types
 package staking
 
 import (
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/okbchain/x/staking/types"
 )
 
 var (

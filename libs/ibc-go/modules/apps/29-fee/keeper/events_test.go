@@ -1,9 +1,9 @@
 package keeper_test
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
+	abcitypes "github.com/okx/okbchain/libs/tendermint/abci/types"
 )
 
 func (suite *KeeperTestSuite) TestIncentivizePacketEvent() {

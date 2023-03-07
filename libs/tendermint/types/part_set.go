@@ -10,11 +10,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/libs/bits"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/okbchain/libs/tendermint/libs/bits"
+	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
+	tmmath "github.com/okx/okbchain/libs/tendermint/libs/math"
+	tmproto "github.com/okx/okbchain/libs/tendermint/proto/types"
 )
 
 var (

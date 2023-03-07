@@ -6,12 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
-	cryptoAmino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	tmcrypto "github.com/okx/okbchain/libs/tendermint/crypto"
+	cryptoAmino "github.com/okx/okbchain/libs/tendermint/crypto/encoding/amino"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/hd"
-	"github.com/okex/exchain/libs/cosmos-sdk/tests"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/keys/hd"
+	"github.com/okx/okbchain/libs/cosmos-sdk/tests"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
 
 func TestLedgerErrorHandling(t *testing.T) {

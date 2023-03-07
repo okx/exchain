@@ -3,20 +3,20 @@ package ibc_tx
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/codec/unknownproto"
+	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/types"
+	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	ibctx "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx/signing"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
 	"google.golang.org/protobuf/encoding/protowire"
 
-	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	//"github.com/okx/okbchain/libs/cosmos-sdk/codec/unknownproto"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tx "github.com/okx/okbchain/libs/cosmos-sdk/types/tx"
+	authtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 )
 
 func CM40TxDecoder(cdc codec.ProtoCodecMarshaler) func(txBytes []byte) (ibctx.Tx, error) {

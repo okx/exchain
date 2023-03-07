@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/exported"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/distribution/types"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/staking/exported"
 )
 
 // register all distribution invariants

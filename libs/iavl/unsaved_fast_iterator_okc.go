@@ -1,6 +1,6 @@
 package iavl
 
-import dbm "github.com/okex/exchain/libs/tm-db"
+import dbm "github.com/okx/okbchain/libs/tm-db"
 
 type UnsavedFastIteratorWithCache struct {
 	*UnsavedFastIterator

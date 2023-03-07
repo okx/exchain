@@ -1,12 +1,12 @@
 // nolint
 // aliases generated for the following subdirectories:
-// ALIASGEN: github.com/okex/exchain/x/distribution/types
-// ALIASGEN: github.com/okex/exchain/x/distribution/client
+// ALIASGEN: github.com/okx/okbchain/x/distribution/types
+// ALIASGEN: github.com/okx/okbchain/x/distribution/client
 package distribution
 
 import (
-	"github.com/okex/exchain/x/distribution/client"
-	"github.com/okex/exchain/x/distribution/types"
+	"github.com/okx/okbchain/x/distribution/client"
+	"github.com/okx/okbchain/x/distribution/types"
 )
 
 var (

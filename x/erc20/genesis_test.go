@@ -1,8 +1,8 @@
 package erc20_test
 
 import (
-	"github.com/okex/exchain/x/erc20"
-	"github.com/okex/exchain/x/erc20/types"
+	"github.com/okx/okbchain/x/erc20"
+	"github.com/okx/okbchain/x/erc20/types"
 )
 
 func (suite *Erc20TestSuite) TestInitGenesis() {

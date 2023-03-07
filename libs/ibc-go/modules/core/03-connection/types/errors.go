@@ -1,6 +1,6 @@
 package types
 
-import sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+import sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 
 // IBC connection sentinel errors
 var (
