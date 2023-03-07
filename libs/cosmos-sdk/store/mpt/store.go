@@ -350,52 +350,35 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
 	ms.triegc.Push(curMptRoot, -int64(curHeight))
 
-	if curHeight >= TriesInMemory || curHeight >= TrieCommitGap {
-		// If we exceeded our memory allowance, flush matured singleton nodes to disk
-		var (
-			nodes, imgs = triedb.Size()
-			nodesLimit  = ethcmn.StorageSize(TrieNodesLimit) * 1024 * 1024
-			imgsLimit   = ethcmn.StorageSize(TrieImgsLimit) * 1024 * 1024
-		)
+	// we start at startVersion, but the chosen height may be startVersion - triesInMemory
+	if curHeight <= ms.startVersion {
+		return
+	}
 
-		if nodes > nodesLimit || imgs > imgsLimit {
-			// triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
-		}
-		// Find the next state trie we need to commit
-		// chosen := curHeight - TriesInMemory
-		chosen := curHeight
-
-		// we start at startVersion, but the chosen height may be startVersion - triesInMemory
-		if chosen <= ms.startVersion {
-			return
-		}
-
-		// If we exceeded out time allowance, flush an entire trie to disk
-		if chosen%TrieCommitGap == 0 {
-			// If the header is missing (canonical chain behind), we're reorging a low
-			// diff sidechain. Suspend committing until this operation is completed.
-			chRoot := ms.GetMptRootHash(uint64(chosen))
-			if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
-				chRoot = ethcmn.Hash{}
-			} else {
-				// Flush an entire trie and restart the counters, it's not a thread safe process,
-				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-				if err := triedb.Commit(chRoot, true, nil); err != nil {
-					panic("fail to commit mpt data: " + err.Error())
-				}
-			}
-			ms.SetLatestStoredBlockHeight(uint64(chosen))
-			if ms.logger != nil {
-				ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
+	// If we exceeded out time allowance, flush an entire trie to disk
+	if curHeight%TrieCommitGap == 0 {
+		// If the header is missing (canonical chain behind), we're reorging a low
+		// diff sidechain. Suspend committing until this operation is completed.
+		chRoot := ms.GetMptRootHash(uint64(curHeight))
+		if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
+			chRoot = ethcmn.Hash{}
+		} else {
+			// Flush an entire trie and restart the counters, it's not a thread safe process,
+			// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
+			if err := triedb.Commit(chRoot, true, nil); err != nil {
+				panic("fail to commit mpt data: " + err.Error())
 			}
 		}
-		if chosen-TriesInMemory <= 0 {
-			return
+		ms.SetLatestStoredBlockHeight(uint64(curHeight))
+		if ms.logger != nil {
+			ms.logger.Info("async push acc data to db", "block", curHeight, "trieHash", chRoot)
 		}
-		// Garbage collect anything below our required write retention
+	}
+	// Garbage collect anything below our required write retention
+	if curHeight >= TrieCommitGap {
 		for !ms.triegc.Empty() {
 			root, number := ms.triegc.Pop()
-			if int64(-number) > chosen-TriesInMemory {
+			if int64(-number) > curHeight-TrieCommitGap {
 				ms.triegc.Push(root, number)
 				break
 			}
