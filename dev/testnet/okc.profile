@@ -1,10 +1,10 @@
-BIN_NAME=exchaind
-OKCHAIN_TOP=${GOPATH}/src/github.com/okex/exchain
+BIN_NAME=okbchaind
+OKCHAIN_TOP=${GOPATH}/src/github.com/okx/okbchain
 OKCHAIN_BIN=${OKCHAIN_TOP}/build
 OKCHAIN_BIN=${GOPATH}/bin
 OKCHAIN_NET_TOP=`pwd`
 OKCHAIN_NET_CACHE=${OKCHAIN_NET_TOP}/cache
-CHAIN_ID="exchain-67"
+CHAIN_ID="okbchain-67"
 
 
 BASE_PORT_PREFIX=26600
