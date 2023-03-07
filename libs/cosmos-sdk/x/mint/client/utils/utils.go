@@ -39,7 +39,7 @@ type ModifyNextBlockUpdateProposalJSON struct {
 }
 
 // ParseModifyNextBlockUpdateProposalJSON parses json from proposal file to ModifyNextBlockUpdateProposalJSON struct
-func ParseParseModifyNextBlockUpdateProposalJSON(cdc *codec.Codec, proposalFilePath string) (
+func ParseModifyNextBlockUpdateProposalJSON(cdc *codec.Codec, proposalFilePath string) (
 	proposal ModifyNextBlockUpdateProposalJSON, err error) {
 	contents, err := ioutil.ReadFile(proposalFilePath)
 	if err != nil {
