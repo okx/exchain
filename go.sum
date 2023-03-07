@@ -743,6 +743,8 @@ github.com/okex/go-ethereum v1.10.8-okc1/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJ
 github.com/okex/grocksdb v1.6.45-okc2 h1:JuUg2NcAFHZn78+xANcEKn9bcuF0tX8Jx3iMFfPnAEQ=
 github.com/okex/grocksdb v1.6.45-okc2/go.mod h1:+/BHUY+mT0tbaVXwO2wTtD9eytazyw1W5n2O7AGyXZA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
+github.com/okx/okbchain v0.0.0-20230307081841-2610e8962c95 h1:Y8oaCT6CvwoaZmbjaIYj634rnaQndtU3Jab0/W0lSOM=
+github.com/okx/okbchain v0.0.0-20230307081841-2610e8962c95/go.mod h1:uGCzPTywDDbP0z4qI4Zn50qllRVq8saXWLUtMzZw2Pg=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=

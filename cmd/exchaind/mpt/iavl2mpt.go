@@ -2,6 +2,7 @@ package mpt
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -18,9 +19,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/iavl"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	//okbmpt "github.com/okex/okbchain/libs/cosmos-sdk/store/mpt"
+	okbtypes "github.com/okx/okbchain/app/types"
 	"github.com/spf13/cobra"
 )
 
@@ -56,60 +58,78 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	committedHeight := cmCtx.BlockHeight() - 1
 
 	// 0.1 initialize database of acc mpt
-	accMptDb := mpt.InstanceOfMptStore()
-	accTrie, err := accMptDb.OpenTrie(mpt.NilHash)
+	db := mpt.InstanceOfMptStore()
+	accTrie, err := db.OpenTrie(mpt.NilHash)
 	panicError(err)
-
-	// 0.2 initialize database of evm mpt
-	evmMptDb := mpt.InstanceOfMptStore()
-	evmTrie, err := evmMptDb.OpenTrie(mpt.NilHash)
-	panicError(err)
-
-	// 1.1 update GlobalNumber to mpt
-	accountNumber := migrationApp.AccountKeeper.GetNextAccountNumber(cmCtx)
-	err = accTrie.TryUpdate(authtypes.GlobalAccountNumberKey, migrationApp.Codec().MustMarshalBinaryLengthPrefixed(accountNumber))
-	panicError(err)
-	fmt.Println("GlobalNumber", accountNumber)
 
 	// 1.2 update every account to mpt
 	count, contractCount := 0, 0
-	batch := evmMptDb.TrieDB().DiskDB().NewBatch()
+	batch := db.TrieDB().DiskDB().NewBatch()
 	migrationApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
 		count++
 		if len(value) == 0 {
 			log.Printf("[warning] %s has nil value\n", account.GetAddress().String())
 		}
 
-		// update acc mpt for every account
-		panicError(accTrie.TryUpdate(key, value))
-		if count%100 == 0 {
-			pushData2Database(accMptDb, accTrie, committedHeight, false)
-			log.Println(count)
-		}
-
 		// check if the account is a contract account
 		if ethAcc, ok := account.(*apptypes.EthAccount); ok {
+			buff, err := json.Marshal(ethAcc)
+			panicError(err)
+			var okbAcc = okbtypes.EthAccount{}
+			err = json.Unmarshal(buff, &okbAcc)
+			panicError(err)
+
+			var storageRoot ethcmn.Hash
 			if !bytes.Equal(ethAcc.CodeHash, mpt.EmptyCodeHashBytes) {
 				contractCount++
-				// update evm mpt. Key is the address of the contract; Value is the empty root hash
-				panicError(evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), mpt.EmptyRootHashBytes))
-				if contractCount%100 == 0 {
-					pushData2Database(evmMptDb, evmTrie, committedHeight, true)
-				}
+				// 2.1 get solo contract mpt
+				contractTrie := getStorageTrie(db, ethcrypto.Keccak256Hash(ethAcc.EthAddress().Bytes()), mpt.NilHash)
+
+				_ = migrationApp.EvmKeeper.ForEachStorage(cmCtx, ethAcc.EthAddress(), func(key, value ethcmn.Hash) bool {
+					// Encoding []byte cannot fail, ok to ignore the error.
+					v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+					// 2.2 set every storage into solo
+					panicError(contractTrie.TryUpdate(key.Bytes(), v))
+					return false
+				})
+				// 2.3 calculate rootHash of contract mpt
+				rootHash, err := contractTrie.Commit(nil)
+				panicError(err)
+				storageRoot.SetBytes(rootHash.Bytes())
 
 				// write code to evm.db in direct
 				codeHash := ethcmn.BytesToHash(ethAcc.CodeHash)
 				rawdb.WriteCode(batch, codeHash, migrationApp.EvmKeeper.GetCodeByHash(cmCtx, codeHash))
 				writeDataToRawdb(batch)
+			} else {
+				storageRoot.SetBytes(mpt.EmptyRootHash.Bytes())
 			}
+			okbAcc.StateRoot = storageRoot
+
+			// 2.4 set the rootHash of contract mpt into evm mpt
+			// update acc mpt for every account
+			panicError(accTrie.TryUpdate(key, value))
+			if count%100 == 0 {
+				var storageRoot ethcmn.Hash
+				root, err := accTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+
+					if storageRoot != mpt.EmptyRootHash {
+						db.TrieDB().Reference(storageRoot, parent)
+					}
+					return nil
+				})
+				panicError(err)
+
+				err = db.TrieDB().Commit(root, false, nil)
+				panicError(err)
+
+				log.Println(count)
+			}
+			//okbAcc.MarshalToAmino()
 		}
 
 		return false
 	})
-
-	// 1.3 make sure the last data is committed to the database
-	pushData2Database(accMptDb, accTrie, committedHeight, false)
-	pushData2Database(evmMptDb, evmTrie, committedHeight, true)
 
 	fmt.Println(fmt.Sprintf("Successfully migrate %d account (include %d contract account) at version %d", count, contractCount, committedHeight))
 }
@@ -158,14 +178,14 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
 	/*
-	// 4. save an empty evmlegacy iavl tree in mirgate height
-	upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvmLegacyKey))
-	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
-	panicError(err)
-	_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
-	panicError(err)
-	fmt.Printf("Successfully save an empty evmlegacy iavl tree in %d\n", version)
-	 */
+		// 4. save an empty evmlegacy iavl tree in mirgate height
+		upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvmLegacyKey))
+		upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
+		panicError(err)
+		_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
+		panicError(err)
+		fmt.Printf("Successfully save an empty evmlegacy iavl tree in %d\n", version)
+	*/
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -302,11 +322,11 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 
 }
 
-func readAllParams(app *app.OKExChainApp) map[string][]byte{
+func readAllParams(app *app.OKExChainApp) map[string][]byte {
 	tree := getUpgradedTree(app.GetDB(), []byte(KeyParams), false)
 
 	paramsMap := make(map[string][]byte)
-	tree.IterateRange(nil, nil, true, func(key, value []byte) bool{
+	tree.IterateRange(nil, nil, true, func(key, value []byte) bool {
 		paramsMap[string(key)] = value
 		return false
 	})
