@@ -1,86 +1,72 @@
-package watcher
+package watcher_test
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"reflect"
-	"sync"
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	tm "github.com/okex/exchain/libs/tendermint/abci/types"
+	etypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/stretchr/testify/suite"
+	"math/big"
 	"testing"
 )
 
-func TestWatcher_getRealTx(t *testing.T) {
-	type fields struct {
-		store          *WatchStore
-		height         uint64
-		blockHash      common.Hash
-		header         types.Header
-		batch          []WatchMessage
-		cumulativeGas  map[uint64]uint64
-		gasUsed        uint64
-		blockTxs       []common.Hash
-		blockStdTxs    []common.Hash
-		enable         bool
-		firstUse       bool
-		delayEraseKey  [][]byte
-		eraseKeyFilter map[string][]byte
-		log            log.Logger
-		watchData      *WatchData
-		jobChan        chan func()
-		jobDone        *sync.WaitGroup
-		evmTxIndex     uint64
-		checkWd        bool
-		filterMap      map[string]struct{}
-		InfuraKeeper   InfuraKeeper
-		delAccountMtx  sync.Mutex
-	}
-	type args struct {
-		tx        types.TxEssentials
-		txDecoder types.TxDecoder
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    types.Tx
-		wantErr bool
+type TxTestSuite struct {
+	suite.Suite
+	Watcher   watcher.Watcher
+	TxDecoder sdk.TxDecoder
+}
+
+// 要在最开始通过函数建立tesing.T和suite的关系
+func TestWatcherTx(t *testing.T) {
+	suite.Run(t, new(TxTestSuite))
+}
+
+func (suite *TxTestSuite) TestGetRealTx() {
+	codecProxy, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
+	suite.TxDecoder = etypes.TxDecoder(codecProxy)
+
+	testCases := []struct {
+		title   string
+		buildTx func() (tm.TxEssentials, sdk.Tx)
 	}{
-		// TODO: Add test cases.
+		{
+			//直接生成一个sdk.Tx类型的交易
+			title: "Tx directly assert as realTx",
+			buildTx: func() (tm.TxEssentials, sdk.Tx) {
+				realTx := etypes.NewMsgEthereumTx(1, nil, big.NewInt(1), 1, nil, nil)
+				return realTx, realTx
+			},
+		},
+		{
+			//生成一个可以被转化的交易
+			title: "Tx convert to realTx by txDecoder",
+			buildTx: func() (tm.TxEssentials, sdk.Tx) {
+
+				mockTx := tm.MockTx{}
+				realTx := etypes.NewMsgEthereumTx(1, nil, big.NewInt(1), 1, nil, nil)
+				return mockTx, realTx
+			},
+		},
+		{
+			title: "Tx convert error", //tx bytes are empty
+			buildTx: func() (tm.TxEssentials, sdk.Tx) {
+				mockTx := tm.MockTx{}
+				return mockTx, nil
+			},
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			w := &Watcher{
-				store:          tt.fields.store,
-				height:         tt.fields.height,
-				blockHash:      tt.fields.blockHash,
-				header:         tt.fields.header,
-				batch:          tt.fields.batch,
-				cumulativeGas:  tt.fields.cumulativeGas,
-				gasUsed:        tt.fields.gasUsed,
-				blockTxs:       tt.fields.blockTxs,
-				blockStdTxs:    tt.fields.blockStdTxs,
-				enable:         tt.fields.enable,
-				firstUse:       tt.fields.firstUse,
-				delayEraseKey:  tt.fields.delayEraseKey,
-				eraseKeyFilter: tt.fields.eraseKeyFilter,
-				log:            tt.fields.log,
-				watchData:      tt.fields.watchData,
-				jobChan:        tt.fields.jobChan,
-				jobDone:        tt.fields.jobDone,
-				evmTxIndex:     tt.fields.evmTxIndex,
-				checkWd:        tt.fields.checkWd,
-				filterMap:      tt.fields.filterMap,
-				InfuraKeeper:   tt.fields.InfuraKeeper,
-				delAccountMtx:  tt.fields.delAccountMtx,
-			}
-			got, err := w.getRealTx(tt.args.tx, tt.args.txDecoder)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getRealTx() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getRealTx() got = %v, want %v", got, tt.want)
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			Tx, realTx := tc.buildTx()
+			suite.Require().NotNil(Tx)
+			resrTx, err := suite.Watcher.GetRealTx(Tx, suite.TxDecoder)
+			if err != nil {
+				suite.Require().Nil(realTx)
+			} else {
+				suite.Require().True(resrTx == realTx, "%s error, convert Tx error", tc.title)
 			}
 		})
 	}
