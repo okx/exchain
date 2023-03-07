@@ -421,6 +421,8 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 		for !ms.triegc.Empty() {
 			ms.db.TrieDB().Dereference(ms.triegc.PopItem().(ethcmn.Hash))
 		}
+
+		ms.db.TrieDB().Close()
 	}
 
 	return nil
