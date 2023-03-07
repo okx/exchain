@@ -6,7 +6,7 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 type (

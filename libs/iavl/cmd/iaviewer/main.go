@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/exchain/libs/iavl"
+	dbm "github.com/okx/exchain/libs/tm-db"
 )
 
 // TODO: make this configurable?

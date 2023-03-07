@@ -3,11 +3,11 @@ package staking
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/staking/keeper"
-	"github.com/okex/exchain/x/staking/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/staking/keeper"
+	"github.com/okx/exchain/x/staking/types"
 )
 
 // NewHandler manages all tx treatment

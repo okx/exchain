@@ -3,14 +3,14 @@ package config
 import (
 	"testing"
 
-	iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	iavlconfig "github.com/okx/exchain/libs/iavl/config"
 
 	"github.com/spf13/viper"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	tm "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	tm "github.com/okx/exchain/libs/tendermint/config"
 )
 
 func TestConfig(t *testing.T) {

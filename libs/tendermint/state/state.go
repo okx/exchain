@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"github.com/okex/exchain/libs/tendermint/version"
+	"github.com/okx/exchain/libs/tendermint/types"
+	tmtime "github.com/okx/exchain/libs/tendermint/types/time"
+	"github.com/okx/exchain/libs/tendermint/version"
 )
 
 // database keys

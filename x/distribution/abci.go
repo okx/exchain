@@ -1,11 +1,11 @@
 package distribution
 
 import (
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/distribution/keeper"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/distribution/keeper"
 )
 
 // BeginBlocker set the proposer for determining distribution during endblock

@@ -2,7 +2,7 @@ package types
 
 import (
 	"encoding/binary"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 var (

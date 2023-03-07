@@ -1,8 +1,8 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
 )
 
 // IsHostEnabled retrieves the host enabled boolean from the paramstore.

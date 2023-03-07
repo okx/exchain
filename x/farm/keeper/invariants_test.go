@@ -6,7 +6,7 @@ package keeper
 import (
 	"testing"
 
-	swaptypes "github.com/okex/exchain/x/ammswap/types"
+	swaptypes "github.com/okx/exchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
 )
 

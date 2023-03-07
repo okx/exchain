@@ -3,13 +3,13 @@ package token
 import (
 	"encoding/json"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	authTypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	authTypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/x/common/version"
-	tokenTypes "github.com/okex/exchain/x/token/types"
+	"github.com/okx/exchain/x/common/version"
+	tokenTypes "github.com/okx/exchain/x/token/types"
 )
 
 var (

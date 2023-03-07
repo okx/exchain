@@ -3,11 +3,11 @@ package gov
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/gov/keeper"
-	"github.com/okex/exchain/x/gov/types"
+	"github.com/okx/exchain/x/gov/keeper"
+	"github.com/okx/exchain/x/gov/types"
 )
 
 func TestModuleAccountInvariant(t *testing.T) {

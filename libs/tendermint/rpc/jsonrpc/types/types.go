@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 
 	"github.com/pkg/errors"
 

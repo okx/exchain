@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/p2p"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 // Blockchain Reactor State

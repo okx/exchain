@@ -1,8 +1,8 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/03-connection/types"
 )
 
 // EmitConnectionOpenTryEvent emits a connection open try event

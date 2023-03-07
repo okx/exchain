@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 // ErrOldHeaderExpired means the old (trusted) header has expired according to

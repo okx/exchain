@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/x/evidence/exported"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/x/evidence/exported"
 )
 
 // ModuleCdc defines the evidence module's codec. The codec is not sealed as to

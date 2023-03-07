@@ -3,13 +3,13 @@ package cli
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/x/ammswap/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/version"
+	"github.com/okx/exchain/x/ammswap/types"
 	"github.com/spf13/cobra"
 	"strings"
 )

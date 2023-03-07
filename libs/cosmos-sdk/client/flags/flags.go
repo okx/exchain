@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	tmcli "github.com/okex/exchain/libs/tendermint/libs/cli"
+	tmcli "github.com/okx/exchain/libs/tendermint/libs/cli"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/exchain/libs/cosmos-sdk/crypto/keys"
 )
 
 // nolint
@@ -70,7 +70,6 @@ const (
 	FlagLimit              = "limit"
 	FlagUnsafeCORS         = "unsafe-cors"
 	FlagNodeIndex          = "node-index"
-
 
 	TrustNodeUsage = `Using true doesn't verify results, quickly(300~400ms). True is recommended to connect familiar or self-built nodes. 
 Using false verifies the proof of results, safely but slowly(2~3s). False is recommended to connect to unfamiliar nodes.`

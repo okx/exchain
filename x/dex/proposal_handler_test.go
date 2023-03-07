@@ -5,12 +5,12 @@ package dex
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/dex/types"
-	govTypes "github.com/okex/exchain/x/gov/types"
-	ordertypes "github.com/okex/exchain/x/order/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/x/dex/types"
+	govTypes "github.com/okx/exchain/x/gov/types"
+	ordertypes "github.com/okx/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
 )
 

@@ -2,7 +2,7 @@ package iavl
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okx/exchain/libs/system/trace"
 	"sync/atomic"
 )
 
@@ -17,14 +17,15 @@ type RuntimeState struct {
 	totalDeletedCount   int64
 	totalOrphanCount    int64
 
-	fromPpnc         int64
-	fromTpp          int64
-	fromNodeCache    int64
-	fromOrphanCache  int64
-	fromDisk         int64
+	fromPpnc        int64
+	fromTpp         int64
+	fromNodeCache   int64
+	fromOrphanCache int64
+	fromDisk        int64
 }
 
 type retrieveType int
+
 const (
 	unknown retrieveType = iota
 	fromPpnc
@@ -172,9 +173,8 @@ func (ndb *nodeDB) sprintCacheLog(version int64) (printLog string) {
 		trace.GetElapsedInfo().AddInfo(trace.IavlRuntime, printLog)
 	}
 
-	return header+printLog
+	return header + printLog
 }
-
 
 func (ndb *nodeDB) getDBReadTime() int {
 	return ndb.state.getDBReadTime()

@@ -3,7 +3,7 @@ package iavl
 import (
 	"math"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/exchain/libs/tm-db"
 	"github.com/pkg/errors"
 )
 

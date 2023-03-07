@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/mempool"
-	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/mempool"
+	"github.com/okx/exchain/libs/tendermint/rpc/client/mock"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
 )
 
 type MockClient struct {

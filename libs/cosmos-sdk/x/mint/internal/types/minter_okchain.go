@@ -3,8 +3,8 @@ package types
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 type MinterCustom struct {

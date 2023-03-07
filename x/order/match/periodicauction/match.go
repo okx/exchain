@@ -3,12 +3,12 @@ package periodicauction
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/order/keeper"
-	"github.com/okex/exchain/x/order/types"
+	"github.com/okx/exchain/x/order/keeper"
+	"github.com/okx/exchain/x/order/types"
 )
 
 func preMatchProcessing(book *types.DepthBook) (buyAmountSum, sellAmountSum []sdk.Dec) {

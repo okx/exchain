@@ -1,9 +1,9 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/mint/internal/types"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 )
 

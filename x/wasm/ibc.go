@@ -3,17 +3,17 @@ package wasm
 import (
 	"math"
 
-	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	ibcexported "github.com/okx/exchain/libs/ibc-go/modules/core/exported"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	capabilitytypes "github.com/okx/exchain/libs/cosmos-sdk/x/capability/types"
+	channeltypes "github.com/okx/exchain/libs/ibc-go/modules/core/04-channel/types"
+	porttypes "github.com/okx/exchain/libs/ibc-go/modules/core/05-port/types"
+	host "github.com/okx/exchain/libs/ibc-go/modules/core/24-host"
 
-	types "github.com/okex/exchain/x/wasm/types"
+	types "github.com/okx/exchain/x/wasm/types"
 )
 
 var _ porttypes.IBCModule = IBCHandler{}
@@ -340,7 +340,7 @@ func newIBCPacket(packet channeltypes.Packet) wasmvmtypes.IBCPacket {
 
 func ValidateChannelParams(channelID string) error {
 	// NOTE: for escrow address security only 2^32 channels are allowed to be created
-	// Issue: https://github.com/okex/exchain/libs/cosmos-sdk/issues/7737
+	// Issue: https://github.com/okx/exchain/libs/cosmos-sdk/issues/7737
 	channelSequence, err := channeltypes.ParseChannelSequence(channelID)
 	if err != nil {
 		return err

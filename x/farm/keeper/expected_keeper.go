@@ -1,9 +1,9 @@
 package keeper
 
 import (
-	govtypes "github.com/okex/exchain/x/gov/types"
+	govtypes "github.com/okx/exchain/x/gov/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"time"
 )
 

@@ -3,12 +3,12 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/mint/internal/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/params"
 )
 
 // Keeper of the mint store

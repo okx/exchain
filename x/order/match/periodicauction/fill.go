@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	orderkeeper "github.com/okex/exchain/x/order/keeper"
-	"github.com/okex/exchain/x/order/types"
-	token "github.com/okex/exchain/x/token/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	orderkeeper "github.com/okx/exchain/x/order/keeper"
+	"github.com/okx/exchain/x/order/types"
+	token "github.com/okx/exchain/x/token/types"
 )
 
 func fillBuyOrders(ctx sdk.Context, keeper orderkeeper.Keeper, product string,

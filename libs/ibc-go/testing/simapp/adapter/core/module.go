@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	ibc "github.com/okx/exchain/libs/ibc-go/modules/core"
+	host "github.com/okx/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/keeper"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/types"
+	"github.com/okx/exchain/libs/ibc-go/testing/simapp/adapter"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 )
 
 type CoreModule struct {

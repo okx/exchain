@@ -5,13 +5,13 @@ package keeper
 import (
 	"testing"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/exchain/x/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/okex/exchain/x/order/types"
+	"github.com/okx/exchain/libs/tendermint/libs/cli/flags"
+	"github.com/okx/exchain/x/order/types"
 )
 
 type MockGetFeeKeeper struct {

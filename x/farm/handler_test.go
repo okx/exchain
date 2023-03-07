@@ -10,15 +10,15 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/exchain/x/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	swap "github.com/okex/exchain/x/ammswap"
-	swaptypes "github.com/okex/exchain/x/ammswap/types"
-	"github.com/okex/exchain/x/farm/keeper"
-	"github.com/okex/exchain/x/farm/types"
-	"github.com/okex/exchain/x/token"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	swap "github.com/okx/exchain/x/ammswap"
+	swaptypes "github.com/okx/exchain/x/ammswap/types"
+	"github.com/okx/exchain/x/farm/keeper"
+	"github.com/okx/exchain/x/farm/types"
+	"github.com/okx/exchain/x/token"
 	"github.com/stretchr/testify/require"
 )
 

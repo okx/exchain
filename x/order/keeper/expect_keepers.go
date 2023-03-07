@@ -1,12 +1,12 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/supply/exported"
 
-	dex "github.com/okex/exchain/x/dex/types"
-	"github.com/okex/exchain/x/order/types"
-	token "github.com/okex/exchain/x/token/types"
+	dex "github.com/okx/exchain/x/dex/types"
+	"github.com/okx/exchain/x/order/types"
+	token "github.com/okx/exchain/x/token/types"
 )
 
 // TokenKeeper : expected token keeper

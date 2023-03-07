@@ -7,13 +7,13 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/order/keeper"
-	ordertype "github.com/okex/exchain/x/order/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/rest"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/order/keeper"
+	ordertype "github.com/okx/exchain/x/order/types"
 )
 
 // nolint

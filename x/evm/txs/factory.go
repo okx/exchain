@@ -2,10 +2,10 @@ package txs
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/evm/txs/base"
-	"github.com/okex/exchain/x/evm/txs/check"
-	"github.com/okex/exchain/x/evm/txs/deliver"
-	"github.com/okex/exchain/x/evm/txs/tracetxlog"
+	"github.com/okx/exchain/x/evm/txs/base"
+	"github.com/okx/exchain/x/evm/txs/check"
+	"github.com/okx/exchain/x/evm/txs/deliver"
+	"github.com/okx/exchain/x/evm/txs/tracetxlog"
 )
 
 type factory struct {

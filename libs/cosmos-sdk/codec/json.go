@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec/types"
 )
 
 // ProtoMarshalJSON provides an auxiliary function to return Proto3 JSON encoded
@@ -26,4 +26,3 @@ func ProtoMarshalJSON(msg proto.Message, resolver jsonpb.AnyResolver) ([]byte, e
 
 	return buf.Bytes(), nil
 }
-

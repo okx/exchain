@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/exchain/x/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/staking"
+	"github.com/okx/exchain/x/gov/types"
+	"github.com/okx/exchain/x/staking"
 )
 
 func newTallyResult(t *testing.T, totalVoted, yes, abstain, no, veto, totalVoting string) types.TallyResult {

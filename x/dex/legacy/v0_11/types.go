@@ -3,9 +3,9 @@ package v0_11
 import (
 	"time"
 
-	"github.com/okex/exchain/x/dex/legacy/v0_10"
+	"github.com/okx/exchain/x/dex/legacy/v0_10"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 const (

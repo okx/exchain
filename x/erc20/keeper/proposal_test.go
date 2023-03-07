@@ -5,9 +5,9 @@ import (
 	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/erc20/types"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/erc20/types"
+	govtypes "github.com/okx/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 )
 

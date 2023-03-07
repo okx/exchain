@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	simtypes "github.com/okx/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okx/exchain/libs/ibc-go/modules/apps/transfer/types"
 )
 
 // Simulation parameter constants

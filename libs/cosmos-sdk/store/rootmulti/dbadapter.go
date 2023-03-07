@@ -1,9 +1,9 @@
 package rootmulti
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/iavl"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/dbadapter"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/exchain/libs/iavl"
 )
 
 var commithash = []byte("FAKE_HASH")

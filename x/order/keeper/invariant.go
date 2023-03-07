@@ -3,9 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/order/types"
-	"github.com/okex/exchain/x/token"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/order/types"
+	"github.com/okx/exchain/x/token"
 )
 
 // RegisterInvariants registers all order invariants

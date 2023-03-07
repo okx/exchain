@@ -1,6 +1,6 @@
 package infura
 
-import evm "github.com/okex/exchain/x/evm/watcher"
+import evm "github.com/okx/exchain/x/evm/watcher"
 
 const defaultCacheCap = 2000
 

@@ -4,13 +4,13 @@ import (
 	"context"
 	"strings"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	clienttypes "github.com/okx/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/exchain/libs/ibc-go/modules/core/03-connection/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	channeltypes "github.com/okx/exchain/libs/ibc-go/modules/core/04-channel/types"
+	porttypes "github.com/okx/exchain/libs/ibc-go/modules/core/05-port/types"
 )
 
 var (

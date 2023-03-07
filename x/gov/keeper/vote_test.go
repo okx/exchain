@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/gov/types"
+	"github.com/okx/exchain/x/gov/types"
 )
 
 func TestKeeper_AddVote(t *testing.T) {

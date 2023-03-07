@@ -3,12 +3,12 @@ package core
 import (
 	"time"
 
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	rpctypes "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/types"
+	tmbytes "github.com/okx/exchain/libs/tendermint/libs/bytes"
+	"github.com/okx/exchain/libs/tendermint/p2p"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
+	rpctypes "github.com/okx/exchain/libs/tendermint/rpc/jsonrpc/types"
+	sm "github.com/okx/exchain/libs/tendermint/state"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 // Status returns Tendermint status including node info, pubkey, latest block

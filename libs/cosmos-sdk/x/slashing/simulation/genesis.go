@@ -7,12 +7,12 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing/internal/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/slashing/internal/types"
 )
 
 // Simulation parameter constants

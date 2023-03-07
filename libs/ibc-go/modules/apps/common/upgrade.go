@@ -1,11 +1,11 @@
 package common
 
 import (
-	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	cosmost "github.com/okx/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/base"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 )
 
 var (

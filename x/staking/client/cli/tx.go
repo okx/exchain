@@ -5,24 +5,24 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/exchain/x/common"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/flags"
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	cfg "github.com/okx/exchain/libs/tendermint/config"
+	"github.com/okx/exchain/libs/tendermint/crypto"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/exchain/x/staking/types"
 )
 
 // GetTxCmd returns the transaction commands for this module

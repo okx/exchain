@@ -6,11 +6,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okx/exchain/libs/system/trace"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 )
 
 type runTxInfo struct {

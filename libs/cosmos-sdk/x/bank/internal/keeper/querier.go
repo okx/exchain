@@ -1,13 +1,13 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/query"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 )
 
 const (

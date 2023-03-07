@@ -3,12 +3,12 @@ package ante_test
 import (
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/tendermint/crypto"
 	"github.com/stretchr/testify/require"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/ante"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 func TestEnsureMempoolFees(t *testing.T) {

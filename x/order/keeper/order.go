@@ -3,11 +3,11 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/x/order/types"
-	token "github.com/okex/exchain/x/token/types"
+	"github.com/okx/exchain/x/order/types"
+	token "github.com/okx/exchain/x/token/types"
 )
 
 // TryPlaceOrder tries to charge fee & lock coins for a new order

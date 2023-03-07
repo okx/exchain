@@ -1,10 +1,10 @@
 package fss
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/iavl"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/iavl"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 )
 

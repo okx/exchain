@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 const (

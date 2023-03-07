@@ -5,8 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	lerr "github.com/okex/exchain/libs/tendermint/lite/errors"
-	"github.com/okex/exchain/libs/tendermint/types"
+	lerr "github.com/okx/exchain/libs/tendermint/lite/errors"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 var _ Verifier = (*BaseVerifier)(nil)

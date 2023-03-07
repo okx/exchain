@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )

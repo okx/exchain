@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"sync"
 
-	"github.com/okex/exchain/libs/iavl/config"
+	"github.com/okx/exchain/libs/iavl/config"
 	"github.com/tendermint/go-amino"
 )
 

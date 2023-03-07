@@ -14,11 +14,11 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/app/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/mpt"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 )
 
 const keccak256HashSize = 100000

@@ -3,8 +3,8 @@ package v2
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/state"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 type processorContext interface {

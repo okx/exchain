@@ -3,9 +3,9 @@ package client
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/x/evidence/client/rest"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/x/evidence/client/rest"
 )
 
 type (

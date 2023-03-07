@@ -1,11 +1,11 @@
 package feesplit
 
 import (
-	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/feesplit/types"
+	store "github.com/okx/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/upgrade"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/feesplit/types"
 )
 
 var (

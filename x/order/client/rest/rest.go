@@ -7,13 +7,13 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/rest"
 
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/order/keeper"
-	"github.com/okex/exchain/x/order/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/order/keeper"
+	"github.com/okx/exchain/x/order/types"
 )
 
 // RegisterRoutes - Central function to define routes that get registered by the main application

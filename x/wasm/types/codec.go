@@ -1,13 +1,13 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	cryptocodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	cryptocodec "github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	txmsg "github.com/okx/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/msgservice"
+	govtypes "github.com/okx/exchain/x/gov/types"
 )
 
 // RegisterLegacyAminoCodec registers the account types and interface

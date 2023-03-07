@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/exchain/x/wasm/types"
 )
 
 func TestUncompress(t *testing.T) {

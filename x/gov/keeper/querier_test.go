@@ -4,14 +4,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/cli/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/libs/cli/flags"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/staking"
+	"github.com/okx/exchain/x/gov/types"
+	"github.com/okx/exchain/x/staking"
 )
 
 const custom = "custom"

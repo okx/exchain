@@ -17,8 +17,8 @@ package types
 
 import (
 	"encoding/binary"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	dbm "github.com/okx/exchain/libs/tm-db"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"

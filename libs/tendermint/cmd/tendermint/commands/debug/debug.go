@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 )
 
 var (

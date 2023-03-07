@@ -19,22 +19,22 @@ We have added 9 new wasm specific proposal types that cover the contract's live 
 * `UnpinCodes` - unpin the given code ids from the cache. This frees up memory and returns to standard speed and gas cost
 * `UpdateInstantiateConfigProposal` - update instantiate permissions to a list of given code ids. 
 
-For details see the proposal type [implementation](https://github.com/okex/exchain/blob/master/x/wasm/types/proposal.go)
+For details see the proposal type [implementation](https://github.com/okx/exchain/blob/master/x/wasm/types/proposal.go)
 
 ### Unit tests
-[Proposal type validations](https://github.com/okex/exchain/blob/master/x/wasm/types/proposal_test.go)
+[Proposal type validations](https://github.com/okx/exchain/blob/master/x/wasm/types/proposal_test.go)
 
 ## Proposal Handler
-The [wasmd proposal_handler](https://github.com/okex/exchain/blob/master/x/wasm/keeper/proposal_handler.go) implements the `gov.Handler` function
+The [wasmd proposal_handler](https://github.com/okx/exchain/blob/master/x/wasm/keeper/proposal_handler.go) implements the `gov.Handler` function
 and executes the wasmd proposal types after a successful tally.
  
-The proposal handler uses a [`GovAuthorizationPolicy`](https://github.com/okex/exchain/blob/master/x/wasm/keeper/authz_policy.go#L29) to bypass the existing contract's authorization policy.
+The proposal handler uses a [`GovAuthorizationPolicy`](https://github.com/okx/exchain/blob/master/x/wasm/keeper/authz_policy.go#L29) to bypass the existing contract's authorization policy.
 
 ### Tests
-* [Integration: Submit and execute proposal](https://github.com/okex/exchain/blob/master/x/wasm/keeper/proposal_integration_test.go)
+* [Integration: Submit and execute proposal](https://github.com/okx/exchain/blob/master/x/wasm/keeper/proposal_integration_test.go)
 
 ## Gov Integration
-The wasmd proposal handler can be added to the gov router in the [abci app](https://github.com/okex/exchain/blob/master/app/app.go#L306)
+The wasmd proposal handler can be added to the gov router in the [abci app](https://github.com/okx/exchain/blob/master/app/app.go#L306)
 to receive proposal execution calls. 
 ```go
 govRouter.AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(app.wasmKeeper, enabledProposals))
@@ -46,7 +46,7 @@ Settings via sdk `params` module:
 - `code_upload_access` - who can upload a wasm binary: `Nobody`, `Everybody`, `OnlyAddress`
 - `instantiate_default_permission` - platform default, who can instantiate a wasm binary when the code owner has not set it 
 
-See [params.go](https://github.com/okex/exchain/blob/master/x/wasm/types/params.go)
+See [params.go](https://github.com/okx/exchain/blob/master/x/wasm/types/params.go)
 
 ### Init Params Via Genesis 
 
@@ -63,7 +63,7 @@ See [params.go](https://github.com/okex/exchain/blob/master/x/wasm/types/params.
 
 The values can be updated via gov proposal implemented in the `params` module.
 
-### Update Params Via [ParamChangeProposal](https://github.com/okex/exchain/libs/cosmos-sdk/blob/v0.45.3/proto/cosmos/params/v1beta1/params.proto#L10)
+### Update Params Via [ParamChangeProposal](https://github.com/okx/exchain/libs/cosmos-sdk/blob/v0.45.3/proto/cosmos/params/v1beta1/params.proto#L10)
 Example to submit a parameter change gov proposal:
 ```sh
 wasmd tx gov submit-proposal param-change <proposal-json-file> --from validator --chain-id=testing -b block
@@ -156,16 +156,16 @@ wasmd tx gov submit-proposal param-change <proposal-json-file> --from validator 
 ### Enable gov proposals at **compile time**. 
 As gov proposals bypass the existing authorization policy they are disabled and require to be enabled at compile time. 
 ```
--X github.com/okex/exchain/app.ProposalsEnabled=true - enable all x/wasm governance proposals (default false)
--X github.com/okex/exchain/app.EnableSpecificProposals=MigrateContract,UpdateAdmin,ClearAdmin - enable a subset of the x/wasm governance proposal types (overrides ProposalsEnabled)
+-X github.com/okx/exchain/app.ProposalsEnabled=true - enable all x/wasm governance proposals (default false)
+-X github.com/okx/exchain/app.EnableSpecificProposals=MigrateContract,UpdateAdmin,ClearAdmin - enable a subset of the x/wasm governance proposal types (overrides ProposalsEnabled)
 ```
 
 The `ParamChangeProposal` is always enabled.
 
 ### Tests
-* [params validation unit tests](https://github.com/okex/exchain/blob/master/x/wasm/types/params_test.go)
-* [genesis validation tests](https://github.com/okex/exchain/blob/master/x/wasm/types/genesis_test.go)
-* [policy integration tests](https://github.com/okex/exchain/blob/master/x/wasm/keeper/keeper_test.go)
+* [params validation unit tests](https://github.com/okx/exchain/blob/master/x/wasm/types/params_test.go)
+* [genesis validation tests](https://github.com/okx/exchain/blob/master/x/wasm/types/genesis_test.go)
+* [policy integration tests](https://github.com/okx/exchain/blob/master/x/wasm/keeper/keeper_test.go)
 
 ## CLI
 
@@ -181,24 +181,24 @@ Available Commands:
 ...
 ```
 ## Rest
-New [`ProposalHandlers`](https://github.com/okex/exchain/blob/master/x/wasm/client/proposal_handler.go)
+New [`ProposalHandlers`](https://github.com/okx/exchain/blob/master/x/wasm/client/proposal_handler.go)
 
 * Integration
 ```shell script
 gov.NewAppModuleBasic(append(wasmclient.ProposalHandlers, paramsclient.ProposalHandler, distr.ProposalHandler, upgradeclient.ProposalHandler)...),
 ```
-In [abci app](https://github.com/okex/exchain/blob/master/app/app.go#L109)
+In [abci app](https://github.com/okx/exchain/blob/master/app/app.go#L109)
 
 ### Tests
-* [Rest Unit tests](https://github.com/okex/exchain/blob/master/x/wasm/client/proposal_handler_test.go)
-* [Rest smoke LCD test](https://github.com/okex/exchain/blob/master/lcd_test/wasm_test.go)
+* [Rest Unit tests](https://github.com/okx/exchain/blob/master/x/wasm/client/proposal_handler_test.go)
+* [Rest smoke LCD test](https://github.com/okx/exchain/blob/master/lcd_test/wasm_test.go)
 
 
 
 ## Pull requests
-* https://github.com/okex/exchain/pull/190
-* https://github.com/okex/exchain/pull/186
-* https://github.com/okex/exchain/pull/183
-* https://github.com/okex/exchain/pull/180
-* https://github.com/okex/exchain/pull/179
-* https://github.com/okex/exchain/pull/173
+* https://github.com/okx/exchain/pull/190
+* https://github.com/okx/exchain/pull/186
+* https://github.com/okx/exchain/pull/183
+* https://github.com/okx/exchain/pull/180
+* https://github.com/okx/exchain/pull/179
+* https://github.com/okx/exchain/pull/173

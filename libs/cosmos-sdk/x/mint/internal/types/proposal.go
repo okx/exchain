@@ -2,10 +2,10 @@ package types
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	govtypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/tendermint/global"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	govtypes "github.com/okx/exchain/x/gov/types"
 	"strings"
 )
 

@@ -6,17 +6,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/feesplit/client/cli"
-	"github.com/okex/exchain/x/feesplit/keeper"
-	"github.com/okex/exchain/x/feesplit/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/base"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/feesplit/client/cli"
+	"github.com/okx/exchain/x/feesplit/keeper"
+	"github.com/okx/exchain/x/feesplit/types"
 )
 
 // type check to ensure the interface is properly implemented

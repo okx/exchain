@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/tendermint/proto/version"
+	"github.com/okx/exchain/libs/tendermint/proto/version"
 )
 
 func (e CM40EventDataNewBlock) From(block EventDataNewBlock) CM40EventDataNewBlock {

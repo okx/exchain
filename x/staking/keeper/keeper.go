@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/x/staking/exported"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/x/staking/exported"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/x/staking/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/params"
+	"github.com/okx/exchain/x/staking/types"
 )
 
 // Implements ValidatorSet interface

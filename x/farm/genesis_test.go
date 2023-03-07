@@ -6,9 +6,9 @@ package farm
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/farm/keeper"
-	"github.com/okex/exchain/x/farm/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/farm/keeper"
+	"github.com/okx/exchain/x/farm/types"
 	"github.com/stretchr/testify/require"
 )
 

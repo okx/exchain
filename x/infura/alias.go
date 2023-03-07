@@ -1,6 +1,6 @@
 package infura
 
-import "github.com/okex/exchain/x/infura/types"
+import "github.com/okx/exchain/x/infura/types"
 
 const (
 	ModuleName   = types.ModuleName

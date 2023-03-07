@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	codectypes "github.com/okx/exchain/libs/cosmos-sdk/codec/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	types "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	types "github.com/okx/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibc_tx "github.com/okx/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
 )
 
 func Query40Tx(cliCtx context.CLIContext, hashHexStr string) (*types.TxResponse, error) {

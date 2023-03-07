@@ -11,10 +11,10 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	ethermint "github.com/okx/exchain/app/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/exchain/libs/tendermint/libs/cli"
 	"github.com/spf13/viper"
 )
 

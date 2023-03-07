@@ -3,7 +3,7 @@ package keeper
 import (
 	"sync"
 
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/exchain/x/wasm/types"
 )
 
 var wasmParamsCache = NewCache()

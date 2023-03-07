@@ -1,7 +1,7 @@
 package state
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 //------------------------------------------------------

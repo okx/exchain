@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	bam "github.com/okx/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 // NewApp creates a simple mock kvstore app for testing. It should work
@@ -104,7 +104,7 @@ func InitChainer(key sdk.StoreKey) func(sdk.Context, abci.RequestInitChain) abci
 // AppGenState can be passed into InitCmd, returns a static string of a few
 // key-values that can be parsed by InitChainer
 func AppGenState(_ *codec.Codec, _ types.GenesisDoc, _ []json.RawMessage) (appState json.
-RawMessage, err error) {
+	RawMessage, err error) {
 	appState = json.RawMessage(`{
   "values": [
     {

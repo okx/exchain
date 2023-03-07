@@ -1,13 +1,13 @@
 package keeper_test
 
 import (
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/exchain/libs/tendermint/types"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/04-channel/types"
+	ibctesting "github.com/okx/exchain/libs/ibc-go/testing"
 )
 
 // KeeperTestSuite is a testing suite to test keeper functions.

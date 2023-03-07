@@ -1,7 +1,7 @@
 package version
 
 import (
-	"github.com/okex/exchain/libs/tendermint/version"
+	"github.com/okx/exchain/libs/tendermint/version"
 )
 
 // TODO: eliminate this after some version refactor

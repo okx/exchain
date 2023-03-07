@@ -40,7 +40,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/libs/service"
+	"github.com/okx/exchain/libs/tendermint/libs/service"
 )
 
 type operation int

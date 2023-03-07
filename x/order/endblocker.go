@@ -2,12 +2,12 @@ package order
 
 import (
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/common/perf"
-	"github.com/okex/exchain/x/order/keeper"
-	"github.com/okex/exchain/x/order/match"
-	"github.com/okex/exchain/x/order/types"
+	"github.com/okx/exchain/x/common/perf"
+	"github.com/okx/exchain/x/order/keeper"
+	"github.com/okx/exchain/x/order/match"
+	"github.com/okx/exchain/x/order/types"
 )
 
 // EndBlocker called every block

@@ -3,9 +3,9 @@ package types
 import (
 	"testing"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/exchain/x/common"
 
-	"github.com/okex/exchain/x/params"
+	"github.com/okx/exchain/x/params"
 	"github.com/stretchr/testify/require"
 )
 

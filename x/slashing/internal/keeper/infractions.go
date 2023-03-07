@@ -3,10 +3,10 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/tendermint/crypto"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/slashing/internal/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/slashing/internal/types"
 )
 
 // HandleValidatorSignature handles a validator signature, must be called once per validator per block.

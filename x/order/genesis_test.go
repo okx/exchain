@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/types/time"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/dex"
-	"github.com/okex/exchain/x/order/keeper"
-	"github.com/okex/exchain/x/order/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/tendermint/types/time"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/dex"
+	"github.com/okx/exchain/x/order/keeper"
+	"github.com/okx/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
 )
 

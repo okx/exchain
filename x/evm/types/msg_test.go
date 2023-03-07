@@ -8,31 +8,31 @@ import (
 	"strings"
 	"testing"
 
-	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	ibcfee "github.com/okx/exchain/libs/ibc-go/modules/apps/29-fee"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 
 	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	okexchaincodec "github.com/okex/exchain/app/codec"
+	okexchaincodec "github.com/okx/exchain/app/codec"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/app/crypto/ethsecp256k1"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	ibctxdecode "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	ibctxdecode "github.com/okx/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	authtypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
+	ibctransfer "github.com/okx/exchain/libs/ibc-go/modules/apps/transfer"
+	ibc "github.com/okx/exchain/libs/ibc-go/modules/core"
+	"github.com/okx/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 func newSdkAddress() sdk.AccAddress {

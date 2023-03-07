@@ -3,14 +3,14 @@ package ante
 import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/params"
-	paramstypes "github.com/okex/exchain/x/params/types"
-	stakingkeeper "github.com/okex/exchain/x/staking"
+	ethermint "github.com/okx/exchain/app/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	evmtypes "github.com/okx/exchain/x/evm/types"
+	"github.com/okx/exchain/x/gov/types"
+	"github.com/okx/exchain/x/params"
+	paramstypes "github.com/okx/exchain/x/params/types"
+	stakingkeeper "github.com/okx/exchain/x/staking"
 )
 
 type AnteDecorator struct {

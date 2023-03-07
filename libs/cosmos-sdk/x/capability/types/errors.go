@@ -1,9 +1,8 @@
 package types
 
-import sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+import sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
 
 // DONTCOVER
-
 
 // x/capability module sentinel errors
 var (

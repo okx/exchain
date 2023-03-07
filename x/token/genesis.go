@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/token/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/token/types"
 )
 
 // default owner of okt

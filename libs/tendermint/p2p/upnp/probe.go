@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 )
 
 type Capabilities struct {

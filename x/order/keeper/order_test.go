@@ -5,15 +5,15 @@ package keeper
 import (
 	"testing"
 
-	"github.com/okex/exchain/x/dex"
+	"github.com/okx/exchain/x/dex"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/order/types"
-	token "github.com/okex/exchain/x/token/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/order/types"
+	token "github.com/okx/exchain/x/token/types"
 )
 
 func TestTryPlaceOrder(t *testing.T) {

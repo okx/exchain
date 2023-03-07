@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/okex/exchain/libs/iavl"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmstrings "github.com/okex/exchain/libs/tendermint/libs/strings"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/exchain/libs/iavl"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmkv "github.com/okx/exchain/libs/tendermint/libs/kv"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmstrings "github.com/okx/exchain/libs/tendermint/libs/strings"
+	dbm "github.com/okx/exchain/libs/tm-db"
 )
 
 const (

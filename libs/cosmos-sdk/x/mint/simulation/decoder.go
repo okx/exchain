@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	tmkv "github.com/okx/exchain/libs/tendermint/libs/kv"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/mint/internal/types"
 )
 
 // DecodeStore unmarshals the KVPair's Value to the corresponding mint type

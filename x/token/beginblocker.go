@@ -1,9 +1,9 @@
 package token
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common/perf"
-	"github.com/okex/exchain/x/token/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/common/perf"
+	"github.com/okx/exchain/x/token/types"
 )
 
 // BeginBlocker is called when dapp handles with abci::BeginBlock

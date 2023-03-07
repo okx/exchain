@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	blockindex "github.com/okex/exchain/libs/tendermint/state/indexer"
-	bloxkindexnull "github.com/okex/exchain/libs/tendermint/state/indexer/block/null"
+	blockindex "github.com/okx/exchain/libs/tendermint/state/indexer"
+	bloxkindexnull "github.com/okx/exchain/libs/tendermint/state/indexer/block/null"
 
-	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okx/exchain/libs/tendermint/global"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,39 +22,39 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/exchain/libs/tm-db"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
-	bcv1 "github.com/okex/exchain/libs/tendermint/blockchain/v1"
-	bcv2 "github.com/okex/exchain/libs/tendermint/blockchain/v2"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/consensus"
-	cs "github.com/okex/exchain/libs/tendermint/consensus"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/evidence"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmpubsub "github.com/okex/exchain/libs/tendermint/libs/pubsub"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
-	mempl "github.com/okex/exchain/libs/tendermint/mempool"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/p2p/pex"
-	"github.com/okex/exchain/libs/tendermint/privval"
-	"github.com/okex/exchain/libs/tendermint/proxy"
-	rpccore "github.com/okex/exchain/libs/tendermint/rpc/core"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	grpccore "github.com/okex/exchain/libs/tendermint/rpc/grpc"
-	rpcserver "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	blockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/kv"
-	"github.com/okex/exchain/libs/tendermint/state/txindex"
-	"github.com/okex/exchain/libs/tendermint/state/txindex/kv"
-	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
-	"github.com/okex/exchain/libs/tendermint/store"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"github.com/okex/exchain/libs/tendermint/version"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	bcv0 "github.com/okx/exchain/libs/tendermint/blockchain/v0"
+	bcv1 "github.com/okx/exchain/libs/tendermint/blockchain/v1"
+	bcv2 "github.com/okx/exchain/libs/tendermint/blockchain/v2"
+	cfg "github.com/okx/exchain/libs/tendermint/config"
+	"github.com/okx/exchain/libs/tendermint/consensus"
+	cs "github.com/okx/exchain/libs/tendermint/consensus"
+	"github.com/okx/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/tendermint/evidence"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmpubsub "github.com/okx/exchain/libs/tendermint/libs/pubsub"
+	"github.com/okx/exchain/libs/tendermint/libs/service"
+	mempl "github.com/okx/exchain/libs/tendermint/mempool"
+	"github.com/okx/exchain/libs/tendermint/p2p"
+	"github.com/okx/exchain/libs/tendermint/p2p/pex"
+	"github.com/okx/exchain/libs/tendermint/privval"
+	"github.com/okx/exchain/libs/tendermint/proxy"
+	rpccore "github.com/okx/exchain/libs/tendermint/rpc/core"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
+	grpccore "github.com/okx/exchain/libs/tendermint/rpc/grpc"
+	rpcserver "github.com/okx/exchain/libs/tendermint/rpc/jsonrpc/server"
+	sm "github.com/okx/exchain/libs/tendermint/state"
+	blockindexer "github.com/okx/exchain/libs/tendermint/state/indexer/block/kv"
+	"github.com/okx/exchain/libs/tendermint/state/txindex"
+	"github.com/okx/exchain/libs/tendermint/state/txindex/kv"
+	"github.com/okx/exchain/libs/tendermint/state/txindex/null"
+	"github.com/okx/exchain/libs/tendermint/store"
+	"github.com/okx/exchain/libs/tendermint/types"
+	tmtime "github.com/okx/exchain/libs/tendermint/types/time"
+	"github.com/okx/exchain/libs/tendermint/version"
 )
 
 //------------------------------------------------------------------------------
@@ -591,7 +591,7 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 			// blocks assuming 10s blocks ~ 28 hours.
 			// TODO (melekes): make it dynamic based on the actual block latencies
 			// from the live network.
-			// https://github.com/okex/exchain/libs/tendermint/issues/3523
+			// https://github.com/okx/exchain/libs/tendermint/issues/3523
 			SeedDisconnectWaitPeriod:     28 * time.Hour,
 			PersistentPeersMaxDialPeriod: config.P2P.PersistentPeersMaxDialPeriod,
 		})
@@ -1046,7 +1046,7 @@ func (n *Node) startRPC() ([]net.Listener, error) {
 	config.MaxOpenConnections = n.config.RPC.MaxOpenConnections
 	// If necessary adjust global WriteTimeout to ensure it's greater than
 	// TimeoutBroadcastTxCommit.
-	// See https://github.com/okex/exchain/libs/tendermint/issues/3435
+	// See https://github.com/okx/exchain/libs/tendermint/issues/3435
 	if config.WriteTimeout <= n.config.RPC.TimeoutBroadcastTxCommit {
 		config.WriteTimeout = n.config.RPC.TimeoutBroadcastTxCommit + 1*time.Second
 	}
@@ -1117,7 +1117,7 @@ func (n *Node) startRPC() ([]net.Listener, error) {
 		config.MaxOpenConnections = n.config.RPC.GRPCMaxOpenConnections
 		// If necessary adjust global WriteTimeout to ensure it's greater than
 		// TimeoutBroadcastTxCommit.
-		// See https://github.com/okex/exchain/libs/tendermint/issues/3435
+		// See https://github.com/okx/exchain/libs/tendermint/issues/3435
 		if config.WriteTimeout <= n.config.RPC.TimeoutBroadcastTxCommit {
 			config.WriteTimeout = n.config.RPC.TimeoutBroadcastTxCommit + 1*time.Second
 		}

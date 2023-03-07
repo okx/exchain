@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
-	tmstrings "github.com/okex/exchain/libs/tendermint/libs/strings"
-	"github.com/okex/exchain/libs/tendermint/version"
+	"github.com/okx/exchain/libs/tendermint/libs/bytes"
+	tmstrings "github.com/okx/exchain/libs/tendermint/libs/strings"
+	"github.com/okx/exchain/libs/tendermint/version"
 )
 
 const (

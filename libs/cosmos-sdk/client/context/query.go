@@ -7,16 +7,16 @@ import (
 
 	"github.com/pkg/errors"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	tmliteErr "github.com/okex/exchain/libs/tendermint/lite/errors"
-	tmliteProxy "github.com/okex/exchain/libs/tendermint/lite/proxy"
-	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/crypto/merkle"
+	tmbytes "github.com/okx/exchain/libs/tendermint/libs/bytes"
+	tmliteErr "github.com/okx/exchain/libs/tendermint/lite/errors"
+	tmliteProxy "github.com/okx/exchain/libs/tendermint/lite/proxy"
+	rpcclient "github.com/okx/exchain/libs/tendermint/rpc/client"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/rootmulti"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 // GetNode returns an RPC client. If the context's client is not defined, an

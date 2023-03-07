@@ -3,16 +3,16 @@ package keeper
 import (
 	"fmt"
 
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tmbytes "github.com/okx/exchain/libs/tendermint/libs/bytes"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/x/evidence/exported"
-	"github.com/okex/exchain/x/evidence/internal/types"
-	"github.com/okex/exchain/x/params"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/x/evidence/exported"
+	"github.com/okx/exchain/x/evidence/internal/types"
+	"github.com/okx/exchain/x/params"
 )
 
 // Keeper defines the evidence module's keeper. The keeper is responsible for

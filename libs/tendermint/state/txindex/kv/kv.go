@@ -11,18 +11,18 @@ import (
 
 	"github.com/pkg/errors"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/exchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
-	tmstring "github.com/okex/exchain/libs/tendermint/libs/strings"
-	"github.com/okex/exchain/libs/tendermint/state/txindex"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/libs/pubsub/query"
+	tmstring "github.com/okx/exchain/libs/tendermint/libs/strings"
+	"github.com/okx/exchain/libs/tendermint/state/txindex"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 const (
 	tagKeySeparator = "/"
-	defaultTimeOut = 5 * time.Second
-	maxQueryRange = 256
+	defaultTimeOut  = 5 * time.Second
+	maxQueryRange   = 256
 )
 
 var _ txindex.TxIndexer = (*TxIndex)(nil)

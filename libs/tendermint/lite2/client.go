@@ -9,11 +9,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
-	"github.com/okex/exchain/libs/tendermint/lite2/provider"
-	"github.com/okex/exchain/libs/tendermint/lite2/store"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmmath "github.com/okx/exchain/libs/tendermint/libs/math"
+	"github.com/okx/exchain/libs/tendermint/lite2/provider"
+	"github.com/okx/exchain/libs/tendermint/lite2/store"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 type mode byte

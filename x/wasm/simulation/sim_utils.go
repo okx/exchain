@@ -1,10 +1,10 @@
 package simulation
 
 //import (
-//	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	simtypes "github.com/okex/exchain/libs/cosmos-sdk/types/simulation"
-//	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+//	"github.com/okx/exchain/libs/cosmos-sdk/simapp/helpers"
+//	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+//	simtypes "github.com/okx/exchain/libs/cosmos-sdk/types/simulation"
+//	"github.com/okx/exchain/libs/cosmos-sdk/x/simulation"
 //)
 //
 //// GenAndDeliverTxWithRandFees generates a transaction with a random fee and delivers it.

@@ -1,10 +1,10 @@
 package logevents
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	"github.com/okx/exchain/libs/system"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/types"
 	"github.com/spf13/viper"
 	"sync"
 	"time"

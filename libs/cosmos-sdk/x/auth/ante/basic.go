@@ -1,12 +1,12 @@
 package ante
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/keeper"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/tendermint/crypto/multisig"
 )
 
 var (

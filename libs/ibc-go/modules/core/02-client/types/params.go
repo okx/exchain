@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	paramtypes "github.com/okx/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/exported"
 )
 
 var (

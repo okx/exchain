@@ -1,9 +1,9 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/params"
-	token "github.com/okex/exchain/x/token/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/params"
+	token "github.com/okx/exchain/x/token/types"
 )
 
 // ParamSubspace defines the expected Subspace interface

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/system/trace/persist"
+	"github.com/okx/exchain/libs/system/trace"
+	"github.com/okx/exchain/libs/system/trace/persist"
 	"github.com/tendermint/go-amino"
 )
 

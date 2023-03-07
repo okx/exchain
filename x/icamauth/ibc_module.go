@@ -1,14 +1,14 @@
 package icamauth
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/x/icamauth/keeper"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	capabilitytypes "github.com/okx/exchain/libs/cosmos-sdk/x/capability/types"
+	channeltypes "github.com/okx/exchain/libs/ibc-go/modules/core/04-channel/types"
+	porttypes "github.com/okx/exchain/libs/ibc-go/modules/core/05-port/types"
+	host "github.com/okx/exchain/libs/ibc-go/modules/core/24-host"
+	ibcexported "github.com/okx/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/exchain/x/icamauth/keeper"
 )
 
 var _ porttypes.IBCModule = IBCModule{}

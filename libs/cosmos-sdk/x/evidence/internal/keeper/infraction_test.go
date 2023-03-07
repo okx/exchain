@@ -3,11 +3,11 @@ package keeper_test
 import (
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/internal/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/evidence/internal/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/staking"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/tendermint/crypto"
 )
 
 func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt sdk.Int) staking.MsgCreateValidator {

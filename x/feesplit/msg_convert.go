@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/feesplit/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/feesplit/types"
 )
 
 var (

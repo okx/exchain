@@ -1,12 +1,12 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/order/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/order/types"
 )
 
 // nolint

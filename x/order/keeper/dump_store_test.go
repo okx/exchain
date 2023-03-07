@@ -3,15 +3,15 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/dex"
-	"github.com/okex/exchain/x/order/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/dex"
+	"github.com/okx/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
 
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 )
 
 func TestDumpStore(t *testing.T) {

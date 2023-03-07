@@ -9,10 +9,10 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	proto "github.com/gogo/protobuf/proto"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	kv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	kv "github.com/okx/exchain/libs/tendermint/libs/kv"
 )
 
 // ----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 package rest
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
 
 	"github.com/gorilla/mux"
 )

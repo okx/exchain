@@ -3,11 +3,11 @@ package types_test
 import (
 	"time"
 
-	keys "github.com/okex/exchain/libs/tendermint/proto/crypto/keys"
+	keys "github.com/okx/exchain/libs/tendermint/proto/crypto/keys"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	clienttypes "github.com/okx/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 )
 
 func (suite *TendermintTestSuite) TestGetHeight() {

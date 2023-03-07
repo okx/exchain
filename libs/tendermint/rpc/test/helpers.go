@@ -8,18 +8,18 @@ import (
 	"strings"
 	"time"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	tmnet "github.com/okex/exchain/libs/tendermint/libs/net"
-	nm "github.com/okex/exchain/libs/tendermint/node"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/privval"
-	"github.com/okex/exchain/libs/tendermint/proxy"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	core_grpc "github.com/okex/exchain/libs/tendermint/rpc/grpc"
-	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/client"
+	cfg "github.com/okx/exchain/libs/tendermint/config"
+	tmnet "github.com/okx/exchain/libs/tendermint/libs/net"
+	nm "github.com/okx/exchain/libs/tendermint/node"
+	"github.com/okx/exchain/libs/tendermint/p2p"
+	"github.com/okx/exchain/libs/tendermint/privval"
+	"github.com/okx/exchain/libs/tendermint/proxy"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
+	core_grpc "github.com/okx/exchain/libs/tendermint/rpc/grpc"
+	rpcclient "github.com/okx/exchain/libs/tendermint/rpc/jsonrpc/client"
 )
 
 // Options helps with specifying some parameters for our RPC testing for greater

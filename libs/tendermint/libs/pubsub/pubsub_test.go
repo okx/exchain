@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/tendermint/libs/pubsub"
-	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
+	"github.com/okx/exchain/libs/tendermint/libs/pubsub"
+	"github.com/okx/exchain/libs/tendermint/libs/pubsub/query"
 )
 
 const (

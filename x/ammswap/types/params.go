@@ -3,9 +3,9 @@ package types
 import (
 	"fmt"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/params"
+	"github.com/okx/exchain/x/params"
 )
 
 // FeeRate defines swap fee rate

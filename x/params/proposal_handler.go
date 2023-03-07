@@ -5,12 +5,12 @@ import (
 	"math"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/x/common"
-	govtypes "github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/params/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	sdkparams "github.com/okx/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okx/exchain/x/common"
+	govtypes "github.com/okx/exchain/x/gov/types"
+	"github.com/okx/exchain/x/params/types"
 )
 
 // NewParamChangeProposalHandler returns the rollback function of the param proposal handler

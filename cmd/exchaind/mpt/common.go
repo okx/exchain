@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"path/filepath"
 
-	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	iavlstore "github.com/okx/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/rootmulti"
+	"github.com/okx/exchain/libs/iavl"
+	dbm "github.com/okx/exchain/libs/tm-db"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	tmdb "github.com/okex/exchain/libs/tm-db"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okx/exchain/app"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
+	tmdb "github.com/okx/exchain/libs/tm-db"
+	evmtypes "github.com/okx/exchain/x/evm/types"
 )
 
 const (

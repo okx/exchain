@@ -3,7 +3,7 @@ package persist
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okx/exchain/libs/system/trace"
 )
 
 var stats *statistics

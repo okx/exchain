@@ -88,32 +88,32 @@ endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
-ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
-	-X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Name=$(Name) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.ServerName=$(ServerName) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.ClientName=$(ClientName) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Commit=$(COMMIT) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
-  -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_GENESIS_HEIGHT=$(GenesisHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS_HEIGHT=$(VenusHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS1_HEIGHT=$(Venus1Height) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS3_HEIGHT=$(Venus3Height) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS4_HEIGHT=$(Venus4Height) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS5_HEIGHT=$(Venus5Height) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_EARTH_HEIGHT=$(EarthHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
+ldflags = -X $(GithubTop)/okx/exchain/libs/cosmos-sdk/version.Version=$(Version) \
+	-X $(GithubTop)/okx/exchain/libs/cosmos-sdk/version.Name=$(Name) \
+  -X $(GithubTop)/okx/exchain/libs/cosmos-sdk/version.ServerName=$(ServerName) \
+  -X $(GithubTop)/okx/exchain/libs/cosmos-sdk/version.ClientName=$(ClientName) \
+  -X $(GithubTop)/okx/exchain/libs/cosmos-sdk/version.Commit=$(COMMIT) \
+  -X $(GithubTop)/okx/exchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
+  -X $(GithubTop)/okx/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
+  -X "$(GithubTop)/okx/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_GENESIS_HEIGHT=$(GenesisHeight) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_VENUS_HEIGHT=$(VenusHeight) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_VENUS1_HEIGHT=$(Venus1Height) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_VENUS3_HEIGHT=$(Venus3Height) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_VENUS4_HEIGHT=$(Venus4Height) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_VENUS5_HEIGHT=$(Venus5Height) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_EARTH_HEIGHT=$(EarthHeight) \
+  -X $(GithubTop)/okx/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
 
 
 ifeq ($(WITH_ROCKSDB),true)
-  ldflags += -X github.com/okex/exchain/libs/tendermint/types.DBBackend=rocksdb
+  ldflags += -X github.com/okx/exchain/libs/tendermint/types.DBBackend=rocksdb
 endif
 
 ifeq ($(MAKECMDGOALS),testnet)
-  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/server.ChainID=exchain-65
+  ldflags += -X github.com/okx/exchain/libs/cosmos-sdk/server.ChainID=exchain-65
 endif
 
 ifeq ($(LINK_STATICALLY),true)

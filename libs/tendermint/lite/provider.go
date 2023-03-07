@@ -1,8 +1,8 @@
 package lite
 
 import (
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 // Provider provides information for the lite client to sync validators.

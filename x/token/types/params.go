@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/params"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/params"
 )
 
 const (

@@ -5,14 +5,14 @@ package keeper
 import (
 	"testing"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/exchain/x/common"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/dex"
-	"github.com/okex/exchain/x/order/types"
-	token "github.com/okex/exchain/x/token/types"
+	"github.com/okx/exchain/x/dex"
+	"github.com/okx/exchain/x/order/types"
+	token "github.com/okx/exchain/x/token/types"
 )
 
 func TestKeeper_Cache2Disk(t *testing.T) {

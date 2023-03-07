@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/distribution/types"
-	"github.com/okex/exchain/x/staking"
-	stakingexported "github.com/okex/exchain/x/staking/exported"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/distribution/types"
+	"github.com/okx/exchain/x/staking"
+	stakingexported "github.com/okx/exchain/x/staking/exported"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )

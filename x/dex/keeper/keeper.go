@@ -5,10 +5,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/dex/types"
-	"github.com/okex/exchain/x/params"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/dex/types"
+	"github.com/okx/exchain/x/params"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine

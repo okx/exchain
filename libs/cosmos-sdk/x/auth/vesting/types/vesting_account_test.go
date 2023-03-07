@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/okx/exchain/libs/tendermint/crypto/secp256k1"
+	tmtime "github.com/okx/exchain/libs/tendermint/types/time"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 var (

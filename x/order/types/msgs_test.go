@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okx/exchain/x/common"
 
 	"github.com/stretchr/testify/require"
 )

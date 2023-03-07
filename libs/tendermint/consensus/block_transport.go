@@ -2,30 +2,30 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/system/trace"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 	"sync"
 	"time"
 )
 
 type BlockTransport struct {
-	height int64
-	recvProposal time.Time
-	firstPart time.Time
+	height                 int64
+	recvProposal           time.Time
+	firstPart              time.Time
 	droppedDue2NotExpected int
-	droppedDue2NotAdded int
-	droppedDue2Error int
+	droppedDue2NotAdded    int
+	droppedDue2Error       int
 	droppedDue2WrongHeight int
-	totalParts int
-	Logger  log.Logger
+	totalParts             int
+	Logger                 log.Logger
 
-	bpStatMtx sync.RWMutex
+	bpStatMtx       sync.RWMutex
 	bpSend          int
 	bpNOTransByData int
 	bpNOTransByACK  int
 }
 
-func (bt *BlockTransport) onProposal(height int64)  {
+func (bt *BlockTransport) onProposal(height int64) {
 	if bt.height == height || bt.height == 0 {
 		bt.recvProposal = time.Now()
 		bt.height = height
@@ -44,14 +44,14 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.bpSend = 0
 }
 
-func (bt *BlockTransport) on1stPart(height int64)  {
+func (bt *BlockTransport) on1stPart(height int64) {
 	if bt.height == height || bt.height == 0 {
 		bt.firstPart = time.Now()
 		bt.height = height
 	}
 }
 
-func (bt *BlockTransport) onRecvBlock(height int64)  {
+func (bt *BlockTransport) onRecvBlock(height int64) {
 	if bt.height == height {
 		//totalElapsed := time.Now().Sub(bt.recvProposal)
 		//trace.GetElapsedInfo().AddInfo(trace.RecvBlock, fmt.Sprintf("<%dms>", totalElapsed.Milliseconds()))

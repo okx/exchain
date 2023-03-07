@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/libs/pubsub/query"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 // TxIndexer interface defines methods to index and search transactions.

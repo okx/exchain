@@ -2,14 +2,14 @@ package types
 
 import (
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/x/gov/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okx/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	txmsg "github.com/okx/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/msgservice"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/exchain/x/gov/types"
 )
 
 func init() {

@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/query"
 	"github.com/spf13/pflag"
 )
 
@@ -35,8 +35,6 @@ func Paginate(numObjs, page, limit, defLimit int) (start, end int) {
 
 	return start, end
 }
-
-
 
 // ReadPageRequest reads and builds the necessary page request flags for pagination.
 func ReadPageRequest(flagSet *pflag.FlagSet) (*query.PageRequest, error) {

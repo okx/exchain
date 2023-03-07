@@ -3,22 +3,22 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	interfacetypes "github.com/okx/exchain/libs/cosmos-sdk/codec/types"
 	"strconv"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/gov"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/version"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/exchain/x/gov"
 	"github.com/spf13/cobra"
 
-	client "github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	farmutils "github.com/okex/exchain/x/farm/client/utils"
-	"github.com/okex/exchain/x/farm/types"
+	client "github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	farmutils "github.com/okx/exchain/x/farm/client/utils"
+	"github.com/okx/exchain/x/farm/types"
 )
 
 // GetTxCmd returns the transaction commands for this module

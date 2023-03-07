@@ -22,38 +22,38 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/viper"
 
-	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/libs/tendermint/mempool"
+	appconfig "github.com/okx/exchain/app/config"
+	"github.com/okx/exchain/libs/tendermint/mempool"
 
-	"github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/app/rpc/backend"
-	"github.com/okex/exchain/app/rpc/monitor"
-	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
-	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/app/utils"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/evm"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okx/exchain/app/config"
+	"github.com/okx/exchain/app/crypto/ethsecp256k1"
+	"github.com/okx/exchain/app/crypto/hd"
+	"github.com/okx/exchain/app/rpc/backend"
+	"github.com/okx/exchain/app/rpc/monitor"
+	"github.com/okx/exchain/app/rpc/namespaces/eth/simulation"
+	rpctypes "github.com/okx/exchain/app/rpc/types"
+	ethermint "github.com/okx/exchain/app/types"
+	"github.com/okx/exchain/app/utils"
+	clientcontext "github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/crypto/keys"
+	cmserver "github.com/okx/exchain/libs/cosmos-sdk/server"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/mpt"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	authclient "github.com/okx/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/exchain/libs/tendermint/global"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/evm"
+	evmtypes "github.com/okx/exchain/x/evm/types"
+	"github.com/okx/exchain/x/evm/watcher"
 )
 
 const (
@@ -1043,7 +1043,7 @@ func (api *PublicEthereumAPI) simDoCall(args rpctypes.CallArgs, cap uint64) (uin
 	}
 
 	// use exact gas to run verify again
-	// https://github.com/okex/oec/issues/1784
+	// https://github.com/okx/oec/issues/1784
 	verifiedResponse, err := executable(exactResponse.GasInfo.GasUsed)
 	if err == nil {
 		return verifiedResponse.GasInfo.GasUsed, nil

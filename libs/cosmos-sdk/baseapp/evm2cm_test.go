@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	db "github.com/okex/exchain/libs/tm-db"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	db "github.com/okx/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 )
 

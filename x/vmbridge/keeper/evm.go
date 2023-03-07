@@ -3,14 +3,14 @@ package keeper
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	erc20types "github.com/okex/exchain/x/erc20/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/okex/exchain/x/vmbridge/types"
+	ethermint "github.com/okx/exchain/app/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	erc20types "github.com/okx/exchain/x/erc20/types"
+	evmtypes "github.com/okx/exchain/x/evm/types"
+	"github.com/okx/exchain/x/evm/watcher"
+	"github.com/okx/exchain/x/vmbridge/types"
 	"math/big"
 )
 

@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
-	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	paramtypes "github.com/okex/exchain/x/params"
+	"github.com/okx/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	capabilitykeeper "github.com/okx/exchain/libs/cosmos-sdk/x/capability/keeper"
+	capabilitytypes "github.com/okx/exchain/libs/cosmos-sdk/x/capability/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	icatypes "github.com/okx/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	channeltypes "github.com/okx/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okx/exchain/libs/ibc-go/modules/core/24-host"
+	paramtypes "github.com/okx/exchain/x/params"
 )
 
 // Keeper defines the IBC interchain accounts controller keeper

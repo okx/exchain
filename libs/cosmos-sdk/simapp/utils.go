@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	tmkv "github.com/okx/exchain/libs/tendermint/libs/kv"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	dbm "github.com/okx/exchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/simapp/helpers"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/simulation"
 )
 
 // SetupSimulation creates the config, db (levelDB), temporary directory and logger for

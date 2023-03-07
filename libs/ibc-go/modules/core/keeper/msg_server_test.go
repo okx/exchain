@@ -3,23 +3,23 @@ package keeper_test
 import (
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 
 	"github.com/stretchr/testify/suite"
 
 	// sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	ibcmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
-	types2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/types"
+	clienttypes "github.com/okx/exchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okx/exchain/libs/ibc-go/modules/core/04-channel/types"
+	commitmenttypes "github.com/okx/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okx/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/keeper"
+	ibctmtypes "github.com/okx/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/exchain/libs/ibc-go/testing"
+	ibcmock "github.com/okx/exchain/libs/ibc-go/testing/mock"
+	types2 "github.com/okx/exchain/libs/ibc-go/testing/simapp/types"
 )
 
 const height = 10

@@ -7,10 +7,10 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	rpcserver "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
-	rpctypes "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmos "github.com/okx/exchain/libs/tendermint/libs/os"
+	rpcserver "github.com/okx/exchain/libs/tendermint/rpc/jsonrpc/server"
+	rpctypes "github.com/okx/exchain/libs/tendermint/rpc/jsonrpc/types"
 )
 
 var routes = map[string]*rpcserver.RPCFunc{

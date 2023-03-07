@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	tendermintTypes "github.com/okx/exchain/libs/tendermint/types"
 )
 
 var (

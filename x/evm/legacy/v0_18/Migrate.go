@@ -1,8 +1,8 @@
 package v018
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/evm/legacy/v0_16"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/evm/legacy/v0_16"
 )
 
 const (

@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	"github.com/okex/exchain/libs/tendermint/rpc/client"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmrand "github.com/okx/exchain/libs/tendermint/libs/rand"
+	"github.com/okx/exchain/libs/tendermint/rpc/client"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 var waitForEventTimeout = 30 * time.Second

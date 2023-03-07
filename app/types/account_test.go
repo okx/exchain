@@ -3,27 +3,27 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	authtypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 	"testing"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	tmcrypto "github.com/okx/exchain/libs/tendermint/crypto"
 	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/suite"
 
-	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	tmamino "github.com/okx/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okx/exchain/libs/tendermint/crypto/secp256k1"
 
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/exchain/app/crypto/ethsecp256k1"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/sr25519"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/exchain/libs/tendermint/crypto/sr25519"
 )
 
 func init() {

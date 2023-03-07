@@ -14,12 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/consensus/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/libs/autofile"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/okx/exchain/libs/tendermint/consensus/types"
+	"github.com/okx/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okx/exchain/libs/tendermint/libs/autofile"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	tmtime "github.com/okx/exchain/libs/tendermint/types/time"
 )
 
 const (

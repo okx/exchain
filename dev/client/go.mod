@@ -1,11 +1,11 @@
-module github.com/okex/exchain/dev/client
+module github.com/okx/exchain/dev/client
 
 go 1.17
 
 require (
 	github.com/cosmos/cosmos-sdk v0.39.2
 	github.com/ethereum/go-ethereum v1.10.8
-	github.com/okex/exchain-ethereum-compatible v1.1.1-0.20220106042715-f20163fbb4af
+	github.com/okx/exchain-ethereum-compatible v1.1.1-0.20220106042715-f20163fbb4af
 )
 
 require (
@@ -76,4 +76,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/cosmos/cosmos-sdk => github.com/okex/cosmos-sdk v0.39.2-exchain1
+replace github.com/cosmos/cosmos-sdk => github.com/okx/cosmos-sdk v0.39.2-exchain1

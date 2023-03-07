@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/exchain/libs/tendermint/crypto/ed25519"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 )
 

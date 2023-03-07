@@ -9,22 +9,22 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/crypto"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	keep "github.com/okex/exchain/libs/cosmos-sdk/x/gov/keeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	authexported "github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/bank"
+	keep "github.com/okx/exchain/libs/cosmos-sdk/x/gov/keeper"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/mock"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/staking"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/supply"
+	supplyexported "github.com/okx/exchain/libs/cosmos-sdk/x/supply/exported"
 )
 
 var (

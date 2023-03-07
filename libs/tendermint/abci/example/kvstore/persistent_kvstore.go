@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/exchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/tendermint/abci/example/code"
-	"github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/abci/example/code"
+	"github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 )
 
 const (

@@ -3,11 +3,11 @@ package keeper
 import (
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-	"github.com/okex/exchain/x/dex/types"
-	ordertypes "github.com/okex/exchain/x/order/types"
-	"github.com/okex/exchain/x/params"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/supply/exported"
+	"github.com/okx/exchain/x/dex/types"
+	ordertypes "github.com/okx/exchain/x/order/types"
+	"github.com/okx/exchain/x/params"
 )
 
 // SupplyKeeper defines the expected supply Keeper

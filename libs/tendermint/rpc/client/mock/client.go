@@ -17,13 +17,13 @@ want to directly call a tendermint node in process, you can use the
 import (
 	"reflect"
 
-	"github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/okex/exchain/libs/tendermint/libs/service"
-	"github.com/okex/exchain/libs/tendermint/rpc/client"
-	"github.com/okex/exchain/libs/tendermint/rpc/core"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	rpctypes "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/libs/bytes"
+	"github.com/okx/exchain/libs/tendermint/libs/service"
+	"github.com/okx/exchain/libs/tendermint/rpc/client"
+	"github.com/okx/exchain/libs/tendermint/rpc/core"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
+	rpctypes "github.com/okx/exchain/libs/tendermint/rpc/jsonrpc/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 // Client wraps arbitrary implementations of the various interfaces.

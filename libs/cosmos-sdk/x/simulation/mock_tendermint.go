@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmbytes "github.com/okx/exchain/libs/tendermint/libs/bytes"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
 )
 
 type mockValidator struct {

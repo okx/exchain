@@ -3,24 +3,24 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	interfacetypes "github.com/okx/exchain/libs/cosmos-sdk/codec/types"
 	"strings"
 
-	client "github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/version"
-	"github.com/okex/exchain/x/gov"
+	client "github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/version"
+	"github.com/okx/exchain/x/gov"
 
 	"github.com/pkg/errors"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authTypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/common"
-	dexUtils "github.com/okex/exchain/x/dex/client/utils"
-	"github.com/okex/exchain/x/dex/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	authTypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/exchain/x/common"
+	dexUtils "github.com/okx/exchain/x/dex/client/utils"
+	"github.com/okx/exchain/x/dex/types"
 	"github.com/spf13/cobra"
 )
 

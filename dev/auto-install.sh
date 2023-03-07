@@ -123,8 +123,8 @@ GetArchitecture() {
 download() {
   rm -rf "$HOME"/.exchain/src
   mkdir -p "$HOME"/.exchain/src
-  tag=`wget -qO- -t1 -T2 --no-check-certificate "https://api.github.com/repos/okex/exchain/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g'`
-  wget --no-check-certificate "https://github.com/okex/exchain/archive/refs/tags/${tag}.tar.gz" -O "$HOME"/.exchain/src/exchain.tar.gz
+  tag=`wget -qO- -t1 -T2 --no-check-certificate "https://api.github.com/repos/okx/exchain/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g'`
+  wget --no-check-certificate "https://github.com/okx/exchain/archive/refs/tags/${tag}.tar.gz" -O "$HOME"/.exchain/src/exchain.tar.gz
   ver=$(echo $tag| sed 's/v//g')
   cd "$HOME"/.exchain/src && tar zxvf exchain.tar.gz &&  cd exchain-"$ver"
 }

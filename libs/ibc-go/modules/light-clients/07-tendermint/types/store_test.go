@@ -4,13 +4,13 @@ import (
 	"math"
 	"time"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	solomachinetypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	clienttypes "github.com/okx/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okx/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	host "github.com/okx/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/exported"
+	solomachinetypes "github.com/okx/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/exchain/libs/ibc-go/testing"
 )
 
 func (suite *TendermintTestSuite) TestGetConsensusState() {
@@ -29,25 +29,25 @@ func (suite *TendermintTestSuite) TestGetConsensusState() {
 		},
 		{
 			"consensus state not found", func() {
-			// use height with no consensus state set
-			height = height.(clienttypes.Height).Increment()
-		}, false,
+				// use height with no consensus state set
+				height = height.(clienttypes.Height).Increment()
+			}, false,
 		},
 		{
 			"not a consensus state interface", func() {
-			// marshal an empty client state and set as consensus state
-			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
-			clientStateBz := suite.chainA.App().GetIBCKeeper().ClientKeeper.MustMarshalClientState(&types.ClientState{})
-			store.Set(host.ConsensusStateKey(height), clientStateBz)
-		}, false,
+				// marshal an empty client state and set as consensus state
+				store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+				clientStateBz := suite.chainA.App().GetIBCKeeper().ClientKeeper.MustMarshalClientState(&types.ClientState{})
+				store.Set(host.ConsensusStateKey(height), clientStateBz)
+			}, false,
 		},
 		{
 			"invalid consensus state (solomachine)", func() {
-			// marshal and set solomachine consensus state
-			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
-			consensusStateBz := suite.chainA.App().GetIBCKeeper().ClientKeeper.MustMarshalConsensusState(&solomachinetypes.ConsensusState{})
-			store.Set(host.ConsensusStateKey(height), consensusStateBz)
-		}, false,
+				// marshal and set solomachine consensus state
+				store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+				consensusStateBz := suite.chainA.App().GetIBCKeeper().ClientKeeper.MustMarshalConsensusState(&solomachinetypes.ConsensusState{})
+				store.Set(host.ConsensusStateKey(height), consensusStateBz)
+			}, false,
 		},
 	}
 

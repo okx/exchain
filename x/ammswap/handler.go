@@ -1,12 +1,12 @@
 package ammswap
 
 import (
-	"github.com/okex/exchain/x/ammswap/keeper"
-	"github.com/okex/exchain/x/ammswap/types"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/common/perf"
+	"github.com/okx/exchain/x/ammswap/keeper"
+	"github.com/okx/exchain/x/ammswap/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/common/perf"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
 
 // NewHandler creates an sdk.Handler for all the ammswap type messages

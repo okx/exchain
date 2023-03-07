@@ -2,24 +2,24 @@ package types_test
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/exchain/libs/tendermint/types"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/suite"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	dbm "github.com/okx/exchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
-	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/rootmulti"
+	storetypes "github.com/okx/exchain/libs/cosmos-sdk/store/types"
+	clienttypes "github.com/okx/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/03-connection/types"
+	commitmenttypes "github.com/okx/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	ibctmtypes "github.com/okx/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/exchain/libs/ibc-go/testing"
+	"github.com/okx/exchain/libs/ibc-go/testing/simapp"
 )
 
 var (

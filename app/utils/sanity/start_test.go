@@ -1,14 +1,14 @@
 package sanity
 
 import (
-	apptype "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/tendermint/consensus"
-	"github.com/okex/exchain/libs/tendermint/state"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	ttypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/evm/watcher"
+	apptype "github.com/okx/exchain/app/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/exchain/libs/tendermint/consensus"
+	"github.com/okx/exchain/libs/tendermint/state"
+	sm "github.com/okx/exchain/libs/tendermint/state"
+	ttypes "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/evm/watcher"
 	"github.com/spf13/cobra"
 	"testing"
 )

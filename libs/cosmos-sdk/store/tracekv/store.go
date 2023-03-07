@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/types"
 )
 
 const (

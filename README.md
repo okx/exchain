@@ -3,12 +3,12 @@ The Infrastructure of Decentralized Exchange
 
 ![banner](docs/images/okc.png)
 
-[![version](https://img.shields.io/github/tag/okex/exchain.svg)](https://github.com/okx/exchain/releases/latest)
-[![CircleCI](https://circleci.com/gh/okex/exchain/tree/dev.svg?style=shield)](https://circleci.com/gh/okex/exchain/tree/dev)
-[![codecov](https://codecov.io/gh/okex/okexchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okex/okexchain)
+[![version](https://img.shields.io/github/tag/okx/exchain.svg)](https://github.com/okx/exchain/releases/latest)
+[![CircleCI](https://circleci.com/gh/okx/exchain/tree/dev.svg?style=shield)](https://circleci.com/gh/okx/exchain/tree/dev)
+[![codecov](https://codecov.io/gh/okx/okexchain/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/okexchain)
 [![Go Report Card](https://goreportcard.com/badge/github.com/okx/exchain)](https://goreportcard.com/report/github.com/okx/exchain)
 [![license](https://img.shields.io/badge/license-Apache%202.0-green)](https://github.com/okx/exchain/blob/dev/LICENSE)
-[![LoC](https://tokei.rs/b1/github/okex/exchain)](https://github.com/okx/exchain)
+[![LoC](https://tokei.rs/b1/github/okx/exchain)](https://github.com/okx/exchain)
 [![GolangCI](https://golangci.com/badges/github.com/okx/exchain.svg)](https://golangci.com/r/github.com/okx/exchain)
 
 This repository hosts `OKC`, the implementation of the OKC based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).

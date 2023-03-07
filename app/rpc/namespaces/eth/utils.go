@@ -13,14 +13,14 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/viper"
 
-	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerror "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/token"
+	ethermint "github.com/okx/exchain/app/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerror "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	authexported "github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okx/exchain/x/evm/types"
+	"github.com/okx/exchain/x/token"
 )
 
 const (

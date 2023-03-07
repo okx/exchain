@@ -1,10 +1,10 @@
 package types
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-	govtypes "github.com/okex/exchain/x/gov/types"
-	stakingexported "github.com/okex/exchain/x/staking/exported"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	supplyexported "github.com/okx/exchain/libs/cosmos-sdk/x/supply/exported"
+	govtypes "github.com/okx/exchain/x/gov/types"
+	stakingexported "github.com/okx/exchain/x/staking/exported"
 )
 
 // StakingKeeper expected staking keeper (noalias)

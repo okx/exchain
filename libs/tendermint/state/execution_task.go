@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/system/trace"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/types"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/exchain/libs/system/trace"
+	cfg "github.com/okx/exchain/libs/tendermint/config"
+	"github.com/okx/exchain/libs/tendermint/libs/automation"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/proxy"
+	"github.com/okx/exchain/libs/tendermint/types"
+	dbm "github.com/okx/exchain/libs/tm-db"
 )
 
 type executionResult struct {
-	res *ABCIResponses
+	res      *ABCIResponses
 	duration time.Duration
-	err error
+	err      error
 }
 
 type executionTask struct {
@@ -87,7 +87,7 @@ func (t *executionTask) run() {
 
 	if !t.stopped {
 		t.result = &executionResult{
-			abciResponses, duration,err,
+			abciResponses, duration, err,
 		}
 		trace.GetElapsedInfo().AddInfo(trace.Prerun, fmt.Sprintf("%d", t.index))
 	}

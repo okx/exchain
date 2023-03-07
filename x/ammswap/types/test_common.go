@@ -3,11 +3,11 @@ package types
 import (
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/token"
-	tokentypes "github.com/okex/exchain/x/token/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/token"
+	tokentypes "github.com/okx/exchain/x/token/types"
 )
 
 // nolint

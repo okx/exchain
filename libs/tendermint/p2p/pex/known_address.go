@@ -3,7 +3,7 @@ package pex
 import (
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/p2p"
+	"github.com/okx/exchain/libs/tendermint/p2p"
 )
 
 // knownAddress tracks information about a known network address

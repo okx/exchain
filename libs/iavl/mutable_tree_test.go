@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/okex/exchain/libs/iavl/mock"
-	"github.com/okex/exchain/libs/tendermint/libs/rand"
-	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/exchain/libs/iavl/mock"
+	"github.com/okx/exchain/libs/tendermint/libs/rand"
+	db "github.com/okx/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"

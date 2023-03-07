@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/okx/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/tendermint/crypto/ed25519"
+	tmos "github.com/okx/exchain/libs/tendermint/libs/os"
 )
 
 // ID is a hex-encoded crypto.Address

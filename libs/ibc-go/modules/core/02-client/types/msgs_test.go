@@ -1,18 +1,18 @@
 package types_test
 
 import (
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/exchain/libs/tendermint/types"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
-	solomachinetypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/okx/exchain/libs/ibc-go/modules/core/23-commitment/types"
+	solomachinetypes "github.com/okx/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
+	ibctmtypes "github.com/okx/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/exchain/libs/ibc-go/testing"
 )
 
 type TypesTestSuite struct {
@@ -49,17 +49,17 @@ func (suite *TypesTestSuite) TestMarshalMsgCreateClient() {
 	}{
 		{
 			"solo machine client", func() {
-			soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 1)
-			msg, err = types.NewMsgCreateClient(soloMachine.ClientState(), soloMachine.ConsensusState(), suite.chainA.SenderAccount().GetAddress())
-			suite.Require().NoError(err)
-		},
+				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 1)
+				msg, err = types.NewMsgCreateClient(soloMachine.ClientState(), soloMachine.ConsensusState(), suite.chainA.SenderAccount().GetAddress())
+				suite.Require().NoError(err)
+			},
 		},
 		{
 			"tendermint client", func() {
-			tendermintClient := ibctmtypes.NewClientState(suite.chainA.ChainID(), ibctesting.DefaultTrustLevel, ibctesting.TrustingPeriod, ibctesting.UnbondingPeriod, ibctesting.MaxClockDrift, clientHeight, commitmenttypes.GetSDKSpecs(), ibctesting.UpgradePath, false, false)
-			msg, err = types.NewMsgCreateClient(tendermintClient, suite.chainA.CurrentTMClientHeader().ConsensusState(), suite.chainA.SenderAccount().GetAddress())
-			suite.Require().NoError(err)
-		},
+				tendermintClient := ibctmtypes.NewClientState(suite.chainA.ChainID(), ibctesting.DefaultTrustLevel, ibctesting.TrustingPeriod, ibctesting.UnbondingPeriod, ibctesting.MaxClockDrift, clientHeight, commitmenttypes.GetSDKSpecs(), ibctesting.UpgradePath, false, false)
+				msg, err = types.NewMsgCreateClient(tendermintClient, suite.chainA.CurrentTMClientHeader().ConsensusState(), suite.chainA.SenderAccount().GetAddress())
+				suite.Require().NoError(err)
+			},
 		},
 	}
 
@@ -155,23 +155,23 @@ func (suite *TypesTestSuite) TestMarshalMsgSubmitMisbehaviour() {
 	}{
 		{
 			"solo machine client", func() {
-			soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 1)
-			msg, err = types.NewMsgSubmitMisbehaviour(soloMachine.ClientID, soloMachine.CreateMisbehaviour(), suite.chainA.SenderAccount().GetAddress())
-			suite.Require().NoError(err)
-		},
+				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 1)
+				msg, err = types.NewMsgSubmitMisbehaviour(soloMachine.ClientID, soloMachine.CreateMisbehaviour(), suite.chainA.SenderAccount().GetAddress())
+				suite.Require().NoError(err)
+			},
 		},
 		{
 			"tendermint client", func() {
-			height := types.NewHeight(0, uint64(suite.chainA.CurrentHeader().Height))
-			heightMinus1 := types.NewHeight(0, uint64(suite.chainA.CurrentHeader().Height)-1)
-			header1 := suite.chainA.CreateTMClientHeader(suite.chainA.ChainID(), int64(height.RevisionHeight), heightMinus1, suite.chainA.CurrentHeader().Time, suite.chainA.Vals(), suite.chainA.Vals(), suite.chainA.Signers())
-			header2 := suite.chainA.CreateTMClientHeader(suite.chainA.ChainID(), int64(height.RevisionHeight), heightMinus1, suite.chainA.CurrentHeader().Time.Add(time.Minute), suite.chainA.Vals(), suite.chainA.Vals(), suite.chainA.Signers())
+				height := types.NewHeight(0, uint64(suite.chainA.CurrentHeader().Height))
+				heightMinus1 := types.NewHeight(0, uint64(suite.chainA.CurrentHeader().Height)-1)
+				header1 := suite.chainA.CreateTMClientHeader(suite.chainA.ChainID(), int64(height.RevisionHeight), heightMinus1, suite.chainA.CurrentHeader().Time, suite.chainA.Vals(), suite.chainA.Vals(), suite.chainA.Signers())
+				header2 := suite.chainA.CreateTMClientHeader(suite.chainA.ChainID(), int64(height.RevisionHeight), heightMinus1, suite.chainA.CurrentHeader().Time.Add(time.Minute), suite.chainA.Vals(), suite.chainA.Vals(), suite.chainA.Signers())
 
-			misbehaviour := ibctmtypes.NewMisbehaviour("tendermint", header1, header2)
-			msg, err = types.NewMsgSubmitMisbehaviour("tendermint", misbehaviour, suite.chainA.SenderAccount().GetAddress())
-			suite.Require().NoError(err)
+				misbehaviour := ibctmtypes.NewMisbehaviour("tendermint", header1, header2)
+				msg, err = types.NewMsgSubmitMisbehaviour("tendermint", misbehaviour, suite.chainA.SenderAccount().GetAddress())
+				suite.Require().NoError(err)
 
-		},
+			},
 		},
 	}
 

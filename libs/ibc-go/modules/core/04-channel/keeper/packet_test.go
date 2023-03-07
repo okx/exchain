@@ -4,17 +4,17 @@ import (
 	"errors"
 	"fmt"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	capabilitytypes "github.com/okx/exchain/libs/cosmos-sdk/x/capability/types"
 
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
-	ibcmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
+	clienttypes "github.com/okx/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okx/exchain/libs/ibc-go/modules/core/03-connection/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okx/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/exported"
+	ibctmtypes "github.com/okx/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
+	ibctesting "github.com/okx/exchain/libs/ibc-go/testing"
+	ibcmock "github.com/okx/exchain/libs/ibc-go/testing/mock"
 )
 
 var (

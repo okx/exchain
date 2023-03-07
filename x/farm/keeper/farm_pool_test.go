@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	swaptypes "github.com/okex/exchain/x/ammswap/types"
-	"github.com/okex/exchain/x/farm/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	swaptypes "github.com/okx/exchain/x/ammswap/types"
+	"github.com/okx/exchain/x/farm/types"
 	"github.com/stretchr/testify/require"
 )
 

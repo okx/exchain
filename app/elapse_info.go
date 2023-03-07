@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/system/trace"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
 
 	"github.com/spf13/viper"
 )

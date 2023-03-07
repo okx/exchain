@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/client/cli"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/client/rest"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/evidence/client"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/evidence/client/cli"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/evidence/client/rest"
 
 	"github.com/gorilla/mux"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
 )
 

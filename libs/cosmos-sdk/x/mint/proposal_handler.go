@@ -1,10 +1,10 @@
 package mint
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
-	"github.com/okex/exchain/x/common"
-	govTypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/mint/internal/types"
+	"github.com/okx/exchain/x/common"
+	govTypes "github.com/okx/exchain/x/gov/types"
 )
 
 // NewManageTreasuresProposalHandler handles "gov" type message in "mint"

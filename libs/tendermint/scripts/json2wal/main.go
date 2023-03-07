@@ -16,8 +16,8 @@ import (
 
 	amino "github.com/tendermint/go-amino"
 
-	cs "github.com/okex/exchain/libs/tendermint/consensus"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cs "github.com/okx/exchain/libs/tendermint/consensus"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 var cdc = amino.NewCodec()

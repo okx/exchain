@@ -6,10 +6,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/okex/exchain/libs/iavl/config"
+	"github.com/okx/exchain/libs/iavl/config"
 
-	"github.com/okex/exchain/libs/system/trace"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/exchain/libs/system/trace"
+	dbm "github.com/okx/exchain/libs/tm-db"
 )
 
 const (

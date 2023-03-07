@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/simulation"
 )
 
 const (

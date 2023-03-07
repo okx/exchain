@@ -2,7 +2,7 @@ package merkle
 
 import (
 	"bytes"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okx/exchain/libs/tendermint/crypto/tmhash"
 	"sync"
 )
 

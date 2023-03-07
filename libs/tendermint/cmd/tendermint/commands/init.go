@@ -6,13 +6,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	"github.com/okex/exchain/libs/tendermint/p2p"
-	"github.com/okex/exchain/libs/tendermint/privval"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	cfg "github.com/okx/exchain/libs/tendermint/config"
+	tmos "github.com/okx/exchain/libs/tendermint/libs/os"
+	tmrand "github.com/okx/exchain/libs/tendermint/libs/rand"
+	"github.com/okx/exchain/libs/tendermint/p2p"
+	"github.com/okx/exchain/libs/tendermint/privval"
+	"github.com/okx/exchain/libs/tendermint/types"
+	tmtime "github.com/okx/exchain/libs/tendermint/types/time"
 )
 
 // InitFilesCmd initialises a fresh Tendermint Core instance.

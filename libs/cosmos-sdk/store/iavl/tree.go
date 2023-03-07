@@ -3,7 +3,7 @@ package iavl
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/iavl"
+	"github.com/okx/exchain/libs/iavl"
 )
 
 var (

@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
 	"github.com/tendermint/go-amino"
 )
 

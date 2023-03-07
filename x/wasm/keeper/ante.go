@@ -3,11 +3,11 @@ package keeper
 import (
 	"encoding/binary"
 
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	types2 "github.com/okx/exchain/libs/tendermint/types"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okx/exchain/x/wasm/types"
 )
 
 type HandlerOption struct {

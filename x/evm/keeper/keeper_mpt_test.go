@@ -1,8 +1,8 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okx/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )

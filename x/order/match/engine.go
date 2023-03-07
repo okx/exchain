@@ -3,11 +3,11 @@ package match
 import (
 	"sync"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 
-	"github.com/okex/exchain/x/order/keeper"
-	"github.com/okex/exchain/x/order/match/continuousauction"
-	"github.com/okex/exchain/x/order/match/periodicauction"
+	"github.com/okx/exchain/x/order/keeper"
+	"github.com/okx/exchain/x/order/match/continuousauction"
+	"github.com/okx/exchain/x/order/match/periodicauction"
 )
 
 // nolint

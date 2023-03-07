@@ -3,12 +3,12 @@ package mock
 import (
 	"testing"
 
-	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/libs/tendermint/types"
+	appconfig "github.com/okx/exchain/app/config"
+	"github.com/okx/exchain/libs/tendermint/types"
 
 	"github.com/stretchr/testify/require"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
 )
 
 // TestInitApp makes sure we can initialize this thing without an error

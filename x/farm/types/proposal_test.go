@@ -6,9 +6,9 @@ package types
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common"
-	govTypes "github.com/okex/exchain/x/gov/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/common"
+	govTypes "github.com/okx/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 )
 

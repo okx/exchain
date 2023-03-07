@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 // FullCommit contains a SignedHeader (the block header and a commit that signs it),

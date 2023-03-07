@@ -3,16 +3,16 @@ package simulation
 import (
 	"math/rand"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okx/exchain/libs/tendermint/crypto"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
-	simappparams "github.com/okex/exchain/libs/cosmos-sdk/simapp/params"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeper"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okx/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/simapp/helpers"
+	simappparams "github.com/okx/exchain/libs/cosmos-sdk/simapp/params"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/bank/internal/keeper"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/simulation"
 )
 
 // Simulation operation weights constants

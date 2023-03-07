@@ -3,7 +3,7 @@ package infura
 import (
 	"encoding/json"
 
-	"github.com/okex/exchain/x/infura/types"
+	"github.com/okx/exchain/x/infura/types"
 )
 
 type TaskConst int

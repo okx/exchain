@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/okex/exchain/libs/iavl"
-	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okx/exchain/libs/iavl"
+	redis_cgi "github.com/okx/exchain/libs/tendermint/delta/redis-cgi"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	"github.com/okx/exchain/libs/tendermint/types"
+	tmtime "github.com/okx/exchain/libs/tendermint/types/time"
+	dbm "github.com/okx/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )

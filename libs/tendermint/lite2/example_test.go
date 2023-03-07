@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/exchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
-	lite "github.com/okex/exchain/libs/tendermint/lite2"
-	"github.com/okex/exchain/libs/tendermint/lite2/provider"
-	httpp "github.com/okex/exchain/libs/tendermint/lite2/provider/http"
-	dbs "github.com/okex/exchain/libs/tendermint/lite2/store/db"
-	rpctest "github.com/okex/exchain/libs/tendermint/rpc/test"
+	"github.com/okx/exchain/libs/tendermint/abci/example/kvstore"
+	lite "github.com/okx/exchain/libs/tendermint/lite2"
+	"github.com/okx/exchain/libs/tendermint/lite2/provider"
+	httpp "github.com/okx/exchain/libs/tendermint/lite2/provider/http"
+	dbs "github.com/okx/exchain/libs/tendermint/lite2/store/db"
+	rpctest "github.com/okx/exchain/libs/tendermint/rpc/test"
 )
 
 // Automatically getting new headers and verifying them.

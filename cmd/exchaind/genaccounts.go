@@ -8,20 +8,20 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okx/exchain/libs/tendermint/libs/cli"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	authvesting "github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting"
-	"github.com/okex/exchain/x/genutil"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	"github.com/okx/exchain/libs/cosmos-sdk/crypto/keys"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	authexported "github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	authvesting "github.com/okx/exchain/libs/cosmos-sdk/x/auth/vesting"
+	"github.com/okx/exchain/x/genutil"
 
-	"github.com/okex/exchain/app/crypto/hd"
-	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okx/exchain/app/crypto/hd"
+	okexchain "github.com/okx/exchain/app/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )

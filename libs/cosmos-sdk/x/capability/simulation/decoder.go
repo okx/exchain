@@ -3,16 +3,16 @@ package simulation
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	"github.com/okex/exchain/libs/tendermint/libs/kv"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/capability/types"
+	"github.com/okx/exchain/libs/tendermint/libs/kv"
 )
 
 // NewDecodeStore returns a decoder function closure that unmarshals the KVPair's
 // Value to the corresponding capability type.
-func NewDecodeStore() func(cdc *codec.Codec,kvA, kvB kv.Pair) string {
-	return func(cdc *codec.Codec,kvA, kvB kv.Pair) string {
+func NewDecodeStore() func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
+	return func(cdc *codec.Codec, kvA, kvB kv.Pair) string {
 		switch {
 		case bytes.Equal(kvA.Key, types.KeyIndex):
 			idxA := sdk.BigEndianToUint64(kvA.Value)

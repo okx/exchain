@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strconv"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/common/perf"
-	"github.com/okex/exchain/x/dex/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	types2 "github.com/okx/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/common/perf"
+	"github.com/okx/exchain/x/dex/types"
 )
 
 // NewHandler handles all "dex" type messages.

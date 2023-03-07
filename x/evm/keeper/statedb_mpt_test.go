@@ -4,12 +4,11 @@ import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okx/exchain/x/evm/types"
 
-	ethermint "github.com/okex/exchain/app/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	ethermint "github.com/okx/exchain/app/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 )
-
 
 func (suite *KeeperMptTestSuite) TestCommitStateDB_CommitMpt() {
 	testCase := []struct {

@@ -2,16 +2,16 @@ package cli
 
 import (
 	"fmt"
-	client "github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	client "github.com/okx/exchain/libs/cosmos-sdk/client/flags"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/okex/exchain/x/dex/types"
+	"github.com/okx/exchain/x/dex/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module

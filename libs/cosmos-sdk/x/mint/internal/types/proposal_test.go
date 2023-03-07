@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-	"github.com/okex/exchain/libs/tendermint/global"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	exgovtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okx/exchain/libs/tendermint/global"
+	tmtypes "github.com/okx/exchain/libs/tendermint/types"
+	exgovtypes "github.com/okx/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

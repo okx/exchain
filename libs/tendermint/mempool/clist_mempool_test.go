@@ -12,21 +12,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/libs/clist"
+	"github.com/okx/exchain/libs/tendermint/libs/clist"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	amino "github.com/tendermint/go-amino"
 
-	"github.com/okex/exchain/libs/tendermint/abci/example/counter"
-	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
-	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/tendermint/abci/example/counter"
+	"github.com/okx/exchain/libs/tendermint/abci/example/kvstore"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	cfg "github.com/okx/exchain/libs/tendermint/config"
+	"github.com/okx/exchain/libs/tendermint/libs/log"
+	tmrand "github.com/okx/exchain/libs/tendermint/libs/rand"
+	"github.com/okx/exchain/libs/tendermint/proxy"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 const (

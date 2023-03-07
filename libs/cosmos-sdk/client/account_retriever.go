@@ -1,15 +1,15 @@
 package client
 
 import (
-	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
+	clictx "github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/tendermint/crypto"
 )
 
 // Account defines a read-only version of the auth module's AccountI.
 type Account interface {
 	GetAddress() sdk.AccAddress
-	GetPubKey() crypto.PubKey// can return nil.
+	GetPubKey() crypto.PubKey // can return nil.
 	GetAccountNumber() uint64
 	GetSequence() uint64
 }

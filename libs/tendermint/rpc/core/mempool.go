@@ -8,11 +8,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	mempl "github.com/okex/exchain/libs/tendermint/mempool"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	rpctypes "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
-	"github.com/okex/exchain/libs/tendermint/types"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	mempl "github.com/okx/exchain/libs/tendermint/mempool"
+	ctypes "github.com/okx/exchain/libs/tendermint/rpc/core/types"
+	rpctypes "github.com/okx/exchain/libs/tendermint/rpc/jsonrpc/types"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 //-----------------------------------------------------------------------------

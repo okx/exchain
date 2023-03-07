@@ -1,9 +1,9 @@
 package keeper
 
 import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/gov/types"
-	"github.com/okex/exchain/x/staking/exported"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/gov/types"
+	"github.com/okx/exchain/x/staking/exported"
 )
 
 // validatorGovInfo used for tallying

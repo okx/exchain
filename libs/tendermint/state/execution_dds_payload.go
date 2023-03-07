@@ -3,8 +3,8 @@ package state
 import (
 	"fmt"
 
-	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okx/exchain/libs/iavl"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 func unmarshalTreeDeltaMap(input []byte) (interface{}, error) {

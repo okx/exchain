@@ -5,10 +5,10 @@ package periodicauction
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/dex"
-	orderkeeper "github.com/okex/exchain/x/order/keeper"
-	"github.com/okex/exchain/x/order/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/dex"
+	orderkeeper "github.com/okx/exchain/x/order/keeper"
+	"github.com/okx/exchain/x/order/types"
 	"github.com/stretchr/testify/require"
 )
 

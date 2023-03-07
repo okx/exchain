@@ -1,7 +1,7 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/x/evm/types"
+	"github.com/okx/exchain/x/evm/types"
 )
 
 func (suite *KeeperTestSuite) TestParams() {

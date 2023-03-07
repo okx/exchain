@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/mock"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"github.com/okex/exchain/x/ammswap/types"
-	staking "github.com/okex/exchain/x/staking/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/mock"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/supply/exported"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	"github.com/okx/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okx/exchain/x/ammswap/types"
+	staking "github.com/okx/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/x/token"
+	"github.com/okx/exchain/x/token"
 )
 
 type TestInput struct {

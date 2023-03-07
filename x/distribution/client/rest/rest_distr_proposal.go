@@ -3,15 +3,15 @@ package rest
 import (
 	"net/http"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/types/rest"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth/client/utils"
 
-	comm "github.com/okex/exchain/x/common"
-	"github.com/okex/exchain/x/distribution/types"
-	"github.com/okex/exchain/x/gov"
-	govrest "github.com/okex/exchain/x/gov/client/rest"
+	comm "github.com/okx/exchain/x/common"
+	"github.com/okx/exchain/x/distribution/types"
+	"github.com/okx/exchain/x/gov"
+	govrest "github.com/okx/exchain/x/gov/client/rest"
 )
 
 // ChangeDistributionTypeProposalRESTHandler returns a ChangeDistributionTypeProposal that exposes the change distribution type REST handler with a given sub-route.

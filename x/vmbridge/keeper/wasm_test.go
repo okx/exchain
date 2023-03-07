@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/x/vmbridge/keeper"
-	"github.com/okex/exchain/x/vmbridge/types"
-	wasmtypes "github.com/okex/exchain/x/wasm/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okx/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/exchain/x/vmbridge/keeper"
+	"github.com/okx/exchain/x/vmbridge/types"
+	wasmtypes "github.com/okx/exchain/x/wasm/types"
 	"math/big"
 )
 

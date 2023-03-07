@@ -5,13 +5,13 @@ import (
 	"regexp"
 	"strconv"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
+	dbm "github.com/okx/exchain/libs/tm-db"
 	amino "github.com/tendermint/go-amino"
 
-	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	log "github.com/okex/exchain/libs/tendermint/libs/log"
-	lerr "github.com/okex/exchain/libs/tendermint/lite/errors"
-	"github.com/okex/exchain/libs/tendermint/types"
+	cryptoamino "github.com/okx/exchain/libs/tendermint/crypto/encoding/amino"
+	log "github.com/okx/exchain/libs/tendermint/libs/log"
+	lerr "github.com/okx/exchain/libs/tendermint/lite/errors"
+	"github.com/okx/exchain/libs/tendermint/types"
 )
 
 var _ PersistentProvider = (*DBProvider)(nil)

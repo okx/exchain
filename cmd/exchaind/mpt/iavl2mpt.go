@@ -12,15 +12,15 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/okex/exchain/app"
-	apptypes "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/iavl"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okx/exchain/app"
+	apptypes "github.com/okx/exchain/app/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/server"
+	"github.com/okx/exchain/libs/cosmos-sdk/store/mpt"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	authexported "github.com/okx/exchain/libs/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/okx/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okx/exchain/libs/iavl"
+	evmtypes "github.com/okx/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -158,14 +158,14 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
 	/*
-	// 4. save an empty evmlegacy iavl tree in mirgate height
-	upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvmLegacyKey))
-	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
-	panicError(err)
-	_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
-	panicError(err)
-	fmt.Printf("Successfully save an empty evmlegacy iavl tree in %d\n", version)
-	 */
+		// 4. save an empty evmlegacy iavl tree in mirgate height
+		upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvmLegacyKey))
+		upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
+		panicError(err)
+		_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
+		panicError(err)
+		fmt.Printf("Successfully save an empty evmlegacy iavl tree in %d\n", version)
+	*/
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -302,11 +302,11 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 
 }
 
-func readAllParams(app *app.OKExChainApp) map[string][]byte{
+func readAllParams(app *app.OKExChainApp) map[string][]byte {
 	tree := getUpgradedTree(app.GetDB(), []byte(KeyParams), false)
 
 	paramsMap := make(map[string][]byte)
-	tree.IterateRange(nil, nil, true, func(key, value []byte) bool{
+	tree.IterateRange(nil, nil, true, func(key, value []byte) bool {
 		paramsMap[string(key)] = value
 		return false
 	})

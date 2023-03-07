@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"encoding/binary"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/farm/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/farm/types"
 )
 
 func (k Keeper) GetPoolHistoricalRewards(

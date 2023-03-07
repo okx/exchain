@@ -3,9 +3,9 @@ package keeper
 import (
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/x/staking/types"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/x/params"
+	"github.com/okx/exchain/x/staking/types"
 )
 
 // Default parameter namespace

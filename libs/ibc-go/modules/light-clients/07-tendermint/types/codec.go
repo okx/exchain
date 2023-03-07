@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okx/exchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okx/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okx/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // RegisterInterfaces registers the tendermint concrete client-related

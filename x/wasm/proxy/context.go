@@ -5,15 +5,15 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/store"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/okex/exchain/libs/tm-db"
-	evmwatcher "github.com/okex/exchain/x/evm/watcher"
+	clientcontext "github.com/okx/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okx/exchain/libs/cosmos-sdk/store"
+	sdk "github.com/okx/exchain/libs/cosmos-sdk/types"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okx/exchain/libs/cosmos-sdk/x/params"
+	abci "github.com/okx/exchain/libs/tendermint/abci/types"
+	tmlog "github.com/okx/exchain/libs/tendermint/libs/log"
+	dbm "github.com/okx/exchain/libs/tm-db"
+	evmwatcher "github.com/okx/exchain/x/evm/watcher"
 )
 
 const (
