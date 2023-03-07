@@ -122,8 +122,10 @@ func (am AppModule) CommitFilter() *store.StoreFilter {
 			return true
 		}
 
-		if h == types2.GetEarthHeight() && s != nil {
-			s.SetUpgradeVersion(h)
+		if h == types2.GetEarthHeight() {
+			if s != nil {
+				s.SetUpgradeVersion(h)
+			}
 			return false
 		}
 

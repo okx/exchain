@@ -55,8 +55,10 @@ func (v *Venus3BaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
 			return true
 		}
 
-		if h == tmtypes.GetVenus4Height() && s != nil {
-			s.SetUpgradeVersion(h)
+		if h == tmtypes.GetVenus4Height() {
+			if s != nil {
+				s.SetUpgradeVersion(h)
+			}
 			return false
 		}
 
