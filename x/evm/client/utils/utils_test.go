@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	okexchain "github.com/okx/okbchain/app/types"
+	chain "github.com/okx/okbchain/app/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/x/evm/types"
 	"github.com/stretchr/testify/require"
@@ -93,7 +93,7 @@ const (
 
 func init() {
 	config := sdk.GetConfig()
-	okexchain.SetBech32Prefixes(config)
+	chain.SetBech32Prefixes(config)
 }
 
 func TestParseManageContractDeploymentWhitelistProposalJSON(t *testing.T) {

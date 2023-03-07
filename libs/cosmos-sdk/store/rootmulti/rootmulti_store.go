@@ -453,7 +453,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
 		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, "+
 			"need to prune them with command "+
-			"<exchaind data prune-compact all --home your_exchaind_home_directory> before running exchaind",
+			"<okbchaind data prune-compact all --home your_okbchaind_home_directory> before running okbchaind",
 			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
 	return nil

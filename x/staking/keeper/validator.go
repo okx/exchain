@@ -268,7 +268,7 @@ func (k Keeper) UnbondAllMatureValidatorQueue(ctx sdk.Context) {
 				panic("unexpected validator in unbonding queue; status was not unbonding")
 			}
 			val = k.unbondingToUnbonded(ctx, val)
-			// required by okexchain
+			// required by okbchain
 			//if val.GetDelegatorShares().IsZero() {
 			//	k.RemoveValidator(ctx, val.OperatorAddress)
 			//}

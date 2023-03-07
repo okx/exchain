@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
-	okexchaincodec "github.com/okx/okbchain/app/codec"
+	chaincodec "github.com/okx/okbchain/app/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/types/module"
 	"math/big"
 	"os"
@@ -55,7 +55,7 @@ func calcHash(kvs []KV) []byte {
 
 type WatcherTestSt struct {
 	ctx     sdk.Context
-	app     *app.OKExChainApp
+	app     *app.OKBChainApp
 	handler sdk.Handler
 }
 
@@ -471,7 +471,7 @@ func TestDeliverRealTx(t *testing.T) {
 	privKey, _ := ethsecp256k1.GenerateKey()
 	err := tx.Sign(big.NewInt(3), privKey.ToECDSA())
 	require.NoError(t, err)
-	codecProxy, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
+	codecProxy, _ := chaincodec.MakeCodecSuit(module.NewBasicManager())
 	w.app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(tx, nil, evm.TxDecoder(codecProxy))
 }
 

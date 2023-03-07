@@ -636,7 +636,7 @@ var xxx_messageInfo_QueryCodeRequest proto.InternalMessageInfo
 type CodeInfoResponse struct {
 	CodeID                uint64                                               `protobuf:"varint,1,opt,name=code_id,json=codeId,proto3" json:"id"`
 	Creator               string                                               `protobuf:"bytes,2,opt,name=creator,proto3" json:"creator,omitempty"`
-	DataHash              github_com_tendermint_tendermint_libs_bytes.HexBytes `protobuf:"bytes,3,opt,name=data_hash,json=dataHash,proto3,casttype=github.com/okex/exchain/libs/tendermint/libs/bytes.HexBytes" json:"data_hash,omitempty"`
+	DataHash              github_com_tendermint_tendermint_libs_bytes.HexBytes `protobuf:"bytes,3,opt,name=data_hash,json=dataHash,proto3,casttype=github.com/okx/okbchain/libs/tendermint/libs/bytes.HexBytes" json:"data_hash,omitempty"`
 	InstantiatePermission AccessConfig                                         `protobuf:"bytes,6,opt,name=instantiate_permission,json=instantiatePermission,proto3" json:"instantiate_permission"`
 }
 

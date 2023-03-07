@@ -45,8 +45,8 @@ func TestStoreTestSuite(t *testing.T) {
 }
 
 func (suite *StoreTestSuite) SetupTest() {
-	// set exchaind path
-	serverDir, err := ioutil.TempDir("", ".exchaind")
+	// set okbchaind path
+	serverDir, err := ioutil.TempDir("", ".okbchaind")
 	if err != nil {
 		panic(err)
 	}

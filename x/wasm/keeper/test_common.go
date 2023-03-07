@@ -11,8 +11,8 @@ import (
 
 	"github.com/okx/okbchain/x/wasm/keeper/testdata"
 
-	okexchaincodec "github.com/okx/okbchain/app/codec"
-	okexchain "github.com/okx/okbchain/app/types"
+	chaincodec "github.com/okx/okbchain/app/codec"
+	chain "github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
@@ -113,7 +113,7 @@ func MakeTestCodec(t testing.TB) codec.CodecProxy {
 }
 
 func MakeEncodingConfig(_ testing.TB) EncodingConfig {
-	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(moduleBasics)
+	codecProxy, interfaceReg := chaincodec.MakeCodecSuit(moduleBasics)
 	txConfig := ibc_tx.NewTxConfig(codecProxy.GetProtocMarshal(), ibc_tx.DefaultSignModes)
 	encodingConfig := EncodingConfig{
 		InterfaceRegistry: interfaceReg,
@@ -303,7 +303,7 @@ func createTestInput(
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		types.ModuleName:            nil,
 	}
-	accountKeeper := auth.NewAccountKeeper(legacyAmino, keys[mpt.StoreKey], subspace(authtypes.ModuleName), okexchain.ProtoAccount)
+	accountKeeper := auth.NewAccountKeeper(legacyAmino, keys[mpt.StoreKey], subspace(authtypes.ModuleName), chain.ProtoAccount)
 	blockedAddrs := make(map[string]bool)
 	for acc := range maccPerms {
 		blockedAddrs[authtypes.NewModuleAddress(acc).String()] = true

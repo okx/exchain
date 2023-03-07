@@ -94,16 +94,16 @@ func (suite *RPCTestSuite) SetupTest() {
 
 	viper.Set(rpc.FlagDebugAPI, true)
 	viper.Set(cmserver.FlagPruning, cosmost.PruningOptionNothing)
-	// set exchaincli path
-	cliDir, err := ioutil.TempDir("", ".exchaincli")
+	// set okbchaincli path
+	cliDir, err := ioutil.TempDir("", ".okbchaincli")
 	if err != nil {
 		panic(err)
 	}
 	defer os.RemoveAll(cliDir)
 	viper.Set(cmserver.FlagUlockKeyHome, cliDir)
 
-	// set exchaind path
-	serverDir, err := ioutil.TempDir("", ".exchaind")
+	// set okbchaind path
+	serverDir, err := ioutil.TempDir("", ".okbchaind")
 	if err != nil {
 		panic(err)
 	}

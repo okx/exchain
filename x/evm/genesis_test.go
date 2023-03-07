@@ -1,6 +1,7 @@
 package evm_test
 
 import (
+	"github.com/okx/okbchain/libs/system"
 	"os"
 	"path/filepath"
 	"strings"
@@ -289,7 +290,7 @@ func (suite *EvmTestSuite) TestInit() {
 			suite.SetupTest() // reset values
 
 			db := dbm.NewMemDB()
-			chain := app.NewOKExChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
+			chain := app.NewOKBChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
 			genesisState := app.NewDefaultGenesisState()
 
 			tc.malleate(&genesisState)
@@ -444,7 +445,7 @@ func (suite *EvmTestSuite) TestExport1() {
 }
 
 func (suite *EvmTestSuite) TestExport_db() {
-	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvPrefix(system.EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 	viper.Set(sdk.FlagDBBackend, string(dbm.GoLevelDBBackend))
@@ -482,16 +483,16 @@ func (suite *EvmTestSuite) TestExport_db() {
 		Params:   types.DefaultParams(),
 		Accounts: []types.GenesisAccount{evmAcc},
 	}
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "db")
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "db")
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_PATH", tmpPath)
 
 	defer func() {
-		os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-		os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "default")
 		os.RemoveAll(tmpPath)
 	}()
 
@@ -517,14 +518,14 @@ func testImport_db(suite *EvmTestSuite,
 	ethAccount ethermint.EthAccount,
 	code []byte,
 	storage types.Storage) {
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
 	suite.SetupTest() // reset
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
 
 	viper.Set(sdk.FlagDBBackend, string(dbm.GoLevelDBBackend))
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "db")
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", dbPath)
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "db")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_PATH", dbPath)
 
 	suite.Require().DirExists(filepath.Join(dbPath, "evm_bytecode.db"))
 	suite.Require().DirExists(filepath.Join(dbPath, "evm_state.db"))
@@ -539,7 +540,7 @@ func testImport_db(suite *EvmTestSuite,
 }
 
 func (suite *EvmTestSuite) TestExport_files() {
-	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvPrefix(system.EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 
@@ -580,16 +581,16 @@ func (suite *EvmTestSuite) TestExport_files() {
 		ContractDeploymentWhitelist: expectedAddrList,
 		ContractBlockedList:         expectedAddrList,
 	}
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "files")
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_PATH", tmpPath)
 
 	defer func() {
-		os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-		os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "default")
 		os.RemoveAll(tmpPath)
 	}()
 
@@ -611,7 +612,7 @@ func (suite *EvmTestSuite) TestExport_files() {
 }
 
 func (suite *EvmTestSuite) TestExport_files1() {
-	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvPrefix(system.EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 
@@ -667,16 +668,16 @@ func (suite *EvmTestSuite) TestExport_files1() {
 		ContractBlockedList:         expectedAddrList,
 		ContractMethodBlockedList:   expectedContractMethodBlockedList,
 	}
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "files")
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_PATH", tmpPath)
 
 	defer func() {
-		os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-		os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "default")
 		os.RemoveAll(tmpPath)
 	}()
 
@@ -699,7 +700,7 @@ func (suite *EvmTestSuite) TestExport_files1() {
 }
 
 func (suite *EvmTestSuite) TestExport_files2() {
-	viper.SetEnvPrefix("OKEXCHAIN")
+	viper.SetEnvPrefix(system.EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
 
@@ -751,16 +752,16 @@ func (suite *EvmTestSuite) TestExport_files2() {
 		ContractBlockedList:         expectedAddrList,
 		ContractMethodBlockedList:   expectedContractMethodBlockedList,
 	}
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
 	evm.InitGenesis(suite.ctx, *suite.app.EvmKeeper, &suite.app.AccountKeeper, initGenesis)
 
 	tmpPath := "./test_tmp_db"
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "files")
-	os.Setenv("OKEXCHAIN_EVM_EXPORT_PATH", tmpPath)
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "files")
+	os.Setenv(system.EnvPrefix+"_EVM_EXPORT_PATH", tmpPath)
 
 	defer func() {
-		os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
-		os.Setenv("OKEXCHAIN_EVM_EXPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
+		os.Setenv(system.EnvPrefix+"_EVM_EXPORT_MODE", "default")
 		os.RemoveAll(tmpPath)
 	}()
 
@@ -789,13 +790,13 @@ func testImport_files(suite *EvmTestSuite,
 	code []byte,
 	storage types.Storage,
 	expectedAddrList types.AddressList) {
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "default")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
 	suite.SetupTest() // reset
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
 
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "files")
-	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", filePath)
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "files")
+	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_PATH", filePath)
 
 	suite.Require().DirExists(filepath.Join(filePath, "code"))
 	suite.Require().DirExists(filepath.Join(filePath, "storage"))

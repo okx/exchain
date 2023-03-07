@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"regexp"
 	"strings"
@@ -17,8 +18,8 @@ var (
 	ethermintChainID = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, regexChainID, regexSeparator, regexEpoch))
 )
 
-const mainnetChainId = "exchain-66"
-const testnetChainId = "exchain-65"
+const mainnetChainId = system.Chain + "-66"
+const testnetChainId = system.Chain + "-65"
 
 var (
 	chainIdSetOnce    sync.Once

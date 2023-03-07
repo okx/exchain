@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -14,7 +15,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	okexchaincodec "github.com/okx/okbchain/app/codec"
+	chaincodec "github.com/okx/okbchain/app/codec"
 
 	"github.com/stretchr/testify/require"
 
@@ -449,8 +450,8 @@ func newProxyDecoder() *codec.CodecProxy {
 		ibctransfer.AppModuleBasic{},
 		ibcfee.AppModuleBasic{},
 	)
-	cdc := okexchaincodec.MakeCodec(ModuleBasics)
-	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
+	cdc := chaincodec.MakeCodec(ModuleBasics)
+	interfaceReg := chaincodec.MakeIBC(ModuleBasics)
 	protoCodec := codec.NewProtoCodec(interfaceReg)
 	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 	return codecProxy
@@ -484,7 +485,7 @@ func TestMsgIBCTxValidate(t *testing.T) {
 }
 
 func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
-	chainID := "exchain-101"
+	chainID := system.Chain + "-101"
 	accnum := 1
 	sequence := 0
 	memo := "memo"

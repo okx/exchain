@@ -27,7 +27,7 @@ type KeeperTestSuite struct {
 	suite.Suite
 
 	ctx sdk.Context
-	app *app.OKExChainApp
+	app *app.OKBChainApp
 
 	querier sdk.Querier
 }

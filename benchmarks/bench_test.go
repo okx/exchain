@@ -3,6 +3,7 @@ package benchmarks
 import (
 	"encoding/hex"
 	"encoding/json"
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"os"
 	"testing"
@@ -159,7 +160,7 @@ func BenchmarkTxSending(b *testing.B) {
 
 			for i := 0; i < b.N; {
 				if i%blockSize == 0 {
-					appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: height, Time: time.Now()}})
+					appInfo.App.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: system.Chain + "-67", Height: height, Time: time.Now()}})
 				}
 				//res := appInfo.App.CheckTx(abci.RequestCheckTx{
 				//	Tx: txs[idx],

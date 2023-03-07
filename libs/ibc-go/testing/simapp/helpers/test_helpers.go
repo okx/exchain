@@ -9,7 +9,7 @@ import (
 
 	ibcfee "github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee"
 
-	okexchaincodec "github.com/okx/okbchain/app/codec"
+	chaincodec "github.com/okx/okbchain/app/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/crypto/types"
@@ -133,8 +133,8 @@ func newProxyDecoder() *codec.CodecProxy {
 		ibcfee.AppModuleBasic{},
 		icamauth.AppModuleBasic{},
 	)
-	cdc := okexchaincodec.MakeCodec(ModuleBasics)
-	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
+	cdc := chaincodec.MakeCodec(ModuleBasics)
+	interfaceReg := chaincodec.MakeIBC(ModuleBasics)
 	protoCodec := codec.NewProtoCodec(interfaceReg)
 	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 	return codecProxy

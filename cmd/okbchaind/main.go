@@ -36,7 +36,7 @@ import (
 	"github.com/okx/okbchain/app"
 	"github.com/okx/okbchain/app/codec"
 	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
-	okexchain "github.com/okx/okbchain/app/types"
+	chain "github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/cmd/client"
 	"github.com/okx/okbchain/x/genutil"
 	genutilcli "github.com/okx/okbchain/x/genutil/client/cli"
@@ -64,15 +64,15 @@ func main() {
 	clientkeys.KeysCdc = codecProxy.GetCdc()
 
 	config := sdk.GetConfig()
-	okexchain.SetBech32Prefixes(config)
-	okexchain.SetBip44CoinType(config)
+	chain.SetBech32Prefixes(config)
+	chain.SetBip44CoinType(config)
 	config.Seal()
 
 	ctx := server.NewDefaultContext()
 
 	rootCmd := &cobra.Command{
 		Use:               system.Server,
-		Short:             "ExChain App Daemon (server)",
+		Short:             "OKBChain App Daemon (server)",
 		PersistentPreRunE: preRun(ctx),
 	}
 	// CLI commands to initialize the chain
@@ -143,7 +143,7 @@ func checkSetEnv(envName string, value string) {
 
 func closeApp(iApp abci.Application) {
 	fmt.Println("Close App")
-	app := iApp.(*app.OKExChainApp)
+	app := iApp.(*app.OKBChainApp)
 	app.StopBaseApp()
 	evmtypes.CloseIndexer()
 	rpc.CloseEthBackend()
@@ -156,7 +156,7 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		panic(err)
 	}
 
-	return app.NewOKExChainApp(
+	return app.NewOKBChainApp(
 		logger,
 		db,
 		traceStore,
@@ -172,15 +172,15 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 func exportAppStateAndTMValidators(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
 ) (json.RawMessage, []tmtypes.GenesisValidator, error) {
-	var ethermintApp *app.OKExChainApp
+	var ethermintApp *app.OKBChainApp
 	if height != -1 {
-		ethermintApp = app.NewOKExChainApp(logger, db, traceStore, false, map[int64]bool{}, 0)
+		ethermintApp = app.NewOKBChainApp(logger, db, traceStore, false, map[int64]bool{}, 0)
 
 		if err := ethermintApp.LoadHeight(height); err != nil {
 			return nil, nil, err
 		}
 	} else {
-		ethermintApp = app.NewOKExChainApp(logger, db, traceStore, true, map[int64]bool{}, 0)
+		ethermintApp = app.NewOKBChainApp(logger, db, traceStore, true, map[int64]bool{}, 0)
 	}
 
 	return ethermintApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)

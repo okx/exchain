@@ -99,7 +99,7 @@ type InstantiateContractProposal struct {
 	// Msg json encoded message to be passed to the contract on instantiation
 	Msg RawContractMessage `protobuf:"bytes,7,opt,name=msg,proto3,casttype=RawContractMessage" json:"msg,omitempty"`
 	// Funds coins that are transferred to the contract on instantiation
-	Funds github_com_cosmos_cosmos_sdk_types.CoinAdapters `protobuf:"bytes,8,rep,name=funds,proto3,castrepeated=github.com/okex/exchain/libs/cosmos-sdk/types.Coins" json:"funds"`
+	Funds github_com_cosmos_cosmos_sdk_types.CoinAdapters `protobuf:"bytes,8,rep,name=funds,proto3,castrepeated=github.com/okx/okbchain/libs/cosmos-sdk/types.Coins" json:"funds"`
 }
 
 func (m *InstantiateContractProposal) Reset()      { *m = InstantiateContractProposal{} }
@@ -253,7 +253,7 @@ type ExecuteContractProposal struct {
 	// Msg json encoded message to be passed to the contract as execute
 	Msg RawContractMessage `protobuf:"bytes,5,opt,name=msg,proto3,casttype=RawContractMessage" json:"msg,omitempty"`
 	// Funds coins that are transferred to the contract on instantiation
-	Funds github_com_cosmos_cosmos_sdk_types.CoinAdapters `protobuf:"bytes,6,rep,name=funds,proto3,castrepeated=github.com/okex/exchain/libs/cosmos-sdk/types.Coins" json:"funds"`
+	Funds github_com_cosmos_cosmos_sdk_types.CoinAdapters `protobuf:"bytes,6,rep,name=funds,proto3,castrepeated=github.com/okx/okbchain/libs/cosmos-sdk/types.Coins" json:"funds"`
 }
 
 func (m *ExecuteContractProposal) Reset()      { *m = ExecuteContractProposal{} }

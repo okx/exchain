@@ -47,7 +47,7 @@ type InnerTxTestSuite struct {
 	suite.Suite
 
 	ctx     sdk.Context
-	app     *OKExChainApp
+	app     *OKBChainApp
 	stateDB *evm_types.CommitStateDB
 	codec   *codec.Codec
 

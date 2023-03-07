@@ -5,7 +5,7 @@ import (
 
 	"github.com/okx/okbchain/x/gov"
 
-	okexchaincodec "github.com/okx/okbchain/app/codec"
+	chaincodec "github.com/okx/okbchain/app/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 	cliLcd "github.com/okx/okbchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
@@ -48,8 +48,7 @@ func TestNewAppModuleBasic(t *testing.T) {
 		ibc.AppModuleBasic{},
 		ibctransfer.AppModuleBasic{},
 	)
-	//cdc := okexchaincodec.MakeCodec(ModuleBasics)
-	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
+	interfaceReg := chaincodec.MakeIBC(ModuleBasics)
 	protoCodec := codec.NewProtoCodec(interfaceReg)
 	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 

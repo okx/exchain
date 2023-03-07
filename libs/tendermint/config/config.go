@@ -116,7 +116,7 @@ func (cfg *Config) SetRoot(root string) *Config {
 	cfg.Mempool.RootDir = root
 	cfg.Consensus.RootDir = root
 
-	// exchain change LogFile base on cfg.BaseConfig.RootDir
+	// chain change LogFile base on cfg.BaseConfig.RootDir
 	if root != DefaultLogPath && cfg.BaseConfig.LogFile == defaultLogFile {
 		cfg.BaseConfig.LogFile = filepath.Join(root, defaultLogFileName)
 	}
@@ -699,7 +699,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		Broadcast: true,
 		// Each signature verification takes .5ms, Size reduced until we implement
 		// ABCI Recheck
-		Size:                       200_000,            // exchain memory pool size(max tx num)
+		Size:                       200_000,            // chain memory pool size(max tx num)
 		MaxTxsBytes:                1024 * 1024 * 1024, // 1GB
 		CacheSize:                  300_000,
 		MaxTxBytes:                 1024 * 1024, // 1MB
@@ -954,12 +954,14 @@ func (cfg *ConsensusConfig) ValidateBasic() error {
 	return nil
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // TxIndexConfig
 // Remember that Event has the following structure:
 // type: [
-//  key: value,
-//  ...
+//
+//	key: value,
+//	...
+//
 // ]
 //
 // CompositeKeys are constructed by `type.key`

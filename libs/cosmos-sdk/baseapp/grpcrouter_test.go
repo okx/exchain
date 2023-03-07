@@ -2,7 +2,7 @@ package baseapp_test
 
 import (
 	"context"
-	okexchaincodec "github.com/okx/okbchain/app/codec"
+	chaincodec "github.com/okx/okbchain/app/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/simapp"
 	simapp2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp"
 	"github.com/okx/okbchain/x/evm"
@@ -58,7 +58,7 @@ func TestRegisterQueryServiceTwice(t *testing.T) {
 	// Setup baseapp.
 	db := dbm.NewMemDB()
 	encCfg := simapp2.MakeTestEncodingConfig()
-	codecProxy, _ := okexchaincodec.MakeCodecSuit(simapp.ModuleBasics)
+	codecProxy, _ := chaincodec.MakeCodecSuit(simapp.ModuleBasics)
 	app := baseapp.NewBaseApp("test", log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, evm.TxDecoder(codecProxy))
 	app.SetInterfaceRegistry(encCfg.InterfaceRegistry)
 	testdata.RegisterInterfaces(encCfg.InterfaceRegistry)

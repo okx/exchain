@@ -7,7 +7,7 @@ import (
 	govtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/gov/types"
 	types "github.com/okx/okbchain/libs/cosmos-sdk/x/upgrade/typesadapter"
 	"github.com/okx/okbchain/libs/ibc-go/modules/core/exported"
-	exchaingov "github.com/okx/okbchain/x/gov/types"
+	chaingov "github.com/okx/okbchain/x/gov/types"
 )
 
 const (
@@ -26,7 +26,7 @@ func init() {
 	govtypes.RegisterProposalType(ProposalTypeClientUpdate)
 	govtypes.RegisterProposalType(ProposalTypeUpgrade)
 
-	exchaingov.RegisterProposalType(ProposalTypeClientUpdate)
+	chaingov.RegisterProposalType(ProposalTypeClientUpdate)
 }
 
 // NewClientUpdateProposal creates a new client update proposal.

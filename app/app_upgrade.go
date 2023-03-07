@@ -14,10 +14,10 @@ import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/params/subspace"
 )
 
-func (app *OKExChainApp) RegisterTxService(clientCtx cliContext.CLIContext) {
+func (app *OKBChainApp) RegisterTxService(clientCtx cliContext.CLIContext) {
 	utils.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.grpcSimulate, clientCtx.InterfaceRegistry)
 }
-func (app *OKExChainApp) grpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result, error) {
+func (app *OKBChainApp) grpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result, error) {
 	tx, err := app.GetTxDecoder()(txBytes)
 	if err != nil {
 		return sdk.GasInfo{}, nil, sdkerrors.Wrap(err, "failed to decode tx")
@@ -25,7 +25,7 @@ func (app *OKExChainApp) grpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result,
 	return app.Simulate(txBytes, tx, 0, nil)
 }
 
-func (app *OKExChainApp) setupUpgradeModules() {
+func (app *OKBChainApp) setupUpgradeModules() {
 	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
@@ -48,7 +48,7 @@ func (app *OKExChainApp) setupUpgradeModules() {
 	}
 }
 
-func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks,
+func (o *OKBChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks,
 	map[string]params.ParamSet, []types.StoreFilter, []types.StoreFilter, []types.VersionFilter) {
 	hm := make(map[int64]*upgradetypes.HeightTasks)
 	paramsRet := make(map[string]params.ParamSet)

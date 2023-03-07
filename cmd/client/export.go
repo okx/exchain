@@ -84,14 +84,14 @@ func UnsafeExportEthKeyCommand() *cobra.Command {
 func ExportEthCompCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:    "export-eth-comp [name] [dir]",
-		Short:  "Export an Ethereum private keystore directory (This command has been deprecated,please use 'exchaincli keys export-eth-keystore')",
+		Short:  "Export an Ethereum private keystore directory (This command has been deprecated,please use 'okbchaincli keys export-eth-keystore')",
 		Hidden: true,
 		Long: `Export an Ethereum private keystore file encrypted to use in eth client import.
 
 	The parameters of scrypt encryption algorithm is StandardScryptN and StandardScryptN`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("This command has been deprecated,please use 'exchaincli keys export-eth-keystore'")
+			return fmt.Errorf("This command has been deprecated,please use 'okbchaincli keys export-eth-keystore'")
 		},
 	}
 }

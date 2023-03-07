@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okx/okbchain/libs/system"
 	"math/big"
 	"testing"
 
@@ -55,7 +56,7 @@ func TestIbcTxDecoderSignMode(t *testing.T) {
 			msgs,
 			sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
 			helpers.DefaultGenTxGas,
-			"exchain-101",
+			system.Chain+"-101",
 			[]uint64{0}, //[]uint64{acc.GetAccountNumber()},
 			[]uint64{0}, //[]uint64{acc.GetSequence()},
 			2,
@@ -68,7 +69,7 @@ func TestIbcTxDecoderSignMode(t *testing.T) {
 		msgs,
 		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
 		helpers.DefaultGenTxGas,
-		"exchain-101",
+		system.Chain+"-101",
 		[]uint64{0}, //[]uint64{acc.GetAccountNumber()},
 		[]uint64{0}, //[]uint64{acc.GetSequence()},
 		1,
@@ -286,7 +287,7 @@ func TestHeightSensitive(t *testing.T) {
 		msgs,
 		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
 		helpers.DefaultGenTxGas,
-		"exchain-101",
+		system.Chain+"-101",
 		[]uint64{0}, //[]uint64{acc.GetAccountNumber()},
 		[]uint64{0}, //[]uint64{acc.GetSequence()},
 		1,

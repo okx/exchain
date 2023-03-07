@@ -11,13 +11,13 @@ import (
 )
 
 // BeginBlock implements the Application interface
-func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+func (app *OKBChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	app.EvmKeeper.Watcher.DelayEraseKey()
 	return app.BaseApp.BeginBlock(req)
 }
 
-func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
+func (app *OKBChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
 	trace.OnAppDeliverTxEnter()
 
@@ -26,11 +26,11 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	return resp
 }
 
-func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
+func (app *OKBChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
 	return app.BaseApp.PreDeliverRealTx(req)
 }
 
-func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
+func (app *OKBChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
 	trace.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)
 	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
@@ -39,12 +39,12 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 }
 
 // EndBlock implements the Application interface
-func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+func (app *OKBChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 	return app.BaseApp.EndBlock(req)
 }
 
 // Commit implements the Application interface
-func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
+func (app *OKBChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	if gcInterval := appconfig.GetOecConfig().GetGcInterval(); gcInterval > 0 {
 		if (app.BaseApp.LastBlockHeight()+1)%int64(gcInterval) == 0 {
 			startTime := time.Now()

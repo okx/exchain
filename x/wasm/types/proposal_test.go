@@ -882,7 +882,7 @@ func TestProposalJsonSignBytes(t *testing.T) {
 			src: &InstantiateContractProposal{Msg: RawContractMessage(myInnerMsg)},
 			exp: `
 {
-	"type":"okexchain/gov/MsgSubmitProposal",
+	"type":"okbchain/gov/MsgSubmitProposal",
 	"value":{"content":{"type":"wasm/InstantiateContractProposal","value":{"funds":[],"msg":{"foo":"bar"}}},"initial_deposit":[],"proposer":""}
 }`,
 		},
@@ -890,7 +890,7 @@ func TestProposalJsonSignBytes(t *testing.T) {
 			src: &MigrateContractProposal{Msg: RawContractMessage(myInnerMsg)},
 			exp: `
 {
-	"type":"okexchain/gov/MsgSubmitProposal",
+	"type":"okbchain/gov/MsgSubmitProposal",
 	"value":{"content":{"type":"wasm/MigrateContractProposal","value":{"msg":{"foo":"bar"}}},"initial_deposit":[],"proposer":""}
 }`,
 		},
@@ -898,7 +898,7 @@ func TestProposalJsonSignBytes(t *testing.T) {
 			src: &UpdateDeploymentWhitelistProposal{DistributorAddrs: []string{"ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02", "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"}},
 			exp: `
 {	
-	"type":"okexchain/gov/MsgSubmitProposal",
+	"type":"okbchain/gov/MsgSubmitProposal",
 	"value":{"content":{"type":"wasm/UpdateDeploymentWhitelistProposal","value":{"distributorAddrs":["ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02","ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"]}},"initial_deposit":[],"proposer":""}
 }`,
 		},

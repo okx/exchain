@@ -34,7 +34,7 @@ type KeeperTestSuite struct {
 
 	ctx     sdk.Context
 	querier sdk.Querier
-	app     *app.OKExChainApp
+	app     *app.OKBChainApp
 	stateDB *types.CommitStateDB
 	address ethcmn.Address
 }

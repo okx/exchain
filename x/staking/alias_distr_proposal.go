@@ -1,5 +1,5 @@
 // nolint
-// ALIASGEN: github.com/okex/exchain/x/staking/types
+// ALIASGEN: github.com/okx/okbchain/x/staking/types
 package staking
 
 import (

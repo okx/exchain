@@ -114,7 +114,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 			//	if !ok {
 			//		return fmt.Errorf(types.ErrMinSelfDelegationInvalid(types.DefaultCodespace).Error())
 			//	}
-			//	/* required by okexchain */
+			//	/* required by okbchain */
 			//	msb = msb.StandardizeAsc()
 			//
 			//	newMinSelfDelegation = &msb

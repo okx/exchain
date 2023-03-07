@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// CreateParam create okexchain parm for test
+// CreateParam create okbchain parm for test
 func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStoreKey, []byte) {
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
 	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)

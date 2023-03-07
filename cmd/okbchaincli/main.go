@@ -11,7 +11,7 @@ import (
 	"github.com/okx/okbchain/app"
 	"github.com/okx/okbchain/app/codec"
 	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
-	okexchain "github.com/okx/okbchain/app/types"
+	chain "github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/cmd/client"
 	sdkclient "github.com/okx/okbchain/libs/cosmos-sdk/client"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
@@ -52,13 +52,13 @@ func main() {
 
 	// Read in the configuration file for the sdk
 	config := sdk.GetConfig()
-	okexchain.SetBech32Prefixes(config)
-	okexchain.SetBip44CoinType(config)
+	chain.SetBech32Prefixes(config)
+	chain.SetBip44CoinType(config)
 	config.Seal()
 
 	rootCmd := &cobra.Command{
-		Use:   "exchaincli",
-		Short: "Command line interface for interacting with exchaind",
+		Use:   "okbchaincli",
+		Short: "Command line interface for interacting with okbchaind",
 	}
 
 	// Add --chain-id to persistent flags and mark it required
@@ -83,7 +83,7 @@ func main() {
 		flags.NewCompletionCmd(rootCmd, true),
 	)
 
-	// Add flags and prefix all env exposed with OKEXCHAIN
+	// Add flags and prefix all env exposed with OKBCHAIN
 	executor := cli.PrepareMainCmd(rootCmd, system.EnvPrefix, app.DefaultCLIHome)
 
 	err := executor.Execute()

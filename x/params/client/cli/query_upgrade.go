@@ -17,7 +17,7 @@ func GetCmdQueryUpgrade(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query info of upgrade",
 		Long: strings.TrimSpace(`Query info of a upgrade, query all upgrade if 'name' is omitted:
 
-$ exchaincli query params upgrade <name>
+$ okbchaincli query params upgrade <name>
 `),
 		RunE: func(_ *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

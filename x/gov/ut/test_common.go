@@ -2,6 +2,7 @@ package ut
 
 import (
 	"bytes"
+	"github.com/okx/okbchain/libs/system"
 	"strconv"
 	"testing"
 	"time"
@@ -119,7 +120,7 @@ func CreateTestInput(
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "okexchain"}, isCheckTx, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: system.Chain}, isCheckTx, log.NewNopLogger())
 	ctx.SetConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{

@@ -17,7 +17,7 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okx/okbchain/app/config"
-	okexchain "github.com/okx/okbchain/app/types"
+	chain "github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/app/utils/appstatus"
 	"github.com/okx/okbchain/app/utils/sanity"
 	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
@@ -166,7 +166,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 		state = sm.LoadState(stateStoreDB)
 	}
 	//cache chain epoch
-	err = okexchain.SetChainId(genDoc.ChainID)
+	err = chain.SetChainId(genDoc.ChainID)
 	if err != nil {
 		panicError(err)
 	}

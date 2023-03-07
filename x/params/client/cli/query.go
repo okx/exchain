@@ -34,7 +34,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		Short: "Query parameters of params",
 		Long: strings.TrimSpace(`Query parameters of params:
 
-$ exchaincli query params params
+$ okbchaincli query params params
 `),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
