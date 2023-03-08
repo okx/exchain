@@ -5,9 +5,6 @@ import (
 	"io"
 	"sync"
 
-	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
-
-	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -84,7 +81,7 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 	return 0
 }
 
-func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
+func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
 	return generateMptStore(logger, id, db, AccountStateRootRetriever)
 }
