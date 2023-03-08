@@ -6,8 +6,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
-	//"github.com/okex/exchain/x/common"
-	//dexTypes "github.com/okex/exchain/x/dex/types"
 	"github.com/okex/exchain/x/gov/types"
 )
 

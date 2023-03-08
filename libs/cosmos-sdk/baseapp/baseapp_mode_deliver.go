@@ -24,7 +24,7 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	}
 
 	info.runMsgFinished = true
-	err = m.checkHigherThanMercury(err, info)
+	err = m.wrapError(err, info)
 	return
 }
 

@@ -71,7 +71,7 @@ func (m *modeHandlerCheck) handleRunMsg(info *runTxInfo) (err error) {
 	info.runMsgFinished = true
 
 	m.handleRunMsg4CheckMode(info)
-	err = m.checkHigherThanMercury(err, info)
+	err = m.wrapError(err, info)
 	return
 }
 
@@ -92,7 +92,7 @@ func (m *modeHandlerRecheck) handleRunMsg(info *runTxInfo) (err error) {
 	info.runMsgFinished = true
 
 	m.handleRunMsg4CheckMode(info)
-	err = m.checkHigherThanMercury(err, info)
+	err = m.wrapError(err, info)
 	return
 }
 
@@ -160,7 +160,7 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	info.runMsgFinished = true
 
 	m.handleRunMsg4CheckMode(info)
-	err = m.checkHigherThanMercury(err, info)
+	err = m.wrapError(err, info)
 	return
 }
 
@@ -181,13 +181,11 @@ func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	}
 }
 
-func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) error {
+func (m *modeHandlerBase) wrapError(err error, info *runTxInfo) error {
 
 	if err != nil {
-		if tmtypes.HigherThanMercury(info.ctx.BlockHeight()) {
-			codeSpace, code, info := sdkerrors.ABCIInfo(err, m.app.trace)
-			err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, info)
-		}
+		codeSpace, code, abciInfo := sdkerrors.ABCIInfo(err, m.app.trace)
+		err = sdkerrors.New(codeSpace, abci.CodeTypeNonceInc+code, abciInfo)
 		info.msCache = nil
 	}
 	return err

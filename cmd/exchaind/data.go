@@ -34,14 +34,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
-	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
@@ -453,8 +449,7 @@ func initAppStore(appDB dbm.DB) *rootmulti.Store {
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock,
 	)
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
