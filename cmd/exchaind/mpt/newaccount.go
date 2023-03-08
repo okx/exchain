@@ -56,8 +56,8 @@ func AccountGetCmd(ctx *server.Context) *cobra.Command {
 }
 
 // migrateAccFromIavlToMpt migrate acc data from iavl to mpt
-func GetAccount(datadir string) []interface{} {
-	result := make([]interface{}, 0)
+func GetAccount(datadir string) map[string]string {
+	result := make(map[string]string, 0)
 	// 0.1 initialize App and context
 	appDb := openApplicationDb(datadir)
 	migrationApp := app.NewOKExChainApp(
@@ -97,14 +97,12 @@ func GetAccount(datadir string) []interface{} {
 					return false
 				})
 			}
-			result = append(result, &okbAcc)
-
-		} else {
-			var moduleAcc = TempModuleAccountPretty{Permissions: make([]string, 0)}
-			err = json.Unmarshal(buff, &moduleAcc)
+			buff, err := json.Marshal(okbAcc)
 			panicError(err)
 
-			result = append(result, &moduleAcc)
+			result[account.String()] = string(buff)
+		} else {
+			result[account.String()] = string(buff)
 		}
 
 		return false
