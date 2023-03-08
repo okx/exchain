@@ -21,11 +21,6 @@ func ErrInvalidCommissionRate() sdk.Error {
 		"commission rate must be between 0 and 1 (inclusive)")
 }
 
-func ErrCodeNotSupportEditValidatorCommissionRate() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNotSupportEditValidatorCommissionRate,
-		"not support edit validator commission rate")
-}
-
 func ErrCodeDisabledOperate() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeDisabledOperate, "disable operate")
 }

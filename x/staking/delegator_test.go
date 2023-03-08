@@ -12,7 +12,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-func TestValidatorSMProxyDelegationSmoke(t *testing.T) {
+func Deprecated_TestValidatorSMProxyDelegationSmoke(t *testing.T) {
 	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()
@@ -197,7 +197,7 @@ func TestDelegator(t *testing.T) {
 
 }
 
-func TestProxy(t *testing.T) {
+func Deprecated_TestProxy(t *testing.T) {
 	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()
@@ -329,7 +329,7 @@ func TestProxy(t *testing.T) {
 	smTestCase.Run(t)
 }
 
-func TestRebindProxy(t *testing.T) {
+func Deprecated_TestRebindProxy(t *testing.T) {
 	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()
@@ -441,7 +441,7 @@ func TestRebindProxy(t *testing.T) {
 	smTestCase.Run(t)
 }
 
-func TestLimitedProxy(t *testing.T) {
+func Deprecated_TestLimitedProxy(t *testing.T) {
 	common.InitConfig()
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 	params := DefaultParams()

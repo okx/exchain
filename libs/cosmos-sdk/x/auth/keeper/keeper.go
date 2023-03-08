@@ -106,7 +106,7 @@ func (ak AccountKeeper) decodeAccount(bz []byte) exported.Account {
 	return acc
 }
 
-func (ak AccountKeeper) RetrievalStateRoot(bz []byte) ethcmn.Hash {
+func (ak AccountKeeper) RetrieveStateRoot(bz []byte) ethcmn.Hash {
 	var acc exported.Account
 	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
 	if err == nil {
@@ -118,13 +118,4 @@ func (ak AccountKeeper) RetrievalStateRoot(bz []byte) ethcmn.Hash {
 		return acc.GetStateRoot()
 	}
 	return ethtypes.EmptyRootHash
-}
-
-func (ak AccountKeeper) EncodeAccount(acc exported.Account) ([]byte, error) {
-	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
-	if err != nil {
-		bz, err = ak.cdc.MarshalBinaryBare(acc)
-	}
-
-	return bz, err
 }

@@ -426,7 +426,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn, isDetail bool) 
 					api.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", ev.Data), "ID", sub.ID())
 					continue
 				}
-				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
+				txHash := common.BytesToHash(data.Tx.Hash())
 				var res interface{} = txHash
 				if isDetail {
 					ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, data.Tx, data.Height)

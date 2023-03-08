@@ -356,7 +356,7 @@ func (keeper Keeper) AfterDepositPeriodPassed(ctx sdk.Context, proposal types.Pr
 func (keeper Keeper) RejectedHandler(ctx sdk.Context, content types.Content) {}
 
 // get all current validators except candidate votes
-func (keeper Keeper) totalPower(ctx sdk.Context) sdk.Dec {
+func (keeper Keeper) TotalPower(ctx sdk.Context) sdk.Dec {
 	totalVoting := sdk.ZeroDec()
 	keeper.sk.IterateBondedValidatorsByPower(ctx, func(index int64, validator exported.ValidatorI) (stop bool) {
 		totalVoting = totalVoting.Add(validator.GetDelegatorShares())
@@ -443,4 +443,8 @@ func (keeper Keeper) Router() Router {
 
 func (keeper Keeper) SupplyKeeper() SupplyKeeper {
 	return keeper.supplyKeeper
+}
+
+func (keeper Keeper) StoreKey() sdk.StoreKey {
+	return keeper.storeKey
 }

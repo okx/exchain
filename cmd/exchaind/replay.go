@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -179,7 +180,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().StringP(replayedBlockDir, "d", ".exchaind/data", "Directory of block data to be replayed")
+	cmd.Flags().StringP(replayedBlockDir, "d", "."+system.Server+"/data", "Directory of block data to be replayed")
 	cmd.Flags().StringP(pprofAddrFlag, "p", "0.0.0.0:26661", "Address and port of pprof HTTP server listening")
 	cmd.Flags().BoolVarP(&sm.IgnoreSmbCheck, "ignore-smb", "i", false, "ignore state machine broken")
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")

@@ -33,14 +33,8 @@ func beginBlocker(ctx sdk.Context, k Keeper) {
 		panic(err)
 	}
 
-	farmingAmount := minter.MintedPerBlock.MulDecTruncate(params.FarmProportion)
 	// send the minted coins to the fee collector account
-	err = k.AddCollectedFees(ctx, minter.MintedPerBlock.Sub(farmingAmount))
-	if err != nil {
-		panic(err)
-	}
-	// send the minted coins to the farm module account
-	err = k.AddYieldFarming(ctx, farmingAmount)
+	err = k.AddCollectedFees(ctx, minter.MintedPerBlock)
 	if err != nil {
 		panic(err)
 	}
@@ -50,13 +44,11 @@ func beginBlocker(ctx sdk.Context, k Keeper) {
 			"\nparams <%v>, "+
 			"\nminted amount<%v>, "+
 			"staking amount <%v>, "+
-			"yield farming amount <%v>, "+
 			"\nnext block to update minted per block <%v>, ",
 		sdk.NewDecCoinFromDec(params.MintDenom, k.StakingTokenSupply(ctx)),
 		params,
 		minter.MintedPerBlock,
-		minter.MintedPerBlock.Sub(farmingAmount),
-		farmingAmount,
+		minter.MintedPerBlock,
 		minter.NextBlockToUpdate))
 
 	ctx.EventManager().EmitEvent(

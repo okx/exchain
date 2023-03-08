@@ -286,7 +286,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		acc = k.accountKeeper.NewAccountWithAddress(ctx, types.IbcEvmModuleBechAddr)
 	}
 	nonce := acc.GetSequence()
-	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash()
 	ethTxHash := common.BytesToHash(txHash)
 
 	gasLimit := ctx.GasMeter().Limit()

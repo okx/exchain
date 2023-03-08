@@ -64,13 +64,13 @@ func (a ABCIApp) BroadcastTxAsync(tx types.Tx) (*ctypes.ResultBroadcastTx, error
 	if !c.IsErr() {
 		go func() { a.App.DeliverTx(abci.RequestDeliverTx{Tx: tx}) }() // nolint: errcheck
 	}
-	resp := a.App.Info(abci.RequestInfo{})
+	//resp := a.App.Info(abci.RequestInfo{})
 	return &ctypes.ResultBroadcastTx{
 		Code:      c.Code,
 		Data:      c.Data,
 		Log:       c.Log,
 		Codespace: c.Codespace,
-		Hash:      tx.Hash(resp.LastBlockHeight),
+		Hash:      tx.Hash(),
 	}, nil
 }
 
@@ -80,13 +80,13 @@ func (a ABCIApp) BroadcastTxSync(tx types.Tx) (*ctypes.ResultBroadcastTx, error)
 	if !c.IsErr() {
 		go func() { a.App.DeliverTx(abci.RequestDeliverTx{Tx: tx}) }() // nolint: errcheck
 	}
-	resp := a.App.Info(abci.RequestInfo{})
+	//resp := a.App.Info(abci.RequestInfo{})
 	return &ctypes.ResultBroadcastTx{
 		Code:      c.Code,
 		Data:      c.Data,
 		Log:       c.Log,
 		Codespace: c.Codespace,
-		Hash:      tx.Hash(resp.LastBlockHeight),
+		Hash:      tx.Hash(),
 	}, nil
 }
 

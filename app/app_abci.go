@@ -57,6 +57,8 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	//defer trace.GetTraceSummary().Dump()
 	defer trace.OnCommitDone()
 
+	// reload upgrade info for upgrade proposal
+	//app.setupUpgradeModules()
 	tasks := app.heightTasks[app.BaseApp.LastBlockHeight()+1]
 	if tasks != nil {
 		ctx := app.BaseApp.GetDeliverStateCtx()

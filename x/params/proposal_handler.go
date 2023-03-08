@@ -178,7 +178,7 @@ func (keeper Keeper) AfterSubmitProposalHandler(ctx sdk.Context, proposal govtyp
 	case types.UpgradeProposal:
 		// must be no error in the normal situation, for the error comes from upgrade name has been exist,
 		// which has checked in CheckMsgSubmitProposal.
-		_ = storePreparingUpgrade(ctx, &keeper, content.UpgradeInfo)
+		_ = storePreparingUpgrade(ctx, &keeper, content)
 
 	}
 }

@@ -203,7 +203,7 @@ func Tally(ctx sdk.Context, keeper Keeper, proposal types.Proposal, isExpireVote
 ) (types.ProposalStatus, bool, types.TallyResult) {
 	results, totalVotedPower, _ := preTally(ctx, keeper, proposal, nil)
 	tallyResults := types.NewTallyResultFromMap(results)
-	tallyResults.TotalPower = keeper.totalPower(ctx)
+	tallyResults.TotalPower = keeper.TotalPower(ctx)
 	tallyResults.TotalVotedPower = totalVotedPower
 
 	if isExpireVoteEndTime {

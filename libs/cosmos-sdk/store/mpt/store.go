@@ -32,6 +32,8 @@ const (
 
 var (
 	TrieAccStoreCache uint = 32 // MB
+
+	AccountStateRootRetriever StateRootRetriever = EmptyStateRootRetriever{}
 )
 
 var cdc = codec.New()
@@ -46,11 +48,10 @@ var (
 // MptStore Implements types.KVStore and CommitKVStore.
 // Its main purpose is to own the same interface as iavl store in libs/cosmos-sdk/store/iavl/iavl_store.go
 type MptStore struct {
-	trie    ethstate.Trie
-	db      ethstate.Database
-	triegc  *prque.Prque
-	logger  tmlog.Logger
-	kvCache *fastcache.Cache
+	trie   ethstate.Trie
+	db     ethstate.Database
+	triegc *prque.Prque
+	logger tmlog.Logger
 
 	prefetcher   *TriePrefetcher
 	originalRoot ethcmn.Hash
@@ -60,8 +61,7 @@ type MptStore struct {
 	startVersion int64
 	cmLock       sync.Mutex
 
-	//TODO by yxq
-	retrieval mpttypes.AccountStateRootRetrieval
+	retriever StateRootRetriever
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -86,17 +86,16 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 
 func NewMptStore(logger tmlog.Logger, retrieval mpttypes.AccountStateRootRetrieval, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
-	return generateMptStore(logger, id, db, retrieval)
+	return generateMptStore(logger, id, db, AccountStateRootRetriever)
 }
 
-func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retrieval mpttypes.AccountStateRootRetrieval) (*MptStore, error) {
+func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retriever StateRootRetriever) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
 		db:         db,
 		triegc:     triegc,
 		logger:     logger,
-		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
-		retrieval:  retrieval,
+		retriever:  retriever,
 		exitSignal: make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
@@ -106,7 +105,7 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
-	return generateMptStore(logger, id, db, nil)
+	return generateMptStore(logger, id, db, EmptyStateRootRetriever{})
 }
 
 func (ms *MptStore) openTrie(id types.CommitID) error {
@@ -138,22 +137,10 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 	return nil
 }
 
-func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
+func (ms *MptStore) GetImmutable(height int64) (*ImmutableMptStore, error) {
 	rootHash := ms.GetMptRootHash(uint64(height))
-	tr, err := ms.db.OpenTrie(rootHash)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to open root mpt: " + err.Error())
-	}
-	mptStore := &MptStore{
-		db:           ms.db,
-		trie:         tr,
-		originalRoot: rootHash,
-		exitSignal:   make(chan struct{}),
-		version:      height,
-		startVersion: height,
-	}
 
-	return mptStore, nil
+	return NewImmutableMptStore(ms.db, rootHash)
 }
 
 /*
@@ -174,30 +161,15 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-	if ms.kvCache != nil {
-		if enc := ms.kvCache.Get(nil, key); len(enc) > 0 {
-			return enc
-		}
-	}
-
-	value, err := ms.trie.TryGet(key)
+	value, err := ms.db.CopyTrie(ms.trie).TryGet(key)
 	if err != nil {
 		return nil
-	}
-	if ms.kvCache != nil && value != nil {
-		ms.kvCache.Set(key, value)
 	}
 
 	return value
 }
 
 func (ms *MptStore) Has(key []byte) bool {
-	if ms.kvCache != nil {
-		if ms.kvCache.Has(key) {
-			return true
-		}
-	}
-
 	return ms.Get(key) != nil
 }
 
@@ -207,13 +179,11 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
-	if ms.kvCache != nil {
-		ms.kvCache.Set(key, value)
-	}
 	err := ms.trie.TryUpdate(key, value)
 	if err != nil {
 		return
 	}
+
 	return
 }
 
@@ -222,9 +192,6 @@ func (ms *MptStore) Delete(key []byte) {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
 
-	if ms.kvCache != nil {
-		ms.kvCache.Del(key)
-	}
 	err := ms.trie.TryDelete(key)
 	if err != nil {
 		return
@@ -232,11 +199,11 @@ func (ms *MptStore) Delete(key []byte) {
 }
 
 func (ms *MptStore) Iterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 /*
@@ -249,7 +216,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	ms.StopPrefetcher()
 
 	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot := ms.retrieval(leaf)
+		storageRoot := ms.retriever.RetrieveStateRoot(leaf)
 		if storageRoot != ethtypes.EmptyRootHash && storageRoot != (ethcmn.Hash{}) {
 			ms.db.TrieDB().Reference(storageRoot, parent)
 		}
@@ -302,6 +269,10 @@ func (ms *MptStore) GetDBReadCount() int {
 
 func (ms *MptStore) GetNodeReadCount() int {
 	return ms.db.TrieDB().GetNodeReadCount()
+}
+
+func (ms *MptStore) GetCacheReadCount() int {
+	return ms.db.TrieDB().GetCacheReadCount()
 }
 
 func (ms *MptStore) ResetCount() {

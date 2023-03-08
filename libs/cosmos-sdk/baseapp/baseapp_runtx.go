@@ -47,11 +47,11 @@ func (info *runTxInfo) PutCacheMultiStore(cms sdk.CacheMultiStore) {
 	info.reusableCacheMultiStore = cms
 }
 
-func (app *BaseApp) GetCacheMultiStore(txBytes []byte, height int64) (sdk.CacheMultiStore, bool) {
+func (app *BaseApp) GetCacheMultiStore(txBytes []byte) (sdk.CacheMultiStore, bool) {
 	if app.reusableCacheMultiStore == nil {
 		return nil, false
 	}
-	reuse := updateCacheMultiStore(app.reusableCacheMultiStore, txBytes, height)
+	reuse := updateCacheMultiStore(app.reusableCacheMultiStore, txBytes)
 	app.reusableCacheMultiStore = nil
 	return reuse, true
 }
@@ -96,17 +96,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
 		return err
-	}
-	//info with cache saved in app to load predesessor tx state
-	if mode != runTxModeTrace {
-		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
-		//to prevent modifying the deliver state
-		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
-		if useCache(mode) && tx.GetType() == sdk.EvmTxType {
-			info.ctx.SetCache(sdk.NewCache(app.blockCache, true))
-		} else {
-			info.ctx.SetCache(nil)
-		}
 	}
 	for _, addr := range from {
 		// cache from if exist
@@ -160,7 +149,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(trace.ValTxMsgs, false, mode)
 
 	if mode == runTxModeDeliver {
-		if cms, ok := app.GetCacheMultiStore(info.txBytes, info.ctx.BlockHeight()); ok {
+		if cms, ok := app.GetCacheMultiStore(info.txBytes); ok {
 			info.PutCacheMultiStore(cms)
 		}
 	}
@@ -210,7 +199,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	} else if mode == runTxModeCheck || mode == runTxModeReCheck {
 		info.msCacheAnte = app.checkTxCacheMultiStores.GetStore()
 		if info.msCacheAnte != nil {
-			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes, info.ctx.BlockHeight())
+			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes)
 			anteCtx = info.ctx
 			anteCtx.SetMultiStore(info.msCacheAnte)
 		} else {
@@ -281,7 +270,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 			app.checkTxCacheMultiStores.PushStore(info.msCacheAnte)
 			info.msCacheAnte = nil
 		}
-		info.ctx.Cache().Write(true)
 		app.pin(trace.CacheStoreWrite, false, mode)
 	}
 
@@ -332,11 +320,10 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 
 	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx := app.deliverState.ctx
-		ctx.SetCache(app.chainCache).
-			SetMultiStore(app.cms).
+		ctx.SetMultiStore(app.cms).
 			SetGasMeter(sdk.NewInfiniteGasMeter())
 
-		app.preDeliverTxHandler(ctx, realTx, !app.chainCache.IsEnabled())
+		app.preDeliverTxHandler(ctx, realTx, true)
 	}
 
 	return realTx
@@ -352,11 +339,6 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		}
 	}
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
-	if !info.ctx.Cache().IsEnabled() {
-		app.blockCache.Clear()
-		app.blockCache = nil
-		app.chainCache = nil
-	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -441,29 +423,4 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) *executeResult {
 		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs(), app.parallelTxManage, info.ctx.GetFeeSplitInfo())
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
-}
-
-func useCache(mode runTxMode) bool {
-	if !sdk.UseCache {
-		return false
-	}
-	if mode == runTxModeDeliver {
-		return true
-	}
-	return false
-}
-
-func (app *BaseApp) newBlockCache() {
-	useCache := sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx
-	if app.chainCache == nil {
-		app.chainCache = sdk.NewCache(nil, useCache)
-	}
-
-	app.blockCache = sdk.NewCache(app.chainCache, useCache)
-	app.deliverState.ctx.SetCache(app.blockCache)
-}
-
-func (app *BaseApp) commitBlockCache() {
-	app.blockCache.Write(true)
-	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }

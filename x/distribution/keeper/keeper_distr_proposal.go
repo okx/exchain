@@ -5,7 +5,6 @@ import (
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	govTypes "github.com/okex/exchain/x/gov/types"
 )
@@ -113,7 +112,7 @@ func (k *Keeper) SetGovKeeper(gk types.GovKeeper) {
 }
 
 func (k Keeper) CheckDistributionProposalValid(ctx sdk.Context) bool {
-	return tmtypes.HigherThanVenus2(ctx.BlockHeight()) && k.CheckInitExistedValidatorFlag(ctx)
+	return k.CheckInitExistedValidatorFlag(ctx)
 }
 
 // CheckMsgSubmitProposal validates MsgSubmitProposal

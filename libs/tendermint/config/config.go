@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -52,8 +53,8 @@ var (
 	defaultNodeKeyPath  = filepath.Join(defaultConfigDir, defaultNodeKeyName)
 	defaultAddrBookPath = filepath.Join(defaultConfigDir, defaultAddrBookName)
 
-	DefaultLogPath     = os.ExpandEnv("$HOME/.exchaind")
-	defaultLogFileName = "exchaind.log"
+	DefaultLogPath     = os.ExpandEnv(system.ServerHome)
+	defaultLogFileName = system.ServerLog
 	defaultLogFile     = filepath.Join(DefaultLogPath, defaultLogFileName)
 )
 

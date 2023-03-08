@@ -1,7 +1,11 @@
 package mpt
 
 import (
+	"encoding/binary"
 	"fmt"
+	"strconv"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/status-im/keycard-go/hexutils"
@@ -17,19 +21,29 @@ import (
 
 func mptViewerCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "mptviewer",
-		Args:  cobra.ExactArgs(1),
+		Use:   "mptviewer [tree] [height]",
+		Args:  cobra.ExactArgs(2),
 		Short: "iterate mpt store (acc, evm)",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return checkValidKey(args[0])
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Printf("--------- iterate %s data start ---------\n", args[0])
+			height, err := strconv.Atoi(args[1])
+			if err != nil {
+				log.Printf("height error:%s\n", err)
+				return
+			}
+			if height < 0 {
+				log.Printf("height can not be negative\n")
+				return
+			}
+
 			switch args[0] {
 			case accStoreKey:
-				iterateAccMpt(ctx)
+				iterateAccMpt(uint64(height))
 			case evmStoreKey:
-				iterateEvmMpt(ctx)
+				iterateEvmMpt(uint64(height))
 			}
 			log.Printf("--------- iterate %s data end ---------\n", args[0])
 		},
@@ -37,11 +51,20 @@ func mptViewerCmd(ctx *server.Context) *cobra.Command {
 	return cmd
 }
 
-func iterateAccMpt(ctx *server.Context) {
+func iterateAccMpt(height uint64) {
 	accMptDb := mpt.InstanceOfMptStore()
 	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
-	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
+	lastestHeight := binary.BigEndian.Uint64(heightBytes)
+	if lastestHeight < height {
+		panic(fmt.Errorf("height(%d) > lastestHeight(%d)", height, lastestHeight))
+	}
+	if height == 0 {
+		height = lastestHeight
+	}
+
+	hhash := sdk.Uint64ToBigEndian(height)
+	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, hhash...))
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)
@@ -56,11 +79,20 @@ func iterateAccMpt(ctx *server.Context) {
 	}
 }
 
-func iterateEvmMpt(ctx *server.Context) {
+func iterateEvmMpt(height uint64) {
 	accMptDb := mpt.InstanceOfMptStore()
 	heightBytes, err := accMptDb.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
 	panicError(err)
-	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, heightBytes...))
+	lastestHeight := binary.BigEndian.Uint64(heightBytes)
+	if lastestHeight < height {
+		panic(fmt.Errorf("height(%d) > lastestHeight(%d)", height, lastestHeight))
+	}
+	if height == 0 {
+		height = lastestHeight
+	}
+
+	hhash := sdk.Uint64ToBigEndian(height)
+	rootHash, err := accMptDb.TrieDB().DiskDB().Get(append(mpt.KeyPrefixAccRootMptHash, hhash...))
 	panicError(err)
 	accTrie, err := accMptDb.OpenTrie(ethcmn.BytesToHash(rootHash))
 	panicError(err)

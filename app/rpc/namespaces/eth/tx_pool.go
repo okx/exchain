@@ -121,11 +121,6 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 }
 
 func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txBytes []byte) (common.Hash, error) {
-	//TODO: to delete after venus height
-	lastHeight, err := api.clientCtx.Client.LatestBlockNumber()
-	if err != nil {
-		return common.Hash{}, err
-	}
 	// Get sender address
 	chainIDEpoch, err := ethermint.ParseChainID(api.clientCtx.ChainID)
 	if err != nil {
@@ -136,7 +131,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	txHash := common.BytesToHash(types.Tx(txBytes).Hash(lastHeight))
+	txHash := common.BytesToHash(types.Tx(txBytes).Hash())
 	tx.Data.Hash = &txHash
 	from := common.HexToAddress(tx.GetFrom())
 	api.txPool.mu.Lock()
@@ -269,18 +264,7 @@ func (pool *TxPool) dropTxs(index int, address common.Address) {
 }
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
-	// TODO: to delete after venus height
-	lastHeight, err := pool.clientCtx.Client.LatestBlockNumber()
-	if err != nil {
-		return err
-	}
-	var txEncoder sdk.TxEncoder
-	if types.HigherThanVenus(lastHeight) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(pool.clientCtx.Codec)
-	}
-
+	var txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 	txBytes, err := txEncoder(tx)
 	if err != nil {
 		return err

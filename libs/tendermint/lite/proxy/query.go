@@ -149,10 +149,6 @@ func GetCertifiedCommit(h int64, client rpcclient.Client, cert lite.Verifier) (t
 	return sh, nil
 }
 
-// note: validators will sort by power when the globalHeight is gt the veneus1Height
-// when that happens ,Verifier#verify will be failed because of `globalHeight` is always '0'
-// case1: height is lt veneus1Height: L56: cert#Verify will success
-// case2: height is gt veneus1Height: L56 shoudle be failed ,L168 wil success
 func VerifyEx(cert lite.Verifier, sh types.SignedHeader) error {
 	err := cert.Verify(sh)
 	if err == nil {

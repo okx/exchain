@@ -20,7 +20,6 @@ var (
 
 	KeyDeflationRate  = []byte("DeflationRate")
 	KeyDeflationEpoch = []byte("DeflationEpoch")
-	KeyFarmProportion = []byte("YieldFarmingProportion")
 )
 
 // mint parameters
@@ -34,7 +33,6 @@ type Params struct {
 
 	DeflationRate  sdk.Dec `json:"deflation_rate" yaml:"deflation_rate"`   // deflation rate every DeflationEpoch
 	DeflationEpoch uint64  `json:"deflation_epoch" yaml:"deflation_epoch"` // block number to deflate
-	FarmProportion sdk.Dec `json:"farm_proportion" yaml:"farm_proportion"` // proportion of minted for farm
 }
 
 // ParamTable for minting module.
@@ -44,7 +42,7 @@ func ParamKeyTable() params.KeyTable {
 
 func NewParams(
 	mintDenom string, inflationRateChange, inflationMax, inflationMin, goalBonded sdk.Dec, blocksPerYear uint64,
-	deflationEpoch uint64, deflationRateChange, farmPropotion sdk.Dec,
+	deflationEpoch uint64, deflationRateChange sdk.Dec,
 ) Params {
 
 	return Params{
@@ -52,7 +50,6 @@ func NewParams(
 		BlocksPerYear:  blocksPerYear,
 		DeflationRate:  deflationRateChange,
 		DeflationEpoch: deflationEpoch,
-		FarmProportion: farmPropotion,
 	}
 }
 
@@ -67,7 +64,6 @@ func DefaultParams() Params {
 		BlocksPerYear:  uint64(60 * 60 * 8766 / 3), // assuming 3 second block times
 		DeflationRate:  sdk.NewDecWithPrec(5, 1),
 		DeflationEpoch: 3,                        // 3 years
-		FarmProportion: sdk.NewDecWithPrec(5, 1), // 0.5
 	}
 }
 
@@ -82,9 +78,6 @@ func (p Params) Validate() error {
 	if err := validateDeflationEpoch(p.DeflationEpoch); err != nil {
 		return err
 	}
-	if err := validateFarmProportion(p.FarmProportion); err != nil {
-		return err
-	}
 	if err := validateBlocksPerYear(p.BlocksPerYear); err != nil {
 		return err
 	}
@@ -97,9 +90,8 @@ func (p Params) String() string {
   Mint Denom:                     %s
   Deflation Rate Every %d Years:  %s
   Blocks Per Year:                %d
-  Farm Proportion:                %s
 `,
-		p.MintDenom, p.DeflationEpoch, p.DeflationRate, p.BlocksPerYear, p.FarmProportion,
+		p.MintDenom, p.DeflationEpoch, p.DeflationRate, p.BlocksPerYear,
 	)
 }
 
@@ -110,7 +102,6 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(KeyBlocksPerYear, &p.BlocksPerYear, validateBlocksPerYear),
 		params.NewParamSetPair(KeyDeflationRate, &p.DeflationRate, validateDeflationRate),
 		params.NewParamSetPair(KeyDeflationEpoch, &p.DeflationEpoch, validateDeflationEpoch),
-		params.NewParamSetPair(KeyFarmProportion, &p.FarmProportion, validateFarmProportion),
 	}
 }
 
@@ -202,22 +193,6 @@ func validateBlocksPerYear(i interface{}) error {
 
 	if v == 0 {
 		return fmt.Errorf("blocks per year must be positive: %d", v)
-	}
-
-	return nil
-}
-
-func validateFarmProportion(i interface{}) error {
-	v, ok := i.(sdk.Dec)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if v.IsNegative() {
-		return fmt.Errorf("Farm Proportion be negative: %s", v)
-	}
-	if v.GT(sdk.OneDec()) {
-		return fmt.Errorf("Farm Proportion too large: %s", v)
 	}
 
 	return nil

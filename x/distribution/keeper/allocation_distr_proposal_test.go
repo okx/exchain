@@ -13,7 +13,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/params"
@@ -29,7 +28,6 @@ func CreateTestInputDefaultForBenchmark(b *testing.B, isCheckTx bool, initPower 
 	valOpAddrs, valConsPks, _ := GetTestAddrs()
 
 	if newVersion {
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 		dk.SetInitExistedValidatorFlag(ctx, true)
 		dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	}
