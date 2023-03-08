@@ -2,7 +2,12 @@ package watcher
 
 import (
 	"bytes"
+	"math/big"
+	"testing"
+
 	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/suite"
+
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -11,9 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/global"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	etypes "github.com/okex/exchain/x/evm/types"
-	"github.com/stretchr/testify/suite"
-	"math/big"
-	"testing"
 )
 
 var (
