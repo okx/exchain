@@ -1,28 +1,23 @@
 package mpt
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/app"
-	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/iavl"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	//okbmpt "github.com/okex/okbchain/libs/cosmos-sdk/store/mpt"
-	okbtypes "github.com/okx/okbchain/app/types"
+	//okbtypes "github.com/okx/okbchain/app/types"
 	"github.com/spf13/cobra"
 )
 
@@ -52,86 +47,86 @@ func iavl2mptCmd(ctx *server.Context) *cobra.Command {
 
 // migrateAccFromIavlToMpt migrate acc data from iavl to mpt
 func migrateAccFromIavlToMpt(ctx *server.Context) {
-	// 0.1 initialize App and context
-	migrationApp := newMigrationApp(ctx)
-	cmCtx := migrationApp.MockContext()
-	committedHeight := cmCtx.BlockHeight() - 1
-
-	// 0.1 initialize database of acc mpt
-	db := mpt.InstanceOfMptStore()
-	accTrie, err := db.OpenTrie(mpt.NilHash)
-	panicError(err)
-
-	// 1.2 update every account to mpt
-	count, contractCount := 0, 0
-	batch := db.TrieDB().DiskDB().NewBatch()
-	migrationApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
-		count++
-		if len(value) == 0 {
-			log.Printf("[warning] %s has nil value\n", account.GetAddress().String())
-		}
-
-		// check if the account is a contract account
-		if ethAcc, ok := account.(*apptypes.EthAccount); ok {
-			buff, err := json.Marshal(ethAcc)
-			panicError(err)
-			var okbAcc = okbtypes.EthAccount{}
-			err = json.Unmarshal(buff, &okbAcc)
-			panicError(err)
-
-			var storageRoot ethcmn.Hash
-			if !bytes.Equal(ethAcc.CodeHash, mpt.EmptyCodeHashBytes) {
-				contractCount++
-				// 2.1 get solo contract mpt
-				contractTrie := getStorageTrie(db, ethcrypto.Keccak256Hash(ethAcc.EthAddress().Bytes()), mpt.NilHash)
-
-				_ = migrationApp.EvmKeeper.ForEachStorage(cmCtx, ethAcc.EthAddress(), func(key, value ethcmn.Hash) bool {
-					// Encoding []byte cannot fail, ok to ignore the error.
-					v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
-					// 2.2 set every storage into solo
-					panicError(contractTrie.TryUpdate(key.Bytes(), v))
-					return false
-				})
-				// 2.3 calculate rootHash of contract mpt
-				rootHash, err := contractTrie.Commit(nil)
-				panicError(err)
-				storageRoot.SetBytes(rootHash.Bytes())
-
-				// write code to evm.db in direct
-				codeHash := ethcmn.BytesToHash(ethAcc.CodeHash)
-				rawdb.WriteCode(batch, codeHash, migrationApp.EvmKeeper.GetCodeByHash(cmCtx, codeHash))
-				writeDataToRawdb(batch)
-			} else {
-				storageRoot.SetBytes(mpt.EmptyRootHash.Bytes())
-			}
-			okbAcc.StateRoot = storageRoot
-
-			// 2.4 set the rootHash of contract mpt into evm mpt
-			// update acc mpt for every account
-			panicError(accTrie.TryUpdate(key, value))
-			if count%100 == 0 {
-				var storageRoot ethcmn.Hash
-				root, err := accTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-
-					if storageRoot != mpt.EmptyRootHash {
-						db.TrieDB().Reference(storageRoot, parent)
-					}
-					return nil
-				})
-				panicError(err)
-
-				err = db.TrieDB().Commit(root, false, nil)
-				panicError(err)
-
-				log.Println(count)
-			}
-			//okbAcc.MarshalToAmino()
-		}
-
-		return false
-	})
-
-	fmt.Println(fmt.Sprintf("Successfully migrate %d account (include %d contract account) at version %d", count, contractCount, committedHeight))
+	//// 0.1 initialize App and context
+	//migrationApp := newMigrationApp(ctx)
+	//cmCtx := migrationApp.MockContext()
+	//committedHeight := cmCtx.BlockHeight() - 1
+	//
+	//// 0.1 initialize database of acc mpt
+	//db := mpt.InstanceOfMptStore()
+	//accTrie, err := db.OpenTrie(mpt.NilHash)
+	//panicError(err)
+	//
+	//// 1.2 update every account to mpt
+	//count, contractCount := 0, 0
+	//batch := db.TrieDB().DiskDB().NewBatch()
+	//migrationApp.AccountKeeper.MigrateAccounts(cmCtx, func(account authexported.Account, key, value []byte) (stop bool) {
+	//	count++
+	//	if len(value) == 0 {
+	//		log.Printf("[warning] %s has nil value\n", account.GetAddress().String())
+	//	}
+	//
+	//	// check if the account is a contract account
+	//	if ethAcc, ok := account.(*apptypes.EthAccount); ok {
+	//		buff, err := json.Marshal(ethAcc)
+	//		panicError(err)
+	//		var okbAcc = okbtypes.EthAccount{}
+	//		err = json.Unmarshal(buff, &okbAcc)
+	//		panicError(err)
+	//
+	//		var storageRoot ethcmn.Hash
+	//		if !bytes.Equal(ethAcc.CodeHash, mpt.EmptyCodeHashBytes) {
+	//			contractCount++
+	//			// 2.1 get solo contract mpt
+	//			contractTrie := getStorageTrie(db, ethcrypto.Keccak256Hash(ethAcc.EthAddress().Bytes()), mpt.NilHash)
+	//
+	//			_ = migrationApp.EvmKeeper.ForEachStorage(cmCtx, ethAcc.EthAddress(), func(key, value ethcmn.Hash) bool {
+	//				// Encoding []byte cannot fail, ok to ignore the error.
+	//				v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
+	//				// 2.2 set every storage into solo
+	//				panicError(contractTrie.TryUpdate(key.Bytes(), v))
+	//				return false
+	//			})
+	//			// 2.3 calculate rootHash of contract mpt
+	//			rootHash, err := contractTrie.Commit(nil)
+	//			panicError(err)
+	//			storageRoot.SetBytes(rootHash.Bytes())
+	//
+	//			// write code to evm.db in direct
+	//			codeHash := ethcmn.BytesToHash(ethAcc.CodeHash)
+	//			rawdb.WriteCode(batch, codeHash, migrationApp.EvmKeeper.GetCodeByHash(cmCtx, codeHash))
+	//			writeDataToRawdb(batch)
+	//		} else {
+	//			storageRoot.SetBytes(mpt.EmptyRootHash.Bytes())
+	//		}
+	//		okbAcc.StateRoot = storageRoot
+	//
+	//		// 2.4 set the rootHash of contract mpt into evm mpt
+	//		// update acc mpt for every account
+	//		panicError(accTrie.TryUpdate(key, value))
+	//		if count%100 == 0 {
+	//			var storageRoot ethcmn.Hash
+	//			root, err := accTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+	//
+	//				if storageRoot != mpt.EmptyRootHash {
+	//					db.TrieDB().Reference(storageRoot, parent)
+	//				}
+	//				return nil
+	//			})
+	//			panicError(err)
+	//
+	//			err = db.TrieDB().Commit(root, false, nil)
+	//			panicError(err)
+	//
+	//			log.Println(count)
+	//		}
+	//		//okbAcc.MarshalToAmino()
+	//	}
+	//
+	//	return false
+	//})
+	//
+	//fmt.Println(fmt.Sprintf("Successfully migrate %d account (include %d contract account) at version %d", count, contractCount, committedHeight))
 }
 
 // migrateEvmFromIavlToMpt migrate evm data from iavl to mpt
