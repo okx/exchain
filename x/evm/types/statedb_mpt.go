@@ -3,7 +3,6 @@ package types
 import (
 	"errors"
 	"fmt"
-	types2 "github.com/ethereum/go-ethereum/core/types"
 	ethermint "github.com/okex/exchain/app/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -208,7 +207,7 @@ func (csdb *CommitStateDB) StartPrefetcher(namespace string) {
 		csdb.prefetcher = nil
 	}
 
-	csdb.prefetcher = mpt.NewTriePrefetcher(csdb.db, types2.EmptyRootHash, namespace)
+	//csdb.prefetcher = mpt.NewTriePrefetcher(csdb.db, types2.EmptyRootHash, namespace)
 }
 
 // StopPrefetcher terminates a running prefetcher and reports any leftover stats

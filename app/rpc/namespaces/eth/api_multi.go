@@ -251,9 +251,11 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			status = 0 // transaction failed
 		}
 
-		if len(data.Logs) == 0 {
+		if len(data.Logs) == 0 || status == 0 {
 			data.Logs = []*ethtypes.Log{}
+			data.Bloom = ethtypes.BytesToBloom(make([]byte, 256))
 		}
+
 		contractAddr := &data.ContractAddress
 		if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
 			contractAddr = nil
@@ -329,7 +331,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		}
 
 		if realTx != nil {
-			txHash := resBlock.Block.Txs[idx].Hash(resBlock.Block.Height)
+			txHash := resBlock.Block.Txs[idx].Hash()
 			queryTx, err := api.clientCtx.Client.Tx(txHash, false)
 			if err != nil {
 				// Return nil for transaction when not found

@@ -2,7 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 )
 
@@ -98,12 +97,7 @@ func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, 
 
 func (h Hooks) BeforeDelegationRemoved(_ sdk.Context, _ sdk.AccAddress, _ sdk.ValAddress) {}
 
-//check modules enabled
+// check modules enabled
 func (h Hooks) CheckEnabled(ctx sdk.Context) bool {
-	//can delete this after upgrade venus2
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-		return true
-	}
-
 	return h.k.GetWithdrawRewardEnabled(ctx)
 }

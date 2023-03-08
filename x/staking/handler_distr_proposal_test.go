@@ -6,7 +6,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/global"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	keep "github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
@@ -31,10 +30,8 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		err                [5]error
 	}{
 		{
-			"not venus2, default ok",
-			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
-			},
+			"default ok",
+			func() {},
 			"0.5",
 			func(ctx *sdk.Context) {
 				ctx.SetBlockTime(time.Now())
@@ -44,10 +41,8 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			[5]error{nil, nil, nil, nil},
 		},
 		{
-			"not venus2, -0.5",
-			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
-			},
+			"-0.5",
+			func() {},
 			"-0.5",
 			func(ctx *sdk.Context) {
 				ctx.SetBlockTime(time.Now())
@@ -58,90 +53,17 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 				types.ErrCommissionNegative(), types.ErrCommissionNegative()},
 		},
 		{
-			"not venus2, do not set block time",
-			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
-			},
+			"do not set block time",
+			func() {},
 			"0.5",
-			func(ctx *sdk.Context) {
-
-			},
+			func(ctx *sdk.Context) {},
 			0,
 			[5]error{nil, nil, nil, types.ErrCommissionUpdateTime()},
-		},
-		{
-			"venus2, default ok",
-			func() {
-				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
-			},
-			"0.5",
-			func(ctx *sdk.Context) {
-				ctx.SetBlockTime(time.Now())
-				ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-			},
-			1,
-			[5]error{nil, nil, nil, nil},
-		},
-		{
-			"venus2, not support",
-			func() {
-				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
-			},
-			"0.5",
-			func(ctx *sdk.Context) {
-				ctx.SetBlockTime(time.Now())
-				ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-			},
-			1,
-			[5]error{types.ErrCodeNotSupportEditValidatorCommissionRate(), types.ErrCodeNotSupportEditValidatorCommissionRate(), nil, nil},
-		},
-		{
-			"venus2, -0.5",
-			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
-			},
-			"-0.5",
-			func(ctx *sdk.Context) {
-				ctx.SetBlockTime(time.Now())
-				ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-			},
-			1,
-			[5]error{types.ErrInvalidCommissionRate(), types.ErrInvalidCommissionRate(),
-				types.ErrCommissionNegative(), types.ErrCommissionNegative()},
-		},
-		{
-			"venus2, do not set block time",
-			func() {
-				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
-			},
-			"0.5",
-			func(ctx *sdk.Context) {
-
-			},
-			1,
-			[5]error{nil, nil, nil, types.ErrCommissionUpdateTime()},
-		},
-		{
-			"venus2, not support",
-			func() {
-				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
-			},
-			"0.5",
-			func(ctx *sdk.Context) {
-
-			},
-			1,
-			[5]error{types.ErrCodeNotSupportEditValidatorCommissionRate(), types.ErrCodeNotSupportEditValidatorCommissionRate(), nil, types.ErrCommissionUpdateTime()},
 		},
 	}
 
 	for _, tc := range testCases {
 		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 		suite.Run(tc.title, func() {
 			ctx, _, mKeeper := CreateTestInput(suite.T(), false, SufficientInitPower)
 			tc.setMilestoneHeight()

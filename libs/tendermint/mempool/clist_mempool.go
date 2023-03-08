@@ -366,7 +366,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
+				hex.EncodeToString(tx.Hash()), r.CheckTx.GasWanted, gasUsed))
 			if gasUsed < r.CheckTx.GasWanted {
 				r.CheckTx.GasWanted = gasUsed
 			}
@@ -542,7 +542,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 
 	// add tx to PendingPool
-	if err := mem.pendingPool.validate(memTx.from, memTx.tx, memTx.height); err != nil {
+	if err := mem.pendingPool.validate(memTx.from, memTx.tx); err != nil {
 		return err
 	}
 	pendingTx := memTx
@@ -644,7 +644,7 @@ func (mem *CListMempool) resCbFirstTime(
 		if r.CheckTx != nil && r.CheckTx.Tx != nil {
 			txHash = r.CheckTx.Tx.TxHash()
 		}
-		txkey := txOrTxHashToKey(tx, txHash, mem.height)
+		txkey := txOrTxHashToKey(tx, txHash)
 
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
 			// Check mempool isn't full again to reduce the chance of exceeding the
@@ -842,7 +842,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
-		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash())
 		if _, ok := txFilter[key]; ok {
 			// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
 			mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
@@ -991,7 +991,7 @@ func (mem *CListMempool) Update(
 		txCode := deliverTxResponses[i].Code
 		addr := ""
 		nonce := uint64(0)
-		txhash := tx.Hash(height)
+		txhash := tx.Hash()
 		gasUsedPerTx := deliverTxResponses[i].GasUsed
 		gasPricePerTx := big.NewInt(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
@@ -1130,7 +1130,7 @@ func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clis
 			txHash = realTx.TxHash()
 		}
 	}
-	txKey := txOrTxHashToKey(tx, txHash, height)
+	txKey := txOrTxHashToKey(tx, txHash)
 	// CodeTypeOK means tx was successfully executed.
 	// CodeTypeNonceInc means tx fails but the nonce of the account increases,
 	// e.g., the transaction gas has been consumed.
@@ -1322,12 +1322,12 @@ func (nopTxCache) RemoveKey(key [32]byte)    {}
 // --------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
-	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
+	copy(retHash[:], tx.Hash()[:sha256.Size])
 	return
 }
 
-func txOrTxHashToKey(tx types.Tx, txHash []byte, height int64) (retHash [sha256.Size]byte) {
-	if len(txHash) == sha256.Size && types.HigherThanVenus(height) {
+func txOrTxHashToKey(tx types.Tx, txHash []byte) (retHash [sha256.Size]byte) {
+	if len(txHash) == sha256.Size {
 		copy(retHash[:], txHash)
 		return
 	} else {
@@ -1341,12 +1341,12 @@ type txIDStringer struct {
 }
 
 func (txs txIDStringer) String() string {
-	return amino.HexEncodeToStringUpper(types.Tx(txs.tx).Hash(txs.height))
+	return amino.HexEncodeToStringUpper(types.Tx(txs.tx).Hash())
 }
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
-func txID(tx []byte, height int64) string {
-	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash(height))
+func txID(tx []byte) string {
+	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash())
 }
 
 // --------------------------------------------------------------------------------
@@ -1415,7 +1415,7 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	}
 	simuRes, err := mem.simulateTx(memTx.tx)
 	if err != nil {
-		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
+		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash())
 		return
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
@@ -1438,7 +1438,7 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 			removeMemTxHash = removeMemTx.realTx.TxHash()
 		}
 		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
-		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash))
 
 		if mem.config.PendingRemoveEvent {
 			mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}

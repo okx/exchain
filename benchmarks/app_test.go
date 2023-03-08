@@ -144,8 +144,6 @@ func InitializeOKXApp(b testing.TB, db dbm.DB, numAccounts int) AppInfo {
 	}
 	okxApp := SetupWithGenesisAccounts(b, db, genAccs)
 
-	types.UnittestOnlySetMilestoneVenusHeight(1)
-
 	info := AppInfo{
 		height:      1,
 		App:         okxApp,

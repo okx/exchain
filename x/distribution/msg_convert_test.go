@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/stretchr/testify/require"
 )
@@ -21,11 +20,6 @@ func testMustAccAddressFromBech32(addr string) sdk.AccAddress {
 func TestConvertWithdrawDelegatorAllRewardsMsg(t *testing.T) {
 	addr, err := sdk.AccAddressFromHex("B2910E22Bb23D129C02d122B77B462ceB0E89Db9")
 	require.NoError(t, err)
-
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
-	defer func() {
-		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
-	}()
 
 	testcases := []struct {
 		msgstr  string
