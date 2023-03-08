@@ -1,19 +1,16 @@
-package watcher_test
+package watcher
 
 import (
 	"bytes"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	okexchaincodec "github.com/okex/exchain/app/codec"
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/evm"
 	etypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/stretchr/testify/suite"
 	"math/big"
 	"testing"
@@ -30,10 +27,9 @@ var (
 
 type TxTestSuite struct {
 	suite.Suite
-	Watcher          watcher.Watcher
-	TxDecoder        sdk.TxDecoder
-	evmSenderPrivKey ethsecp256k1.PrivKey
-	height           int64
+	Watcher   Watcher
+	TxDecoder sdk.TxDecoder
+	height    int64
 }
 
 // only used for comparing mockTx and ethTx in Case 2
@@ -54,7 +50,7 @@ func TestWatcherTx(t *testing.T) {
 func (suite *TxTestSuite) TestGetRealTx() {
 	//Decoder Settings
 	codecProxy, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
-	suite.TxDecoder = evm.TxDecoder(codecProxy)
+	suite.TxDecoder = etypes.TxDecoder(codecProxy)
 	suite.height = 10
 	tmtypes.UnittestOnlySetMilestoneVenusHeight(1)
 	global.SetGlobalHeight(suite.height)
@@ -96,7 +92,7 @@ func (suite *TxTestSuite) TestGetRealTx() {
 		suite.Run(tc.title, func() {
 			Tx, realTx := tc.buildTx()
 			suite.Require().NotNil(Tx)
-			resrTx, err := suite.Watcher.GetRealTx(Tx, suite.TxDecoder)
+			resrTx, err := suite.Watcher.getRealTx(Tx, suite.TxDecoder)
 			if err != nil {
 				suite.Require().Nil(realTx)
 			} else {
