@@ -28,6 +28,8 @@ var (
 	TrieImgsLimit     uint  = 4    // MB
 	TrieCommitGap     int64 = 100
 	TriesInMemory     uint  = 100
+
+	EnableAsyncCommit = false
 )
 
 var (

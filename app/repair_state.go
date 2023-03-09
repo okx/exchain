@@ -64,6 +64,7 @@ func repairStateOnStart(ctx *server.Context) {
 	orgIgnoreVersionCheck := iavl.GetIgnoreVersionCheck()
 	orgEnableFlatKV := viper.GetBool(flatkv.FlagEnable)
 	iavl.EnableAsyncCommit = false
+	mpttypes.EnableAsyncCommit = false
 	viper.Set(flatkv.FlagEnable, false)
 	iavl.SetEnableFastStorage(appstatus.IsFastStorageStrategy())
 	iavl.SetForceReadIavl(true)
@@ -75,7 +76,11 @@ func repairStateOnStart(ctx *server.Context) {
 	iavl.SetForceReadIavl(false)
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
-	iavl.EnableAsyncCommit = viper.GetBool(system.FlagTreeEnableAsyncCommit)
+
+	treeEnableAc := viper.GetBool(system.FlagTreeEnableAsyncCommit)
+	iavl.EnableAsyncCommit = treeEnableAc
+	mpttypes.EnableAsyncCommit = treeEnableAc
+
 	viper.Set(flatkv.FlagEnable, orgEnableFlatKV)
 	// load latest block height
 }
