@@ -1011,7 +1011,7 @@ func (api *PublicEthereumAPI) simDoCall(args rpctypes.CallArgs, cap uint64) (uin
 	}
 
 	// use exact gas to run verify again
-	// https://github.com/okex/oec/issues/1784
+	// https://github.com/okx/oec/issues/1784
 	verifiedResponse, err := executable(exactResponse.GasInfo.GasUsed)
 	if err == nil {
 		return verifiedResponse.GasInfo.GasUsed, nil

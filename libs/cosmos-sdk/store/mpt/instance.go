@@ -41,6 +41,7 @@ func InstanceOfMptStore() ethstate.Database {
 			panic("fail to open database: " + e.Error())
 		}
 		nkvstore := NewStatKeyValueStore(kvstore, gStatic)
+
 		db := rawdb.NewDatabase(nkvstore)
 		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     int(TrieCacheSize),

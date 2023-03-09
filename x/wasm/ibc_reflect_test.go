@@ -74,12 +74,12 @@ package wasm_test
 //	// and submit them to the other side (same with acks). This is what the real relayer does. I guess the test framework doesn't?
 //
 //	// Update: I dug through the code, especially channel.Keeper.SendPacket, and it only writes a commitment
-//	// only writes I see: https://github.com/okex/exchain/libs/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L115-L116
-//	// commitment is hashed packet: https://github.com/okex/exchain/libs/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/types/packet.go#L14-L34
+//	// only writes I see: https://github.com/okx/okbchain/libs/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L115-L116
+//	// commitment is hashed packet: https://github.com/okx/okbchain/libs/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/types/packet.go#L14-L34
 //	// how is the relayer supposed to get the original packet data??
-//	// eg. ibctransfer doesn't store the packet either: https://github.com/okex/exchain/libs/cosmos-sdk/blob/master/x/ibc/applications/transfer/keeper/relay.go#L145-L162
+//	// eg. ibctransfer doesn't store the packet either: https://github.com/okx/okbchain/libs/cosmos-sdk/blob/master/x/ibc/applications/transfer/keeper/relay.go#L145-L162
 //	// ... or I guess the original packet data is only available in the event logs????
-//	// https://github.com/okex/exchain/libs/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L121-L132
+//	// https://github.com/okx/okbchain/libs/cosmos-sdk/blob/31fdee0228bd6f3e787489c8e4434aabc8facb7d/x/ibc/core/04-channel/keeper/packet.go#L121-L132
 //
 //	// ensure the expected packet was prepared, and relay it
 //	require.Equal(t, 1, len(chainA.PendingSendPackets))

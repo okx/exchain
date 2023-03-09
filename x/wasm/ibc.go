@@ -340,7 +340,7 @@ func newIBCPacket(packet channeltypes.Packet) wasmvmtypes.IBCPacket {
 
 func ValidateChannelParams(channelID string) error {
 	// NOTE: for escrow address security only 2^32 channels are allowed to be created
-	// Issue: https://github.com/okex/exchain/libs/cosmos-sdk/issues/7737
+	// Issue: https://github.com/okx/okbchain/libs/cosmos-sdk/issues/7737
 	channelSequence, err := channeltypes.ParseChannelSequence(channelID)
 	if err != nil {
 		return err

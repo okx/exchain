@@ -1236,7 +1236,7 @@ func (k Keeper) QueryGasLimit() sdk.Gas {
 }
 
 // BankCoinTransferrer replicates the cosmos-sdk behaviour as in
-// https://github.com/okex/exchain/libs/cosmos-sdk/blob/v0.41.4/x/bank/keeper/msg_server.go#L26
+// https://github.com/okx/okbchain/libs/cosmos-sdk/blob/v0.41.4/x/bank/keeper/msg_server.go#L26
 type BankCoinTransferrer struct {
 	keeper types.BankKeeper
 }
