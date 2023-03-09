@@ -10,13 +10,13 @@ import (
 
 	"github.com/okx/okbchain/app/config"
 	"github.com/okx/okbchain/app/utils/appstatus"
-
 	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/flatkv"
 	mpttypes "github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/iavl"
+	"github.com/okx/okbchain/libs/system"
 	cfg "github.com/okx/okbchain/libs/tendermint/config"
 	"github.com/okx/okbchain/libs/tendermint/global"
 	tmlog "github.com/okx/okbchain/libs/tendermint/libs/log"
@@ -75,7 +75,7 @@ func repairStateOnStart(ctx *server.Context) {
 	iavl.SetForceReadIavl(false)
 	sm.SetIgnoreSmbCheck(orgIgnoreSmbCheck)
 	iavl.SetIgnoreVersionCheck(orgIgnoreVersionCheck)
-	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
+	iavl.EnableAsyncCommit = viper.GetBool(system.FlagTreeEnableAsyncCommit)
 	viper.Set(flatkv.FlagEnable, orgEnableFlatKV)
 	// load latest block height
 }
