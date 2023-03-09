@@ -323,8 +323,13 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		return
 	}
 
+	commitGap := TrieCommitGap
+	if !EnableAsyncCommit {
+		commitGap = 1
+	}
+
 	// If we exceeded out time allowance, flush an entire trie to disk
-	if curHeight%TrieCommitGap == 0 {
+	if curHeight%commitGap == 0 {
 		// If the header is missing (canonical chain behind), we're reorging a low
 		// diff sidechain. Suspend committing until this operation is completed.
 		chRoot := ms.GetMptRootHash(uint64(curHeight))
@@ -404,8 +409,6 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 		for !ms.triegc.Empty() {
 			ms.db.TrieDB().Dereference(ms.triegc.PopItem().(ethcmn.Hash))
 		}
-
-		ms.db.TrieDB().Close()
 	}
 
 	return nil

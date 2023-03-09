@@ -1168,7 +1168,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	if iavltree.EnableAsyncCommit {
 		iavltree.UpdateCommitGapHeight(gap)
 	}
-	if !mpt.TrieDirtyDisabled {
+	if mpt.EnableAsyncCommit {
 		mpt.UpdateCommitGapHeight(gap)
 	}
 	for key, store := range storeMap {
