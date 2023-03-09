@@ -1,6 +1,7 @@
 package lite_test
 
 import (
+	"sort"
 	"time"
 
 	"github.com/okx/okbchain/libs/tendermint/crypto"
@@ -67,7 +68,9 @@ func (pkz privKeys) ToValidators(init, inc int64) *types.ValidatorSet {
 	for i, k := range pkz {
 		res[i] = types.NewValidator(k.PubKey(), init+int64(i)*inc)
 	}
-	return types.NewValidatorSet(res)
+	nvs := types.NewValidatorSet(res)
+	sort.Sort(types.ValidatorsByAddress(nvs.Validators))
+	return nvs
 }
 
 // signHeader properly signs the header with all keys from first to last exclusive.

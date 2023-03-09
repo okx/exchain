@@ -6,7 +6,6 @@ import (
 
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store"
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	storetypes "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
@@ -65,13 +64,11 @@ func (suite *ProposalHandlerSuite) SetupTest() {
 	storeKey := sdk.NewKVStoreKey(StoreKey)
 	tstoreKey := sdk.NewTransientStoreKey(TStoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
-	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 
 	suite.ms = store.NewCommitMultiStore(tmdb.NewMemDB())
 	suite.ms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 	suite.ms.MountStoreWithDB(tstoreKey, sdk.StoreTypeTransient, db)
-	suite.ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
-	suite.ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
+	suite.ms.MountStoreWithDB(keyAcc, sdk.StoreTypeMPT, db)
 	err := suite.ms.LoadLatestVersion()
 	suite.NoError(err)
 
@@ -82,7 +79,6 @@ func (suite *ProposalHandlerSuite) SetupTest() {
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,
 		keyAcc,
-		keyMpt,
 		suite.paramsKeeper.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)

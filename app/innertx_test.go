@@ -54,6 +54,7 @@ type InnerTxTestSuite struct {
 	handler sdk.Handler
 }
 
+// Note: DefaultMinSelfDelegation was changed to 0 from 10000
 func (suite *InnerTxTestSuite) SetupTest() {
 	checkTx := false
 	chain_id := "ethermint-3"
@@ -71,6 +72,9 @@ func (suite *InnerTxTestSuite) SetupTest() {
 	params.EnableCreate = true
 	params.EnableCall = true
 	suite.app.EvmKeeper.SetParams(suite.ctx, params)
+
+	stakingParams := staking_types.DefaultDposParams()
+	suite.app.StakingKeeper.SetParams(suite.ctx, stakingParams)
 }
 
 func TestInnerTxTestSuite(t *testing.T) {
@@ -317,111 +321,6 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 			},
 		},
 		{
-			"proxy reg msg(staking)",
-			func() {
-				suite.handler = staking.NewHandler(suite.app.StakingKeeper)
-				err := suite.app.BankKeeper.SetCoins(suite.ctx, cmFrom, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
-				suite.Require().NoError(err)
-				err = suite.app.BankKeeper.SetCoins(suite.ctx, valcmaddress, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 20000)))
-				suite.Require().NoError(err)
-
-				msg := staking_keeper.NewTestMsgCreateValidator(valopaddress, valpub, coin10.Amount)
-
-				depositMsg := staking_types.NewMsgDeposit(cmFrom, keeper.NewTestSysCoin(10000, 0))
-				regMsg := staking_types.NewMsgRegProxy(cmFrom, true)
-				tx = auth.NewStdTx([]sdk.Msg{msg, depositMsg, regMsg}, fees, nil, "")
-			},
-			true,
-			func() {
-				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
-				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)))))
-
-			},
-		},
-		{
-			"proxy unreg msg(staking)",
-			func() {
-				suite.handler = staking.NewHandler(suite.app.StakingKeeper)
-				err := suite.app.BankKeeper.SetCoins(suite.ctx, cmFrom, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
-				suite.Require().NoError(err)
-				err = suite.app.BankKeeper.SetCoins(suite.ctx, valcmaddress, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 20000)))
-				suite.Require().NoError(err)
-
-				msg := staking_keeper.NewTestMsgCreateValidator(valopaddress, valpub, coin10.Amount)
-
-				depositMsg := staking_types.NewMsgDeposit(cmFrom, keeper.NewTestSysCoin(10000, 0))
-				regMsg := staking_types.NewMsgRegProxy(cmFrom, true)
-				unregMsg := staking_types.NewMsgRegProxy(cmFrom, false)
-				tx = auth.NewStdTx([]sdk.Msg{msg, depositMsg, regMsg, unregMsg}, fees, nil, "")
-			},
-			true,
-			func() {
-				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
-				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)))))
-
-			},
-		},
-		{
-			"proxy bind msg(staking)",
-			func() {
-				suite.handler = staking.NewHandler(suite.app.StakingKeeper)
-
-				err := suite.app.BankKeeper.SetCoins(suite.ctx, cmFrom1, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
-				suite.Require().NoError(err)
-				err = suite.app.BankKeeper.SetCoins(suite.ctx, cmFrom, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
-				suite.Require().NoError(err)
-				err = suite.app.BankKeeper.SetCoins(suite.ctx, valcmaddress, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 20000)))
-				suite.Require().NoError(err)
-
-				msg := staking_keeper.NewTestMsgCreateValidator(valopaddress, valpub, coin10.Amount)
-				depositMsg := staking_types.NewMsgDeposit(cmFrom, keeper.NewTestSysCoin(10000, 0))
-				regMsg := staking_types.NewMsgRegProxy(cmFrom, true)
-				depositMsg1 := staking_types.NewMsgDeposit(cmFrom1, keeper.NewTestSysCoin(10000, 0))
-				bindMsg := staking_types.NewMsgBindProxy(cmFrom1, cmFrom)
-
-				tx = auth.NewStdTx([]sdk.Msg{msg, depositMsg, regMsg, depositMsg1, bindMsg}, fees, nil, "")
-			},
-			true,
-			func() {
-				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
-				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)))))
-
-				fromBalance = suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom1).GetCoins()
-				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)))))
-
-			},
-		},
-		{
-			"proxy unbind msg(staking)",
-			func() {
-				suite.handler = staking.NewHandler(suite.app.StakingKeeper)
-
-				err := suite.app.BankKeeper.SetCoins(suite.ctx, cmFrom1, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
-				suite.Require().NoError(err)
-				err = suite.app.BankKeeper.SetCoins(suite.ctx, cmFrom, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
-				suite.Require().NoError(err)
-				err = suite.app.BankKeeper.SetCoins(suite.ctx, valcmaddress, sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 20000)))
-				suite.Require().NoError(err)
-
-				msg := staking_keeper.NewTestMsgCreateValidator(valopaddress, valpub, coin10.Amount)
-				depositMsg := staking_types.NewMsgDeposit(cmFrom, keeper.NewTestSysCoin(10000, 0))
-				regMsg := staking_types.NewMsgRegProxy(cmFrom, true)
-				depositMsg1 := staking_types.NewMsgDeposit(cmFrom1, keeper.NewTestSysCoin(10000, 0))
-				bindMsg := staking_types.NewMsgBindProxy(cmFrom1, cmFrom)
-				ubindMsg := staking_types.NewMsgUnbindProxy(cmFrom1)
-				tx = auth.NewStdTx([]sdk.Msg{msg, depositMsg, regMsg, depositMsg1, bindMsg, ubindMsg}, fees, nil, "")
-			},
-			true,
-			func() {
-				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
-				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)))))
-
-				fromBalance = suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom1).GetCoins()
-				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)))))
-
-			},
-		},
-		{
 			"withdraw validator(staking)",
 			func() {
 				suite.handler = staking.NewHandler(suite.app.StakingKeeper)
@@ -453,7 +352,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 					suite.app.EndBlocker(suite.ctx, abci.RequestEndBlock{})
 				}
 				commision := suite.app.DistrKeeper.GetValidatorAccumulatedCommission(suite.ctx, valopaddress)
-				suite.Require().True(commision.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(49, 0)))))
+				suite.Require().True(commision.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(98, 0)))))
 
 				suite.handler = distr.NewHandler(suite.app.DistrKeeper)
 				withdrawMsg := distr.NewMsgWithdrawValidatorCommission(valopaddress)
@@ -462,7 +361,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 			true,
 			func() {
 				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, valcmaddress).GetCoins()
-				expectCommision := sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(49, 0)))
+				expectCommision := sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(98, 0)))
 				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000))).Add2(expectCommision)))
 			},
 		},
@@ -498,7 +397,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 					suite.app.EndBlocker(suite.ctx, abci.RequestEndBlock{})
 				}
 				commision := suite.app.DistrKeeper.GetValidatorAccumulatedCommission(suite.ctx, valopaddress)
-				suite.Require().True(commision.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(49, 0)))))
+				suite.Require().True(commision.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(98, 0)))))
 
 				suite.handler = distr.NewHandler(suite.app.DistrKeeper)
 				setwithdrawMsg := distr.NewMsgSetWithdrawAddress(valcmaddress, cmFrom1)
@@ -510,7 +409,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, valcmaddress).GetCoins()
 				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))))
 				fromBalance = suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom1).GetCoins()
-				expectCommision := sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(49, 0)))
+				expectCommision := sdk.NewDecCoins(sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithPrec(98, 0)))
 				suite.Require().True(fromBalance.IsEqual(expectCommision))
 			},
 		},

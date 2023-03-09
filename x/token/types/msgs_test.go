@@ -251,7 +251,7 @@ func TestNewTokenMultiSend(t *testing.T) {
 		{NewMsgMultiSend(fromAddr, transfers), nil},
 		{NewMsgMultiSend(sdk.AccAddress{}, transfers), ErrAddressIsRequired()},
 		{NewMsgMultiSend(fromAddr, make([]TransferUnit, MultiSendLimit+1)), ErrMsgTransfersAmountBiggerThanSendLimit()},
-		{NewMsgMultiSend(fromAddr, transfers0), ErrInvalidCoins("0.000000000000000000okt")},
+		{NewMsgMultiSend(fromAddr, transfers0), ErrInvalidCoins("0.000000000000000000okb")},
 		{NewMsgMultiSend(fromAddr, transfers1), ErrAddressIsRequired()},
 	}
 	for _, msgCase := range testCase {

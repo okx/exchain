@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"encoding/hex"
+	staking "github.com/okx/okbchain/x/staking/types"
 	"os"
 	"testing"
 
@@ -99,6 +100,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.querier = keeper.NewQuerier(*evidenceKeeper)
 	suite.keeper = *evidenceKeeper
 	suite.app = app
+	suite.app.StakingKeeper.SetParams(suite.ctx, staking.DefaultDposParams())
 }
 
 func (suite *KeeperTestSuite) populateEvidence(ctx sdk.Context, numEvidence int) []exported.Evidence {

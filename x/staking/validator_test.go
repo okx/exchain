@@ -13,14 +13,14 @@ func TestValidatorMultiCreates(t *testing.T) {
 
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 
-	params := DefaultParams()
+	params := DefaultDposParams()
 	params.MaxValidators = 1
 	params.Epoch = 1
 
-	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{}, types.DefaultMinSelfDelegation)
+	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{}, types.DefaultDPoSMinSelfDelegation)
 	startUpStatus := baseValidatorStatus{startUpValidator}
 
-	invalidVal := NewValidator(addrVals[1], PKs[1], Description{}, types.DefaultMinSelfDelegation)
+	invalidVal := NewValidator(addrVals[1], PKs[1], Description{}, types.DefaultDPoSMinSelfDelegation)
 	invalidVaStatus := baseValidatorStatus{invalidVal}
 
 	bAction := baseAction{mk}
@@ -47,12 +47,12 @@ func TestValidatorSM1Create2Destroy3Create(t *testing.T) {
 
 	_, _, mk := CreateTestInput(t, false, SufficientInitPower)
 
-	params := DefaultParams()
+	params := DefaultDposParams()
 	params.MaxValidators = 1
 	params.Epoch = 1
 	params.UnbondingTime = time.Millisecond * 300
 
-	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{}, types.DefaultMinSelfDelegation)
+	startUpValidator := NewValidator(addrVals[0], PKs[0], Description{}, types.DefaultDPoSMinSelfDelegation)
 
 	startUpStatus := baseValidatorStatus{startUpValidator}
 	recreateValStatus := baseValidatorStatus{startUpValidator}

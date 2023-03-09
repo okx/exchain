@@ -1,10 +1,6 @@
 package types_test
 
 import (
-	"math/big"
-
-	types2 "github.com/okx/okbchain/libs/tendermint/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -14,6 +10,7 @@ import (
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/okx/okbchain/x/evm/types"
+	"math/big"
 )
 
 const maxGasLimitPerTx = 30000000
@@ -126,7 +123,6 @@ var (
 //  },
 //]
 func (suite *StateDBTestSuite) TestGetHashFn() {
-	types2.UnittestOnlySetMilestoneMarsHeight(0)
 	testCase := []struct {
 		name         string
 		height       uint64
@@ -156,6 +152,20 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			true,
 		},
 		{
+			"height not found, case 2",
+			1,
+			func() {
+				suite.ctx.SetBlockHeader(
+					abci.Header{
+						ChainID:        "ethermint-1",
+						Height:         100,
+						ValidatorsHash: []byte("val_hash"),
+					},
+				)
+			},
+			true,
+		},
+		{
 			"valid hash, case 2",
 			1,
 			func() {
@@ -170,20 +180,6 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 				suite.stateDB.WithContext(suite.ctx).SetHeightHash(1, hash)
 			},
 			false,
-		},
-		{
-			"height not found, case 2",
-			1,
-			func() {
-				suite.ctx.SetBlockHeader(
-					abci.Header{
-						ChainID:        "ethermint-1",
-						Height:         100,
-						ValidatorsHash: []byte("val_hash"),
-					},
-				)
-			},
-			true,
 		},
 		{
 			"empty hash, case 3",
@@ -209,9 +205,9 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 
 			hash := types.GetHashFn(suite.ctx, suite.stateDB)(tc.height)
 			if tc.expEmptyHash {
-				suite.Require().Equal(common.Hash{}.String(), hash.String())
+				suite.Require().Equal(common.Hash{}.String(), hash.String(), tc.name)
 			} else {
-				suite.Require().NotEqual(common.Hash{}.String(), hash.String())
+				suite.Require().NotEqual(common.Hash{}.String(), hash.String(), tc.name)
 			}
 		})
 	}
@@ -356,7 +352,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				Sender:       suite.address,
 				Simulate:     suite.ctx.IsCheckTx(),
 			},
-			false,
+			true, // it is expected to succeed because `EnableCall` is set to `true` by default.
 		},
 		{
 			"state transition simulation",
@@ -520,6 +516,6 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 	}
 	fromBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, suite.address)
 	toBalance := suite.app.EvmKeeper.GetBalance(suite.ctx, recipient)
-	suite.Require().Equal(fromBalance, sdk.NewDec(4940).BigInt())
-	suite.Require().Equal(toBalance, sdk.NewDec(50).BigInt())
+	suite.Require().Equal(sdk.NewDec(4930).BigInt(), fromBalance)
+	suite.Require().Equal(sdk.NewDec(60).BigInt(), toBalance)
 }

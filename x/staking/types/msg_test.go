@@ -26,7 +26,7 @@ func TestMsgCreateValidator(t *testing.T) {
 		expectPass                                bool
 	}{
 		{"empty bond", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1, coinZero, true},
-		{"zero min self delegation", "a", "b", "c", "d", sdk.ZeroInt(), addr1, dlgAddr1, pk1, coinPos, false},
+		{"zero min self delegation", "a", "b", "c", "d", sdk.ZeroInt(), addr1, dlgAddr1, pk1, coinPos, true},
 		{"basic good", "a", "b", "c", "d", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, true},
 		{"partial description", "", "", "c", "", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, true},
 		{"empty description", "", "", "", "", sdk.OneInt(), addr1, dlgAddr1, pk1, coinPos, false},

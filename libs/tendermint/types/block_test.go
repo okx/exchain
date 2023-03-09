@@ -2,6 +2,8 @@ package types
 
 import (
 	stdbytes "bytes"
+	gogotypes "github.com/gogo/protobuf/types"
+
 	// it is ok to use math/rand here: we do not need a cryptographically secure random
 	// number generator here and we can run the tests a bit faster
 	"crypto/rand"
@@ -286,7 +288,7 @@ func TestHeaderHash(t *testing.T) {
 			LastResultsHash:    tmhash.Sum([]byte("last_results_hash")),
 			EvidenceHash:       tmhash.Sum([]byte("evidence_hash")),
 			ProposerAddress:    crypto.AddressHash([]byte("proposer_address")),
-		}, hexBytesFromString("ABDC78921B18A47EE6BEF5E31637BADB0F3E587E3C0F4DB2D1E93E9FF0533862")},
+		}, hexBytesFromString("F740121F553B5418C3EFBD343C2DBFE9E007BB67B0D020A0741374BAB65242A4")},
 		{"nil header yields nil", nil, nil},
 		{"nil ValidatorsHash yields nil", &Header{
 			Version:            version.Consensus{Block: 1, App: 2},
@@ -321,8 +323,31 @@ func TestHeaderHash(t *testing.T) {
 						s.Type().Field(i).Name)
 					byteSlices = append(byteSlices, cdcEncode(f.Interface()))
 				}
+
+				h := tc.header
+				hbz, err := h.Version.Marshal()
+				pbbi := tc.header.LastBlockID.ToIBCProto()
+				bzbi, err := pbbi.Marshal()
+				pbt, err := gogotypes.StdTimeMarshal(h.Time)
+				assert.NoError(t, err)
+				ret := merkle.HashFromByteSlices([][]byte{
+					hbz,
+					ibccdcEncode(h.ChainID),
+					ibccdcEncode(h.Height),
+					pbt,
+					bzbi,
+					ibccdcEncode(h.LastCommitHash),
+					ibccdcEncode(h.DataHash),
+					ibccdcEncode(h.ValidatorsHash),
+					ibccdcEncode(h.NextValidatorsHash),
+					ibccdcEncode(h.ConsensusHash),
+					ibccdcEncode(h.AppHash),
+					ibccdcEncode(h.LastResultsHash),
+					ibccdcEncode(h.EvidenceHash),
+					ibccdcEncode(h.ProposerAddress),
+				})
 				assert.Equal(t,
-					bytes.HexBytes(merkle.SimpleHashFromByteSlices(byteSlices)), tc.header.Hash())
+					bytes.HexBytes(ret), tc.header.Hash())
 			}
 		})
 	}

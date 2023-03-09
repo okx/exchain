@@ -96,16 +96,16 @@ func (k Keeper) GetLastValidators(ctx sdk.Context) (validators []outtypes.Valida
 }
 
 // GetHistoricalInfo gets the historical info at a given height
-func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types.HistoricalInfo, bool) {
+func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (outtypes.HistoricalInfo, bool) {
 	store := ctx.KVStore(k.storeKey)
 	key := types.GetHistoricalInfoKey(height)
 
 	value := store.Get(key)
 	if value == nil {
-		return types.HistoricalInfo{}, false
+		return outtypes.HistoricalInfo{}, false
 	}
 
-	return types.MustUnmarshalHistoricalInfo(k.cdcMarshl.GetCdc(), value), true
+	return outtypes.MustUnmarshalHistoricalInfo(k.cdcMarshl.GetCdc(), value), true
 }
 
 func (k Keeper) GetAllDelegatorDelegations(ctx sdk.Context, delegator sdk.AccAddress) []types.Delegation {

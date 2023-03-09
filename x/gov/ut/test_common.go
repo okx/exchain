@@ -10,7 +10,6 @@ import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	types2 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store"
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
@@ -100,7 +99,6 @@ func CreateTestInput(
 	stakingTkSk := sdk.NewTransientStoreKey(staking.TStoreKey)
 
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
-	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -111,8 +109,7 @@ func CreateTestInput(
 	ms.MountStoreWithDB(stakingTkSk, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(stakingSk, sdk.StoreTypeIAVL, db)
 
-	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
+	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
@@ -148,7 +145,7 @@ func CreateTestInput(
 
 	accountKeeper := auth.NewAccountKeeper(
 		cdc, // amino codec
-		keyMpt,
+		keyAcc,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)

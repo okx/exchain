@@ -513,7 +513,8 @@ func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
 		bodyBytes,
 	)
 
-	expectedHexResult := "0A09626F64794279746573120D61757468696E666F62797465731A0B6578636861696E2D3130312001"
+	// expectedHexResult will change if chainID changes
+	expectedHexResult := "0A09626F64794279746573120D61757468696E666F62797465731A0C6F6B62636861696E2D3130312001"
 
 	require.Equal(t, expectedHexResult, fmt.Sprintf("%X", signBytes))
 

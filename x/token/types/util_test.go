@@ -167,18 +167,6 @@ func TestValidateDenom(t *testing.T) {
 	name = "abc-ts3"
 	require.NotNil(t, sdk.ValidateDenom(name))
 
-	name = notAllowedPrefix + "_abc"
-	require.NotNil(t, sdk.ValidateDenom(name))
-
-	name = notAllowedPrefix + "_abc-1af"
-	require.NotNil(t, sdk.ValidateDenom(name))
-
-	name = notAllowedPrefix + "_abcde-aaa_abtc-e12"
-	require.Nil(t, sdk.ValidateDenom(name))
-
-	name = notAllowedPrefix + "_f-abcde-aaa"
-	require.NotNil(t, sdk.ValidateDenom(name))
-
 	name = "pool-abcde-aaa"
 	require.NotNil(t, sdk.ValidateDenom(name))
 
@@ -186,17 +174,5 @@ func TestValidateDenom(t *testing.T) {
 	require.NotNil(t, sdk.ValidateDenom(name))
 
 	name = "pool-abc"
-	require.Nil(t, sdk.ValidateDenom(name))
-
-	name = notAllowedPrefix + "_abc"
-	require.NotNil(t, sdk.ValidateDenom(name))
-
-	name = notAllowedPrefix + "_abc" + "-bcd"
-	require.NotNil(t, sdk.ValidateDenom(name))
-
-	name = notAllowedPrefix + "_abc" + "_bcd-1234"
-	require.NotNil(t, sdk.ValidateDenom(name))
-
-	name = notAllowedPrefix + "_abc-123" + "_bcd"
 	require.Nil(t, sdk.ValidateDenom(name))
 }

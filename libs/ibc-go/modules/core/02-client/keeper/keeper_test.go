@@ -37,8 +37,8 @@ const (
 
 	height = 5
 
-	trustingPeriod time.Duration = time.Hour * 24 * 7 * 2
-	ubdPeriod      time.Duration = time.Hour * 24 * 7 * 3
+	trustingPeriod time.Duration = ibctesting.TrustingPeriod
+	ubdPeriod      time.Duration = ibctesting.UnbondingPeriod
 	maxClockDrift  time.Duration = time.Second * 10
 )
 
@@ -73,7 +73,7 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
-	
+
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))

@@ -87,7 +87,12 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 		err error
 	)
 
-	if enc, err = csdb.StorageTrie(addr).TryGet(key.Bytes()); err != nil {
+	tr := csdb.StorageTrie(addr)
+	if tr == nil {
+		return ethcmn.Hash{}
+	}
+
+	if enc, err = tr.TryGet(key.Bytes()); err != nil {
 		return ethcmn.Hash{}
 	}
 

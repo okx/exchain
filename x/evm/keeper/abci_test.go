@@ -44,10 +44,10 @@ func (suite *KeeperTestSuite) TestBeginBlock() {
 
 	suite.Require().Equal(int64(initialConsumed), int64(suite.ctx.GasMeter().GasConsumed()))
 
-	blockHash := ethcmn.BytesToHash(req.Header.LastBlockId.Hash)
-	lastHeight, found := suite.app.EvmKeeper.GetBlockHeight(suite.ctx, blockHash)
+	blockHash := ethcmn.BytesToHash(req.Hash)
+	blockHeight, found := suite.app.EvmKeeper.GetBlockHeight(suite.ctx, blockHash)
 	suite.Require().True(found)
-	suite.Require().Equal(int64(9), lastHeight)
+	suite.Require().Equal(req.Header.GetHeight(), blockHeight)
 }
 
 func (suite *KeeperTestSuite) TestEndBlock() {
