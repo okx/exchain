@@ -736,8 +736,8 @@ github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/okx/go-amino v0.15.1-okc4 h1:K0xPoVjkz33ySNC4VLStyit4dblMeVlWJQQ6sq+aUBY=
 github.com/okx/go-amino v0.15.1-okc4/go.mod h1:TQU0M1i/ImAo+tYpZi73AU3V/dKeCoMC9Sphe2ZwGME=
-github.com/okx/go-ethereum v1.10.9-0.20230307060724-ed24c9621dc0 h1:rAx7OwDGopA0e16EvXo5yjycHxkzjJZQYtdKJNWk9Bg=
-github.com/okx/go-ethereum v1.10.9-0.20230307060724-ed24c9621dc0/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
+github.com/okx/go-ethereum v1.10.9-0.20230304105959-416ab4d761a9 h1:VTZzl7D8OoX3tA6W1JoVnJ+S8VTO270DrQ6exOCYjKg=
+github.com/okx/go-ethereum v1.10.9-0.20230304105959-416ab4d761a9/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
 github.com/okx/grocksdb v1.6.45-okc2 h1:Dbmax+uY71YuGTkJftpF55dbGW7hfIVOfNz2mnFqXl0=
 github.com/okx/grocksdb v1.6.45-okc2/go.mod h1:+/BHUY+mT0tbaVXwO2wTtD9eytazyw1W5n2O7AGyXZA=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
