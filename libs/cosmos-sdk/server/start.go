@@ -11,7 +11,6 @@ import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/server/grpc"
 	"github.com/okx/okbchain/libs/tendermint/consensus"
 
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okx/okbchain/libs/tendermint/rpc/client"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -349,8 +348,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
 	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
 	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
-
-	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
 
