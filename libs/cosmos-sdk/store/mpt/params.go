@@ -18,6 +18,7 @@ const (
 	FlagTrieCacheSize     = "trie.cache-size"
 	FlagTrieNodesLimit    = "trie.nodes-limit"
 	FlagTrieImgsLimit     = "trie.imgs-limit"
+	FlagTrieInMemory      = "trie.in-memory"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 	TrieNodesLimit    uint  = 256  // MB
 	TrieImgsLimit     uint  = 4    // MB
 	TrieCommitGap     int64 = 100
+	TriesInMemory     uint  = 100
 )
 
 var (

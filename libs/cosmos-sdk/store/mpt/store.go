@@ -343,10 +343,10 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		}
 	}
 	// Garbage collect anything below our required write retention
-	if curHeight >= TrieCommitGap {
+	if curHeight > int64(TriesInMemory) {
 		for !ms.triegc.Empty() {
 			root, number := ms.triegc.Pop()
-			if int64(-number) > curHeight-TrieCommitGap {
+			if -number > curHeight-int64(TriesInMemory) {
 				ms.triegc.Push(root, number)
 				break
 			}
