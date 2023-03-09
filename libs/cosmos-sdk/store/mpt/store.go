@@ -323,13 +323,13 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		return
 	}
 
-	commitGas := TrieCommitGap
+	commitGap := TrieCommitGap
 	if !EnableAsyncCommit {
-		commitGas = 1
+		commitGap = 1
 	}
 
 	// If we exceeded out time allowance, flush an entire trie to disk
-	if curHeight%commitGas == 0 {
+	if curHeight%commitGap == 0 {
 		// If the header is missing (canonical chain behind), we're reorging a low
 		// diff sidechain. Suspend committing until this operation is completed.
 		chRoot := ms.GetMptRootHash(uint64(curHeight))
