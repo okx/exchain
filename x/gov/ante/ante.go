@@ -6,6 +6,7 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	disr "github.com/okex/exchain/x/distribution/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params"
@@ -50,7 +51,12 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 				if err := ad.pk.CheckMsgSubmitProposal(ctx, msg); err != nil {
 					return ctx, err
 				}
+			case disr.DistrExtendProposal:
+				if !ad.sk.IsValidator(ctx, msg.Proposer) {
+					return ctx, disr.ErrCodeProposerMustBeValidator()
+				}
 			}
+
 		}
 	}
 

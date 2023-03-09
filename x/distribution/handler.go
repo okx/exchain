@@ -96,6 +96,8 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 				return keeper.HandleRewardTruncatePrecisionProposal(ctx, k, c)
 			}
 			return types.ErrUnknownDistributionCommunityPoolProposaType()
+		case types.DistrExtendProposal:
+			return keeper.HandleExtendProposal(ctx, k, c)
 
 		default:
 			return types.ErrUnknownDistributionCommunityPoolProposaType()

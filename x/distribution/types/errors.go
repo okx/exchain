@@ -28,6 +28,7 @@ const (
 	CodeBadDistribution                             uint32 = 67816
 	CodeInvalidProposalAmount                       uint32 = 67817
 	CodeEmptyProposalRecipient                      uint32 = 67818
+	CodeErrorExtendProposalParams                   uint32 = 67819
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
@@ -88,4 +89,8 @@ func ErrInvalidProposalAmount() sdk.Error {
 
 func ErrEmptyProposalRecipient() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeEmptyProposalRecipient, "invalid community pool spend proposal recipient")
+}
+
+func ErrExtendProposalParams(desc string) sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeErrorExtendProposalParams, desc)
 }

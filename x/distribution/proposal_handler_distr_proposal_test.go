@@ -105,3 +105,39 @@ func (suite *HandlerSuite) TestRewardTruncatePrecisionProposal() {
 		})
 	}
 }
+
+func makeDistrExtendProposal(method string, params string) govtypes.Proposal {
+	return govtypes.Proposal{Content: types.NewDistrExtendProposal(
+		"Test",
+		"description",
+		method,
+		params,
+	)}
+}
+
+func (suite *HandlerSuite) TestDistrExtendProposal() {
+	testCases := []struct {
+		title          string
+		venusHeight    int64
+		percision      int64
+		expectPercison int64
+		error          sdk.Error
+	}{
+		{
+			"ok", -1, 0, 0, sdk.Error(nil),
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			ctx, _, dk, _, _ := keeper.CreateTestInputDefault(suite.T(), false, 10)
+			require.Equal(suite.T(), int64(0), dk.GetRewardTruncatePrecision(ctx))
+			handler := NewDistributionProposalHandler(dk)
+			tmtypes.UnittestOnlySetMilestoneVenus2Height(tc.venusHeight)
+			proposal := makeDistrExtendProposal("hello", "{\"id\":123,\"status\":{\"passed\":true},\"coins\":[{\"denom\":\"okt\",\"amount\":\"100\"}]}")
+			err := handler(ctx, &proposal)
+			require.Equal(suite.T(), tc.error, err)
+			require.Equal(suite.T(), tc.expectPercison, dk.GetRewardTruncatePrecision(ctx))
+		})
+	}
+}

@@ -10,6 +10,9 @@ import (
 const (
 	MaxDescriptionLength int = 5000
 	MaxTitleLength       int = 140
+
+	MaxExtendParamsLength int = 5000
+	MaxExtendMethodLength int = 140
 )
 
 // Content defines an interface that a proposal must implement. It contains

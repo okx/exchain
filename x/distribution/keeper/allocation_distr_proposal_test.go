@@ -148,3 +148,10 @@ func BenchmarkAllocateTokensAfter(b *testing.B) {
 	}
 	require.Equal(b, tokens.MulDec(sdk.NewDec(int64(b.N))).QuoDec(sdk.NewDec(int64(2))), k.GetValidatorAccumulatedCommission(ctx, val.GetOperator()))
 }
+
+func TestHandleProposalMethord(t *testing.T) {
+	communityTax := sdk.NewDecWithPrec(2, 2)
+	ctx, _, _, dk, _, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+	p := types.NewDistrExtendProposal("title", "desc", "method", "params")
+	HandleExtendProposal(ctx, dk, p)
+}
