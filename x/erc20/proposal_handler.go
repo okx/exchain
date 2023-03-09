@@ -2,6 +2,7 @@ package erc20
 
 import (
 	ethcmm "github.com/ethereum/go-ethereum/common"
+	"github.com/okx/okbchain/libs/system"
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
@@ -28,7 +29,7 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 
 func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMappingProposal) sdk.Error {
 	if p.Denom == sdk.DefaultBondDenom || p.Denom == sdk.DefaultIbcWei {
-		return govTypes.ErrInvalidProposalContent("invalid denom, not support okt or wei denom")
+		return govTypes.ErrInvalidProposalContent("invalid denom, not support "+system.Currency+" or wei denom")
 	}
 
 	if len(p.Contract) == 0 {
