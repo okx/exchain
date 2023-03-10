@@ -10,7 +10,7 @@ import (
 
 	"github.com/cosmos/gorocksdb"
 	"github.com/ethereum/go-ethereum/ethdb"
-	tmdb "github.com/okex/exchain/libs/tm-db"
+	tmdb "github.com/okx/okbchain/libs/tm-db"
 )
 
 type BatchCache struct {
@@ -81,13 +81,15 @@ func InstanceBatchCache() *BatchCache {
 var _ ethdb.Batch = (*WrapRocksDBBatch)(nil)
 
 type WrapRocksDBBatch struct {
+	db *tmdb.RocksDB
 	*tmdb.RocksDBBatch
 	id int64
 }
 
 func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
+	return &WrapRocksDBBatch{db, tmdb.NewRocksDBBatch(db), 0}
 	sed := atomic.LoadInt64(&batchIdSeed)
-	batch := &WrapRocksDBBatch{tmdb.NewRocksDBBatch(db), sed}
+	batch := &WrapRocksDBBatch{db, tmdb.NewRocksDBBatch(db), sed}
 	atomic.AddInt64(&batchIdSeed, 1)
 
 	batchCache := InstanceBatchCache()
@@ -100,14 +102,14 @@ func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
 }
 
 func (wrsdbb *WrapRocksDBBatch) Put(key []byte, value []byte) error {
-	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
+	//InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	wrsdbb.Set(key, value)
 	return nil
 }
 
 func (wrsdbb *WrapRocksDBBatch) Delete(key []byte) error {
-	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
+	//InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	wrsdbb.RocksDBBatch.Delete(key)
 	return nil
@@ -118,6 +120,7 @@ func (wrsdbb *WrapRocksDBBatch) ValueSize() int {
 }
 
 func (wrsdbb *WrapRocksDBBatch) Write() error {
+	return wrsdbb.RocksDBBatch.Write()
 	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	return wrsdbb.RocksDBBatch.WriteWithoutClose()
@@ -125,7 +128,7 @@ func (wrsdbb *WrapRocksDBBatch) Write() error {
 
 // Replay replays the batch contents.
 func (wrsdbb *WrapRocksDBBatch) Replay(w ethdb.KeyValueWriter) error {
-	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
+	//InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	rp := &replayer{writer: w}
 
@@ -146,4 +149,8 @@ func (wrsdbb *WrapRocksDBBatch) Replay(w ethdb.KeyValueWriter) error {
 
 func (wrsdbb *WrapRocksDBBatch) GetID() int64 {
 	return wrsdbb.id
+}
+
+func (wrsdbb *WrapRocksDBBatch) Reset() {
+	wrsdbb.RocksDBBatch = tmdb.NewRocksDBBatch(wrsdbb.db)
 }
