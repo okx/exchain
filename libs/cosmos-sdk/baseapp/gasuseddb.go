@@ -8,6 +8,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	cfg "github.com/okx/okbchain/libs/tendermint/config"
 	db "github.com/okx/okbchain/libs/tm-db"
 	"github.com/spf13/viper"
 )
@@ -120,6 +121,9 @@ func (h *HistoryGasUsedRecordDB) updateRoutine() {
 }
 
 func initDb() db.DB {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
+		return nil
+	}
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, HistoryGasUsedDbDir)
 
