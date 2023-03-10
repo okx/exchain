@@ -19,13 +19,14 @@ import (
 )
 
 const (
-	chainID                        = "gaia"
-	chainIDRevision0               = "gaia-revision-0"
-	chainIDRevision1               = "gaia-revision-1"
-	clientID                       = "gaiamainnet"
-	trustingPeriod   time.Duration = time.Hour * 24 * 7 * 2
-	ubdPeriod        time.Duration = time.Hour * 24 * 7 * 3
-	maxClockDrift    time.Duration = time.Second * 10
+	chainID                          = "gaia"
+	chainIDRevision0                 = "gaia-revision-0"
+	chainIDRevision1                 = "gaia-revision-1"
+	clientID                         = "gaiamainnet"
+	trustingPeriod     time.Duration = time.Hour * 24 * 7 * 2
+	trustingPeriod_one time.Duration = time.Hour * 24 * 7 * 1
+	ubdPeriod          time.Duration = time.Hour * 24 * 7 * 3
+	maxClockDrift      time.Duration = time.Second * 10
 )
 
 var (

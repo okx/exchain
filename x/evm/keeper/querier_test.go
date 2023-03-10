@@ -10,7 +10,6 @@ import (
 )
 
 func (suite *KeeperTestSuite) TestQuerier() {
-
 	testCases := []struct {
 		msg      string
 		path     []string
@@ -66,7 +65,7 @@ func (suite *KeeperTestSuite) TestQuerier() {
 			suite.SetupTest() // reset
 			//nolint
 			tc.malleate()
-
+			fmt.Println(tc.msg)
 			bz, err := suite.querier(suite.ctx, tc.path, abci.RequestQuery{})
 
 			//nolint

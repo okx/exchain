@@ -18,7 +18,7 @@ var (
 func TestGetValidatorPowerRank(t *testing.T) {
 	valAddr1 := sdk.ValAddress(FixAddr)
 	emptyDesc := Description{}
-	val1 := NewValidator(valAddr1, pk1, emptyDesc, DefaultMinSelfDelegation)
+	val1 := NewValidator(valAddr1, pk1, emptyDesc, DefaultDPoSMinSelfDelegation)
 	val1.DelegatorShares = sdk.ZeroDec()
 	val2, val3, val4 := val1, val1, val1
 	val2.DelegatorShares = sdk.OneDec()

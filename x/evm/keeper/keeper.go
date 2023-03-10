@@ -69,7 +69,6 @@ type Keeper struct {
 
 	startHeight uint64
 	triegc      *prque.Prque
-	cmLock      sync.Mutex
 
 	// cache chain config
 	cci *chainConfigInfo

@@ -25,7 +25,6 @@ import (
 	capabilitykeeper "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/types"
 
-	stakingtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/types"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	tmproto "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
@@ -33,6 +32,7 @@ import (
 	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	tmprotoversion "github.com/okx/okbchain/libs/tendermint/version"
 	tmversion "github.com/okx/okbchain/libs/tendermint/version"
+	stakingtypes "github.com/okx/okbchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
@@ -761,10 +761,10 @@ func (chain *TestChain) GetContextPointer() *sdk.Context {
 	return &chain.context
 }
 
-//func (chain *TestChain) QueryProof(key []byte) ([]byte, clienttypes.Height)  {}
-//func (chain *TestChain) GetConsensusState(clientID string, height exported.Height) (exported.ConsensusState, bool) {
-//}
-//func (chain *TestChain) GetPrefix() commitmenttypes.MerklePrefix   {}
+// func (chain *TestChain) QueryProof(key []byte) ([]byte, clienttypes.Height)  {}
+// func (chain *TestChain) GetConsensusState(clientID string, height exported.Height) (exported.ConsensusState, bool) {
+// }
+// func (chain *TestChain) GetPrefix() commitmenttypes.MerklePrefix   {}
 func (chain *TestChain) LastHeader() *ibctmtypes.Header {
 	return chain.lastHeader
 }
@@ -794,7 +794,7 @@ func (chain *TestChain) SenderAccountPVBZ() []byte {
 	return chain.privKeyBz
 }
 
-//func (chain *TestChain) CurrentTMClientHeader() *ibctmtypes.Header {}
+// func (chain *TestChain) CurrentTMClientHeader() *ibctmtypes.Header {}
 func (chain *TestChain) CurrentHeader() tmproto.Header {
 	return chain.currentHeader
 }
@@ -802,10 +802,10 @@ func (chain *TestChain) SetCurrentHeader(h tmproto.Header) {
 	chain.currentHeader = h
 }
 
-//func (chain *TestChain) NextBlock()                                {}
+// func (chain *TestChain) NextBlock()                                {}
 //
-//func CreateTMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, tmTrustedVals *tmtypes.ValidatorSet, signers []tmtypes.PrivValidator) *ibctmtypes.Header {
-//}
+// func CreateTMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, tmTrustedVals *tmtypes.ValidatorSet, signers []tmtypes.PrivValidator) *ibctmtypes.Header {
+// }
 func (chain *TestChain) Vals() *tmtypes.ValidatorSet {
 	return chain.vals
 }
@@ -814,12 +814,11 @@ func (chain *TestChain) Signers() []tmtypes.PrivValidator {
 	return chain.signers
 }
 
-//func GetSimApp() *simapp.SimApp                                                                    {}
-//func GetChannelCapability(portID, channelID string) *capabilitytypes.Capability                    {}
-//func CreateChannelCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID, channelID string) {}
-//func SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error)                                                {}
-//func QueryUpgradeProof(key []byte, height uint64) ([]byte, clienttypes.Height)                     {}
-//
+// func GetSimApp() *simapp.SimApp                                                                    {}
+// func GetChannelCapability(portID, channelID string) *capabilitytypes.Capability                    {}
+// func CreateChannelCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID, channelID string) {}
+// func SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error)                                                {}
+// func QueryUpgradeProof(key []byte, height uint64) ([]byte, clienttypes.Height)                     {}
 func (chain *TestChain) Coordinator() *Coordinator {
 	return chain.coordinator
 }

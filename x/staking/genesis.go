@@ -2,6 +2,7 @@ package staking
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	supplyexported "github.com/okx/okbchain/libs/cosmos-sdk/x/supply/exported"
@@ -73,7 +74,7 @@ func checkTokenSum(tokenSum sdk.SysCoin, pool supplyexported.ModuleAccountI) {
 	poolCoins := pool.GetCoins()
 	if !poolCoins.IsZero() {
 		if len(poolCoins) != 1 {
-			panic(fmt.Sprintf("only okt in %s, but there are %d kinds of coins", pool.GetName(), len(poolCoins)))
+			panic(fmt.Sprintf("only "+system.Currency+" in %s, but there are %d kinds of coins", pool.GetName(), len(poolCoins)))
 		}
 
 		if !tokenSum.ToCoins().IsEqual(poolCoins) {

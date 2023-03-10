@@ -47,9 +47,7 @@ func exampleVote(t byte) *Vote {
 func TestVoteSignable(t *testing.T) {
 	vote := examplePrecommit()
 	signBytes := vote.SignBytes("test_chain_id")
-
-	expected, err := cdc.MarshalBinaryLengthPrefixed(CanonicalizeVote("test_chain_id", vote))
-	require.NoError(t, err)
+	expected := VoteSignBytes("test_chain_id", vote)
 
 	require.Equal(t, expected, signBytes, "Got unexpected sign bytes for Vote.")
 }

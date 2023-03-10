@@ -90,7 +90,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 				suite.app.TransferKeeper.SetDenomTrace(suite.ctx, types2.DenomTrace{
 					BaseDenom: "ibc/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", Path: "",
 				})
-				suite.app.TransferKeeper.BindPort(suite.ctx, "transfer")
+
 				cap, _ := suite.app.ScopedTransferKeeper.NewCapability(suite.ctx, host.ChannelCapabilityPath("transfer", channelA))
 				suite.app.ScopedIBCKeeper.ClaimCapability(suite.ctx, cap, host.ChannelCapabilityPath("transfer", channelA))
 				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, CorrectIbcDenom2, contract)

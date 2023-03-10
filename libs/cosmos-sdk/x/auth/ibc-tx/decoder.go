@@ -2,6 +2,7 @@ package ibc_tx
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec/unknownproto"
@@ -216,7 +217,7 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 			// ibc transfer okt is not allowed,should do filter
 			newMsg, err = msg.RulesFilter()
 			if err != nil {
-				return nil, nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support okt amount")
+				return nil, nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support "+system.Currency+" amount")
 			}
 		default:
 			newMsg = m

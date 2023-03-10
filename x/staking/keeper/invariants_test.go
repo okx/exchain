@@ -18,7 +18,7 @@ func TestDelegatorAddSharesInvariant(t *testing.T) {
 	vPk1, vPk2 := PKs[1], PKs[2]
 
 	// create validator
-	msgCreateValidator1 := NewTestMsgCreateValidator(vAddr1, vPk1, types.DefaultMinSelfDelegation)
+	msgCreateValidator1 := NewTestMsgCreateValidator(vAddr1, vPk1, types.DefaultDPoSMinSelfDelegation)
 	validator1 := types.NewValidator(msgCreateValidator1.ValidatorAddress, msgCreateValidator1.PubKey,
 		msgCreateValidator1.Description, msgCreateValidator1.MinSelfDelegation.Amount)
 	k.SetValidator(ctx, validator1)
@@ -29,7 +29,7 @@ func TestDelegatorAddSharesInvariant(t *testing.T) {
 	err := k.AddSharesAsMinSelfDelegation(ctx, msgCreateValidator1.DelegatorAddress, &validator1, defaultMinSelfDelegationToken1)
 	require.Nil(t, err)
 
-	msgCreateValidator2 := NewTestMsgCreateValidator(vAddr2, vPk2, types.DefaultMinSelfDelegation)
+	msgCreateValidator2 := NewTestMsgCreateValidator(vAddr2, vPk2, types.DefaultDPoSMinSelfDelegation)
 	validator2 := types.NewValidator(msgCreateValidator2.ValidatorAddress, msgCreateValidator2.PubKey,
 		msgCreateValidator2.Description, msgCreateValidator2.MinSelfDelegation.Amount)
 	k.SetValidator(ctx, validator2)

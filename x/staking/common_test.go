@@ -50,7 +50,7 @@ var (
 	ProxiedDelegator     = addrDels[3]
 	SufficientInitPower  = int64(10000)
 	MaxDelegatedToken    = sdk.NewDec(4096)
-	DefaultMSD           = types.DefaultMinSelfDelegation
+	DefaultMSD           = types.DefaultDPoSMinSelfDelegation
 	SharesFromDefaultMSD = sdk.OneDec()
 	DelegatedToken1      = SharesFromDefaultMSD.MulInt64(1024)
 	DelegatedToken2      = SharesFromDefaultMSD.MulInt64(2048)
@@ -187,7 +187,7 @@ func (a otherMostPowerfulValidatorEnter) apply(ctx sdk.Context, vaStatus IValida
 	resultCtx.t.Logf("====> Apply otherMostPowerfulValidatorEnter[%d], msd: %s\n",
 		ctx.BlockHeight(), val.MinSelfDelegation)
 
-	newValidator := NewValidator(MostPowerfulVaAddr, MostPowerfulVaPub, Description{}, types.DefaultMinSelfDelegation)
+	newValidator := NewValidator(MostPowerfulVaAddr, MostPowerfulVaPub, Description{}, types.DefaultDPoSMinSelfDelegation)
 
 	newVaStatus := baseValidatorStatus{newValidator}
 	cva := createValidatorAction{a.baseAction, nil}
@@ -1275,7 +1275,7 @@ func (tc *basicStakingSMTestCase) SetupValidatorSetAndDelegatorSet(maxValidator 
 	bAction := baseAction{tc.mockKeeper}
 	var lastStatus IValidatorStatus
 	for i := 0; i < maxValidator; i++ {
-		v := NewValidator(addrVals[i+1], PKs[i+1], Description{}, types.DefaultMinSelfDelegation)
+		v := NewValidator(addrVals[i+1], PKs[i+1], Description{}, types.DefaultDPoSMinSelfDelegation)
 
 		lastStatus = baseValidatorStatus{v}
 		result := ActionResultCtx{}

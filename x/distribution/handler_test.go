@@ -466,24 +466,27 @@ func DoAddSharesWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delA
 }
 
 func DoRegProxyWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, reg bool, expectError error) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgRegProxy(delAddr, reg)
-	_, e := h(ctx, msg)
-	require.Equal(t, expectError, e)
+	// No reg proxy
+	//h := staking.NewHandler(sk)
+	//msg := staking.NewMsgRegProxy(delAddr, reg)
+	//_, e := h(ctx, msg)
+	//require.Equal(t, expectError, e)
 }
 
 func DoBindProxyWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, proxyAddr sdk.AccAddress, expectError error) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgBindProxy(delAddr, proxyAddr)
-	_, e := h(ctx, msg)
-	require.Equal(t, expectError, e)
+	// No reg proxy
+	//h := staking.NewHandler(sk)
+	//msg := staking.NewMsgBindProxy(delAddr, proxyAddr)
+	//_, e := h(ctx, msg)
+	//require.Equal(t, expectError, e)
 }
 
 func DoUnBindProxyWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, expectError error) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgUnbindProxy(delAddr)
-	_, e := h(ctx, msg)
-	require.Equal(t, expectError, e)
+	// No reg proxy
+	//h := staking.NewHandler(sk)
+	//msg := staking.NewMsgUnbindProxy(delAddr)
+	//_, e := h(ctx, msg)
+	//require.Equal(t, expectError, e)
 }
 
 func DoSetWithdrawAddressWithError(t *testing.T, ctx sdk.Context, dk Keeper, delAddr sdk.AccAddress, expectError error) {

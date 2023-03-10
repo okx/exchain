@@ -54,7 +54,7 @@ func (suite *StateDBMptTestSuite) TestStateObject_State() {
 	for _, tc := range testCase {
 		tc.malleate()
 
-		value := suite.stateObject.GetState(nil, tc.key)
+		value := suite.stateObject.GetState(suite.stateDB.Database(), tc.key)
 		suite.Require().Equal(tc.expValue, value, tc.name)
 	}
 }

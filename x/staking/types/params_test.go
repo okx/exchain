@@ -7,8 +7,8 @@ import (
 )
 
 func TestParams(t *testing.T) {
-	p1 := DefaultParams()
-	p2 := DefaultParams()
+	p1 := DefaultDposParams()
+	p2 := DefaultDposParams()
 
 	ok := p1.Equal(p2)
 	require.True(t, ok)

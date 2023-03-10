@@ -6,6 +6,7 @@ import (
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 	txmsg "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
 	okc_types "github.com/okx/okbchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okx/okbchain/libs/system"
 )
 
 var (
@@ -86,7 +87,7 @@ func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
 		if amount.Denom == sdk.DefaultIbcWei {
 			msgSend.Amount[i].Denom = sdk.DefaultBondDenom
 		} else if amount.Denom == sdk.DefaultBondDenom {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support okt denom")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support "+system.Currency+" denom")
 		}
 	}
 	return &msgSend, nil
@@ -97,7 +98,7 @@ func (m *MsgSend) Swap(ctx sdk.Context) (sdk.Msg, error) {
 		if amount.Denom == sdk.DefaultIbcWei {
 			m.Amount[i].Denom = sdk.DefaultBondDenom
 		} else if amount.Denom == sdk.DefaultBondDenom {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support okt denom")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support "+system.Currency+" denom")
 		}
 	}
 

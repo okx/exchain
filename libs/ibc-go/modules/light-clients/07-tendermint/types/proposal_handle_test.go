@@ -147,7 +147,7 @@ func (suite *TendermintTestSuite) TestCheckSubstituteAndUpdateStateV4() {
 			suite.coordinator.SetupClients(substitutePath)
 			substituteClientState := suite.chainA.GetClientState(substitutePath.EndpointA.ClientID).(*types.ClientState)
 			// update trusting period of substitute client state
-			substituteClientState.TrustingPeriod = time.Hour * 24 * 7
+			substituteClientState.TrustingPeriod = trustingPeriod
 			suite.chainA.GetSimApp().GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID, substituteClientState)
 
 			// update substitute a few times
@@ -198,7 +198,7 @@ func (suite *TendermintTestSuite) TestCheckSubstituteAndUpdateStateV4() {
 				suite.Require().Equal(expectedIterationKey, subjectIterationKey)
 
 				suite.Require().Equal(newChainID, updatedClient.(*types.ClientState).ChainId)
-				suite.Require().Equal(time.Hour*24*7*2, updatedClient.(*types.ClientState).TrustingPeriod)
+				suite.Require().Equal(trustingPeriod_one, updatedClient.(*types.ClientState).TrustingPeriod)
 			} else {
 				suite.Require().Error(err)
 				suite.Require().Nil(updatedClient)

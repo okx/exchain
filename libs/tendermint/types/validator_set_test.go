@@ -790,6 +790,21 @@ type testVal struct {
 	power int64
 }
 
+type TestValidatorsByVotingPower []testVal
+
+func (valz TestValidatorsByVotingPower) Len() int { return len(valz) }
+
+func (valz TestValidatorsByVotingPower) Less(i, j int) bool {
+	if valz[i].power == valz[j].power {
+		return bytes.Compare([]byte(valz[i].name), []byte(valz[j].name)) == -1
+	}
+	return valz[i].power > valz[j].power
+}
+
+func (valz TestValidatorsByVotingPower) Swap(i, j int) {
+	valz[i], valz[j] = valz[j], valz[i]
+}
+
 func permutation(valList []testVal) []testVal {
 	if len(valList) == 0 {
 		return nil
@@ -1054,7 +1069,7 @@ func TestValSetUpdatesBasicTestsExecute(t *testing.T) {
 			assert.Equal(t, toTestValList(valListCopy), toTestValList(valSet.Validators), "test %v", i)
 
 		}
-
+		sort.Sort(TestValidatorsByVotingPower(tt.expectedVals))
 		// check the final validator list is as expected and the set is properly scaled and centered.
 		assert.Equal(t, tt.expectedVals, toTestValList(valSet.Validators), "test %v", i)
 		verifyValidatorSet(t, valSet)
@@ -1320,6 +1335,7 @@ func verifyValSetUpdatePriorityOrder(t *testing.T, valSet *ValidatorSet, cfg tes
 	updatedValsPriSorted := validatorListCopy(valSet.Validators)
 	sort.Sort(validatorsByPriority(updatedValsPriSorted))
 
+	sort.Sort(TestValidatorsByVotingPower(cfg.expectedVals))
 	// basic checks
 	assert.Equal(t, cfg.expectedVals, toTestValList(valSet.Validators))
 	verifyValidatorSet(t, valSet)
@@ -1404,6 +1420,7 @@ func TestValSetUpdateOverflowRelated(t *testing.T) {
 			applyChangesToValSet(t, tt.wantErr, valSet, tt.addedVals, tt.updatedVals, tt.deletedVals)
 
 			// verify updated validator set is as expected
+			sort.Sort(TestValidatorsByVotingPower(tt.expectedVals))
 			assert.Equal(t, tt.expectedVals, toTestValList(valSet.Validators))
 			verifyValidatorSet(t, valSet)
 		})
@@ -1534,7 +1551,7 @@ func TestValidatorSetProtoBuf(t *testing.T) {
 	}
 }
 
-//---------------------
+// ---------------------
 // Sort validators by priority and address
 type validatorsByPriority []*Validator
 
@@ -1558,7 +1575,7 @@ func (valz validatorsByPriority) Swap(i, j int) {
 	valz[j] = it
 }
 
-//-------------------------------------
+// -------------------------------------
 // Sort testVal-s by address.
 type testValsByAddress []testVal
 
@@ -1576,9 +1593,8 @@ func (tvals testValsByAddress) Swap(i, j int) {
 	tvals[j] = it
 }
 
-//-------------------------------------
+// -------------------------------------
 // Benchmark tests
-//
 func BenchmarkUpdates(b *testing.B) {
 	const (
 		n = 100

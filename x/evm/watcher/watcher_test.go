@@ -432,15 +432,9 @@ func TestWriteLatestMsg(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, uint64(3), ethAccount.GetSequence())
 	p := store.GetEvmParams()
-	expectedParams := evmtypes.Params{
-		EnableCreate:                      false,
-		EnableCall:                        false,
-		EnableContractDeploymentWhitelist: false,
-		EnableContractBlockedList:         false,
-		MaxGasLimitPerTx:                  30000000,
-	}
-	err = ParamsDeepEqual(expectedParams, p)
+	err = ParamsDeepEqual(evmtypes.DefaultParams(), p)
 	require.NoError(t, err)
+
 	expectedParams2 := evmtypes.Params{
 		EnableCreate:                      true,
 		EnableCall:                        true,

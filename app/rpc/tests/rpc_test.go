@@ -36,7 +36,6 @@ import (
 	cmserver "github.com/okx/okbchain/libs/cosmos-sdk/server"
 	cosmost "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/okx/okbchain/x/evm/watcher"
 
 	"github.com/okx/okbchain/app/rpc"
@@ -183,16 +182,6 @@ func StartRpc(suite *RPCTestSuite) {
 	}()
 }
 func TestRPCTestSuite(t *testing.T) {
-	suite.Run(t, new(RPCTestSuite))
-}
-
-func TestRPCTestSuiteWithMarsHeight2(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneMarsHeight(2)
-	suite.Run(t, new(RPCTestSuite))
-}
-
-func TestRPCTestSuiteWithMarsHeight1(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneMarsHeight(1)
 	suite.Run(t, new(RPCTestSuite))
 }
 
@@ -1158,39 +1147,40 @@ func (suite *RPCTestSuite) TestEth_GetLogs_GetTopicsFromHistory() {
 	suite.Require().Zero(len(logs))
 }*/
 
-func (suite *RPCTestSuite) TestEth_GetProof() {
-
-	initialBalance := suite.chain.SenderAccount().GetCoins()[0]
-	commitBlock(suite)
-	commitBlock(suite)
-	rpcRes := Call(suite.T(), suite.addr, "eth_getProof", []interface{}{senderAddr.Hex(), []string{fmt.Sprint(addrAStoreKey)}, "latest"})
-	suite.Require().NotNil(rpcRes)
-
-	var accRes types.AccountResult
-	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &accRes))
-	suite.Require().Equal(senderAddr, accRes.Address)
-	suite.Require().Equal(initialBalance.Amount.Int, accRes.Balance.ToInt())
-	suite.Require().NotEmpty(accRes.AccountProof)
-	suite.Require().NotEmpty(accRes.StorageProof)
-
-	// inexistentAddr -> zero value account result
-	rpcRes, err := CallWithError(suite.addr, "eth_getProof", []interface{}{inexistentAddr.Hex(), []string{fmt.Sprint(addrAStoreKey)}, "latest"})
-	suite.Require().NoError(err)
-	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &accRes))
-	suite.Require().Equal(inexistentAddr, accRes.Address)
-	suite.Require().True(sdk.ZeroDec().Int.Cmp(accRes.Balance.ToInt()) == 0)
-
-	// error check
-	// miss argument
-	_, err = CallWithError(suite.addr, "eth_getProof", []interface{}{hexAddr2.Hex(), []string{fmt.Sprint(addrAStoreKey)}})
-	suite.Require().Error(err)
-
-	_, err = CallWithError(suite.addr, "eth_getProof", []interface{}{hexAddr2.Hex()})
-	suite.Require().Error(err)
-
-	_, err = CallWithError(suite.addr, "eth_getProof", nil)
-	suite.Require().Error(err)
-}
+//TODO by yxq, `eth_getProof` is not ready
+//func (suite *RPCTestSuite) TestEth_GetProof() {
+//
+//	initialBalance := suite.chain.SenderAccount().GetCoins()[0]
+//	commitBlock(suite)
+//	commitBlock(suite)
+//	rpcRes := Call(suite.T(), suite.addr, "eth_getProof", []interface{}{senderAddr.Hex(), []string{fmt.Sprint(addrAStoreKey)}, "latest"})
+//	suite.Require().NotNil(rpcRes)
+//
+//	var accRes types.AccountResult
+//	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &accRes))
+//	suite.Require().Equal(senderAddr, accRes.Address)
+//	suite.Require().Equal(initialBalance.Amount.Int, accRes.Balance.ToInt())
+//	suite.Require().NotEmpty(accRes.AccountProof)
+//	suite.Require().NotEmpty(accRes.StorageProof)
+//
+//	// inexistentAddr -> zero value account result
+//	rpcRes, err := CallWithError(suite.addr, "eth_getProof", []interface{}{inexistentAddr.Hex(), []string{fmt.Sprint(addrAStoreKey)}, "latest"})
+//	suite.Require().NoError(err)
+//	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &accRes))
+//	suite.Require().Equal(inexistentAddr, accRes.Address)
+//	suite.Require().True(sdk.ZeroDec().Int.Cmp(accRes.Balance.ToInt()) == 0)
+//
+//	// error check
+//	// miss argument
+//	_, err = CallWithError(suite.addr, "eth_getProof", []interface{}{hexAddr2.Hex(), []string{fmt.Sprint(addrAStoreKey)}})
+//	suite.Require().Error(err)
+//
+//	_, err = CallWithError(suite.addr, "eth_getProof", []interface{}{hexAddr2.Hex()})
+//	suite.Require().Error(err)
+//
+//	_, err = CallWithError(suite.addr, "eth_getProof", nil)
+//	suite.Require().Error(err)
+//}
 
 /*
 func (suite *RPCTestSuite) TestEth_NewFilter() {

@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okx/okbchain/libs/system"
 	"regexp"
 	"strings"
 
@@ -318,7 +319,7 @@ func ConvWei2TOkt(adapters CoinAdapters) (CoinAdapters, error) {
 		if copyAdapters[index].Denom == DefaultIbcWei {
 			copyAdapters[index].Denom = DefaultBondDenom
 		} else if strings.ToLower(copyAdapters[index].Denom) == DefaultBondDenom {
-			return nil, errors.Wrap(errors.ErrInvalidCoins, "not support okt denom")
+			return nil, errors.Wrap(errors.ErrInvalidCoins, "not support "+system.Currency+" denom")
 		}
 	}
 	return copyAdapters, nil

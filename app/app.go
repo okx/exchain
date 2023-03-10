@@ -649,7 +649,7 @@ func NewOKBChainApp(
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
 	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
-	app.setupUpgradeModules()
+	app.setupUpgradeModules(false)
 
 	vmbridge.RegisterServices(app.configurator, *app.VMBridgeKeeper)
 

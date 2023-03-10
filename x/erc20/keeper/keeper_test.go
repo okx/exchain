@@ -237,10 +237,10 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 		malleate func()
 	}{
 		{
-			"success, there is no data ",
+			"success, default data ",
 			func() {
 				_, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
-				suite.Require().Equal(found, false)
+				suite.Require().Equal(true, found)
 			},
 		},
 		{
@@ -274,17 +274,17 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 			},
 		},
 		{
-			"success ,no proxy contract",
+			"success ,proxy contract",
 			func() {
 				_, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
-				suite.Require().Equal(false, found)
+				suite.Require().Equal(true, found)
 			},
 		},
 		{
 			"success ,set proxy contract",
 			func() {
 				_, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
-				suite.Require().Equal(false, found)
+				suite.Require().Equal(true, found)
 				proxy := f("proxy")
 				suite.app.Erc20Keeper.SetTemplateContract(suite.ctx, types.ProposalTypeContextTemplateProxy, proxy)
 				cc, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)

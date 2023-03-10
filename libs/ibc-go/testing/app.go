@@ -2,6 +2,7 @@ package ibctesting
 
 import (
 	"encoding/json"
+	staking "github.com/okx/okbchain/x/staking/types"
 	"testing"
 	"time"
 
@@ -143,7 +144,8 @@ func SetupWithGenesisValSet(t *testing.T, chainId string, valSet *tmtypes.Valida
 			ChainId:         chainId,
 		},
 	)
-
+	ctx := app.GetBaseApp().NewContext(false, abci.Header{Height: 1, Time: time.Now()})
+	app.GetStakingKeeper().SetParams(ctx, staking.DefaultDposParams())
 	// commit genesis changes
 	app.Commit(abci.RequestCommit{})
 	// app.Commit()

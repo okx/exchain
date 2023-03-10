@@ -42,7 +42,7 @@ run() {
       --rpc.laddr=tcp://0.0.0.0:26657 \
       --rpc.external_laddr=0.0.0.0:26657 \
       --p2p.laddr=tcp://0.0.0.0:26656 \
-      --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &
+      --rest.laddr "tcp://localhost:8545" > okb.txt 2>&1 &
 
 # --iavl-commit-interval-height \
 # --iavl-enable-async-commit \

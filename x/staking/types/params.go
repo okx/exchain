@@ -41,7 +41,8 @@ var (
 	// DefaultMinDelegation is the limit value of delegation or undelegation
 	DefaultMinDelegation = sdk.NewDecWithPrec(1, 4)
 	// DefaultMinSelfDelegation is the default value of each validator's msd (hard code)
-	DefaultMinSelfDelegation = sdk.NewDec(0)
+	DefaultMinSelfDelegation     = sdk.NewDec(0)
+	DefaultDPoSMinSelfDelegation = sdk.NewDec(10000)
 )
 
 // nolint - Keys for parameter access
@@ -156,7 +157,7 @@ func DefaultDposParams() Params {
 		DefaultEpoch,
 		DefaultMaxValsToAddShares,
 		DefaultMinDelegation,
-		DefaultMinSelfDelegation,
+		DefaultDPoSMinSelfDelegation,
 		DefaultHistoricalEntries,
 		common.DPoS,
 		true,

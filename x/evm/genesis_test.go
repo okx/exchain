@@ -71,7 +71,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
 			types.GenesisState{
-				Params: types.DefaultParams(),
+				Params: types.TestParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
@@ -88,7 +88,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			"account not found",
 			func() {},
 			types.GenesisState{
-				Params: types.DefaultParams(),
+				Params: types.TestParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
@@ -105,7 +105,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.app.AccountKeeper.SetAccount(suite.ctx, &acc)
 			},
 			types.GenesisState{
-				Params: types.DefaultParams(),
+				Params: types.TestParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
@@ -125,7 +125,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
 			types.GenesisState{
-				Params: types.DefaultParams(),
+				Params: types.TestParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
@@ -150,7 +150,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
 			types.GenesisState{
-				Params: types.DefaultParams(),
+				Params: types.TestParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
@@ -175,7 +175,7 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
 			types.GenesisState{
-				Params: types.DefaultParams(),
+				Params: types.TestParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
@@ -272,7 +272,7 @@ func (suite *EvmTestSuite) TestInit() {
 
 			},
 			types.GenesisState{
-				Params: types.DefaultParams(),
+				Params: types.TestParams(),
 				Accounts: []types.GenesisAccount{
 					{
 						Address: address.String(),
@@ -341,7 +341,7 @@ func (suite *EvmTestSuite) TestExport() {
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	initGenesis := types.GenesisState{
-		Params: types.DefaultParams(),
+		Params: types.TestParams(),
 		Accounts: []types.GenesisAccount{
 			{
 				Address: address.String(),
@@ -396,7 +396,7 @@ func (suite *EvmTestSuite) TestExport1() {
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	initGenesis := types.GenesisState{
-		Params: types.DefaultParams(),
+		Params: types.TestParams(),
 		Accounts: []types.GenesisAccount{
 			{
 				Address: address.String(),
@@ -480,7 +480,7 @@ func (suite *EvmTestSuite) TestExport_db() {
 	}
 
 	initGenesis := types.GenesisState{
-		Params:   types.DefaultParams(),
+		Params:   types.TestParams(),
 		Accounts: []types.GenesisAccount{evmAcc},
 	}
 	os.Setenv(system.EnvPrefix+"_EVM_IMPORT_MODE", "default")
@@ -576,7 +576,7 @@ func (suite *EvmTestSuite) TestExport_files() {
 	}
 
 	initGenesis := types.GenesisState{
-		Params:                      types.DefaultParams(),
+		Params:                      types.TestParams(),
 		Accounts:                    []types.GenesisAccount{evmAcc},
 		ContractDeploymentWhitelist: expectedAddrList,
 		ContractBlockedList:         expectedAddrList,
@@ -662,7 +662,7 @@ func (suite *EvmTestSuite) TestExport_files1() {
 		},
 	}
 	initGenesis := types.GenesisState{
-		Params:                      types.DefaultParams(),
+		Params:                      types.TestParams(),
 		Accounts:                    []types.GenesisAccount{evmAcc},
 		ContractDeploymentWhitelist: expectedAddrList,
 		ContractBlockedList:         expectedAddrList,
@@ -746,7 +746,7 @@ func (suite *EvmTestSuite) TestExport_files2() {
 		},
 	}
 	initGenesis := types.GenesisState{
-		Params:                      types.DefaultParams(),
+		Params:                      types.TestParams(),
 		Accounts:                    []types.GenesisAccount{evmAcc},
 		ContractDeploymentWhitelist: expectedAddrList,
 		ContractBlockedList:         expectedAddrList,
