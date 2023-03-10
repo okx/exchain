@@ -9,7 +9,6 @@ import (
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/okx/okbchain/x/distribution/types"
 	"github.com/okx/okbchain/x/staking"
-	stakingexported "github.com/okx/okbchain/x/staking/exported"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )
@@ -82,20 +81,11 @@ func TestRewards(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInputDefault(t, false, 1000)
 	querier := NewQuerier(keeper)
 
-	keeper.SetInitExistedValidatorFlag(ctx, true)
 	keeper.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	keeper.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
-		if validator != nil {
-			keeper.initExistedValidatorForDistrProposal(ctx, validator)
-		}
-		return false
-	})
 
 	//try twice, do nothing
 	commissionBefore := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr1)
 	require.True(t, keeper.HasValidatorOutstandingRewards(ctx, valOpAddr1))
-	validator := keeper.stakingKeeper.Validator(ctx, valOpAddr1)
-	keeper.initExistedValidatorForDistrProposal(ctx, validator)
 	commissionAfter := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr1)
 	require.Equal(t, commissionBefore, commissionAfter)
 
@@ -134,6 +124,8 @@ func TestRewards(t *testing.T) {
 	delegator.ValidatorAddresses = valAddrs
 	delegator.Shares = shares
 	sk.SetDelegator(ctx, delegator)
+
+	sk.AfterDelegationModified(ctx, dAddr1, delegator.ValidatorAddresses)
 
 	//types.NewDelegationDelegatorReward(TestValAddrs[0], nil)
 	expect := types.NewQueryDelegatorTotalRewardsResponse(

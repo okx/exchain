@@ -19,21 +19,12 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case types.MsgSetWithdrawAddress:
 			return handleMsgModifyWithdrawAddress(ctx, msg, k)
-
 		case types.MsgWithdrawValidatorCommission:
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
-
 		case types.MsgWithdrawDelegatorReward:
-			if k.CheckDistributionProposalValid(ctx) {
-				return handleMsgWithdrawDelegatorReward(ctx, msg, k)
-			}
-			return nil, types.ErrUnknownDistributionMsgType()
+			return handleMsgWithdrawDelegatorReward(ctx, msg, k)
 		case types.MsgWithdrawDelegatorAllRewards:
-			if k.CheckDistributionProposalValid(ctx) {
-				return handleMsgWithdrawDelegatorAllRewards(ctx, msg, k)
-			}
-			return nil, types.ErrUnknownDistributionMsgType()
-
+			return handleMsgWithdrawDelegatorAllRewards(ctx, msg, k)
 		default:
 			return nil, types.ErrUnknownDistributionMsgType()
 		}

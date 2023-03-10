@@ -111,10 +111,6 @@ func (k *Keeper) SetGovKeeper(gk types.GovKeeper) {
 	k.govKeeper = gk
 }
 
-func (k Keeper) CheckDistributionProposalValid(ctx sdk.Context) bool {
-	return k.CheckInitExistedValidatorFlag(ctx)
-}
-
 // CheckMsgSubmitProposal validates MsgSubmitProposal
 func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
 	err := k.govKeeper.CheckMsgSubmitProposal(ctx, msg)

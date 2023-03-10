@@ -22,34 +22,8 @@ func (k Keeper) initializeValidatorDistrProposal(ctx sdk.Context, val exported.V
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), sdk.SysCoins{})
 }
 
-func (k Keeper) initExistedValidatorForDistrProposal(ctx sdk.Context, val exported.ValidatorI) {
-	logger := k.Logger(ctx)
-	if k.HasValidatorOutstandingRewards(ctx, val.GetOperator()) {
-		logger.Debug(fmt.Sprintf("has validator, %s", val.GetOperator().String()))
-		return
-	}
-
-	// set initial historical rewards (period 0) with reference count of 2, for all old delegator count repetition
-	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), 0, types.NewValidatorHistoricalRewards(sdk.SysCoins{}, 2))
-
-	// set current rewards (starting at period 1)
-	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, 1))
-
-	// get accumulated commissions
-	commission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
-
-	// set outstanding rewards with commission
-	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), commission)
-
-	logger.Debug("initExistedValidatorForDistrProposal", "Validator", val.GetOperator(), "Commission", commission)
-}
-
 // increment validator period, returning the period just ended
 func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.ValidatorI) uint64 {
-	if !k.CheckDistributionProposalValid(ctx) {
-		return 0
-	}
-
 	logger := k.Logger(ctx)
 	// fetch current rewards
 	rewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())

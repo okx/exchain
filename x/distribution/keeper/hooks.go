@@ -3,7 +3,6 @@ package keeper
 import (
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 
-	"github.com/okx/okbchain/x/distribution/types"
 	stakingtypes "github.com/okx/okbchain/x/staking/types"
 )
 
@@ -25,35 +24,8 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 
 // AfterValidatorRemoved cleans up for after validator is removed
 func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
-	if h.k.CheckDistributionProposalValid(ctx) {
-		h.afterValidatorRemovedForDistributionProposal(ctx, nil, valAddr)
-		return
-	}
-
-	// force-withdraw commission
-	commission := h.k.GetValidatorAccumulatedCommission(ctx, valAddr)
-	if !commission.IsZero() {
-		// split into integral & remainder
-		coins, remainder := commission.TruncateDecimal()
-		// remainder to community pool
-		if !remainder.IsZero() {
-			feePool := h.k.GetFeePool(ctx)
-			feePool.CommunityPool = feePool.CommunityPool.Add(remainder...)
-			h.k.SetFeePool(ctx, feePool)
-		}
-		// add to validator account
-		if !coins.IsZero() {
-			accAddr := sdk.AccAddress(valAddr)
-			withdrawAddr := h.k.GetDelegatorWithdrawAddr(ctx, accAddr)
-			err := h.k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
-
-	// remove commission record
-	h.k.deleteValidatorAccumulatedCommission(ctx, valAddr)
+	h.afterValidatorRemovedForDistributionProposal(ctx, nil, valAddr)
+	return
 }
 
 // AfterValidatorDestroyed nothing to do

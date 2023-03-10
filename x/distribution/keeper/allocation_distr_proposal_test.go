@@ -27,7 +27,6 @@ func CreateTestInputDefaultForBenchmark(b *testing.B, isCheckTx bool, initPower 
 	valOpAddrs, valConsPks, _ := GetTestAddrs()
 
 	if newVersion {
-		dk.SetInitExistedValidatorFlag(ctx, true)
 		dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	}
 

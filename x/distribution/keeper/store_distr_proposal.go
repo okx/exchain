@@ -5,25 +5,6 @@ import (
 	"github.com/okx/okbchain/x/distribution/types"
 )
 
-// CheckInitExistedValidatorFlag check init existed validator for distribution proposal flag
-func (k Keeper) CheckInitExistedValidatorFlag(ctx sdk.Context) bool {
-	store := ctx.KVStore(k.storeKey)
-	b := store.Get(types.InitExistedValidatorForDistrProposalKey)
-	if b == nil {
-		return false
-	}
-	result := true
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &result)
-	return result
-}
-
-// SetInitExistedValidatorFlag set init existed validator for distribution proposal flag
-func (k Keeper) SetInitExistedValidatorFlag(ctx sdk.Context, init bool) {
-	store := ctx.KVStore(k.storeKey)
-	b := k.cdc.MustMarshalBinaryLengthPrefixed(init)
-	store.Set(types.InitExistedValidatorForDistrProposalKey, b)
-}
-
 // get the starting info associated with a delegator
 func (k Keeper) GetDelegatorStartingInfo(ctx sdk.Context, val sdk.ValAddress, del sdk.AccAddress) (period types.DelegatorStartingInfo) {
 	store := ctx.KVStore(k.storeKey)

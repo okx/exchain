@@ -12,7 +12,7 @@ import (
 func InitGenesis(ctx sdk.Context, keeper Keeper, supplyKeeper types.SupplyKeeper, data types.GenesisState) {
 
 	keeper.SetFeePool(ctx, data.FeePool)
-	keeper.SetParamsForInitGenesis(ctx, data.Params)
+	keeper.SetParams(ctx, data.Params)
 	keeper.SetPreviousProposerConsAddr(ctx, data.PreviousProposer)
 
 	for _, dwi := range data.DelegatorWithdrawInfos {
@@ -42,7 +42,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, supplyKeeper types.SupplyKeeper
 // ExportGenesis returns a GenesisState for a given context and keeper.
 func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
 	feePool := keeper.GetFeePool(ctx)
-	params := keeper.GetParamsForInitGenesis(ctx)
+	params := keeper.GetParams(ctx)
 
 	dwi := make([]types.DelegatorWithdrawInfo, 0)
 	keeper.IterateDelegatorWithdrawAddrs(ctx, func(del sdk.AccAddress, addr sdk.AccAddress) (stop bool) {
