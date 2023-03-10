@@ -58,11 +58,15 @@ func (ops multiOp) IsSingle() bool {
 
 type actionOp struct {
 	action func(w ethdb.KeyValueWriter)
+	once   bool
 }
 
 func (op *actionOp) Replay(w ethdb.KeyValueWriter) error {
 	if op.action != nil {
 		op.action(w)
+		if op.once {
+			op.action = nil
+		}
 	}
 	return nil
 }
@@ -254,15 +258,16 @@ func (store *AsyncKeyValueStore) LogInfoAfterWriteDone(msg string, args ...inter
 
 	store.ActionAfterWriteDone(func() {
 		store.logger.Info(msg, args...)
-	})
+	}, true)
 }
 
-func (store *AsyncKeyValueStore) ActionAfterWriteDone(act func()) {
+func (store *AsyncKeyValueStore) ActionAfterWriteDone(act func(), once bool) {
 	task := &commitTask{
 		op: &actionOp{
 			action: func(ethdb.KeyValueWriter) {
 				act()
 			},
+			once: once,
 		},
 	}
 	store.mtx.Lock()
@@ -331,9 +336,9 @@ func (store *AsyncKeyValueStore) commitRoutine() {
 		}
 
 		store.setPreCommitPtr(taskEle)
-		atomic.AddInt64(&store.waitClear, 1)
+		waitClear := atomic.AddInt64(&store.waitClear, 1)
 
-		if atomic.LoadInt64(&store.waitClear) >= 100 || batchSize > 1_000_000 {
+		if waitClear >= 100 || batchSize > 1_000_000 {
 			store.clearCh <- struct{}{}
 			batchSize = 0
 		}
@@ -391,9 +396,9 @@ func (store *AsyncKeyValueStore) setPreCommitPtr(ptr *list.Element) {
 }
 
 type asyncBatch struct {
-	ops   multiOp
-	store *AsyncKeyValueStore
-	size  int
+	ops       multiOp
+	store     *AsyncKeyValueStore
+	valueSize int
 }
 
 func newAsyncBatch(store *AsyncKeyValueStore) *asyncBatch {
@@ -408,7 +413,7 @@ func (b *asyncBatch) Put(key []byte, value []byte) error {
 		key:   key,
 		value: value,
 	})
-	b.size += len(value)
+	b.valueSize += len(value)
 	return nil
 }
 
@@ -418,12 +423,12 @@ func (b *asyncBatch) Delete(key []byte) error {
 		key:    key,
 		delete: true,
 	})
-	b.size += len(key)
+	b.valueSize += len(key)
 	return nil
 }
 
 func (b *asyncBatch) ValueSize() int {
-	return b.size
+	return b.valueSize
 }
 
 func (b *asyncBatch) Write() error {
@@ -434,7 +439,7 @@ func (b *asyncBatch) Write() error {
 
 func (b *asyncBatch) Reset() {
 	b.ops = b.ops[:0]
-	b.size = 0
+	b.valueSize = 0
 }
 
 func (b *asyncBatch) Replay(w ethdb.KeyValueWriter) error {
@@ -444,3 +449,9 @@ func (b *asyncBatch) Replay(w ethdb.KeyValueWriter) error {
 func (b *asyncBatch) IsSingle() bool {
 	return false
 }
+
+var _ ethdb.Batch = (*asyncBatch)(nil)
+var _ replayer = (*asyncBatch)(nil)
+var _ replayer = (*multiOp)(nil)
+var _ replayer = (*singleOp)(nil)
+var _ replayer = (*actionOp)(nil)

@@ -10,7 +10,7 @@ import (
 func TestAsyncDB(t *testing.T) {
 	memDb := memorydb.New()
 
-	asyncDb := NewAsyncKeyValueStore(memDb)
+	asyncDb := NewAsyncKeyValueStore(memDb, false)
 
 	t.Logf("asyncDB started")
 
