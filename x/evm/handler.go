@@ -17,7 +17,6 @@ func NewHandler(k *Keeper) sdk.Handler {
 		ctx.SetEventManager(sdk.NewEventManager())
 
 		if ctx.IsDeliver() {
-			k.EvmStateDb.WithContext(ctx).MarkUpdatedAcc(k.UpdatedAccount)
 			k.UpdatedAccount = k.UpdatedAccount[:0]
 		}
 
@@ -42,7 +41,7 @@ func updateHGU(ctx sdk.Context, msg sdk.Msg) {
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() <= 0 {
 		return
 	}
-	
+
 	msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
 
 	if msgFnSignature == nil {

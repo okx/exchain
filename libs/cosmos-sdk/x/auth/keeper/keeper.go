@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -118,4 +119,18 @@ func (ak AccountKeeper) RetrieveStateRoot(bz []byte) ethcmn.Hash {
 		return acc.GetStateRoot()
 	}
 	return ethtypes.EmptyRootHash
+}
+
+func (ak AccountKeeper) ModifyAccStateRoot(before []byte, rootHash ethcmn.Hash) []byte {
+	acc := ak.decodeAccount(before)
+	if bytes.Equal(acc.GetStateRoot().Bytes(), rootHash.Bytes()) {
+		return before
+	}
+
+	if eAcc, ok := acc.(interface{ SetStateRoot(hash ethcmn.Hash) }); ok {
+		eAcc.SetStateRoot(rootHash)
+	} else {
+		panic("unExcepted behavior: mpt store acc should implement SetStateRoot ")
+	}
+	return ak.encodeAccount(acc)
 }

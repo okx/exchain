@@ -148,7 +148,8 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	suite.Require().Equal(bloom, testBloom)
 
 	suite.stateDB.WithContext(suite.ctx).Commit(false)
-
+	suite.app.Commit(abci.RequestCommit{})
+	types.ResetCommitStateDB(suite.stateDB, suite.app.EvmKeeper.GenerateCSDBParams(), &suite.ctx)
 	stg, err := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, suite.address)
 	suite.Require().NoError(err, "failed to get account storage")
 	suite.Require().Equal(stg[0].Value, ethcmn.HexToHash("0x3"))
@@ -156,9 +157,6 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	// commit stateDB
 	_, err = suite.stateDB.WithContext(suite.ctx).Commit(false)
 	suite.Require().NoError(err, "failed to commit StateDB")
-
-	// simulate BaseApp EndBlocker commitment
-	suite.app.Commit(abci.RequestCommit{})
 }
 
 func (suite *KeeperTestSuite) TestChainConfig() {
