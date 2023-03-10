@@ -14,7 +14,7 @@ func queryIbcProof(res *abci.ResponseQuery, info *commitInfo, storeName string) 
 func (s *Store) getFilterStores(h int64) map[types.StoreKey]types.CommitKVStore {
 	m := make(map[types.StoreKey]types.CommitKVStore)
 	for k, v := range s.stores {
-		if filter(k.Name(), h, v, s.pruneFilters) {
+		if isUseless(k.Name(), h, v, s.pruneFilters) {
 			continue
 		}
 		m[k] = v
@@ -26,22 +26,10 @@ func (rs *Store) AppendCommitFilters(filters []storetypes.StoreFilter) {
 	rs.commitFilters = append(rs.commitFilters, filters...)
 }
 
-func (rs *Store) CleanCommitFilters() {
-	rs.commitFilters = nil
-}
-
 func (rs *Store) AppendPruneFilters(filters []storetypes.StoreFilter) {
 	rs.pruneFilters = append(rs.pruneFilters, filters...)
 }
 
-func (rs *Store) CleanPruneFilters() {
-	rs.pruneFilters = nil
-}
-
 func (rs *Store) AppendVersionFilters(filters []storetypes.VersionFilter) {
 	rs.versionFilters = append(rs.versionFilters, filters...)
-}
-
-func (rs *Store) CleanVersionFilters() {
-	rs.versionFilters = nil
 }

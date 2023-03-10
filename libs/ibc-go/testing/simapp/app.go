@@ -3,10 +3,6 @@ package simapp
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okx/okbchain/libs/system"
-
-	evm2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter/evm"
-
 	"io"
 	"math/big"
 	"os"
@@ -15,47 +11,35 @@ import (
 	"strings"
 	"sync"
 
-	ibctransfer "github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer"
-
-	"github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter/fee"
-
-	ica2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter/ica"
-
-	"github.com/okx/okbchain/libs/tendermint/libs/cli"
-
-	icahost "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
-
-	icacontroller "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
-
-	ibcclienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
-
-	ibccommon "github.com/okx/okbchain/libs/ibc-go/modules/core/common"
-
-	icamauthtypes "github.com/okx/okbchain/x/icamauth/types"
-
-	icacontrollertypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
-	icahosttypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
-
-	"github.com/spf13/viper"
-
-	icatypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-
-	ibckeeper "github.com/okx/okbchain/libs/ibc-go/modules/core/keeper"
-
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
-
 	authante "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ante"
+	icacontroller "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
 	icacontrollerkeeper "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
+	icacontrollertypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	icahost "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
 	icahostkeeper "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
+	icahosttypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+	icatypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 	ibcfee "github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee"
 	ibcfeekeeper "github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/keeper"
 	ibcfeetypes "github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
+	ibctransfer "github.com/okx/okbchain/libs/ibc-go/modules/apps/transfer"
+	ibcclienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
+	ibccommon "github.com/okx/okbchain/libs/ibc-go/modules/core/common"
+	ibckeeper "github.com/okx/okbchain/libs/ibc-go/modules/core/keeper"
+	evm2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter/evm"
+	"github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter/fee"
+	ica2 "github.com/okx/okbchain/libs/ibc-go/testing/simapp/adapter/ica"
+	"github.com/okx/okbchain/libs/system"
 	"github.com/okx/okbchain/libs/system/trace"
+	"github.com/okx/okbchain/libs/tendermint/libs/cli"
 	"github.com/okx/okbchain/x/icamauth"
 	icamauthkeeper "github.com/okx/okbchain/x/icamauth/keeper"
+	icamauthtypes "github.com/okx/okbchain/x/icamauth/types"
 	"github.com/okx/okbchain/x/wasm"
 	wasmkeeper "github.com/okx/okbchain/x/wasm/keeper"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 
 	"github.com/okx/okbchain/app/ante"
 	chaincodec "github.com/okx/okbchain/app/codec"
@@ -669,7 +653,7 @@ func NewSimApp(
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
 	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
-	app.setupUpgradeModules()
+	app.setupUpgradeModules(false)
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
@@ -1014,10 +998,13 @@ func PreRun(ctx *server.Context) error {
 	return nil
 }
 
-func (app *SimApp) setupUpgradeModules() {
+func (app *SimApp) setupUpgradeModules(onlyTask bool) {
 	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
+	if onlyTask {
+		return
+	}
 
 	app.GetCMS().AppendCommitFilters(cf)
 	app.GetCMS().AppendPruneFilters(pf)
