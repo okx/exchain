@@ -3,6 +3,7 @@ package mpt
 import (
 	"container/list"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/okx/okbchain/libs/tendermint/libs/log"
@@ -90,6 +91,10 @@ func (w preCommitMap) Delete(key []byte) error {
 	return nil
 }
 
+func (w preCommitMap) Len() int {
+	return len(w.data)
+}
+
 type preCommitClearMap preCommitMap
 
 type Element struct {
@@ -128,7 +133,7 @@ type AsyncKeyValueStore struct {
 	preCommitTail *list.Element
 	listMtx       sync.Mutex
 
-	enableAsyncCommit bool
+	enableCommit bool
 
 	commitCh chan struct{}
 	clearCh  chan []*commitTask
@@ -146,6 +151,7 @@ func NewAsyncKeyValueStore(db ethdb.KeyValueStore) *AsyncKeyValueStore {
 		preCommitList: list.New(),
 		commitCh:      make(chan struct{}, 10000*10),
 		clearCh:       make(chan []*commitTask, 1024),
+		logger:        log.NewNopLogger(),
 	}
 	store.preCommit.store = store
 	store.closeWg.Add(1)
@@ -184,16 +190,17 @@ func (store *AsyncKeyValueStore) Get(key []byte) ([]byte, error) {
 
 func (store *AsyncKeyValueStore) Put(key []byte, value []byte) error {
 	key, value = common.CopyBytes(key), common.CopyBytes(value)
-	store.mtx.Lock()
-	defer store.mtx.Unlock()
-
-	store.listMtx.Lock()
-	store.preCommitTail = store.preCommitList.PushBack(&commitTask{
+	task := &commitTask{
 		op: &singleOp{
 			key:   key,
 			value: value,
 		},
-	})
+	}
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	store.listMtx.Lock()
+	store.preCommitTail = store.preCommitList.PushBack(task)
 	store.listMtx.Unlock()
 
 	_ = store.preCommit.Put(key, value)
@@ -204,16 +211,17 @@ func (store *AsyncKeyValueStore) Put(key []byte, value []byte) error {
 
 func (store *AsyncKeyValueStore) Delete(key []byte) error {
 	key = common.CopyBytes(key)
-	store.mtx.Lock()
-	defer store.mtx.Unlock()
-
-	store.listMtx.Lock()
-	store.preCommitTail = store.preCommitList.PushBack(&commitTask{
+	task := &commitTask{
 		op: &singleOp{
 			key:    key,
 			delete: true,
 		},
-	})
+	}
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	store.listMtx.Lock()
+	store.preCommitTail = store.preCommitList.PushBack(task)
 	store.listMtx.Unlock()
 
 	_ = store.preCommit.Delete(key)
@@ -223,13 +231,14 @@ func (store *AsyncKeyValueStore) Delete(key []byte) error {
 }
 
 func (store *AsyncKeyValueStore) batchWrite(player replayer) error {
+	task := &commitTask{
+		op: player,
+	}
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
 	store.listMtx.Lock()
-	store.preCommitTail = store.preCommitList.PushBack(&commitTask{
-		op: player,
-	})
+	store.preCommitTail = store.preCommitList.PushBack(task)
 	store.listMtx.Unlock()
 
 	if err := player.Replay(store.preCommit); err != nil {
@@ -251,17 +260,18 @@ func (store *AsyncKeyValueStore) LogInfoAfterWriteDone(msg string, args ...inter
 }
 
 func (store *AsyncKeyValueStore) ActionAfterWriteDone(act func()) {
-	store.mtx.Lock()
-	defer store.mtx.Unlock()
-
-	store.listMtx.Lock()
-	store.preCommitTail = store.preCommitList.PushBack(&commitTask{
+	task := &commitTask{
 		op: &actionOp{
 			action: func(ethdb.KeyValueWriter) {
 				act()
 			},
 		},
-	})
+	}
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	store.listMtx.Lock()
+	store.preCommitTail = store.preCommitList.PushBack(task)
 	store.listMtx.Unlock()
 
 	store.commitCh <- struct{}{}
@@ -341,11 +351,17 @@ func (store *AsyncKeyValueStore) commitRoutine() {
 
 func (store *AsyncKeyValueStore) clearRoutine() {
 	for doneList := range store.clearCh {
-		store.mtx.Lock()
 		for _, task := range doneList {
-			_ = task.op.Replay(preCommitClearMap(store.preCommit))
+			for {
+				if store.mtx.TryLock() {
+					_ = task.op.Replay(preCommitClearMap(store.preCommit))
+					store.mtx.Unlock()
+					break
+				} else {
+					time.Sleep(1 * time.Millisecond)
+				}
+			}
 		}
-		store.mtx.Unlock()
 	}
 }
 
