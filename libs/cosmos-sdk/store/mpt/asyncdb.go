@@ -3,6 +3,7 @@ package mpt
 import (
 	"container/list"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -131,32 +132,41 @@ type AsyncKeyValueStore struct {
 	preCommit     preCommitMap
 	preCommitList *list.List
 	preCommitTail *list.Element
-	listMtx       sync.Mutex
+	preCommitPtr  *list.Element
+	waitClearPtr  *list.Element
 
-	enableCommit bool
+	enableCommit     bool
+	disableAutoPrune bool
 
 	commitCh chan struct{}
-	clearCh  chan []*commitTask
+	clearCh  chan struct{}
 	closeWg  sync.WaitGroup
 
 	logger log.Logger
+
+	waitClear int64
 }
 
-func NewAsyncKeyValueStore(db ethdb.KeyValueStore) *AsyncKeyValueStore {
+func NewAsyncKeyValueStore(db ethdb.KeyValueStore, autoClearOff bool) *AsyncKeyValueStore {
 	store := &AsyncKeyValueStore{
 		KeyValueStore: db,
 		preCommit: preCommitMap{
 			data: make(map[string]preCommitValue),
 		},
-		preCommitList: list.New(),
-		commitCh:      make(chan struct{}, 10000*10),
-		clearCh:       make(chan []*commitTask, 1024),
-		logger:        log.NewNopLogger(),
+		preCommitList:    list.New(),
+		commitCh:         make(chan struct{}, 10000*10),
+		clearCh:          make(chan struct{}, 10000*10),
+		logger:           log.NewNopLogger(),
+		disableAutoPrune: autoClearOff,
 	}
 	store.preCommit.store = store
 	store.closeWg.Add(1)
 	go store.commitRoutine()
-	go store.clearRoutine()
+	if !store.disableAutoPrune {
+		go store.pruneRoutine()
+	}
+	store.preCommitPtr = store.preCommitList.PushBack(nil)
+	store.waitClearPtr = store.preCommitPtr
 	return store
 }
 
@@ -197,13 +207,9 @@ func (store *AsyncKeyValueStore) Put(key []byte, value []byte) error {
 		},
 	}
 	store.mtx.Lock()
-	defer store.mtx.Unlock()
-
-	store.listMtx.Lock()
 	store.preCommitTail = store.preCommitList.PushBack(task)
-	store.listMtx.Unlock()
-
 	_ = store.preCommit.Put(key, value)
+	store.mtx.Unlock()
 
 	store.commitCh <- struct{}{}
 	return nil
@@ -218,13 +224,9 @@ func (store *AsyncKeyValueStore) Delete(key []byte) error {
 		},
 	}
 	store.mtx.Lock()
-	defer store.mtx.Unlock()
-
-	store.listMtx.Lock()
 	store.preCommitTail = store.preCommitList.PushBack(task)
-	store.listMtx.Unlock()
-
 	_ = store.preCommit.Delete(key)
+	store.mtx.Unlock()
 
 	store.commitCh <- struct{}{}
 	return nil
@@ -235,15 +237,11 @@ func (store *AsyncKeyValueStore) batchWrite(player replayer) error {
 		op: player,
 	}
 	store.mtx.Lock()
-	defer store.mtx.Unlock()
-
-	store.listMtx.Lock()
 	store.preCommitTail = store.preCommitList.PushBack(task)
-	store.listMtx.Unlock()
-
 	if err := player.Replay(store.preCommit); err != nil {
 		return err
 	}
+	store.mtx.Unlock()
 
 	store.commitCh <- struct{}{}
 	return nil
@@ -268,11 +266,8 @@ func (store *AsyncKeyValueStore) ActionAfterWriteDone(act func()) {
 		},
 	}
 	store.mtx.Lock()
-	defer store.mtx.Unlock()
-
-	store.listMtx.Lock()
 	store.preCommitTail = store.preCommitList.PushBack(task)
-	store.listMtx.Unlock()
+	store.mtx.Unlock()
 
 	store.commitCh <- struct{}{}
 }
@@ -309,17 +304,12 @@ func (store *AsyncKeyValueStore) commitRoutine() {
 		store.closeWg.Done()
 	}()
 
-	doneList := make([]*commitTask, 0, 100)
 	batchSize := 0
 
 	for _ = range store.commitCh {
-		store.listMtx.Lock()
-		taskEle := store.preCommitList.Front()
-		store.preCommitList.Remove(taskEle)
-		store.listMtx.Unlock()
+		taskEle := store.preCommitPtr.Next()
 
 		task := taskEle.Value.(*commitTask)
-
 		if task.op == nil {
 			continue
 		}
@@ -340,22 +330,30 @@ func (store *AsyncKeyValueStore) commitRoutine() {
 			batchSize += batch.ValueSize()
 		}
 
-		doneList = append(doneList, task)
-		if len(doneList) >= 100 || batchSize > 1_000_000 {
-			store.clearCh <- doneList
-			doneList = make([]*commitTask, 0, 100)
+		store.setPreCommitPtr(taskEle)
+		atomic.AddInt64(&store.waitClear, 1)
+
+		if atomic.LoadInt64(&store.waitClear) >= 100 || batchSize > 1_000_000 {
+			store.clearCh <- struct{}{}
 			batchSize = 0
 		}
 	}
 }
 
-func (store *AsyncKeyValueStore) clearRoutine() {
-	for doneList := range store.clearCh {
-		for _, task := range doneList {
+func (store *AsyncKeyValueStore) pruneRoutine() {
+	for _ = range store.clearCh {
+		preCommitPtr := store.getPreCommitPtr()
+		for store.waitClearPtr != preCommitPtr {
+			needRemove := store.waitClearPtr
+			needClear := store.waitClearPtr.Next()
+			commitedTask := needClear.Value.(*commitTask)
 			for {
 				if store.mtx.TryLock() {
-					_ = task.op.Replay(preCommitClearMap(store.preCommit))
+					_ = commitedTask.op.Replay(preCommitClearMap(store.preCommit))
+					store.preCommitList.Remove(needRemove)
 					store.mtx.Unlock()
+					atomic.AddInt64(&store.waitClear, -1)
+					store.waitClearPtr = needClear
 					break
 				} else {
 					time.Sleep(1 * time.Millisecond)
@@ -363,6 +361,33 @@ func (store *AsyncKeyValueStore) clearRoutine() {
 			}
 		}
 	}
+}
+
+func (store *AsyncKeyValueStore) Prune() {
+	if !store.disableAutoPrune {
+		return
+	}
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	preCommitPtr := store.getPreCommitPtr()
+	for store.waitClearPtr != preCommitPtr {
+		needRemove := store.waitClearPtr
+		needClear := store.waitClearPtr.Next()
+		commitedTask := needClear.Value.(*commitTask)
+		_ = commitedTask.op.Replay(preCommitClearMap(store.preCommit))
+		store.preCommitList.Remove(needRemove)
+		atomic.AddInt64(&store.waitClear, -1)
+		store.waitClearPtr = needClear
+	}
+}
+
+func (store *AsyncKeyValueStore) getPreCommitPtr() *list.Element {
+	return (*list.Element)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&store.preCommitPtr))))
+}
+
+func (store *AsyncKeyValueStore) setPreCommitPtr(ptr *list.Element) {
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&store.preCommitPtr)), unsafe.Pointer(ptr))
 }
 
 type asyncBatch struct {
