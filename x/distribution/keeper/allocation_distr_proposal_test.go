@@ -6,7 +6,6 @@ import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	types2 "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store"
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/bank"
@@ -53,7 +52,6 @@ func CreateTestInputAdvancedForBenchmark(b *testing.B, isCheckTx bool, initPower
 	keyStaking := sdk.NewKVStoreKey(staking.StoreKey)
 	tkeyStaking := sdk.NewTransientStoreKey(staking.TStoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
-	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
@@ -65,8 +63,7 @@ func CreateTestInputAdvancedForBenchmark(b *testing.B, isCheckTx bool, initPower
 	ms.MountStoreWithDB(tkeyStaking, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyStaking, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
+	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 
@@ -80,7 +77,7 @@ func CreateTestInputAdvancedForBenchmark(b *testing.B, isCheckTx bool, initPower
 
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams, log.NewNopLogger())
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, isCheckTx, log.NewNopLogger())
-	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 	bankKeeper := bank.NewBaseKeeper(accountKeeper, pk.Subspace(bank.DefaultParamspace), nil)
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName:     nil,
@@ -90,7 +87,7 @@ func CreateTestInputAdvancedForBenchmark(b *testing.B, isCheckTx bool, initPower
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms)
 	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace))
-	sk.SetParams(ctx, staking.DefaultParams())
+	sk.SetParams(ctx, staking.DefaultDposParams())
 	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(types.DefaultParamspace), sk, supplyKeeper, auth.FeeCollectorName, nil)
 
 	initCoins := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), initTokens))

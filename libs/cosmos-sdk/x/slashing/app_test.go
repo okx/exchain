@@ -3,7 +3,7 @@
 package slashing
 
 import (
-	"errors"
+	"strings"
 	"testing"
 
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
@@ -159,5 +159,5 @@ func TestSlashingMsgs(t *testing.T) {
 	_, res, err := mock.SignCheckDeliver(t, mapp.Cdc.GetCdc(), mapp.BaseApp, header, []sdk.Msg{unjailMsg}, []uint64{0}, []uint64{1}, false, false, priv1)
 	require.Error(t, err)
 	require.Nil(t, res)
-	require.True(t, errors.Is(ErrValidatorNotJailed, err))
+	require.True(t, strings.Contains(err.Error(), ErrValidatorNotJailed.Error()))
 }

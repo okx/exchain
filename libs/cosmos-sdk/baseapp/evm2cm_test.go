@@ -187,7 +187,7 @@ func TestParseMsgWrapper(t *testing.T) {
 			fnCheck: func(ret *MsgWrapper, err error) {
 				require.NoError(t, err)
 				require.Equal(t, "okbchain/staking/MsgDeposit", ret.Name)
-				require.Equal(t, "{\"delegator_address\": \"0x4375D630687C83471829227b5C1Ea92217FD6265\",\"quantity\": {\"denom\": \"okt\",\"amount\": \"1\"}}", string(ret.Data))
+				require.Equal(t, "{\"delegator_address\": \"0x4375D630687C83471829227b5C1Ea92217FD6265\",\"quantity\": {\"denom\": \"okb\",\"amount\": \"1\"}}", string(ret.Data))
 			},
 		},
 		{
@@ -195,7 +195,7 @@ func TestParseMsgWrapper(t *testing.T) {
 			fnCheck: func(ret *MsgWrapper, err error) {
 				require.NoError(t, err)
 				require.Equal(t, "okbchain/staking/MsgWithdraw", ret.Name)
-				require.Equal(t, "{\"delegator_address\": \"0x4375D630687C83471829227b5C1Ea92217FD6265\",\"quantity\": {\"denom\": \"okt\",\"amount\": \"1\"}}", string(ret.Data))
+				require.Equal(t, "{\"delegator_address\": \"0x4375D630687C83471829227b5C1Ea92217FD6265\",\"quantity\": {\"denom\": \"okb\",\"amount\": \"1\"}}", string(ret.Data))
 			},
 		},
 		// error

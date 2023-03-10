@@ -53,12 +53,12 @@ func TestParamsValidatePriv(t *testing.T) {
 }
 
 func TestParams_String(t *testing.T) {
-	const expectedParamsStr = `enable_create: false
-enable_call: false
+	const expectedParamsStr = `enable_create: true
+enable_call: true
 extra_eips: []
 enable_contract_deployment_whitelist: false
-enable_contract_blocked_list: false
-max_gas_limit_per_tx: 30000000
+enable_contract_blocked_list: true
+max_gas_limit_per_tx: 50000000
 `
 	require.True(t, strings.EqualFold(expectedParamsStr, DefaultParams().String()))
 }

@@ -19,13 +19,13 @@ import (
 )
 
 func TestValidatorTestEquivalent(t *testing.T) {
-	val1 := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
-	val2 := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
+	val1 := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
+	val2 := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
 
 	ok := val1.TestEquivalent(val2)
 	require.True(t, ok)
 
-	val2 = NewValidator(valAddr2, pk2, Description{}, DefaultMinSelfDelegation)
+	val2 = NewValidator(valAddr2, pk2, Description{}, DefaultDPoSMinSelfDelegation)
 
 	ok = val1.TestEquivalent(val2)
 	require.False(t, ok)
@@ -42,8 +42,8 @@ func TestValidatorTestEquivalent(t *testing.T) {
 }
 
 func TestValidators(t *testing.T) {
-	val1 := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
-	val2 := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
+	val1 := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
+	val2 := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
 	valdators := Validators{val1, val2}
 
 	vaStr := valdators.String()
@@ -101,7 +101,7 @@ func TestUpdateDescription(t *testing.T) {
 }
 
 func TestABCIValidatorUpdate(t *testing.T) {
-	validator := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
+	validator := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
 
 	abciVal := validator.ABCIValidatorUpdate()
 	require.Equal(t, tmtypes.TM2PB.PubKey(validator.ConsPubKey), abciVal.PubKey)
@@ -109,7 +109,7 @@ func TestABCIValidatorUpdate(t *testing.T) {
 }
 
 func TestABCIValidatorUpdateZero(t *testing.T) {
-	validator := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
+	validator := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
 
 	abciVal := validator.ABCIValidatorUpdateZero()
 	require.Equal(t, tmtypes.TM2PB.PubKey(validator.ConsPubKey), abciVal.PubKey)
@@ -133,7 +133,7 @@ func TestShareTokens(t *testing.T) {
 
 func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
 	common.InitConfig()
-	validator := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
+	validator := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
 	js, err := codec.Cdc.MarshalJSON(validator)
 	require.NoError(t, err)
 	require.NotEmpty(t, js)
@@ -146,7 +146,7 @@ func TestValidatorMarshalUnmarshalJSON(t *testing.T) {
 
 func TestValidatorAmino(t *testing.T) {
 	common.InitConfig()
-	validator := NewValidator(valAddr1, pk1, Description{"test1", "test2", "test3", "test4"}, DefaultMinSelfDelegation)
+	validator := NewValidator(valAddr1, pk1, Description{"test1", "test2", "test3", "test4"}, DefaultDPoSMinSelfDelegation)
 	validator.Jailed = true
 	validator.Status = sdk.Bonded
 	validator.Tokens = sdk.OneInt()
@@ -211,7 +211,7 @@ func TestValidatorAmino(t *testing.T) {
 }
 
 func TestValidatorSetInitialCommission(t *testing.T) {
-	val := NewValidator(valAddr1, pk1, Description{}, DefaultMinSelfDelegation)
+	val := NewValidator(valAddr1, pk1, Description{}, DefaultDPoSMinSelfDelegation)
 	testCases := []struct {
 		validator   Validator
 		commission  Commission

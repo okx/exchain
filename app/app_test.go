@@ -200,9 +200,10 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
 				txBytes, err := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
 				suite.Require().NoError(err)
+
 				return txBytes
 			},
-			7, //invalid opcode: opcode 0xa6 not defined: failed to execute message; message index: 0
+			abci.CodeTypeNonceInc + 7, //invalid opcode: opcode 0xa6 not defined: failed to execute message; message index: 0
 			1000000,
 		},
 		{
@@ -233,7 +234,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				txBytes, _ := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
 				return txBytes
 			},
-			7, //execution reverted: failed to execute message; message index: 0
+			abci.CodeTypeNonceInc + 7, //execution reverted: failed to execute message; message index: 0
 			21195,
 		},
 		{
@@ -250,7 +251,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				return txBytes
 			},
 			0,
-			159669,
+			161071,
 		},
 		{
 			"send tx for gov with error fee, failed, do not write to block",
@@ -281,8 +282,8 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				txBytes, _ := txEncoder(tx)
 				return txBytes
 			},
-			68007, //the status of proposal is not for this operation: failed to execute message; message index: 1
-			121641,
+			abci.CodeTypeNonceInc + 68007, //the status of proposal is not for this operation: failed to execute message; message index: 1
+			122596,
 		},
 		{
 			"send std tx for gov again with proposal id 2, success",
@@ -298,7 +299,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				return txBytes
 			},
 			0,
-			154279,
+			154919,
 		},
 	}
 

@@ -15,7 +15,7 @@ func TestQueryValidators(t *testing.T) {
 	ctx, _, mockKeeper := CreateTestInput(t, false, SufficientInitBalance)
 	keeper := mockKeeper.Keeper
 
-	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultMinSelfDelegation)
+	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultDPoSMinSelfDelegation)
 	keeper.SetValidator(ctx, fakeValidator)
 
 	getParams := func(status string) types.QueryValidatorsParams {
@@ -56,7 +56,7 @@ func TestQueryValidator(t *testing.T) {
 	ctx, _, mockKeeper := CreateTestInput(t, false, SufficientInitBalance)
 	keeper := mockKeeper.Keeper
 
-	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultMinSelfDelegation)
+	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultDPoSMinSelfDelegation)
 	keeper.SetValidator(ctx, fakeValidator)
 
 	getParams := func(acc types2.ValAddress) types.QueryValidatorParams {
@@ -109,7 +109,7 @@ func TestQueryAddress(t *testing.T) {
 	ctx, _, mockKeeper := CreateTestInput(t, false, SufficientInitBalance)
 	keeper := mockKeeper.Keeper
 
-	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultMinSelfDelegation)
+	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultDPoSMinSelfDelegation)
 	keeper.SetValidator(ctx, fakeValidator)
 
 	querior := NewQuerier(keeper)
@@ -132,7 +132,7 @@ func TestQueryForAddress(t *testing.T) {
 	ctx, _, mockKeeper := CreateTestInput(t, false, SufficientInitBalance)
 	keeper := mockKeeper.Keeper
 
-	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultMinSelfDelegation)
+	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultDPoSMinSelfDelegation)
 	keeper.SetValidator(ctx, fakeValidator)
 	querior := NewQuerier(keeper)
 
@@ -156,7 +156,7 @@ func TestQueryForAccAddress(t *testing.T) {
 	ctx, _, mockKeeper := CreateTestInput(t, false, SufficientInitBalance)
 	keeper := mockKeeper.Keeper
 
-	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultMinSelfDelegation)
+	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultDPoSMinSelfDelegation)
 	keeper.SetValidator(ctx, fakeValidator)
 	querior := NewQuerier(keeper)
 
@@ -175,7 +175,7 @@ func TestQueriorQueryProxy(t *testing.T) {
 	ctx, _, mockKeeper := CreateTestInput(t, false, SufficientInitBalance)
 	keeper := mockKeeper.Keeper
 
-	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultMinSelfDelegation)
+	fakeValidator := types.NewValidator(addrVals[0], PKs[0], types.Description{}, types.DefaultDPoSMinSelfDelegation)
 	keeper.SetValidator(ctx, fakeValidator)
 	querior := NewQuerier(keeper)
 
@@ -197,7 +197,7 @@ func TestQueriorQueryProxy(t *testing.T) {
 
 func TestParams(t *testing.T) {
 	ctx, _, keeper := CreateTestInput(t, false, 0)
-	expParams := types.DefaultParams()
+	expParams := types.DefaultDposParams()
 
 	//check that the empty keeper loads the default
 	resParams := keeper.GetParams(ctx)

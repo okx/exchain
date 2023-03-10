@@ -5,7 +5,7 @@ import (
 	"time"
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
-	stakingtypes "github.com/okx/okbchain/libs/cosmos-sdk/x/staking/types"
+	stakingtypes "github.com/okx/okbchain/x/staking/types"
 )
 
 // StakingKeeper expected staking keeper

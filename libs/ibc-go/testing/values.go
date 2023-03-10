@@ -1,6 +1,6 @@
 /*
-	This file contains the variables, constants, and default values
-	used in the testing package and commonly defined in tests.
+This file contains the variables, constants, and default values
+used in the testing package and commonly defined in tests.
 */
 package ibctesting
 
@@ -26,8 +26,8 @@ const (
 	FirstConnectionID = "connection-0"
 
 	// Default params constants used to create a TM client
-	TrustingPeriod     time.Duration = time.Hour * 24 * 7 * 2
-	UnbondingPeriod    time.Duration = time.Hour * 24 * 7 * 3
+	TrustingPeriod     time.Duration = time.Hour * 24 * 7 * 1
+	UnbondingPeriod    time.Duration = time.Hour * 24 * 7 * 2
 	MaxClockDrift      time.Duration = time.Second * 10
 	DefaultDelayPeriod uint64        = 0
 

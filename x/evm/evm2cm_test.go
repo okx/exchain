@@ -2,7 +2,6 @@ package evm
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -193,6 +192,6 @@ func TestDecodeResultData(t *testing.T) {
 		}
 		rd, err := etypes.DecodeResultData(d)
 		require.NoError(t, err)
-		fmt.Println(rd)
+		t.Log(rd)
 	}
 }

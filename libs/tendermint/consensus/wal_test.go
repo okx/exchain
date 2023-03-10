@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -139,6 +140,21 @@ func TestWALWrite(t *testing.T) {
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "msg is too big")
 	}
+}
+
+func tempWALWithData(data []byte) string {
+	walFile, err := ioutil.TempFile("", "wal")
+	if err != nil {
+		panic(fmt.Sprintf("failed to create temp WAL file: %v", err))
+	}
+	_, err = walFile.Write(data)
+	if err != nil {
+		panic(fmt.Sprintf("failed to write to temp WAL file: %v", err))
+	}
+	if err := walFile.Close(); err != nil {
+		panic(fmt.Sprintf("failed to close temp WAL file: %v", err))
+	}
+	return walFile.Name()
 }
 
 func TestWALSearchForEndHeight(t *testing.T) {

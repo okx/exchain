@@ -1092,7 +1092,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 
 		space, code, _ := sdkerrors.ABCIInfo(err, false)
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.Codespace(), space, err)
-		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode(), code, err)
+		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode()+abci.CodeTypeNonceInc, code, err)
 
 		unknownRouteTx = &txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err = app.Deliver(unknownRouteTx)
@@ -1101,7 +1101,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 
 		space, code, _ = sdkerrors.ABCIInfo(err, false)
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.Codespace(), space, err)
-		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode(), code, err)
+		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode()+abci.CodeTypeNonceInc, code, err)
 	}
 
 	// Transaction with an unregistered message

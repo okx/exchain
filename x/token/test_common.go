@@ -3,8 +3,6 @@ package token
 import (
 	"testing"
 
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
-
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
@@ -22,7 +20,6 @@ import (
 // CreateParam create okbchain parm for test
 func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStoreKey, []byte) {
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
-	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -32,8 +29,7 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
-	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
+	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keyToken, sdk.StoreTypeIAVL, db)
@@ -53,7 +49,7 @@ func CreateParam(t *testing.T, isCheckTx bool) (sdk.Context, Keeper, *sdk.KVStor
 
 	accountKeeper := auth.NewAccountKeeper(
 		cdc, // amino codec
-		keyMpt,
+		keyAcc,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)

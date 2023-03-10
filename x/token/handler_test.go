@@ -52,15 +52,15 @@ func TestHandlerBlockedContractAddrSend(t *testing.T) {
 		msg         sdk.Msg
 		account     app.EthAccount
 	}{
-		// 0.01okt as fixed fee in each stdTx
-		{"success to send", "9999.000000000000000000okt", successfulSendMsg, gAcc[0]},
-		{"success to multi-send", "9989.000000000000000000okt", successfulMultiSendMsg, gAcc[0]},
-		{"success to send", "9988.000000000000000000okt", successfulSendMsg, gAcc[0]},
-		{"success to multi-send", "9978.000000000000000000okt", successfulMultiSendMsg, gAcc[0]},
-		//{"fail to send to contract", "9978.000000000000000000okt", failedSendMsg, gAcc[0]},
-		//{"fail to multi-send to contract", "9978.000000000000000000okt", failedMultiSendMsg, gAcc[0]},
-		{"fail to send to contract", "9978.000000000000000000okt", sendToContractMsg, gAcc[0]},
-		{"fail to multi-send to contract", "9978.000000000000000000okt", multiSendToContractMsg, gAcc[0]},
+		// 0.01okb as fixed fee in each stdTx
+		{"success to send", "9999.000000000000000000okb", successfulSendMsg, gAcc[0]},
+		{"success to multi-send", "9989.000000000000000000okb", successfulMultiSendMsg, gAcc[0]},
+		{"success to send", "9988.000000000000000000okb", successfulSendMsg, gAcc[0]},
+		{"success to multi-send", "9978.000000000000000000okb", successfulMultiSendMsg, gAcc[0]},
+		//{"fail to send to contract", "9978.000000000000000000okb", failedSendMsg, gAcc[0]},
+		//{"fail to multi-send to contract", "9978.000000000000000000okb", failedMultiSendMsg, gAcc[0]},
+		{"fail to send to contract", "9978.000000000000000000okb", sendToContractMsg, gAcc[0]},
+		{"fail to multi-send to contract", "9978.000000000000000000okb", multiSendToContractMsg, gAcc[0]},
 	}
 	for i, tt := range TestSets {
 		t.Run(tt.description, func(t *testing.T) {

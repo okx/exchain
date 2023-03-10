@@ -11,7 +11,6 @@ import (
 	ethermint "github.com/okx/okbchain/app/types"
 	sdkcodec "github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store"
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/bank"
@@ -95,7 +94,6 @@ func (suite *JournalTestSuite) SetupTest() {
 // to maintain consistency with the Geth implementation.
 func (suite *JournalTestSuite) setup() {
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
-	mptKey := sdk.NewKVStoreKey(mpt.StoreKey)
 	supplyKey := sdk.NewKVStoreKey(supply.StoreKey)
 	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
@@ -108,8 +106,7 @@ func (suite *JournalTestSuite) setup() {
 	}()
 
 	cms := store.NewCommitMultiStore(db)
-	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(mptKey, sdk.StoreTypeMPT, db)
+	cms.MountStoreWithDB(authKey, sdk.StoreTypeMPT, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
@@ -125,7 +122,7 @@ func (suite *JournalTestSuite) setup() {
 	bankSubspace := paramsKeeper.Subspace(bank.DefaultParamspace)
 	evmSubspace := paramsKeeper.Subspace(types.DefaultParamspace).WithKeyTable(ParamKeyTable())
 
-	ak := auth.NewAccountKeeper(cdc, authKey, mptKey, authSubspace, ethermint.ProtoAccount)
+	ak := auth.NewAccountKeeper(cdc, authKey, authSubspace, ethermint.ProtoAccount)
 	bk := bank.NewBaseKeeper(ak, bankSubspace, make(map[string]bool))
 	sk := supply.NewKeeper(cdc, supplyKey, ak, bank.NewBankKeeperAdapter(bk), make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
@@ -138,7 +135,6 @@ func (suite *JournalTestSuite) setup() {
 		Ada:           nil,
 		Cdc:           cdc,
 		DB:            nil,
-		Trie:          nil,
 	}
 	suite.stateDB = NewCommitStateDB(csdbParams).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())

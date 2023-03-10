@@ -72,6 +72,18 @@ func DefaultParams() Params {
 	}
 }
 
+// TestParams returns test parameters for unit tests
+func TestParams() Params {
+	return Params{
+		EnableCreate:                      false,
+		EnableCall:                        false,
+		ExtraEIPs:                         []int(nil), // TODO: define default values
+		EnableContractDeploymentWhitelist: false,
+		EnableContractBlockedList:         false,
+		MaxGasLimitPerTx:                  defaultMaxGasLimitPerTx,
+	}
+}
+
 // String implements the fmt.Stringer interface
 func (p Params) String() string {
 	out, _ := yaml.Marshal(p)

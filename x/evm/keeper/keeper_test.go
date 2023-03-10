@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	dbm "github.com/okx/okbchain/libs/tm-db"
 	"math/big"
 	"testing"
 	"time"
@@ -60,6 +61,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 }
 
 func TestKeeperTestSuite(t *testing.T) {
+	viper.Set(sdk.FlagDBBackend, string(dbm.MemDBBackend))
 	suite.Run(t, new(KeeperTestSuite))
 }
 
@@ -145,7 +147,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().Equal(bloom, testBloom)
 
-	suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
+	suite.stateDB.WithContext(suite.ctx).Commit(false)
 
 	stg, err := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, suite.address)
 	suite.Require().NoError(err, "failed to get account storage")

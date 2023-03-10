@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
-
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
@@ -84,7 +82,6 @@ func MakeTestCodec() *codec.Codec {
 func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context, auth.AccountKeeper, Keeper, types.SupplyKeeper) {
 	keyStaking := sdk.NewKVStoreKey(types.StoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
-	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -92,8 +89,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(keyStaking, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
-	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
+	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
@@ -123,7 +119,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 
 	accountKeeper := auth.NewAccountKeeper(
 		cdc, // amino codec
-		keyMpt,
+		keyAcc,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)

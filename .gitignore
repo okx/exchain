@@ -45,6 +45,24 @@ cmd/exchaind/testnet_okchain.go
 dev/testnet/cache
 testnet_exchain.go
 tools
+x/vmbridge/keeper/data/*
+libs/ibc-go/modules/apps/27-interchain-accounts/controller/data/*
+libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper/data/*
+libs/ibc-go/modules/apps/27-interchain-accounts/host/data/*
+libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper/data/*
+libs/ibc-go/modules/apps/27-interchain-accounts/types/data/*
+libs/ibc-go/modules/apps/29-fee/data/*
+libs/ibc-go/modules/apps/29-fee/keeper/data/*
+libs/ibc-go/modules/apps/transfer/data/*
+libs/ibc-go/modules/apps/transfer/keeper/data/*
+libs/ibc-go/modules/core/02-client/keeper/data/*
+libs/ibc-go/modules/core/02-client/types/data/*
+libs/ibc-go/modules/core/03-connection/keeper/data/*
+libs/ibc-go/modules/core/04-channel/keeper/data/*
+libs/ibc-go/modules/core/ante/data/*
+libs/ibc-go/modules/core/keeper/data/*
+libs/ibc-go/modules/light-clients/07-tendermint/types/data/*
+
 
 
 # Testing

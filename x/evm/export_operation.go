@@ -354,7 +354,7 @@ func pathExist(path string) bool {
 }
 
 func isEmptyState(db dbm.DB) bool {
-	return db.Stats()["leveldb.sstables"] == ""
+	return db == nil
 }
 
 func CloseDB() {

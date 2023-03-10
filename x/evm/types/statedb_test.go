@@ -2,6 +2,8 @@ package types_test
 
 import (
 	"fmt"
+	dbm "github.com/okx/okbchain/libs/tm-db"
+	"github.com/spf13/viper"
 	"math/big"
 	"testing"
 
@@ -29,6 +31,7 @@ type StateDBTestSuite struct {
 }
 
 func TestStateDBTestSuite(t *testing.T) {
+	viper.Set(sdk.FlagDBBackend, string(dbm.MemDBBackend))
 	suite.Run(t, new(StateDBTestSuite))
 }
 
@@ -57,6 +60,12 @@ func (suite *StateDBTestSuite) SetupTest() {
 	params.EnableCreate = true
 	params.EnableCall = true
 	suite.stateDB.SetParams(params)
+
+	// clear database
+	for i := uint64(0); i <= 100; i++ {
+		key := types.AppendHeightHashKey(i)
+		suite.stateDB.Database().TrieDB().DiskDB().Delete(key)
+	}
 }
 
 func (suite *StateDBTestSuite) TestParams() {
