@@ -3,6 +3,7 @@ package distribution
 import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/common"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/distribution/keeper"
@@ -21,9 +22,12 @@ func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) 
 	// ref https://github.com/cosmos/cosmos-sdk/issues/3095
 	if ctx.BlockHeight() > tmtypes.GetStartBlockHeight()+1 {
 		previousProposer := k.GetPreviousProposerConsAddr(ctx)
-
 		/* allocate tokens by okexchain custom rule */
-		k.AllocateTokens(ctx, previousTotalPower, previousProposer, req.LastCommitInfo.GetVotes())
+		if k.StakingKeeper().ParamsConsensusType(ctx) == common.PoA {
+			k.PoAAllocateTokens(ctx, req.LastCommitInfo.GetVotes())
+		} else {
+			k.AllocateTokens(ctx, previousTotalPower, previousProposer, req.LastCommitInfo.GetVotes())
+		}
 	}
 
 	// record the proposer for when we payout on the next block

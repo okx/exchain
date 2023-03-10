@@ -4,6 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"reflect"
+	"strings"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -23,10 +28,6 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"os"
-	"reflect"
-	"strings"
 )
 
 const (
@@ -198,9 +199,6 @@ type BaseApp struct { // nolint: maligned
 	feeChanged        bool // used to judge whether should update the fee-collector account
 	FeeSplitCollector []*sdk.FeeSplitInfo
 
-	chainCache *sdk.Cache
-	blockCache *sdk.Cache
-
 	checkTxNum        int64
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
@@ -245,7 +243,6 @@ func NewBaseApp(
 		trace:          false,
 
 		parallelTxManage: newParallelTxManager(),
-		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
 		blockDataCache:   NewBlockDataCache(),

@@ -20,7 +20,6 @@ import (
 	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdkstoretypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -225,10 +224,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 
-	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
-	cmd.Flags().MarkHidden(sdk.FlagMultiCache)
-	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
-	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 
 	cmd.Flags().Bool(FlagEventBlockTime, false, "Enable to publish event of latest block time")
@@ -252,7 +247,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().String(FlagListenAddr, "tcp://0.0.0.0:26659", "EVM RPC and cosmos-sdk REST API listen address.")
 	cmd.Flags().String(FlagUlockKey, "", "Select the keys to unlock on the RPC server")
-	cmd.Flags().String(FlagUlockKeyHome, os.ExpandEnv("$HOME/.exchaincli"), "The keybase home path")
+	cmd.Flags().String(FlagUlockKeyHome, os.ExpandEnv(system.ClientHome), "The keybase home path")
 	cmd.Flags().String(FlagRestPathPrefix, "exchain", "Path prefix for registering rest api route.")
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")

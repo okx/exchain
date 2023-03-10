@@ -30,12 +30,10 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	// Set the hash -> height and height -> hash mapping.
 	currentHash := req.Hash
-	lastHash := req.Header.LastBlockId.GetHash()
-	height := req.Header.GetHeight() - 1
-
+	height := req.Header.GetHeight()
 	blockHash := common.BytesToHash(currentHash)
-	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
-	k.SetBlockHeight(ctx, lastHash, height)
+	k.SetHeightHash(ctx, uint64(height), blockHash)
+	k.SetBlockHeight(ctx, currentHash, height)
 	// Add latest block height and hash to cache
 	k.AddHeightHashToCache(req.Header.GetHeight(), blockHash.Hex())
 

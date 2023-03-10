@@ -79,6 +79,10 @@ func (k Keeper) SetWithdrawAddr(ctx sdk.Context, delegatorAddr sdk.AccAddress, w
 	return nil
 }
 
+func (k Keeper) StakingKeeper() types.StakingKeeper {
+	return k.stakingKeeper
+}
+
 // WithdrawValidatorCommission withdraws validator commission
 func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddress) (sdk.Coins, error) {
 	// fetch validator accumulated commission

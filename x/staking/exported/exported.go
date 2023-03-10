@@ -35,3 +35,8 @@ type ValidatorI interface {
 	SharesFromTokens(amt sdk.Int) (sdk.Dec, error)          // shares worth of delegator's bond
 	SharesFromTokensTruncated(amt sdk.Int) (sdk.Dec, error) // truncated shares worth of delegator's bond
 }
+
+type Keeper interface {
+	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
+	GetEpoch(ctx sdk.Context) (epoch uint16)
+}

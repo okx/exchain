@@ -1,4 +1,4 @@
-package keeper
+package ut
 
 import (
 	"bytes"
@@ -6,15 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
@@ -24,11 +22,11 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/stretchr/testify/require"
-
+	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/staking"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -95,7 +93,7 @@ func CreateValidators(
 // CreateTestInput returns keepers for test
 func CreateTestInput(
 	t *testing.T, isCheckTx bool, initBalance int64,
-) (sdk.Context, auth.AccountKeeper, Keeper, staking.Keeper, crisis.Keeper) {
+) (sdk.Context, auth.AccountKeeper, keeper.Keeper, staking.Keeper, crisis.Keeper) {
 	stakingSk := sdk.NewKVStoreKey(staking.StoreKey)
 
 	stakingTkSk := sdk.NewTransientStoreKey(staking.TStoreKey)
@@ -177,8 +175,7 @@ func CreateTestInput(
 	// for staking/distr rollback to cosmos-sdk
 	stakingKeeper := staking.NewKeeper(pro, stakingSk, supplyKeeper,
 		pk.Subspace(staking.DefaultParamspace))
-
-	stakingKeeper.SetParams(ctx, staking.DefaultParams())
+	stakingKeeper.SetParams(ctx, staking.DefaultDposParams())
 	pk.SetStakingKeeper(stakingKeeper)
 
 	// set module accounts
@@ -199,12 +196,12 @@ func CreateTestInput(
 	}
 
 	govSubspace := pk.Subspace(types.DefaultParamspace)
-	govRouter := NewRouter()
+	govRouter := keeper.NewRouter()
 	govRouter.AddRoute(types.RouterKey, types.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&pk))
-	govProposalHandlerRouter := NewProposalHandlerRouter()
+	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, pk)
-	keeper := NewKeeper(cdc, keyGov, pk, govSubspace, supplyKeeper, stakingKeeper,
+	keeper := keeper.NewKeeper(cdc, keyGov, pk, govSubspace, supplyKeeper, stakingKeeper,
 		types.DefaultCodespace, govRouter, bk, govProposalHandlerRouter, auth.FeeCollectorName)
 	pk.SetGovKeeper(keeper)
 

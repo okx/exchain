@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/gov/types"
 )
@@ -197,4 +198,8 @@ func (keeper Keeper) DeleteDeposits(ctx sdk.Context, proposalID uint64) {
 		store.Delete(types.DepositKey(proposalID, deposit.Depositor))
 		return false
 	})
+}
+
+func (keeper Keeper) FeeCollectorName() string {
+	return keeper.feeCollectorName
 }

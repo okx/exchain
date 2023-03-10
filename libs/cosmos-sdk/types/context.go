@@ -44,7 +44,6 @@ type Context struct {
 	consParams         *abci.ConsensusParams
 	eventManager       *EventManager
 	accountNonce       uint64
-	cache              *Cache
 	trc                *trace.Tracer
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
@@ -98,9 +97,6 @@ func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
 func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
-func (c *Context) Cache() *Cache {
-	return c.cache
-}
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
@@ -231,11 +227,6 @@ func (c *Context) SetEventManager(em *EventManager) *Context {
 
 func (c *Context) SetAccountNonce(nonce uint64) *Context {
 	c.accountNonce = nonce
-	return c
-}
-
-func (c *Context) SetCache(cache *Cache) *Context {
-	c.cache = cache
 	return c
 }
 

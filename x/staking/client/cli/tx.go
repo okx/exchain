@@ -44,9 +44,8 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 			GetCmdDeposit(cdc),
 			GetCmdWithdraw(cdc),
 			GetCmdAddShares(cdc),
+			GetCmdDepositMinSelfDelegation(cdc),
 		)...)
-
-	stakingTxCmd.AddCommand(GetCmdProxy(cdc))
 
 	return stakingTxCmd
 }
@@ -138,11 +137,11 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 //__________________________________________________________
 
 var (
-//defaultTokens                  = sdk.TokensFromConsensusPower(100)
-//defaultAmount                  = defaultTokens.String() + sdk.DefaultBondDenom
-//defaultCommissionRate          = "0.1"
-//defaultCommissionMaxRate       = "0.2"
-//defaultCommissionMaxChangeRate = "0.01"
+// defaultTokens                  = sdk.TokensFromConsensusPower(100)
+// defaultAmount                  = defaultTokens.String() + sdk.DefaultBondDenom
+// defaultCommissionRate          = "0.1"
+// defaultCommissionMaxRate       = "0.2"
+// defaultCommissionMaxChangeRate = "0.01"
 )
 
 // CreateValidatorMsgHelpers returns the flagset, particular flags, and a description of defaults
@@ -244,4 +243,22 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	}
 
 	return txBldr, msg, nil
+}
+
+// GetCmdDepositMinSelfDelegation gets the deposit minSelfDelegation command handler
+func GetCmdDepositMinSelfDelegation(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "deposit-min-self-delegation",
+		Short: "deposit min self delegation",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+			valAddr := cliCtx.GetFromAddress()
+			msg := types.NewMsgDepositMinSelfDelegation(sdk.ValAddress(valAddr))
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	cmd.MarkFlagRequired(flags.FlagFrom)
+	return cmd
 }

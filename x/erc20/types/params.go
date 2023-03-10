@@ -13,7 +13,7 @@ const (
 	DefaultParamspace = ModuleName
 
 	DefaultIbcTimeout            = uint64(86400000000000) // 1 day
-	DefaultAutoDeploymentEnabled = false
+	DefaultAutoDeploymentEnabled = true
 )
 
 var (

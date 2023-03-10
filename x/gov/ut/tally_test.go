@@ -1,16 +1,16 @@
-package keeper
+package ut
 
 import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/x/common"
+	"github.com/okex/exchain/x/gov/keeper"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
-
+	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/staking"
+	"github.com/stretchr/testify/require"
 )
 
 func newTallyResult(t *testing.T, totalVoted, yes, abstain, no, veto, totalVoting string) types.TallyResult {
@@ -37,30 +37,30 @@ func newTallyResult(t *testing.T, totalVoted, yes, abstain, no, veto, totalVotin
 }
 
 func TestTallyNoBondedTokens(t *testing.T) {
-	ctx, _, keeper, _, _ := CreateTestInput(t, false, 1000)
+	ctx, _, k, _, _ := CreateTestInput(t, false, 1000)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 
 	// less quorum when expire VotingPeriod
-	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusRejected, status)
-	require.True(t, tallyResults.Equals(types.EmptyTallyResult(keeper.totalPower(ctx))))
+	require.True(t, tallyResults.Equals(types.EmptyTallyResult(k.TotalPower(ctx))))
 
 	// less quorum when in VotingPeriod
-	status, dist, tallyResults = Tally(ctx, keeper, proposal, false)
+	status, dist, tallyResults = keeper.Tally(ctx, k, proposal, false)
 	require.False(t, dist)
 	require.Equal(t, types.StatusRejected, status)
-	require.True(t, tallyResults.Equals(types.EmptyTallyResult(keeper.totalPower(ctx))))
+	require.True(t, tallyResults.Equals(types.EmptyTallyResult(k.TotalPower(ctx))))
 }
 
 func TestTallyNoOneVotes(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 
 	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
@@ -74,27 +74,27 @@ func TestTallyNoOneVotes(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 
 	// less quorum when expire VotingPeriod
-	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal, true)
 	require.True(t, dist)
 	require.Equal(t, types.StatusRejected, status)
-	require.True(t, tallyResults.Equals(types.EmptyTallyResult(keeper.totalPower(ctx))))
+	require.True(t, tallyResults.Equals(types.EmptyTallyResult(k.TotalPower(ctx))))
 
 	// less quorum when in VotingPeriod
-	status, dist, tallyResults = Tally(ctx, keeper, proposal, false)
+	status, dist, tallyResults = keeper.Tally(ctx, k, proposal, false)
 	require.False(t, dist)
 	require.Equal(t, types.StatusVotingPeriod, status)
-	require.True(t, tallyResults.Equals(types.EmptyTallyResult(keeper.totalPower(ctx))))
+	require.True(t, tallyResults.Equals(types.EmptyTallyResult(k.TotalPower(ctx))))
 }
 
 func TestTallyAllValidatorsVoteAbstain(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 
 	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
@@ -108,26 +108,26 @@ func TestTallyAllValidatorsVoteAbstain(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionAbstain)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionAbstain)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionAbstain)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionAbstain)
 	require.Nil(t, err)
 
 	expectedTallyResult := newTallyResult(t, "2", "0.0", "2", "0.0", "0.0", "2")
 	// when expire VotingPeriod
-	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusRejected, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
 
 	// when in VotingPeriod
-	status, dist, tallyResults = Tally(ctx, keeper, proposal, false)
+	status, dist, tallyResults = keeper.Tally(ctx, k, proposal, false)
 	require.False(t, dist)
 	require.Equal(t, types.StatusRejected, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
@@ -136,7 +136,7 @@ func TestTallyAllValidatorsVoteAbstain(t *testing.T) {
 // test more than one third validator vote veto, in this test there are two validators
 // and one vote veto.
 func TestTallyAllValidatorsMoreThanOneThirdVeto(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 
 	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
@@ -150,31 +150,31 @@ func TestTallyAllValidatorsMoreThanOneThirdVeto(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNoWithVeto)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNoWithVeto)
 	require.Nil(t, err)
 
 	expectedTallyResult := newTallyResult(t, "1", "0.0", "0.0", "0.0", "1", "2")
 	// when expire VotingPeriod
-	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal, true)
 	require.True(t, dist)
 	require.Equal(t, types.StatusRejected, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
 
 	// when in VotingPeriod
-	status, dist, tallyResults = Tally(ctx, keeper, proposal, false)
+	status, dist, tallyResults = keeper.Tally(ctx, k, proposal, false)
 	require.True(t, dist)
 	require.Equal(t, types.StatusRejected, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
 }
 
 func TestTallyOtherCase(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	stakingHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(Addrs[:2]))
@@ -185,51 +185,51 @@ func TestTallyOtherCase(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 
 	// one of two validators vote no, that is more than or equal to 1/2 of non-abstain vote not Yes
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNo)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNo)
 	require.Nil(t, err)
 
 	expectedTallyResult := newTallyResult(t, "1", "0.0", "0.0", "1", "0.0", "2")
 	// when expire VotingPeriod
-	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusRejected, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
 
 	// when in VotingPeriod
-	status, dist, tallyResults = Tally(ctx, keeper, proposal, false)
+	status, dist, tallyResults = keeper.Tally(ctx, k, proposal, false)
 	require.False(t, dist)
 	require.Equal(t, types.StatusRejected, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
 
 	// all validators vote yes, that is more than to 1/2 of non-abstain vote Yes when expire VotingPeriod
 	// and more than 2/3 of totalBonded vote Yes when in VotingPeriod
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionYes)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionYes)
 	require.Nil(t, err)
 
 	expectedTallyResult = newTallyResult(t, "2", "2", "0.0", "0.0", "0.0", "2")
 	// when expire VotingPeriod
-	status, dist, tallyResults = Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults = keeper.Tally(ctx, k, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusPassed, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
 
 	// when in VotingPeriod
-	status, dist, tallyResults = Tally(ctx, keeper, proposal, false)
+	status, dist, tallyResults = keeper.Tally(ctx, k, proposal, false)
 	require.False(t, dist)
 	require.Equal(t, types.StatusPassed, status)
 	require.True(t, tallyResults.Equals(expectedTallyResult))
 }
 
 func TestTallyDelegatorInherit(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	ctx.SetBlockTime(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
 	stakingHandler := staking.NewHandler(sk)
@@ -249,30 +249,30 @@ func TestTallyDelegatorInherit(t *testing.T) {
 	stakingHandler(ctx, addSharesMsg)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNo)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[0], types.OptionNo)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionNo)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[1], types.OptionNo)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposal.ProposalID, Addrs[2], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[2], types.OptionYes)
 	require.Nil(t, err)
 
 	// there are 3 validators with 1 voting power for each one (0.001okt -> 1 power)
 	//  2 vals -> OptionNo
 	//  1 val -> OptionYes
 	expectedTallyResult := newTallyResult(t, "11003", "11001", "0.0", "2", "0.0", "11003")
-	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusPassed, status)
 	require.Equal(t, expectedTallyResult, tallyResults)
 }
 
 func TestTallyDelegatorOverride(t *testing.T) {
-	ctx, _, keeper, sk, _ := CreateTestInput(t, false, 100000)
+	ctx, _, k, sk, _ := CreateTestInput(t, false, 100000)
 	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	ctx.SetBlockTime(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC))
 	stakingHandler := staking.NewHandler(sk)
@@ -292,23 +292,23 @@ func TestTallyDelegatorOverride(t *testing.T) {
 	stakingHandler(ctx, addSharesMsg)
 
 	content := types.NewTextProposal("Test", "description")
-	proposal, err := keeper.SubmitProposal(ctx, content)
+	proposal, err := k.SubmitProposal(ctx, content)
 	require.Nil(t, err)
 	proposal.Status = types.StatusVotingPeriod
-	keeper.SetProposal(ctx, proposal)
+	k.SetProposal(ctx, proposal)
 	proposalID := proposal.ProposalID
 
-	err, _ = keeper.AddVote(ctx, proposalID, Addrs[0], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposalID, Addrs[0], types.OptionYes)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposalID, Addrs[1], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposalID, Addrs[1], types.OptionYes)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposalID, Addrs[2], types.OptionYes)
+	err, _ = k.AddVote(ctx, proposalID, Addrs[2], types.OptionYes)
 	require.Nil(t, err)
-	err, _ = keeper.AddVote(ctx, proposalID, Addrs[3], types.OptionNo)
+	err, _ = k.AddVote(ctx, proposalID, Addrs[3], types.OptionNo)
 	require.Nil(t, err)
 
 	expectedTallyResult := newTallyResult(t, "4", "3", "0.0", "1", "0.0", "4")
-	status, dist, tallyResults := Tally(ctx, keeper, proposal, true)
+	status, dist, tallyResults := keeper.Tally(ctx, k, proposal, true)
 	require.False(t, dist)
 	require.Equal(t, types.StatusPassed, status)
 	require.Equal(t, expectedTallyResult, tallyResults)

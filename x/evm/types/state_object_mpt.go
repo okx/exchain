@@ -18,14 +18,8 @@ const (
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
-	acc := db.accountKeeper.NewAccountWithAddress(db.ctx, so.account.Address)
-	//need to copy acc stateroot
-	ethermintAccount, ok := acc.(*types.EthAccount)
-	if !ok {
-		panic(fmt.Sprintf("invalid account type for state object: %T", acc))
-	}
-	ethermintAccount.StateRoot = so.account.GetStateRoot()
-	newStateObj := newStateObject(db, ethermintAccount)
+	acc := so.account.DeepCopy().(*types.EthAccount)
+	newStateObj := newStateObject(db, acc)
 	if so.trie != nil {
 		newStateObj.trie = db.db.CopyTrie(so.trie)
 	}
@@ -61,8 +55,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	tmpKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-	if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
+	if enc, err = so.getTrie(db).TryGet(key.Bytes()); err != nil {
 		so.setError(err)
 		return ethcmn.Hash{}
 	}
@@ -147,8 +140,6 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
@@ -194,7 +185,6 @@ func (so *stateObject) finalise(prefetch bool) {
 		for key, value := range so.dirtyStorage {
 			so.pendingStorage[key] = value
 			if value != so.originStorage[key] {
-				key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 				slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 			}
 		}

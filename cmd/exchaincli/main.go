@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
@@ -83,7 +84,7 @@ func main() {
 	)
 
 	// Add flags and prefix all env exposed with OKEXCHAIN
-	executor := cli.PrepareMainCmd(rootCmd, "OKEXCHAIN", app.DefaultCLIHome)
+	executor := cli.PrepareMainCmd(rootCmd, system.EnvPrefix, app.DefaultCLIHome)
 
 	err := executor.Execute()
 	if err != nil {

@@ -43,6 +43,7 @@ var (
 	NewMsgDeposit                      = types.NewMsgDeposit
 	NewMsgWithdraw                     = types.NewMsgWithdraw
 	DefaultParams                      = types.DefaultParams
+	DefaultDposParams                  = types.DefaultDposParams
 	NewValidator                       = types.NewValidator
 	NewDescription                     = types.NewDescription
 	NewMsgAddShares                    = types.NewMsgAddShares

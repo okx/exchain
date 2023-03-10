@@ -1,14 +1,13 @@
-package keeper
+package ut
 
 import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params"
 	paramsTypes "github.com/okex/exchain/x/params/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestKeeper_AddDeposit(t *testing.T) {
@@ -144,7 +143,7 @@ func TestKeeper_DistributeDeposits(t *testing.T) {
 	keeper.DistributeDeposits(ctx, proposalID)
 	moduleAccBalance = keeper.SupplyKeeper().GetModuleAccount(ctx, types.ModuleName).GetCoins()
 	require.Equal(t, sdk.Coins(nil), moduleAccBalance)
-	feeCollectorBalance := keeper.SupplyKeeper().GetModuleAccount(ctx, keeper.feeCollectorName).GetCoins()
+	feeCollectorBalance := keeper.SupplyKeeper().GetModuleAccount(ctx, keeper.FeeCollectorName()).GetCoins()
 	require.Equal(t, amount1.Add(amount2...), feeCollectorBalance)
 }
 
@@ -188,7 +187,7 @@ func TestKeeper_RefundDeposits(t *testing.T) {
 	err = keeper.AddDeposit(ctx, proposalID, Addrs[0], amount1, "")
 	require.Nil(t, err)
 
-	err = keeper.SupplyKeeper().SendCoinsFromModuleToModule(ctx, types.ModuleName, keeper.feeCollectorName,
+	err = keeper.SupplyKeeper().SendCoinsFromModuleToModule(ctx, types.ModuleName, keeper.FeeCollectorName(),
 		amount1)
 	require.Nil(t, err)
 	require.Panics(t, func() {
