@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime/pprof"
 
+	dbm "github.com/okex/exchain/libs/tm-db"
+
 	app2 "github.com/okex/exchain/libs/cosmos-sdk/server/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server/grpc"
@@ -116,6 +118,7 @@ For profiling and benchmarking purposes, CPU profiling can be enabled via the '-
 which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			viper.Set("db_backend", string(dbm.PebbleBackend))
 			// app pre run
 			if err := appPreRun(ctx, cmd); err != nil {
 				return err

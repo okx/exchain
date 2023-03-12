@@ -36,6 +36,7 @@ const (
 	//   - requires gcc
 	//   - use rocksdb build tag (go build -tags rocksdb)
 	RocksDBBackend BackendType = "rocksdb"
+	PebbleBackend  BackendType = "pebble"
 	// UnknownDBBackend unknown db type
 	UnknownDBBackend BackendType = "unknown"
 

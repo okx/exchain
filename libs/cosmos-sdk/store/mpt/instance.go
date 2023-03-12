@@ -34,6 +34,7 @@ func InstanceOfMptStore() ethstate.Database {
 		if backend == "" {
 			backend = string(types.GoLevelDBBackend)
 		}
+		backend = string(types.GoLevelDBBackend)
 
 		kvstore, e := types.CreateKvDB(mptSpace, types.BackendType(backend), path)
 		if e != nil {
