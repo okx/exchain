@@ -17,7 +17,6 @@ import (
 	"github.com/okex/exchain/app/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
 )
@@ -136,16 +135,6 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	block.TransactionsRoot = ethtypes.EmptyRootHash
-	if len(block.Transactions.([]interface{})) > 0 {
-		txsHash := block.Transactions.([]interface{})
-		txBzs := make([][]byte, len(txsHash))
-		for i := 0; i < len(txsHash); i++ {
-			txBzs[i] = common.FromHex(txsHash[i].(string))
-		}
-		block.TransactionsRoot = common.BytesToHash(merkle.SimpleHashFromByteSlices(txBzs))
 	}
 
 	if fullTx && block.Transactions != nil {
