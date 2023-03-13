@@ -266,7 +266,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				txBytes, _ := txEncoder(tx)
 				return txBytes
 			},
-			5, //insufficient funds: insufficient funds to pay for fees; 890.000000000000000000okt < 1000000000000000000.000000000000000000okt
+			5, //insufficient funds: insufficient funds to pay for fees; 890.000000000000000000okb < 1000000000000000000.000000000000000000okb
 			0,
 		},
 		{

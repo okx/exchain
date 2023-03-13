@@ -282,16 +282,16 @@ func (msg MsgPayPacketFeeAsync) GetSignBytes() []byte {
 //}
 
 func convPacketFee(fee Fee) (Fee, error) {
-	recvF, err := sdk.ConvWei2TOkt(fee.RecvFee)
+	recvF, err := sdk.ConvWei2TOkb(fee.RecvFee)
 	if nil != err {
 		return fee, err
 	}
 
-	ackF, err := sdk.ConvWei2TOkt(fee.AckFee)
+	ackF, err := sdk.ConvWei2TOkb(fee.AckFee)
 	if nil != err {
 		return fee, err
 	}
-	timeoutF, err := sdk.ConvWei2TOkt(fee.TimeoutFee)
+	timeoutF, err := sdk.ConvWei2TOkb(fee.TimeoutFee)
 	if nil != err {
 		return fee, err
 	}
@@ -305,7 +305,7 @@ func (m Metadata) Empty() bool {
 	return len(m.FeeVersion) == 0 || len(m.AppVersion) == 0
 }
 
-//////////
+// ////////
 func (msg MsgPayPacketFeeAsync) ValidWithHeight(h int64) error {
 	return common.MsgNotSupportBeforeHeight(&msg, h)
 }

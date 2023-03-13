@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// DefaultIbcWei for ibc transfer default okt min unit
+// DefaultIbcWei for ibc transfer default okb min unit
 const DefaultIbcWei = "wei"
 const DefaultDecInt = 1000000000000000000
 const DefaultDecStr = "1000000000000000000"
