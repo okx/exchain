@@ -94,13 +94,32 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 }
 
 var (
-	defaultDenyFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
-		return module == ModuleName
-	}
+	defaultVersionFilter store.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
+		if h < 0 {
+			return func(cb func(name string, version int64)) {}
+		}
 
-	defaultCommitFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
+		return func(cb func(name string, version int64)) {
+			cb(ModuleName, types2.GetEarthHeight())
+		}
+	}
+)
+
+func (am AppModule) CommitFilter() *store.StoreFilter {
+	var filter store.StoreFilter
+	// return false:
+	//    a. module name mismatch, no processing required
+	//    b. module names match and reach the upgrade height
+	// return true:
+	//    a. the upgrade height is 0, the module is disabled
+	//    b. not reach the upgrade height
+	filter = func(module string, h int64, s store.CommitKVStore) bool {
 		if module != ModuleName {
 			return false
+		}
+
+		if am.UpgradeHeight() == 0 {
+			return true
 		}
 
 		if h == types2.GetEarthHeight() {
@@ -116,9 +135,19 @@ var (
 
 		return true
 	}
-	defaultPruneFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
+
+	return &filter
+}
+
+func (am AppModule) PruneFilter() *store.StoreFilter {
+	var filter store.StoreFilter
+	filter = func(module string, h int64, s store.CommitKVStore) bool {
 		if module != ModuleName {
 			return false
+		}
+
+		if am.UpgradeHeight() == 0 {
+			return true
 		}
 
 		if types2.HigherThanEarth(h) {
@@ -127,29 +156,7 @@ var (
 
 		return true
 	}
-	defaultVersionFilter store.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
-		if h < 0 {
-			return func(cb func(name string, version int64)) {}
-		}
-
-		return func(cb func(name string, version int64)) {
-			cb(ModuleName, types2.GetEarthHeight())
-		}
-	}
-)
-
-func (am AppModule) CommitFilter() *store.StoreFilter {
-	if am.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
-	}
-	return &defaultCommitFilter
-}
-
-func (am AppModule) PruneFilter() *store.StoreFilter {
-	if am.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
-	}
-	return &defaultPruneFilter
+	return &filter
 }
 
 func (am AppModule) VersionFilter() *store.VersionFilter {

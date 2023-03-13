@@ -726,7 +726,7 @@ func NewSimApp(
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
 	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
-	app.setupUpgradeModules()
+	app.setupUpgradeModules(false)
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
@@ -1081,10 +1081,13 @@ func PreRun(ctx *server.Context) error {
 	return nil
 }
 
-func (app *SimApp) setupUpgradeModules() {
+func (app *SimApp) setupUpgradeModules(onlyTask bool) {
 	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
+	if onlyTask {
+		return
+	}
 
 	app.GetCMS().AppendCommitFilters(cf)
 	app.GetCMS().AppendPruneFilters(pf)
