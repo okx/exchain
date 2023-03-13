@@ -672,7 +672,7 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 		txsHash := txs.([]common.Hash)
 		txBzs := make([][]byte, len(txsHash))
 		for i := 0; i < len(txsHash); i++ {
-			txBzs[i] = common.FromHex(txsHash[i].String())
+			txBzs[i] = txsHash[i].Bytes()
 		}
 		transactionsRoot = common.BytesToHash(merkle.SimpleHashFromByteSlices(txBzs))
 	}
