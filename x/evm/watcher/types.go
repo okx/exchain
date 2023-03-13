@@ -668,11 +668,11 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 	}
 
 	transactionsRoot := ethtypes.EmptyRootHash
-	if len(txs.([]interface{})) > 0 {
-		txsHash := txs.([]interface{})
+	if len(txs.([]common.Hash)) > 0 {
+		txsHash := txs.([]common.Hash)
 		txBzs := make([][]byte, len(txsHash))
 		for i := 0; i < len(txsHash); i++ {
-			txBzs[i] = common.FromHex(txsHash[i].(string))
+			txBzs[i] = common.FromHex(txsHash[i].String())
 		}
 		transactionsRoot = common.BytesToHash(merkle.SimpleHashFromByteSlices(txBzs))
 	}
