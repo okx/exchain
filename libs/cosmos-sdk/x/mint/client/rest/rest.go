@@ -16,3 +16,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 func ManageTreasuresProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }
+
+// ExtraProposalRESTHandler defines mint proposal handler
+func ExtraProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}

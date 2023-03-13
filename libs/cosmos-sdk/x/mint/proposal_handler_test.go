@@ -4,6 +4,7 @@ import (
 	"github.com/okx/okbchain/app"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
+	sdktypes "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint/internal/types"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
@@ -45,6 +46,84 @@ func (suite *MintTestSuite) SetupTest() {
 
 func TestMintTestSuite(t *testing.T) {
 	suite.Run(t, new(MintTestSuite))
+}
+
+func (suite *MintTestSuite) TestModifyNextBlockUpdateProposal() {
+	suite.ctx.SetBlockHeight(1000)
+	proposal := types.NewExtraProposal(
+		"NextBlockUpdate",
+		"NextBlockUpdate",
+		types.ActionNextBlockUpdate,
+		"",
+	)
+	govProposal := govtypes.Proposal{
+		Content: proposal,
+	}
+
+	testCases := []struct {
+		msg            string
+		extra          string
+		expectBlockNum uint64
+		expectError    error
+	}{
+		{"error block num 0", "{\"block_num\":0}", 0, types.ErrNextBlockUpdateTooLate},
+		{"error block num 1000", "{\"block_num\":1000}", 0, types.ErrNextBlockUpdateTooLate},
+		{"ok block num 1001", "{\"block_num\":1001}", 1001, nil},
+		{"ok block num 2000", "{\"block_num\":2000}", 2000, nil},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			proposal.Extra = tc.extra
+			govProposal.Content = proposal
+
+			err := suite.govHandler(suite.ctx, &govProposal)
+			suite.Require().Equal(tc.expectError, err)
+			minter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
+			suite.Require().Equal(tc.expectBlockNum, minter.NextBlockToUpdate)
+		})
+	}
+}
+
+func (suite *MintTestSuite) TestModifyMintedPerBlockProposal() {
+	suite.ctx.SetBlockHeight(1000)
+	proposal := types.NewExtraProposal(
+		"MintedPerBlock",
+		"MintedPerBlock",
+		types.ActionMintedPerBlock,
+		"",
+	)
+	govProposal := govtypes.Proposal{
+		Content: proposal,
+	}
+
+	testCases := []struct {
+		msg         string
+		extra       string
+		expectDec   sdktypes.Dec
+		expectError error
+	}{
+		{"amount -1", "{\"coin\":{\"denom\":\"okb\",\"amount\":\"-1.000000000000000000\"}}", sdktypes.NewDec(0), types.ErrExtraProposalParams("coin is negative")},
+		{"not okb", "{\"coin\":{\"denom\":\"okx\",\"amount\":\"1.000000000000000000\"}}", sdktypes.NewDec(0), types.ErrExtraProposalParams("coin is nil")},
+		{"amount 1 ok", "{\"coin\":{\"denom\":\"okb\",\"amount\":\"1.000000000000000000\"}}", sdktypes.NewDec(1), nil},
+		{"amount 0.5 ok", "{\"coin\":{\"denom\":\"okb\",\"amount\":\"0.500000000000000000\"}}", sdktypes.NewDecWithPrec(5, 1), nil},
+		{"amount 0.0 ok", "{\"coin\":{\"denom\":\"okb\",\"amount\":\"0.000000000000000000\"}}", sdktypes.NewDec(0), nil},
+		{"amount 0 ok", "{\"coin\":{\"denom\":\"okb\",\"amount\":\"0\"}}", sdktypes.NewDec(0), nil},
+		{"amount 10000 ok", "{\"coin\":{\"denom\":\"okb\",\"amount\":\"10000\"}}", sdktypes.NewDec(10000), nil},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			proposal.Extra = tc.extra
+			govProposal.Content = proposal
+
+			err := suite.govHandler(suite.ctx, &govProposal)
+			suite.Require().Equal(tc.expectError, err)
+			minter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
+
+			suite.Require().Equal(tc.expectDec, minter.MintedPerBlock.AmountOf(sdk.DefaultBondDenom))
+		})
+	}
 }
 
 func (suite *MintTestSuite) TestTreasuresProposal() {
