@@ -12,12 +12,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
-	"github.com/stretchr/testify/require"
-
+	trie2 "github.com/ethereum/go-ethereum/trie"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -307,8 +307,13 @@ func TestSeparateTrieRead(t *testing.T) {
 		err = trie.TryUpdate([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i)))
 		require.NoError(t, err)
 	}
+	nodes := trie2.NewMergedNodeSet()
+	root, set, err := trie.Commit(false)
+	require.NoError(t, err)
 
-	root, err := trie.Commit(nil)
+	err = nodes.Merge(set)
+	require.NoError(t, err)
+	err = stateDb.TrieDB().Update(nodes)
 	require.NoError(t, err)
 
 	wg := sync.WaitGroup{}

@@ -13,8 +13,10 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
+	mpttype "github.com/okx/okbchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
@@ -105,7 +107,11 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 }
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
-	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
+	db := ethstate.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), &trie.Config{
+		Cache:     int(TrieCacheSize),
+		Journal:   "",
+		Preimages: true,
+	})
 	return generateMptStore(logger, id, db, EmptyStateRootRetriever{})
 }
 
@@ -190,12 +196,12 @@ func (ms *MptStore) tryGetStorageTrie(addr ethcmn.Address, stateRoot ethcmn.Hash
 			return t
 		}
 	}
-
+	addrHash := mpttype.Keccak256HashWithSyncPool(addr[:])
 	var t ethstate.Trie
 	var err error
-	t, err = ms.db.OpenStorageTrie(ethcmn.Hash{}, stateRoot)
+	t, err = ms.db.OpenStorageTrie(addrHash, stateRoot)
 	if err != nil {
-		t, err = ms.db.OpenStorageTrie(ethcmn.Hash{}, ethcmn.Hash{})
+		t, err = ms.db.OpenStorageTrie(addrHash, ethcmn.Hash{})
 		if err != nil {
 			panic("unexcepted err")
 		}
@@ -264,9 +270,9 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 
 	// stop pre round prefetch
 	ms.StopPrefetcher()
-
+	nodeSets := trie.NewMergedNodeSet()
 	for addr, v := range ms.storageTrieForWrite {
-		stateR, err := v.Commit(nil)
+		stateR, set, err := v.Commit(false)
 		if err != nil {
 			panic(fmt.Errorf("unexcepted err:%v while commit storage tire ", err))
 		}
@@ -274,22 +280,34 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 		preValue, err := ms.trie.TryGet(key)
 		if err == nil { // maybe acc already been deleted
 			newValue := ms.retriever.ModifyAccStateRoot(preValue, stateR)
-			ms.trie.TryUpdate(key, newValue)
+			if err := ms.trie.TryUpdate(key, newValue); err != nil {
+				panic(fmt.Errorf("unexcepted err:%v while update acc %s ", err, addr.String()))
+			}
+		} else {
+			panic(fmt.Errorf("unexcepted err:%v while update get acc %s ", err, addr.String()))
 		}
 
+		if set != nil {
+			if err := nodeSets.Merge(set); err != nil {
+				panic("fail to commit trie data(storage nodeSets merge): " + err.Error())
+			}
+		}
 		delete(ms.storageTrieForWrite, addr)
 	}
 
-	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot := ms.retriever.RetrieveStateRoot(leaf)
-		if storageRoot != ethtypes.EmptyRootHash && storageRoot != (ethcmn.Hash{}) {
-			ms.db.TrieDB().Reference(storageRoot, parent)
-		}
-		return nil
-	})
-
+	root, set, err := ms.trie.Commit(true)
 	if err != nil {
-		panic("fail to commit trie data: " + err.Error())
+		panic("fail to commit trie data(acc_trie.Commit): " + err.Error())
+	}
+
+	if set != nil {
+		if err := nodeSets.Merge(set); err != nil {
+			panic("fail to commit trie data(acc nodeSets merge): " + err.Error())
+		}
+	}
+
+	if err := ms.db.TrieDB().UpdateForOK(nodeSets, AccountStateRootRetriever.RetrieveStateRoot); err != nil {
+		panic("fail to commit trie data (UpdateForOK): " + err.Error())
 	}
 	ms.SetMptRootHash(uint64(ms.version), root)
 	ms.originalRoot = root
