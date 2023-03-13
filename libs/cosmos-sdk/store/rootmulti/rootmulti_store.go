@@ -272,8 +272,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 				continue
 			}
 
-			// filter block modules {}
-			if filter(storeParams.key.Name(), targetVersion, rs.stores[key], rs.commitFilters) {
+			if isUseless(storeParams.key.Name(), targetVersion, rs.stores[key], rs.commitFilters) {
 				continue
 			}
 
@@ -742,8 +741,7 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
 				continue
 			}
-			// filter block modules {}
-			if filter(key.Name(), version, nil, rs.commitFilters) {
+			if isUseless(key.Name(), version, nil, rs.commitFilters) {
 				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
 				continue
 			}
@@ -1214,7 +1212,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 			}
 		}
 
-		if filter(key.Name(), version, store, filters) {
+		if isUseless(key.Name(), version, store, filters) {
 			continue
 		}
 
@@ -1246,7 +1244,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	}, outputDeltaMap
 }
 
-func filter(name string, h int64, st types.CommitKVStore, filters []types.StoreFilter) bool {
+// isUseless check if store is useless and needs to be ignored.
+// Only if all filters return false, then the store is useful and cannot be ignored.
+func isUseless(name string, h int64, st types.CommitKVStore, filters []types.StoreFilter) bool {
 	for _, filter := range filters {
 		if filter(name, h, st) {
 			return true
@@ -1535,7 +1535,7 @@ func (rs *Store) CurrentVersion() int64 {
 			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
 				continue
 			}
-			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
+			if isUseless(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
 			s := store.(*iavl.Store)
@@ -1566,7 +1566,7 @@ func (rs *Store) StopStore() {
 			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
 				continue
 			}
-			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
+			if isUseless(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
 			s := store.(*iavl.Store)
