@@ -24,7 +24,7 @@ func NewGenesisState(minter MinterCustom, params Params, originalMintedPerBlock 
 }
 
 func DefaultOriginalMintedPerBlock() sdk.Dec {
-	return sdk.MustNewDecFromStr("1")
+	return sdk.MustNewDecFromStr("0")
 }
 
 // DefaultGenesisState creates a default GenesisState object

@@ -124,3 +124,50 @@ func (k Keeper) AddCollectedFees(ctx sdk.Context, fees sdk.Coins) error {
 func (k *Keeper) SetGovKeeper(gk types.GovKeeper) {
 	k.govKeeper = gk
 }
+
+func (k *Keeper) InvokeExtraProposal(ctx sdk.Context, action string, extra string) error {
+	switch action {
+	case types.ActionNextBlockUpdate:
+		return k.invokeNextBlockUpdate(ctx, extra)
+	case types.ActionMintedPerBlock:
+		return k.invokeMintedPerBlock(ctx, extra)
+	}
+
+	return nil
+}
+
+func (k *Keeper) invokeNextBlockUpdate(ctx sdk.Context, extra string) error {
+	param, err := types.NewNextBlockUpdate(extra)
+	if err != nil {
+		return err
+	}
+
+	if param.BlockNum <= uint64(ctx.BlockHeight()) {
+		return types.ErrNextBlockUpdateTooLate
+	}
+
+	minter := k.GetMinterCustom(ctx)
+	minter.NextBlockToUpdate = param.BlockNum
+	k.SetMinterCustom(ctx, minter)
+	return nil
+}
+
+func (k *Keeper) invokeMintedPerBlock(ctx sdk.Context, extra string) error {
+	param, err := types.NewMintedPerBlockParams(extra)
+	if err != nil {
+		return err
+	}
+
+	if param.Coin.Amount.IsNil() || param.Coin.Denom != sdk.DefaultBondDenom {
+		return types.ErrExtraProposalParams("coin is nil")
+	}
+
+	if param.Coin.IsNegative() {
+		return types.ErrExtraProposalParams("coin is negative")
+	}
+
+	minter := k.GetMinterCustom(ctx)
+	minter.MintedPerBlock = sdk.DecCoins{param.Coin}
+	k.SetMinterCustom(ctx, minter)
+	return nil
+}

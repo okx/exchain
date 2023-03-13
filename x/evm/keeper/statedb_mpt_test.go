@@ -4,12 +4,12 @@ import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/okx/okbchain/x/evm/types"
 
 	ethermint "github.com/okx/okbchain/app/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
-
 
 func (suite *KeeperMptTestSuite) TestCommitStateDB_CommitMpt() {
 	testCase := []struct {
@@ -113,7 +113,8 @@ func (suite *KeeperMptTestSuite) TestCommitStateDB_ForEachStorageMpt() {
 			suite.SetupTest() // reset
 			tc.malleate()
 			suite.stateDB.WithContext(suite.ctx).Commit(false)
-
+			suite.app.Commit(abci.RequestCommit{})
+			types.ResetCommitStateDB(suite.stateDB, suite.app.EvmKeeper.GenerateCSDBParams(), &suite.ctx)
 			err := suite.stateDB.WithContext(suite.ctx).ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)
 			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))
@@ -140,7 +141,8 @@ func (suite *KeeperMptTestSuite) TestCommitStateDB_GetCommittedStateMpt() {
 func (suite *KeeperMptTestSuite) TestCommitStateDB_GetStateByKeyMpt() {
 	suite.stateDB.WithContext(suite.ctx).SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
 	suite.stateDB.Commit(false)
-
+	suite.app.Commit(abci.RequestCommit{})
+	types.ResetCommitStateDB(suite.stateDB, suite.app.EvmKeeper.GenerateCSDBParams(), &suite.ctx)
 	hash := suite.stateDB.WithContext(suite.ctx).GetStateByKeyMpt(suite.address, ethcmn.BytesToHash([]byte("key")))
 	suite.Require().Equal(ethcmn.BytesToHash([]byte("value")), hash)
 }

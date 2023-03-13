@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/x/distribution/types"
-	stakingexported "github.com/okx/okbchain/x/staking/exported"
 )
 
 // HandleChangeDistributionTypeProposal is a handler for executing a passed change distribution type proposal
@@ -18,18 +17,7 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 		return nil
 	}
 
-	//2. if on chain, iteration validators and init val which has not outstanding
-	if p.Type == types.DistributionTypeOnChain && !k.CheckInitExistedValidatorFlag(ctx) {
-		k.SetInitExistedValidatorFlag(ctx, true)
-		k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
-			if validator != nil {
-				k.initExistedValidatorForDistrProposal(ctx, validator)
-			}
-			return false
-		})
-	}
-
-	//3. set it
+	//2. set it
 	k.SetDistributionType(ctx, p.Type)
 
 	return nil

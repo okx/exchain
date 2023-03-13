@@ -33,7 +33,7 @@ func (k Keeper) UpdateMinterCustom(ctx sdk.Context, minter *types.MinterCustom, 
 
 	// update new MinterCustom
 	minter.MintedPerBlock = sdk.NewDecCoinsFromDec(params.MintDenom, provisionAmtPerBlock)
-	minter.NextBlockToUpdate += params.DeflationEpoch * params.BlocksPerYear
+	minter.NextBlockToUpdate += params.DeflationEpoch * params.BlocksPerYear / 12
 
 	k.SetMinterCustom(ctx, *minter)
 }

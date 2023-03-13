@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okx/okbchain/app/types"
@@ -56,6 +57,11 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 				if err := ad.pk.CheckMsgSubmitProposal(ctx, msg); err != nil {
 					return ctx, err
 				}
+			case mint.ExtraProposal:
+				if !ad.sk.IsValidator(ctx, msg.Proposer) {
+					return ctx, mint.ErrProposerMustBeValidator
+				}
+
 			}
 		}
 	}

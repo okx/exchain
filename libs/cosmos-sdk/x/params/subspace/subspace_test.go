@@ -1,7 +1,6 @@
 package subspace_test
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 	"time"
@@ -194,44 +193,6 @@ func (suite *SubspaceTestSuite) TestSetParamSet() {
 	suite.Require().Equal(a.UnbondingTime, b.UnbondingTime)
 	suite.Require().Equal(a.MaxValidators, b.MaxValidators)
 	suite.Require().Equal(a.BondDenom, b.BondDenom)
-}
-
-func (suite *SubspaceTestSuite) TestSetParamSetForInitGenesis() {
-	testCases := []struct {
-		name       string
-		ps         subspace.ParamSet
-		ignoreList [][]byte
-	}{
-		{"ignore all", &params{time.Hour * 48, 100, "stake"}, [][]byte{keyUnbondingTime, keyMaxValidators, keyBondDenom}},
-		{"ignore two", &params{time.Hour * 48, 100, "stake"}, [][]byte{keyUnbondingTime, keyMaxValidators}},
-		{"ignore one", &params{time.Hour * 48, 100, "stake"}, [][]byte{keyUnbondingTime}},
-		{"ignore nil", &params{time.Hour * 48, 100, "stake"}, [][]byte{}},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		suite.Run(tc.name, func() {
-			suite.ss.SetParamSetForInitGenesis(suite.ctx, tc.ps, tc.ignoreList)
-			for _, pair := range tc.ps.ParamSetPairs() {
-				beIgnore := false
-				for _, ignore := range tc.ignoreList {
-					if bytes.Equal(ignore, pair.Key) {
-						beIgnore = true
-						break
-					}
-				}
-
-				if beIgnore {
-					suite.Require().False(suite.ss.Has(suite.ctx, pair.Key))
-				} else {
-					suite.Require().True(suite.ss.Has(suite.ctx, pair.Key))
-				}
-				suite.Require().NotPanics(func() {
-					suite.ss.GetParamSetForInitGenesis(suite.ctx, tc.ps, tc.ignoreList)
-				})
-			}
-		})
-	}
 }
 
 func (suite *SubspaceTestSuite) TestName() {

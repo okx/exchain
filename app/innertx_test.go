@@ -343,6 +343,12 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				votes := []abci.VoteInfo{
 					{Validator: abci.Validator{Address: valpub.Address(), Power: 1}, SignedLastBlock: true},
 				}
+
+				minter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
+				minter.MintedPerBlock = sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 1)}
+				minter.NextBlockToUpdate = 10000
+				suite.app.MintKeeper.SetMinterCustom(suite.ctx, minter)
+
 				for i := 0; i < 100; i++ {
 					header := abci.Header{Height: int64(i + 2), ProposerAddress: sdk.ConsAddress(valpub.Address())}
 					req := abci.RequestBeginBlock{Header: header,
@@ -388,6 +394,11 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				votes := []abci.VoteInfo{
 					{Validator: abci.Validator{Address: valpub.Address(), Power: 1}, SignedLastBlock: true},
 				}
+				minter := suite.app.MintKeeper.GetMinterCustom(suite.ctx)
+				minter.MintedPerBlock = sdk.DecCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 1)}
+				minter.NextBlockToUpdate = 10000
+				suite.app.MintKeeper.SetMinterCustom(suite.ctx, minter)
+
 				for i := 0; i < 100; i++ {
 					header := abci.Header{Height: int64(i + 2), ProposerAddress: sdk.ConsAddress(valpub.Address())}
 					req := abci.RequestBeginBlock{Header: header,

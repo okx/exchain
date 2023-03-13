@@ -36,7 +36,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
 			},
-			[4]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrCodeEmptyDelegationDistInfo(), nil, nil},
+			[4]sdk.Error{types.ErrCodeEmptyDelegationDistInfo(), types.ErrCodeEmptyDelegationDistInfo(), nil, nil},
 		},
 		{
 			"set withdraw reward disable",
@@ -49,15 +49,15 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 				keeper.HandleWithdrawRewardEnabledProposal(ctx, dk, proposalWithdrawReward)
 				require.Equal(suite.T(), false, dk.GetWithdrawRewardEnabled(ctx))
 			},
-			[4]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrCodeDisabledWithdrawRewards(),
+			[4]sdk.Error{types.ErrCodeEmptyDelegationDistInfo(), types.ErrCodeDisabledWithdrawRewards(),
 				stakingtypes.ErrCodeDisabledOperate(), types.ErrCodeDisabledWithdrawRewards()},
 		},
 		{
-			"no change distribution type",
+			"empty delegation",
 			func(ctx sdk.Context, dk Keeper) {
 
 			},
-			[4]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType(), nil, types.ErrUnknownDistributionMsgType()},
+			[4]sdk.Error{types.ErrCodeEmptyDelegationDistInfo(), types.ErrCodeEmptyDelegationDistInfo(), nil, nil},
 		},
 	}
 
@@ -378,7 +378,7 @@ func (suite *HandlerSuite) TestWithdrawDisabled() {
 			},
 			[]param{
 				{false, types.ErrCodeDisabledWithdrawRewards()},
-				{true, types.ErrUnknownDistributionMsgType()},
+				{true, nil},
 			},
 		},
 		{
@@ -389,7 +389,7 @@ func (suite *HandlerSuite) TestWithdrawDisabled() {
 			},
 			[]param{
 				{false, types.ErrCodeDisabledWithdrawRewards()},
-				{true, types.ErrUnknownDistributionMsgType()},
+				{true, nil},
 			},
 		},
 	}

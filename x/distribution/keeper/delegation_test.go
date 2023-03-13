@@ -7,11 +7,8 @@ import (
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/x/distribution/types"
 	"github.com/okx/okbchain/x/staking"
-	stakingexported "github.com/okx/okbchain/x/staking/exported"
 	stakingtypes "github.com/okx/okbchain/x/staking/types"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +16,6 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -68,7 +64,6 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -139,7 +134,6 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
 
@@ -201,7 +195,6 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
 
@@ -364,216 +357,6 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1).IsZero())
 }
 
-func TestInitExistedDelegationStartInfoSuite(t *testing.T) {
-	suite.Run(t, new(InitExistedDelegationStartInfoestSuite))
-}
-
-type InitExistedDelegationStartInfoestSuite struct {
-	suite.Suite
-}
-
-func changeDistribution(ctx sdk.Context, dk Keeper) {
-	//change to distribution onchain
-	dk.SetInitExistedValidatorFlag(ctx, true)
-	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
-		if validator != nil {
-			dk.initExistedValidatorForDistrProposal(ctx, validator)
-		}
-		return false
-	})
-}
-
-func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationStartInfo() {
-	testCases := []struct {
-		title                         string
-		execute1                      func(ctx *sdk.Context, dk Keeper)
-		execute2                      func(ctx *sdk.Context, dk Keeper)
-		execute3                      func(ctx *sdk.Context, dk Keeper)
-		execute4                      func(ctx *sdk.Context, dk Keeper)
-		beforeAddSharesReferenceCount uint64
-		afterAddSharesReferenceCount  uint64
-		afterWithdrawReferenceCount   uint64
-		coins                         sdk.Coins
-		err                           error
-	}{
-		{
-			"NO ERROR Before create validator",
-			func(ctx *sdk.Context, dk Keeper) {
-				changeDistribution(*ctx, dk)
-			},
-			func(ctx *sdk.Context, dk Keeper) {
-				ctx.SetBlockTime(time.Now())
-			},
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {},
-			1,
-			2,
-			2,
-			sdk.Coins(nil),
-			nil,
-		},
-		{
-			"NO ERROR Before Do Deposit",
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {
-				ctx.SetBlockTime(time.Now())
-				changeDistribution(*ctx, dk)
-			},
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {},
-			2,
-			3,
-			3,
-			sdk.Coins(nil),
-			nil,
-		},
-		{
-			"NO ERROR Before Do Add Shares",
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {
-				ctx.SetBlockTime(time.Now())
-			},
-			func(ctx *sdk.Context, dk Keeper) {
-				changeDistribution(*ctx, dk)
-			},
-			func(ctx *sdk.Context, dk Keeper) {},
-			2,
-			3,
-			3,
-			sdk.Coins(nil),
-			nil,
-		},
-		{
-			"NO ERROR After Do Add Shares",
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {
-				ctx.SetBlockTime(time.Now())
-			},
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {
-				changeDistribution(*ctx, dk)
-			},
-			0,
-			0,
-			3,
-			sdk.Coins(nil),
-			nil,
-		},
-		{
-			"ERROR No Shares",
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {},
-			func(ctx *sdk.Context, dk Keeper) {
-				changeDistribution(*ctx, dk)
-			},
-			0,
-			0,
-			2,
-			sdk.Coins(nil),
-			types.ErrCodeZeroDelegationShares(),
-		},
-	}
-
-	for _, tc := range testCases {
-		suite.Run(tc.title, func() {
-			communityTax := sdk.NewDecWithPrec(2, 2)
-			ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(suite.T(), false, 1000, communityTax)
-			balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
-			//set module account coins
-			distrAcc := dk.GetDistributionAccount(ctx)
-			distrAcc.SetCoins(balanceTokens)
-			dk.supplyKeeper.SetModuleAccount(ctx, distrAcc)
-			tc.execute1(&ctx, dk)
-			// create validator
-			DoCreateValidator(suite.T(), ctx, sk, valOpAddr1, valConsPk1)
-			// end block to bond validator
-			staking.EndBlocker(ctx, sk)
-
-			ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-			//ctx.SetBlockTime(time.Now())
-			tc.execute2(&ctx, dk)
-			//delegation
-			DoDeposit(suite.T(), ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-			coins, err := dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr1)
-			require.Equal(suite.T(), types.ErrCodeEmptyDelegationVoteValidator(), err)
-
-			tc.execute3(&ctx, dk)
-			// historical count
-			require.Equal(suite.T(), tc.beforeAddSharesReferenceCount, dk.GetValidatorHistoricalReferenceCount(ctx))
-			valOpAddrs := []sdk.ValAddress{valOpAddr1}
-			DoAddShares(suite.T(), ctx, sk, delAddr1, valOpAddrs)
-			require.Equal(suite.T(), tc.afterAddSharesReferenceCount, dk.GetValidatorHistoricalReferenceCount(ctx))
-
-			tc.execute4(&ctx, dk)
-			// end block
-			staking.EndBlocker(ctx, sk)
-
-			coins, err = dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr3)
-			require.Equal(suite.T(), types.ErrCodeEmptyValidatorDistInfo(), err)
-
-			coins, err = dk.WithdrawDelegationRewards(ctx, delAddr2, valOpAddr1)
-			require.Equal(suite.T(), types.ErrCodeEmptyDelegationDistInfo(), err)
-
-			coins, err = dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr1)
-			require.Equal(suite.T(), tc.afterWithdrawReferenceCount, dk.GetValidatorHistoricalReferenceCount(ctx))
-			require.Equal(suite.T(), tc.coins, coins)
-			require.Equal(suite.T(), tc.err, err)
-		})
-	}
-}
-
-func TestInvalidDelegation(t *testing.T) {
-	communityTax := sdk.NewDecWithPrec(2, 2)
-	// Cannot init when distribution proposal valid
-	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
-	dk.initializeDelegation(ctx, valOpAddr1, delAddr1)
-	require.False(t, dk.HasDelegatorStartingInfo(ctx, valOpAddr1, delAddr1))
-
-	// Cannot init when distribution proposal valid
-	val := dk.stakingKeeper.Validator(ctx, valOpAddr1)
-	del := dk.stakingKeeper.Delegator(ctx, delAddr1)
-	dk.initExistedDelegationStartInfo(ctx, val, del)
-	require.False(t, dk.HasDelegatorStartingInfo(ctx, valOpAddr1, delAddr1))
-
-	// init delegation
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	ctx.SetBlockTime(time.Now())
-	DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(1)))
-	valOpAddrs := []sdk.ValAddress{valOpAddr1}
-	DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
-	staking.EndBlocker(ctx, sk)
-
-	// check calculateDelegationRewardsBetween startingPeriod > endingPeriod
-	newDec, _ := sdk.NewDecFromStr("1")
-	period := types.DelegatorStartingInfo{
-		PreviousPeriod: uint64(100),
-		Stake:          newDec,
-		Height:         10,
-	}
-	dk.SetDelegatorStartingInfo(ctx, valOpAddr1, delAddr1, period)
-	panicFunc := func() {
-		dk.calculateDelegationRewards(ctx, val, delAddr1, 1)
-	}
-	assert.PanicsWithValue(t, "startingPeriod cannot be greater than endingPeriod", panicFunc)
-
-	// check calculateDelegationRewards stake.GT(del.GetLastAddedShares())
-	newDec, _ = sdk.NewDecFromStr("100000000000000")
-	period = types.DelegatorStartingInfo{
-		PreviousPeriod: uint64(100),
-		Stake:          newDec,
-		Height:         10,
-	}
-	dk.SetDelegatorStartingInfo(ctx, valOpAddr1, delAddr1, period)
-	panicFunc = func() {
-		dk.calculateDelegationRewards(ctx, val, delAddr1, 1)
-	}
-	assert.Panics(t, panicFunc)
-}
-
 func TestIncrementValidatorPeriod(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
@@ -593,7 +376,6 @@ func TestRewardToCommunity(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)

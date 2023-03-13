@@ -267,6 +267,9 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 
 	// set genesis items required for distribution
 	keeper.SetFeePool(ctx, types.InitialFeePool())
+	keeper.SetWithdrawRewardEnabled(ctx, true)
+	keeper.SetRewardTruncatePrecision(ctx, 0)
+	keeper.SetDistributionType(ctx, 0)
 	keeper.SetCommunityTax(ctx, communityTax)
 
 	return ctx, accountKeeper, bankKeeper, keeper, sk, pk, supplyKeeper

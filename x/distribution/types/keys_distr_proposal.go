@@ -6,11 +6,10 @@ import (
 )
 
 var (
-	ValidatorOutstandingRewardsPrefix       = []byte{0x02} // key for outstanding rewards
-	DelegatorStartingInfoPrefix             = []byte{0x04} // key for delegator starting info
-	ValidatorHistoricalRewardsPrefix        = []byte{0x05} // key for historical validators rewards / stake
-	ValidatorCurrentRewardsPrefix           = []byte{0x06} // key for current validator rewards
-	InitExistedValidatorForDistrProposalKey = []byte{0x09} // key for check init old validator distribution proposal
+	ValidatorOutstandingRewardsPrefix = []byte{0x02} // key for outstanding rewards
+	DelegatorStartingInfoPrefix       = []byte{0x04} // key for delegator starting info
+	ValidatorHistoricalRewardsPrefix  = []byte{0x05} // key for historical validators rewards / stake
+	ValidatorCurrentRewardsPrefix     = []byte{0x06} // key for current validator rewards
 )
 
 // gets an address from a validator's outstanding rewards key
