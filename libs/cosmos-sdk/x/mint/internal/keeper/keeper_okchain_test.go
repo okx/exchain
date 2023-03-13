@@ -1,6 +1,8 @@
 package keeper_test
 
 import (
+	ethcmm "github.com/ethereum/go-ethereum/common"
+	"math/big"
 	"testing"
 	"time"
 
@@ -162,7 +164,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 		{
 			msg: "0.5 coin allocate 0%(one)",
 			treasures: func() []types.Treasure {
-				return []types.Treasure{{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(0, 2)}}
+				return []types.Treasure{{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(1)).Bytes(), Proportion: sdk.NewDecWithPrec(0, 2)}}
 			},
 			prepare: func(trs []types.Treasure) {
 				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
@@ -184,7 +186,7 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 		{
 			msg: "0.5 coin allocate 50%(one)",
 			treasures: func() []types.Treasure {
-				return []types.Treasure{{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(50, 2)}}
+				return []types.Treasure{{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(1)).Bytes(), Proportion: sdk.NewDecWithPrec(50, 2)}}
 			},
 			prepare: func(trs []types.Treasure) {
 				err := suite.app.MintKeeper.MintCoins(suite.ctx, input)
@@ -207,8 +209,8 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			msg: "0.5 coin allocate 50%(multi)",
 			treasures: func() []types.Treasure {
 				return []types.Treasure{
-					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(30, 2)},
-					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(20, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(1)).Bytes(), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(2)).Bytes(), Proportion: sdk.NewDecWithPrec(20, 2)},
 				}
 			},
 			prepare: func(trs []types.Treasure) {
@@ -232,8 +234,8 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			msg: "0.5 coin allocate 60%(multi)",
 			treasures: func() []types.Treasure {
 				return []types.Treasure{
-					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(30, 2)},
-					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(1)).Bytes(), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(2)).Bytes(), Proportion: sdk.NewDecWithPrec(30, 2)},
 				}
 			},
 			prepare: func(trs []types.Treasure) {
@@ -257,8 +259,8 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			msg: "0.5 coin allocate 100%(multi)",
 			treasures: func() []types.Treasure {
 				return []types.Treasure{
-					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(60, 2)},
-					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(40, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(1)).Bytes(), Proportion: sdk.NewDecWithPrec(60, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(2)).Bytes(), Proportion: sdk.NewDecWithPrec(40, 2)},
 				}
 			},
 			prepare: func(trs []types.Treasure) {
@@ -282,8 +284,8 @@ func (suite *TreasuresTestSuite) TestAllocateTokenToTreasure() {
 			msg: "0.7 coin allocate 60%(multi)",
 			treasures: func() []types.Treasure {
 				return []types.Treasure{
-					{Address: sdk.AccAddress([]byte{0x01}), Proportion: sdk.NewDecWithPrec(30, 2)},
-					{Address: sdk.AccAddress([]byte{0x02}), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(1)).Bytes(), Proportion: sdk.NewDecWithPrec(30, 2)},
+					{Address: ethcmm.BigToAddress(new(big.Int).SetInt64(2)).Bytes(), Proportion: sdk.NewDecWithPrec(30, 2)},
 				}
 			},
 			prepare: func(trs []types.Treasure) {

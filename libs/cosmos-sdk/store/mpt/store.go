@@ -19,6 +19,7 @@ import (
 	mpttype "github.com/okx/okbchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 	"github.com/okx/okbchain/libs/iavl"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
@@ -642,26 +643,28 @@ func (ms *MptStore) prefetchData() {
 func (ms *MptStore) SetUpgradeVersion(i int64) {}
 
 var (
-	keyPrefixStorageMpt = []byte{0x0}
-	keyPrefixAddrMpt    = []byte{0x01} // TODO auth.AddressStoreKeyPrefix
-	sizePreFixKey       = len(keyPrefixStorageMpt)
-	storageKeySize      = sizePreFixKey + len(ethcmn.Address{}) + len(ethcmn.Hash{}) + len(ethcmn.Hash{})
+	keyPrefixStorageMpt = byte(0)
+	keyPrefixAddrMpt    = byte(1) // TODO auth.AddressStoreKeyPrefix
+	prefixSizeInMpt     = 1
+	storageKeySize      = prefixSizeInMpt + len(ethcmn.Address{}) + len(ethcmn.Hash{}) + len(ethcmn.Hash{})
+	addrKeySize         = prefixSizeInMpt + sdk.AddrLen
+	wasmContractKeySize = prefixSizeInMpt + sdk.WasmContractAddrLen
 )
 
 func AddressStoragePrefixMpt(address ethcmn.Address, stateRoot ethcmn.Hash) []byte {
-	t1 := append(keyPrefixStorageMpt, address.Bytes()...)
+	t1 := append([]byte{keyPrefixStorageMpt}, address.Bytes()...)
 	return append(t1, stateRoot.Bytes()...)
 }
 
 func decodeAddressStorageInfo(key []byte) (ethcmn.Address, ethcmn.Hash, []byte) {
-	addr := ethcmn.BytesToAddress(key[sizePreFixKey : sizePreFixKey+20])
-	storageRoot := ethcmn.BytesToHash(key[sizePreFixKey+20 : sizePreFixKey+20+32])
-	updateKey := key[sizePreFixKey+20+32:]
+	addr := ethcmn.BytesToAddress(key[prefixSizeInMpt : prefixSizeInMpt+20])
+	storageRoot := ethcmn.BytesToHash(key[prefixSizeInMpt+20 : prefixSizeInMpt+20+32])
+	updateKey := key[prefixSizeInMpt+20+32:]
 	return addr, storageRoot, updateKey
 }
 
 func AddressStoreKey(addr []byte) []byte {
-	return append(keyPrefixAddrMpt, addr...)
+	return append([]byte{keyPrefixAddrMpt}, addr...)
 }
 
 var (
@@ -674,10 +677,21 @@ storageType : 0x0 + addr + stateRoot + key
 addressType : 0x1 + addr
 */
 
-// TODO need strict check type later by scf !!!
 func mptKeyType(key []byte) int {
-	if key[0] == 0 && len(key) == storageKeySize {
-		return storageType
+	switch key[0] {
+	case keyPrefixAddrMpt:
+		size := len(key)
+		if size == wasmContractKeySize || size == addrKeySize {
+			return addressType
+		}
+		return -1
+	case keyPrefixStorageMpt:
+		if len(key) == storageKeySize {
+			return storageType
+		}
+		return -1
+	default:
+		return -1
+
 	}
-	return addressType
 }

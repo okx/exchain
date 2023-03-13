@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"sync"
 	"testing"
@@ -22,7 +23,11 @@ import (
 )
 
 var (
-	commonKeys   = []string{"key1", "key2", "key3", "key4", "key5"}
+	commonKeys = [][]byte{AddressStoreKey(common.BigToAddress(new(big.Int).SetInt64(1)).Bytes()),
+		AddressStoreKey(common.BigToAddress(new(big.Int).SetInt64(2)).Bytes()),
+		AddressStoreKey(common.BigToAddress(new(big.Int).SetInt64(3)).Bytes()),
+		AddressStoreKey(common.BigToAddress(new(big.Int).SetInt64(4)).Bytes()),
+		AddressStoreKey(common.BigToAddress(new(big.Int).SetInt64(5)).Bytes())}
 	commonValues = []string{"value1", "value2", "value3", "value4", "value5"}
 
 	randKeyNum = 1000
@@ -61,8 +66,9 @@ func (suite *StoreTestSuite) SetupTest() {
 		mptStore.Set([]byte(key), []byte(commonValues[0]))
 	}
 	for i := 0; i < randKeyNum; i++ {
-		key := randBytes(12)
+		key := randBytes(20)
 		value := randBytes(32)
+		key = AddressStoreKey(key)
 		mptStore.Set(key, value)
 	}
 	mptStore.CommitterCommit(nil)
@@ -133,7 +139,7 @@ func (suite *StoreTestSuite) TestMPTStoreNoNilSet() {
 
 func (suite *StoreTestSuite) TestGetImmutable() {
 	store := suite.mptStore
-	key := []byte(commonKeys[0])
+	key := commonKeys[0]
 	oldValue := store.Get(key)
 
 	newValue := randBytes(32)
@@ -169,7 +175,7 @@ func (suite *StoreTestSuite) TestTestIterator() {
 }
 
 func nextVersion(iStore *MptStore) {
-	key := []byte(fmt.Sprintf("Key for tree: %d", iStore.LastCommitID().Version))
+	key := AddressStoreKey(common.BigToAddress(new(big.Int).SetInt64(iStore.LastCommitID().Version)).Bytes())
 	value := []byte(fmt.Sprintf("Value for tree: %d", iStore.LastCommitID().Version))
 	iStore.Set(key, value)
 	iStore.CommitterCommit(nil)
