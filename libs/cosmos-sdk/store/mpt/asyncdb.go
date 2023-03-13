@@ -281,11 +281,6 @@ func (store *AsyncKeyValueStore) NewBatch() ethdb.Batch {
 	return newAsyncBatch(store)
 }
 
-func (store *AsyncKeyValueStore) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	// TODO
-	return store.KeyValueStore.NewIterator(prefix, start)
-}
-
 //func (store *AsyncKeyValueStore) Stat(property string) (string, error) {
 //	return store.KeyValueStore.Stat(property)
 //}
