@@ -31,7 +31,6 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		GetCmdQueryValidatorShares(queryRoute, cdc),
 		GetCmdQueryValidator(queryRoute, cdc),
 		GetCmdQueryValidators(queryRoute, cdc),
-		GetCmdQueryProxy(queryRoute, cdc),
 		GetCmdQueryParams(queryRoute, cdc),
 		GetCmdQueryPool(queryRoute, cdc))...)
 

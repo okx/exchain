@@ -101,7 +101,7 @@ func TestRewards(t *testing.T) {
 	require.Equal(t, commission, retCommission)
 
 	// test delegator's total rewards query
-	delegateAmount, sdkErr := sdk.ParseDecCoin(fmt.Sprintf("100%s", sk.BondDenom(ctx)))
+	delegateAmount, sdkErr := sdk.ParseDecCoin(fmt.Sprintf("1000000%s", sk.BondDenom(ctx)))
 	require.Nil(t, sdkErr)
 	dAddr1 := TestDelAddrs[0]
 	err := sk.Delegate(ctx, dAddr1, delegateAmount)

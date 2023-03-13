@@ -14,9 +14,6 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgDeposit{}, system.Chain+"/staking/MsgDeposit", nil)
 	cdc.RegisterConcrete(MsgWithdraw{}, system.Chain+"/staking/MsgWithdraw", nil)
 	cdc.RegisterConcrete(MsgAddShares{}, system.Chain+"/staking/MsgAddShares", nil)
-	cdc.RegisterConcrete(MsgRegProxy{}, system.Chain+"/staking/MsgRegProxy", nil)
-	cdc.RegisterConcrete(MsgBindProxy{}, system.Chain+"/staking/MsgBindProxy", nil)
-	cdc.RegisterConcrete(MsgUnbindProxy{}, system.Chain+"/staking/MsgUnbindProxy", nil)
 	cdc.RegisterConcrete(ProposeValidatorProposal{}, ProposeValidatorProposalName, nil)
 	cdc.RegisterConcrete(MsgDepositMinSelfDelegation{}, system.Chain+"/staking/MsgDepositMinSelfDelegation", nil)
 }
