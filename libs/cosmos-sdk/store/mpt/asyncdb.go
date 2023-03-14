@@ -148,7 +148,8 @@ type AsyncKeyValueStore struct {
 
 	logger log.Logger
 
-	waitClear int64
+	waitClear  int64
+	waitCommit int64
 }
 
 func NewAsyncKeyValueStore(db ethdb.KeyValueStore, autoClearOff bool) *AsyncKeyValueStore {
@@ -175,7 +176,9 @@ func NewAsyncKeyValueStore(db ethdb.KeyValueStore, autoClearOff bool) *AsyncKeyV
 }
 
 func (store *AsyncKeyValueStore) SetLogger(logger log.Logger) {
-	store.logger = logger
+	if store != nil {
+		store.logger = logger
+	}
 }
 
 func (store *AsyncKeyValueStore) Has(key []byte) (bool, error) {
@@ -214,6 +217,7 @@ func (store *AsyncKeyValueStore) Put(key []byte, value []byte) error {
 	store.preCommitTail = store.preCommitList.PushBack(task)
 	_ = store.preCommit.Put(key, value)
 	store.mtx.Unlock()
+	atomic.AddInt64(&store.waitCommit, 1)
 
 	store.commitCh <- struct{}{}
 	return nil
@@ -231,6 +235,7 @@ func (store *AsyncKeyValueStore) Delete(key []byte) error {
 	store.preCommitTail = store.preCommitList.PushBack(task)
 	_ = store.preCommit.Delete(key)
 	store.mtx.Unlock()
+	atomic.AddInt64(&store.waitCommit, 1)
 
 	store.commitCh <- struct{}{}
 	return nil
@@ -246,6 +251,7 @@ func (store *AsyncKeyValueStore) batchWrite(player replayer) error {
 		return err
 	}
 	store.mtx.Unlock()
+	atomic.AddInt64(&store.waitCommit, 1)
 
 	store.commitCh <- struct{}{}
 	return nil
@@ -273,6 +279,7 @@ func (store *AsyncKeyValueStore) ActionAfterWriteDone(act func(), once bool) {
 	store.mtx.Lock()
 	store.preCommitTail = store.preCommitList.PushBack(task)
 	store.mtx.Unlock()
+	atomic.AddInt64(&store.waitCommit, 1)
 
 	store.commitCh <- struct{}{}
 }
@@ -290,12 +297,27 @@ func (store *AsyncKeyValueStore) NewBatch() ethdb.Batch {
 //}
 
 func (store *AsyncKeyValueStore) Close() error {
+	if store == nil {
+		return nil
+	}
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
 	close(store.commitCh)
 	store.closeWg.Wait()
 	return store.KeyValueStore.Close()
+}
+
+func (store *AsyncKeyValueStore) LogStats() {
+	if store == nil || store.logger == nil {
+		return
+	}
+
+	store.logger.Info("AsyncKeyValueStore stats",
+		"waitCommit", atomic.LoadInt64(&store.waitCommit),
+		"waitClear", atomic.LoadInt64(&store.waitClear),
+		"preCommitMapSize", store.preCommit.Len(),
+	)
 }
 
 func (store *AsyncKeyValueStore) commitRoutine() {
@@ -329,6 +351,7 @@ func (store *AsyncKeyValueStore) commitRoutine() {
 			}
 			batchSize += batch.ValueSize()
 		}
+		atomic.AddInt64(&store.waitCommit, -1)
 
 		store.setPreCommitPtr(taskEle)
 		waitClear := atomic.AddInt64(&store.waitClear, 1)
