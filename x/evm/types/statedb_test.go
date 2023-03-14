@@ -670,7 +670,8 @@ func (suite *StateDBTestSuite) TestCommitStateDB_ForEachStorage() {
 			suite.SetupTest() // reset
 			tc.malleate()
 			suite.stateDB.Commit(false)
-
+			suite.app.Commit(abci.RequestCommit{})
+			types.ResetCommitStateDB(suite.stateDB, suite.app.EvmKeeper.GenerateCSDBParams(), &suite.ctx)
 			err := suite.stateDB.ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)
 			suite.Require().Equal(len(tc.expValues), len(storage), fmt.Sprintf("Expected values:\n%v\nStorage Values\n%v", tc.expValues, storage))

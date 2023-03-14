@@ -4,7 +4,6 @@ import (
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint/internal/types"
 	"github.com/okx/okbchain/x/common"
-
 	govTypes "github.com/okx/okbchain/x/gov/types"
 )
 
@@ -14,6 +13,8 @@ func NewManageTreasuresProposalHandler(k *Keeper) govTypes.Handler {
 		switch content := proposal.Content.(type) {
 		case types.ManageTreasuresProposal:
 			return handleManageTreasuresProposal(ctx, k, proposal)
+		case types.ExtraProposal:
+			return handleExtraProposal(ctx, k, content)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -40,4 +41,8 @@ func handleManageTreasuresProposal(ctx sdk.Context, k *Keeper, proposal *govType
 		return types.ErrTreasuresInternal(err)
 	}
 	return nil
+}
+
+func handleExtraProposal(ctx sdk.Context, k *Keeper, p types.ExtraProposal) (err error) {
+	return k.InvokeExtraProposal(ctx, p.Action, p.Extra)
 }

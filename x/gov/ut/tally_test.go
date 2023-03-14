@@ -261,7 +261,7 @@ func TestTallyDelegatorInherit(t *testing.T) {
 	err, _ = k.AddVote(ctx, proposal.ProposalID, Addrs[2], types.OptionYes)
 	require.Nil(t, err)
 
-	// there are 3 validators with 1 voting power for each one (0.001okt -> 1 power)
+	// there are 3 validators with 1 voting power for each one (0.001okb -> 1 power)
 	//  2 vals -> OptionNo
 	//  1 val -> OptionYes
 	expectedTallyResult := newTallyResult(t, "11003", "11001", "0.0", "2", "0.0", "11003")

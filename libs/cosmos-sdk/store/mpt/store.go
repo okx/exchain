@@ -1,6 +1,7 @@
 package mpt
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
@@ -11,10 +12,13 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
+	mpttype "github.com/okx/okbchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 	"github.com/okx/okbchain/libs/iavl"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
@@ -45,10 +49,11 @@ var (
 // MptStore Implements types.KVStore and CommitKVStore.
 // Its main purpose is to own the same interface as iavl store in libs/cosmos-sdk/store/iavl/iavl_store.go
 type MptStore struct {
-	trie   ethstate.Trie
-	db     ethstate.Database
-	triegc *prque.Prque
-	logger tmlog.Logger
+	trie                ethstate.Trie
+	storageTrieForWrite map[ethcmn.Address]ethstate.Trie
+	db                  ethstate.Database
+	triegc              *prque.Prque
+	logger              tmlog.Logger
 
 	prefetcher   *TriePrefetcher
 	originalRoot ethcmn.Hash
@@ -89,11 +94,12 @@ func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database, retriever StateRootRetriever) (*MptStore, error) {
 	triegc := prque.New(nil)
 	mptStore := &MptStore{
-		db:         db,
-		triegc:     triegc,
-		logger:     logger,
-		retriever:  retriever,
-		exitSignal: make(chan struct{}),
+		storageTrieForWrite: make(map[ethcmn.Address]ethstate.Trie, 0),
+		db:                  db,
+		triegc:              triegc,
+		logger:              logger,
+		retriever:           retriever,
+		exitSignal:          make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
 
@@ -101,7 +107,11 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 }
 
 func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
-	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
+	db := ethstate.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), &trie.Config{
+		Cache:     int(TrieCacheSize),
+		Journal:   "",
+		Preimages: true,
+	})
 	return generateMptStore(logger, id, db, EmptyStateRootRetriever{})
 }
 
@@ -158,12 +168,49 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-	value, err := ms.db.CopyTrie(ms.trie).TryGet(key)
-	if err != nil {
-		return nil
+	switch mptKeyType(key) {
+	case storageType:
+		addr, stateRoot, realKey := decodeAddressStorageInfo(key)
+		t := ms.tryGetStorageTrie(addr, stateRoot, false)
+		value, err := t.TryGet(realKey)
+		if err != nil {
+			return nil
+		}
+		return value
+	case addressType:
+		value, err := ms.db.CopyTrie(ms.trie).TryGet(key)
+		if err != nil {
+			return nil
+		}
+
+		return value
+	default:
+		panic(fmt.Errorf("not support key %s for mpt get", hex.EncodeToString(key)))
 	}
 
-	return value
+}
+
+func (ms *MptStore) tryGetStorageTrie(addr ethcmn.Address, stateRoot ethcmn.Hash, useCache bool) ethstate.Trie {
+	if useCache {
+		if t, ok := ms.storageTrieForWrite[addr]; ok {
+			return t
+		}
+	}
+	addrHash := mpttype.Keccak256HashWithSyncPool(addr[:])
+	var t ethstate.Trie
+	var err error
+	t, err = ms.db.OpenStorageTrie(addrHash, stateRoot)
+	if err != nil {
+		t, err = ms.db.OpenStorageTrie(addrHash, ethcmn.Hash{})
+		if err != nil {
+			panic("unexcepted err")
+		}
+	}
+
+	if useCache {
+		ms.storageTrieForWrite[addr] = t
+	}
+	return t
 }
 
 func (ms *MptStore) Has(key []byte) bool {
@@ -176,9 +223,15 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
-	err := ms.trie.TryUpdate(key, value)
-	if err != nil {
-		return
+	switch mptKeyType(key) {
+	case storageType:
+		addr, stateRoot, realKey := decodeAddressStorageInfo(key)
+		t := ms.tryGetStorageTrie(addr, stateRoot, true)
+		t.TryUpdate(realKey, value)
+	case addressType:
+		ms.trie.TryUpdate(key, value)
+	default:
+		panic(fmt.Errorf("not support key %s for mpt set", hex.EncodeToString(key)))
 	}
 
 	return
@@ -188,10 +241,16 @@ func (ms *MptStore) Delete(key []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
+	switch mptKeyType(key) {
+	case storageType:
+		addr, stateRoot, realKey := decodeAddressStorageInfo(key)
+		t := ms.tryGetStorageTrie(addr, stateRoot, true)
+		t.TryDelete(realKey)
+	case addressType:
+		ms.trie.TryDelete(key)
+	default:
+		panic(fmt.Errorf("not support key %s for mpt delete", hex.EncodeToString(key)))
 
-	err := ms.trie.TryDelete(key)
-	if err != nil {
-		return
 	}
 }
 
@@ -211,17 +270,44 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 
 	// stop pre round prefetch
 	ms.StopPrefetcher()
-
-	root, err := ms.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot := ms.retriever.RetrieveStateRoot(leaf)
-		if storageRoot != ethtypes.EmptyRootHash && storageRoot != (ethcmn.Hash{}) {
-			ms.db.TrieDB().Reference(storageRoot, parent)
+	nodeSets := trie.NewMergedNodeSet()
+	for addr, v := range ms.storageTrieForWrite {
+		stateR, set, err := v.Commit(false)
+		if err != nil {
+			panic(fmt.Errorf("unexcepted err:%v while commit storage tire ", err))
 		}
-		return nil
-	})
+		key := AddressStoreKey(addr.Bytes())
+		preValue, err := ms.trie.TryGet(key)
+		if err == nil { // maybe acc already been deleted
+			newValue := ms.retriever.ModifyAccStateRoot(preValue, stateR)
+			if err := ms.trie.TryUpdate(key, newValue); err != nil {
+				panic(fmt.Errorf("unexcepted err:%v while update acc %s ", err, addr.String()))
+			}
+		} else {
+			panic(fmt.Errorf("unexcepted err:%v while update get acc %s ", err, addr.String()))
+		}
 
+		if set != nil {
+			if err := nodeSets.Merge(set); err != nil {
+				panic("fail to commit trie data(storage nodeSets merge): " + err.Error())
+			}
+		}
+		delete(ms.storageTrieForWrite, addr)
+	}
+
+	root, set, err := ms.trie.Commit(true)
 	if err != nil {
-		panic("fail to commit trie data: " + err.Error())
+		panic("fail to commit trie data(acc_trie.Commit): " + err.Error())
+	}
+
+	if set != nil {
+		if err := nodeSets.Merge(set); err != nil {
+			panic("fail to commit trie data(acc nodeSets merge): " + err.Error())
+		}
+	}
+
+	if err := ms.db.TrieDB().UpdateForOK(nodeSets, AccountStateRootRetriever.RetrieveStateRoot); err != nil {
+		panic("fail to commit trie data (UpdateForOK): " + err.Error())
 	}
 	ms.SetMptRootHash(uint64(ms.version), root)
 	ms.originalRoot = root
@@ -545,3 +631,57 @@ func (ms *MptStore) prefetchData() {
 }
 
 func (ms *MptStore) SetUpgradeVersion(i int64) {}
+
+var (
+	keyPrefixStorageMpt = byte(0)
+	keyPrefixAddrMpt    = byte(1) // TODO auth.AddressStoreKeyPrefix
+	prefixSizeInMpt     = 1
+	storageKeySize      = prefixSizeInMpt + len(ethcmn.Address{}) + len(ethcmn.Hash{}) + len(ethcmn.Hash{})
+	addrKeySize         = prefixSizeInMpt + sdk.AddrLen
+	wasmContractKeySize = prefixSizeInMpt + sdk.WasmContractAddrLen
+)
+
+func AddressStoragePrefixMpt(address ethcmn.Address, stateRoot ethcmn.Hash) []byte {
+	t1 := append([]byte{keyPrefixStorageMpt}, address.Bytes()...)
+	return append(t1, stateRoot.Bytes()...)
+}
+
+func decodeAddressStorageInfo(key []byte) (ethcmn.Address, ethcmn.Hash, []byte) {
+	addr := ethcmn.BytesToAddress(key[prefixSizeInMpt : prefixSizeInMpt+20])
+	storageRoot := ethcmn.BytesToHash(key[prefixSizeInMpt+20 : prefixSizeInMpt+20+32])
+	updateKey := key[prefixSizeInMpt+20+32:]
+	return addr, storageRoot, updateKey
+}
+
+func AddressStoreKey(addr []byte) []byte {
+	return append([]byte{keyPrefixAddrMpt}, addr...)
+}
+
+var (
+	storageType = 0
+	addressType = 1
+)
+
+/*
+storageType : 0x0 + addr + stateRoot + key
+addressType : 0x1 + addr
+*/
+
+func mptKeyType(key []byte) int {
+	switch key[0] {
+	case keyPrefixAddrMpt:
+		size := len(key)
+		if size == wasmContractKeySize || size == addrKeySize {
+			return addressType
+		}
+		return -1
+	case keyPrefixStorageMpt:
+		if len(key) == storageKeySize {
+			return storageType
+		}
+		return -1
+	default:
+		return -1
+
+	}
+}

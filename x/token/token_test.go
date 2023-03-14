@@ -291,7 +291,7 @@ type TestAccounts []*testAccount
 func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) *auth.StdTx {
 	// Make the transaction free
 	fee := auth.StdFee{
-		// just for test - 0.01okt as fixed fee
+		// just for test - 0.01okb as fixed fee
 		Amount: sdk.NewDecCoinsFromDec(sdk.DefaultBondDenom, sdk.MustNewDecFromStr("0.01")),
 		Gas:    200000,
 	}
@@ -976,7 +976,7 @@ func TestTxFailedFeeTable(t *testing.T) {
 		balance string
 		msg     *auth.StdTx
 	}{
-		// 0.01okt as fixed fee in each stdTx
+		// 0.01okb as fixed fee in each stdTx
 		{"fail to issue : 0.01", "9.990000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedIssueMsg)},
 		{"fail to mint  : 0.01", "9.980000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedMintMsg)},
 		{"fail to burn  : 0.01", "9.970000000000000000", createTokenMsg(t, app, ctx, testAccounts[0], failedBurnMsg)},
@@ -1031,7 +1031,7 @@ func TestTxSuccessFeeTable(t *testing.T) {
 		msg         sdk.Msg
 		account     *testAccount
 	}{
-		// 0.01okt as fixed fee in each stdTx
+		// 0.01okb as fixed fee in each stdTx
 		{"success to issue : 2500+0.01", "27499.990000000000000000", successfulIssueMsg, testAccounts[0]},
 		{"success to mint  : 10+0.01", "27489.980000000000000000", successfulMintMsg, testAccounts[0]},
 		{"success to burn  : 10+0.01", "27479.970000000000000000", successfulBurnMsg, testAccounts[0]},
@@ -1081,7 +1081,7 @@ func TestBlockedAddrSend(t *testing.T) {
 		msg         sdk.Msg
 		account     *testAccount
 	}{
-		// 0.01okt as fixed fee in each stdTx
+		// 0.01okb as fixed fee in each stdTx
 		{"success to send  : 50+0.01", "29949.990000000000000000", successfulSendMsg, testAccounts[0]},
 		{"fail to send  : 0.01", "29949.980000000000000000", failedSendMsg, testAccounts[0]},
 		{"success to multi-send  : 100+0.01", "29849.970000000000000000", successfulMultiSendMsg, testAccounts[0]},

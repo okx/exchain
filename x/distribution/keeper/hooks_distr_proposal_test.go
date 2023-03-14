@@ -16,7 +16,6 @@ func TestHooksBeforeDelegationSharesModified(t *testing.T) {
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -32,12 +31,6 @@ func TestHooksBeforeDelegationSharesModified(t *testing.T) {
 	valOpAddrs := []sdk.ValAddress{valOpAddr1}
 	DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
 
-	//test BeforeDelegationSharesModified no support
-	dk.SetInitExistedValidatorFlag(ctx, false)
-	hook.BeforeDelegationSharesModified(ctx, delAddr1, valOpAddrs)
-	periodBefore := dk.GetDelegatorStartingInfo(ctx, valOpAddr1, delAddr1)
-	require.Equal(t, periodBefore.PreviousPeriod, uint64(1))
-	dk.SetInitExistedValidatorFlag(ctx, true)
 	hook.BeforeDelegationSharesModified(ctx, delAddr1, valOpAddrs)
 	//will delete it
 	require.False(t, dk.HasDelegatorStartingInfo(ctx, valOpAddr1, delAddr1))
@@ -48,7 +41,6 @@ func TestHooksAfterValidatorRemoved(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, supplyKeeper := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)

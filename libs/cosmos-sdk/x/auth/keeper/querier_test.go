@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestQueryAccount(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, res)
 
-	req.Data = cdc.MustMarshalJSON(types.NewQueryAccountParams([]byte("")))
+	req.Data = cdc.MustMarshalJSON(types.NewQueryAccountParams(ethcmn.BytesToAddress([]byte("")).Bytes()))
 	res, err = querier(ctx, path, req)
 	require.Error(t, err)
 	require.Nil(t, res)

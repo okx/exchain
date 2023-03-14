@@ -12,10 +12,6 @@ import (
 )
 
 func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !k.CheckDistributionProposalValid(ctx) {
-		return nil, types.ErrCodeNotSupportDistributionProposal()
-	}
-
 	var params types.QueryDelegationRewardsParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
@@ -46,13 +42,6 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 	}
 
 	logger := k.Logger(ctx)
-	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) {
-		if del.GetLastAddedShares().IsZero() {
-			return nil, sdkerrors.Wrap(types.ErrCodeZeroDelegationShares(), params.DelegatorAddress.String())
-		}
-		k.initExistedDelegationStartInfo(ctx, val, del)
-	}
-
 	endingPeriod := k.incrementValidatorPeriod(ctx, val)
 	rewards := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
 	if rewards == nil {
@@ -71,10 +60,6 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 }
 
 func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !k.CheckDistributionProposalValid(ctx) {
-		return nil, types.ErrCodeNotSupportDistributionProposal()
-	}
-
 	var params types.QueryDelegatorParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
@@ -99,12 +84,6 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 		}
 
 		logger := k.Logger(ctx)
-		if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) {
-			if del.GetLastAddedShares().IsZero() {
-				return nil, sdkerrors.Wrap(types.ErrCodeZeroDelegationShares(), params.DelegatorAddress.String())
-			}
-			k.initExistedDelegationStartInfo(ctx, val, del)
-		}
 
 		endingPeriod := k.incrementValidatorPeriod(ctx, val)
 		delReward := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
@@ -128,10 +107,6 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 }
 
 func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !k.CheckDistributionProposalValid(ctx) {
-		return nil, types.ErrCodeNotSupportDistributionProposal()
-	}
-
 	var params types.QueryValidatorOutstandingRewardsParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {

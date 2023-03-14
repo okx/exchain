@@ -69,7 +69,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, accountKeeper types.AccountKeep
 	return res
 }
 
-// assume that there is only okt in pool, if not panics
+// assume that there is only okb in pool, if not panics
 func checkTokenSum(tokenSum sdk.SysCoin, pool supplyexported.ModuleAccountI) {
 	poolCoins := pool.GetCoins()
 	if !poolCoins.IsZero() {

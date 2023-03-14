@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	ManageTreasuresProposalName = system.Chain+"/mint/ManageTreasuresProposal"
+	ManageTreasuresProposalName = system.Chain + "/mint/ManageTreasuresProposal"
+	ExtraProposalName           = system.Chain + "/mint/ExtraProposal"
 )
 
 // ModuleCdc is a generic sealed codec to be used throughout this module
@@ -21,4 +22,5 @@ func init() {
 
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(ManageTreasuresProposal{}, ManageTreasuresProposalName, nil)
+	cdc.RegisterConcrete(ExtraProposal{}, ExtraProposalName, nil)
 }

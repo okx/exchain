@@ -1,6 +1,7 @@
 package ut
 
 import (
+	ethcmm "github.com/ethereum/go-ethereum/common"
 	"testing"
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
@@ -37,7 +38,7 @@ func TestHandleMsgDeposit(t *testing.T) {
 	require.Nil(t, err)
 
 	// nil address deposit on proposal
-	newDepositMsg = gov.NewMsgDeposit(sdk.AccAddress{}, proposalID,
+	newDepositMsg = gov.NewMsgDeposit(ethcmm.Address{}.Bytes(), proposalID,
 		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 1000)})
 	res, err = govHandler(ctx, newDepositMsg)
 	require.NotNil(t, err)
@@ -149,7 +150,7 @@ func TestHandleMsgSubmitProposal(t *testing.T) {
 
 	proposalCoins = sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 500)}
 	content = types.NewTextProposal("Test", "description")
-	newProposalMsg = gov.NewMsgSubmitProposal(content, proposalCoins, sdk.AccAddress{})
+	newProposalMsg = gov.NewMsgSubmitProposal(content, proposalCoins, ethcmm.Address{}.Bytes())
 	_, err = handler(ctx, newProposalMsg)
 	require.NotNil(t, err)
 

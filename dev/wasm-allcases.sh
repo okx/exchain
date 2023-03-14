@@ -76,8 +76,8 @@ while getopts "c:i:" opt; do
 done
 
 QUERY_EXTRA="--node=$NODE"
-TX_EXTRA_UNBLOCKED="--fees 0.01okt --gas 3000000 --chain-id=$CHAIN_ID --node $NODE -b async -y"
-TX_EXTRA="--fees 0.01okt --gas 3000000 --chain-id=$CHAIN_ID --node $NODE -b block -y"
+TX_EXTRA_UNBLOCKED="--fees 0.01okb --gas 3000000 --chain-id=$CHAIN_ID --node $NODE -b async -y"
+TX_EXTRA="--fees 0.01okb --gas 3000000 --chain-id=$CHAIN_ID --node $NODE -b block -y"
 
 exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
 exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
@@ -86,7 +86,7 @@ exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret v
 captain=$(exchaincli keys show captain -a)
 admin18=$(exchaincli keys show admin18 -a)
 admin17=$(exchaincli keys show admin17 -a)
-proposal_deposit="100okt"
+proposal_deposit="100okb"
 
 if [[ $CHAIN_ID == "exchain-64" ]];
 then
@@ -96,9 +96,9 @@ then
     res=$(exchaincli keys add --recover val"${i}" -m "$mnemonic" -y)
   done
   val0=$(exchaincli keys show val0 -a)
-  res=$(exchaincli tx send $val0 $admin17 100okt --from val0 $TX_EXTRA)
-  res=$(exchaincli tx send $val0 $admin18 100okt --from val0 $TX_EXTRA)
-  res=$(exchaincli tx send $val0 $captain 100okt --from val0 $TX_EXTRA)
+  res=$(exchaincli tx send $val0 $admin17 100okb --from val0 $TX_EXTRA)
+  res=$(exchaincli tx send $val0 $admin18 100okb --from val0 $TX_EXTRA)
+  res=$(exchaincli tx send $val0 $captain 100okb --from val0 $TX_EXTRA)
 fi;
 
 # usage:
@@ -264,7 +264,7 @@ then
 fi;
 
 echo "## instantiate cw20 contract with invalid amount..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=1000000000000okt --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=1000000000000okb --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
 failed_log_prefix="insufficient funds"
 if [[ "${raw_log:0:18}" != "${failed_log_prefix}" ]];
@@ -285,7 +285,7 @@ fi;
 echo "## instantiate cw20 contract with deposit..."
 totalAmount="100000000"
 depositAmount="20"
-depositDenom="okt"
+depositDenom="okb"
 res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"'${totalAmount}'"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=${depositAmount}${depositDenom} --from captain $TX_EXTRA)
 echo "instantiate cw20 succeed"
 if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
@@ -336,7 +336,7 @@ res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100
 standard_gas_used=$(echo "$res" | jq '.gas_used' | sed 's/\"//g')
 echo "standard_gas_used:$standard_gas_used"
 
-echo "## cw20 transfer with okt transfer..."
+echo "## cw20 transfer with okb transfer..."
 res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}' --amount=${depositAmount}${depositDenom} --from captain $TX_EXTRA)
 gas_used2=$(echo "$res" | jq '.gas_used' | sed 's/\"//g')
 echo "gas_used2:$gas_used2"
@@ -806,23 +806,23 @@ echo "txhash: $tx_hash"
 burner_code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 echo "burner_code_id: $burner_code_id"
 
-# claim okt from contract
+# claim okb from contract
 res=$(exchaincli tx wasm store ./wasm/cw4-stake/artifacts/cw4_stake.wasm --from captain $TX_EXTRA)
 echo "store cw4-stake succeed"
 cw4_code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 
-res=$(exchaincli tx wasm instantiate "$cw4_code_id" '{"denom":{"native":"okt"},"min_bond":"10","tokens_per_weight":"10","unbonding_period":{"height":1}}' --label cw4-stake --admin $captain --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw4_code_id" '{"denom":{"native":"okb"},"min_bond":"10","tokens_per_weight":"10","unbonding_period":{"height":1}}' --label cw4-stake --admin $captain --from captain $TX_EXTRA)
 echo "instantiate cw4-stake succeed"
 cw4contractAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 echo "cw4-stake contractAddr: $cw4contractAddr"
 denom=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain'"}}' $QUERY_EXTRA | jq '.data.denom.native' | sed 's/\"//g')
-if [[ $denom != "okt" ]];
+if [[ $denom != "okb" ]];
 then
   echo "unexpected native denom: $denom"
   exit 1
 fi;
 
-res=$(exchaincli tx wasm execute "$cw4contractAddr" '{"bond":{}}' --amount=10okt --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm execute "$cw4contractAddr" '{"bond":{}}' --amount=10okb --from captain $TX_EXTRA)
 amount=$(echo $res | jq '.logs[0].events[2].attributes[2].value' | sed 's/\"//g')
 if [[ $amount != "10000000000000000000" ]];
 then
@@ -848,13 +848,13 @@ fi
 
 res=$(exchaincli tx wasm execute "$cw4contractAddr" '{"claim":{}}' --from captain $TX_EXTRA)
 transferAmount=$(echo $res | jq '.logs[0].events[2].attributes[2].value' | sed 's/\"//g')
-if [[ $transferAmount != "10.000000000000000000okt" ]];
+if [[ $transferAmount != "10.000000000000000000okb" ]];
 then
   echo "unexpected transferAmount: $transferAmount"
   exit 1
 fi
 
-echo "claim okt from caontract succeed"
+echo "claim okb from caontract succeed"
 
 
 # update nobody whitelist

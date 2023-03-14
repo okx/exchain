@@ -19,7 +19,11 @@ type mptIterator struct {
 	valid bool
 }
 
-func newMptIterator(t ethstate.Trie, start, end []byte) *mptIterator {
+func newMptIterator(t ethstate.Trie, start, end []byte) types.Iterator {
+	return newWrapIterator(t, start, end)
+}
+
+func newOriginIterator(t ethstate.Trie, start, end []byte) *mptIterator {
 	iter := &mptIterator{
 		iterator: trie.NewIterator(t.NodeIterator(start)),
 		trie:     t,

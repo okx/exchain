@@ -19,8 +19,6 @@ var (
 	ParamStoreKeyDistributionType        = []byte("distributiontype")
 	ParamStoreKeyWithdrawRewardEnabled   = []byte("withdrawrewardenabled")
 	ParamStoreKeyRewardTruncatePrecision = []byte("rewardtruncateprecision")
-
-	IgnoreInitGenesisList = [][]byte{ParamStoreKeyDistributionType, ParamStoreKeyWithdrawRewardEnabled, ParamStoreKeyRewardTruncatePrecision}
 )
 
 // Params defines the set of distribution parameters.
@@ -42,6 +40,7 @@ func DefaultParams() Params {
 	return Params{
 		CommunityTax:            sdk.NewDecWithPrec(2, 2), // 2%
 		WithdrawAddrEnabled:     true,
+		DistributionType:        0,
 		WithdrawRewardEnabled:   true,
 		RewardTruncatePrecision: 0,
 	}

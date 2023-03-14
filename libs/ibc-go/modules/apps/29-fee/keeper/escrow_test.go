@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"fmt"
+	ethcmm "github.com/ethereum/go-ethereum/common"
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/ibc-go/modules/apps/29-fee/types"
@@ -193,6 +194,9 @@ func (suite *KeeperTestSuite) TestDistributeFee() {
 
 			// fetch the account balances before fee distribution (forward, reverse, refund)
 			forwardAccAddress, _ := sdk.AccAddressFromBech32(forwardRelayer)
+			if len(forwardAccAddress) == 0 {
+				forwardAccAddress = ethcmm.Address{}.Bytes()
+			}
 			forwardRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), forwardAccAddress, sdk.DefaultBondDenom)
 			reverseRelayerBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), reverseRelayer, sdk.DefaultBondDenom)
 			refundAccBal = suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), refundAcc, sdk.DefaultBondDenom)

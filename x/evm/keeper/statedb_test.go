@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"fmt"
+	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"math/big"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -585,6 +586,8 @@ func (suite *KeeperTestSuite) TestCommitStateDB_ForEachStorage() {
 			suite.SetupTest() // reset
 			tc.malleate()
 			suite.stateDB.WithContext(suite.ctx).Commit(false)
+			suite.app.Commit(abci.RequestCommit{})
+			types.ResetCommitStateDB(suite.stateDB, suite.app.EvmKeeper.GenerateCSDBParams(), &suite.ctx)
 
 			err := suite.stateDB.WithContext(suite.ctx).ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)

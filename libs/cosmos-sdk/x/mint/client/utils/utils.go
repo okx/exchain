@@ -28,3 +28,25 @@ func ParseManageTreasuresProposalJSON(cdc *codec.Codec, proposalFilePath string)
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
 }
+
+// ExtraProposalJSON defines a ExtraProposal with a deposit used to parse
+// manage treasures proposals from a JSON file.
+type ExtraProposalJSON struct {
+	Title       string       `json:"title" yaml:"title"`
+	Description string       `json:"description" yaml:"description"`
+	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
+	Action      string       `json:"action" yaml:"action"`
+	Extra       string       `json:"extra" yaml:"extra"`
+}
+
+// ParseExtraProposalJSON parses json from proposal file to ExtraProposalJSON struct
+func ParseExtraProposalJSON(cdc *codec.Codec, proposalFilePath string) (
+	proposal ExtraProposalJSON, err error) {
+	contents, err := ioutil.ReadFile(proposalFilePath)
+	if err != nil {
+		return
+	}
+
+	cdc.MustUnmarshalJSON(contents, &proposal)
+	return
+}

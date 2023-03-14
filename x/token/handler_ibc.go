@@ -27,7 +27,7 @@ func handleWalletMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logg
 	if logger != nil {
 		logger.Debug(fmt.Sprintf("BlockHeight<%d>, handler<%s>\n"+
 			"                           msg<From:%s,To:%s,Amount:%s>\n"+
-			"                           result<Owner have enough okts to send a tx>\n",
+			"                           result<Owner have enough okbs to send a tx>\n",
 			ctx.BlockHeight(), name,
 			msg.FromAddress, msg.ToAddress, msg.Amount))
 	}

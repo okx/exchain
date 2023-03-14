@@ -11,4 +11,9 @@ var (
 		cli.GetCmdManageTreasuresProposal,
 		rest.ManageTreasuresProposalRESTHandler,
 	)
+
+	ExtraProposalHandler = govcli.NewProposalHandler(
+		cli.GetCmdExtraProposal,
+		rest.ExtraProposalRESTHandler,
+	)
 )

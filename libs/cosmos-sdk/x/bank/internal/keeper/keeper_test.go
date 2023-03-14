@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"testing"
 	"time"
 
@@ -26,9 +27,9 @@ const (
 func TestKeeper(t *testing.T) {
 	app, ctx := createTestApp(false)
 
-	addr := sdk.AccAddress([]byte("addr1"))
-	addr2 := sdk.AccAddress([]byte("addr2"))
-	addr3 := sdk.AccAddress([]byte("addr3"))
+	addr := ethcmn.BytesToAddress(sdk.AccAddress([]byte("addr1")).Bytes()).Bytes()
+	addr2 := ethcmn.BytesToAddress(sdk.AccAddress([]byte("addr2")).Bytes()).Bytes()
+	addr3 := ethcmn.BytesToAddress(sdk.AccAddress([]byte("addr3")).Bytes()).Bytes()
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
 	// Test GetCoins/SetCoins
@@ -114,8 +115,8 @@ func TestSendKeeper(t *testing.T) {
 	sendKeeper := keep.NewBaseSendKeeper(app.AccountKeeper, paramSpace, blacklistedAddrs)
 	app.BankKeeper.SetSendEnabled(ctx, true)
 
-	addr := sdk.AccAddress([]byte("addr1"))
-	addr2 := sdk.AccAddress([]byte("addr2"))
+	addr := ethcmn.BytesToAddress(sdk.AccAddress([]byte("addr1"))).Bytes()
+	addr2 := ethcmn.BytesToAddress(sdk.AccAddress([]byte("addr2"))).Bytes()
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
 	// Test GetCoins/SetCoins
@@ -157,7 +158,7 @@ func TestSendKeeper(t *testing.T) {
 func TestInputOutputNewAccount(t *testing.T) {
 	app, ctx := createTestApp(false)
 	balances := sdk.NewCoins(sdk.NewInt64Coin("foo", 100), sdk.NewInt64Coin("bar", 50))
-	addr1 := sdk.AccAddress([]byte("addr1"))
+	addr1 := ethcmn.BytesToAddress(sdk.AccAddress([]byte("addr1"))).Bytes()
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 
 	app.AccountKeeper.SetAccount(ctx, acc1)
@@ -166,7 +167,7 @@ func TestInputOutputNewAccount(t *testing.T) {
 	acc1Balances := app.BankKeeper.GetCoins(ctx, addr1)
 	require.Equal(t, balances, acc1Balances)
 
-	addr2 := sdk.AccAddress([]byte("addr2"))
+	addr2 := ethcmn.BytesToAddress(sdk.AccAddress([]byte("addr2"))).Bytes()
 
 	require.Nil(t, app.AccountKeeper.GetAccount(ctx, addr2))
 	require.Empty(t, app.BankKeeper.GetCoins(ctx, addr2))
@@ -191,13 +192,13 @@ func TestMsgSendEvents(t *testing.T) {
 
 	app.BankKeeper.SetSendEnabled(ctx, true)
 
-	addr := sdk.AccAddress([]byte("addr1"))
-	addr2 := sdk.AccAddress([]byte("addr2"))
-	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
+	addr := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr1")).Bytes())
+	addr2 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr2")).Bytes())
+	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr.Bytes())
 
 	app.AccountKeeper.SetAccount(ctx, acc)
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("foocoin", 50))
-	err := app.BankKeeper.SendCoins(ctx, addr, addr2, newCoins)
+	err := app.BankKeeper.SendCoins(ctx, addr.Bytes(), addr2.Bytes(), newCoins)
 	require.Error(t, err)
 	events := ctx.EventManager().Events()
 	require.Equal(t, 2, len(events))
@@ -220,9 +221,9 @@ func TestMsgSendEvents(t *testing.T) {
 	require.Equal(t, event1, events[0])
 	require.Equal(t, event2, events[1])
 
-	app.BankKeeper.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("foocoin", 50)))
+	app.BankKeeper.SetCoins(ctx, addr.Bytes(), sdk.NewCoins(sdk.NewInt64Coin("foocoin", 50)))
 	newCoins = sdk.NewCoins(sdk.NewInt64Coin("foocoin", 50))
-	err = app.BankKeeper.SendCoins(ctx, addr, addr2, newCoins)
+	err = app.BankKeeper.SendCoins(ctx, addr.Bytes(), addr2.Bytes(), newCoins)
 	require.NoError(t, err)
 	events = ctx.EventManager().Events()
 	require.Equal(t, 4, len(events))
@@ -235,10 +236,10 @@ func TestMsgMultiSendEvents(t *testing.T) {
 
 	app.BankKeeper.SetSendEnabled(ctx, true)
 
-	addr := sdk.AccAddress([]byte("addr1"))
-	addr2 := sdk.AccAddress([]byte("addr2"))
-	addr3 := sdk.AccAddress([]byte("addr3"))
-	addr4 := sdk.AccAddress([]byte("addr4"))
+	addr := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr1")).Bytes())
+	addr2 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr2")).Bytes())
+	addr3 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr3")).Bytes())
+	addr4 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr4")).Bytes())
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 
@@ -350,8 +351,8 @@ func TestVestingAccountSend(t *testing.T) {
 	origCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 100))
 	sendCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 50))
 
-	addr1 := sdk.AccAddress([]byte("addr1"))
-	addr2 := sdk.AccAddress([]byte("addr2"))
+	addr1 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr1")).Bytes())
+	addr2 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr2")).Bytes())
 	bacc := auth.NewBaseAccountWithAddress(addr1)
 	bacc.SetCoins(origCoins)
 	vacc := vesting.NewContinuousVestingAccount(&bacc, ctx.BlockHeader().Time.Unix(), endTime.Unix())
@@ -380,8 +381,8 @@ func TestPeriodicVestingAccountSend(t *testing.T) {
 	origCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 100))
 	sendCoins := sdk.NewCoins(sdk.NewInt64Coin("stake", 50))
 
-	addr1 := sdk.AccAddress([]byte("addr1"))
-	addr2 := sdk.AccAddress([]byte("addr2"))
+	addr1 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr1")).Bytes())
+	addr2 := sdk.AccAddress(ethcmn.BytesToAddress([]byte("addr2")).Bytes())
 	bacc := auth.NewBaseAccountWithAddress(addr1)
 	bacc.SetCoins(origCoins)
 	periods := vesting.Periods{

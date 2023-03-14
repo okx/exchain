@@ -6,7 +6,7 @@ import (
 	"github.com/okx/okbchain/libs/system"
 )
 
-//for denom convert wei to okt and reject okt direct
+// for denom convert wei to okb and reject okb direct
 func (m *MsgTransfer) RulesFilter() (sdk.Msg, error) {
 	if m.Token.Denom == sdk.DefaultBondDenom {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "ibc MsgTransfer not support "+system.Currency+" denom")

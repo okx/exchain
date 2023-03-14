@@ -6,7 +6,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -152,7 +151,7 @@ func writeContract(client *ethclient.Client,
 	return nil
 }
 
-func transferOKT(client *ethclient.Client,
+func transferOKB(client *ethclient.Client,
 	fromAddress common.Address,
 	toAddress common.Address,
 	amount *big.Int,
@@ -169,7 +168,7 @@ func transferOKT(client *ethclient.Client,
 
 	fmt.Printf(
 		"==================================================\n"+
-			"Transfer OKT: \n"+
+			"Transfer OKB: \n"+
 			"	from  : <%s>\n"+
 			"	to    : <%s>\n"+
 			"	amount: <%s>\n"+
@@ -330,8 +329,8 @@ func send(client *ethclient.Client, to, privKey string) {
 	privateKey, senderAddress := initKey(privKey)
 	toAddress := common.HexToAddress(to)
 
-	// send 0.001okt
-	transferOKT(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
+	// send 0.001okb
+	transferOKB(client, senderAddress, toAddress, str2bigInt("0.001"), privateKey, 0)
 }
 
 func transferOip(client *ethclient.Client, oip20 *Oip20,

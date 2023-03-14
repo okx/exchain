@@ -35,7 +35,7 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 		return types.ErrInsufficientQuantity(delQuantity.String(), minDelLimit.String())
 	}
 
-	// 1.transfer account's okt into bondPool
+	// 1.transfer account's okb into bondPool
 	coins := sdk.SysCoins{token}
 	if err := k.supplyKeeper.DelegateCoinsFromAccountToModule(ctx, delAddr, types.BondedPoolName, coins); err != nil {
 		return err
@@ -84,7 +84,7 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 		return time.Time{}, types.ErrInvalidProxyWithdrawTotal(delAddr.String())
 	}
 
-	// 1.some okt transfer bondPool into unbondPool
+	// 1.some okb transfer bondPool into unbondPool
 	k.bondedTokensToNotBonded(ctx, token)
 
 	// 2.delete delegator in store, or set back

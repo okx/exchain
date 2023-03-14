@@ -379,7 +379,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	if !st.Simulate {
 		if ctx.IsDeliver() {
-			csdb.IntermediateRoot(true)
+			csdb.Commit(true)
 		}
 	}
 
