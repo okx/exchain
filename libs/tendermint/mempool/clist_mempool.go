@@ -453,6 +453,9 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
 	}
+
+	mem.logger.Error("SWAP, addTx to mempool", "SWAPtxHash", hex.EncodeToString(memTx.realTx.TxHash()))
+
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 && cfg.DynamicConfig.GetEnablePGU() {
 		select {
 		case mem.simQueue <- memTx:
