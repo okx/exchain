@@ -81,7 +81,7 @@ func CM40TxDecoder(cdc codec.ProtoCodecMarshaler) func(txBytes []byte) (ibctx.Tx
 }
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
-//func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
+// func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
 func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 	return func(txBytes []byte) (*authtypes.IbcTx, error) {
 		// Make sure txBytes follow ADR-027.
@@ -214,7 +214,7 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 		var newMsg sdk.Msg
 		switch msg := m.(type) {
 		case DenomAdapterMsg:
-			// ibc transfer okt is not allowed,should do filter
+			// ibc transfer okb is not allowed,should do filter
 			newMsg, err = msg.RulesFilter()
 			if err != nil {
 				return nil, nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support "+system.Currency+" amount")

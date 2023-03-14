@@ -19,43 +19,30 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return nil, types.ErrCodeDisabledOperate()
 		}
 
-		switch msg := msg.(type) {
-		case types.MsgCreateValidator:
-			if !k.ParamsEnableDposOp(ctx) {
+		if !k.ParamsEnableDposOp(ctx) {
+			switch msg.(type) {
+			case types.MsgCreateValidator, types.MsgEditValidatorCommissionRate,
+				types.MsgDeposit, types.MsgAddShares, types.MsgDepositMinSelfDelegation:
 				return nil, types.ErrDisableOperation
 			}
+		}
+
+		switch msg := msg.(type) {
+		case types.MsgCreateValidator:
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgEditValidatorCommissionRate:
-			if !k.ParamsEnableDposOp(ctx) {
-				return nil, types.ErrDisableOperation
-			}
 			return handleMsgEditValidatorCommissionRate(ctx, msg, k)
 		case types.MsgDeposit:
-			if !k.ParamsEnableDposOp(ctx) {
-				return nil, types.ErrDisableOperation
-			}
 			return handleMsgDeposit(ctx, msg, k)
 		case types.MsgWithdraw:
 			return handleMsgWithdraw(ctx, msg, k)
 		case types.MsgAddShares:
-			if !k.ParamsEnableDposOp(ctx) {
-				return nil, types.ErrDisableOperation
-			}
 			return handleMsgAddShares(ctx, msg, k)
-		//case types.MsgBindProxy:
-		//	return handleMsgBindProxy(ctx, msg, k)
-		//case types.MsgUnbindProxy:
-		//	return handleMsgUnbindProxy(ctx, msg, k)
-		//case types.MsgRegProxy:
-		//	return handleRegProxy(ctx, msg, k)
 		case types.MsgDestroyValidator:
 			return handleMsgDestroyValidator(ctx, msg, k)
 		case types.MsgDepositMinSelfDelegation:
-			if !k.ParamsEnableDposOp(ctx) {
-				return nil, types.ErrDisableOperation
-			}
 			return handleMsgDepositMinSelfDelegation(ctx, msg, k)
 		default:
 			return sdk.ErrUnknownRequest(errMsg).Result()

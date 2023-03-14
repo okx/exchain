@@ -278,7 +278,7 @@ func getCmdTokenMultiSend(cdc *codec.Codec) *cobra.Command {
 			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().String(Transfers, "", `Transfers details, format: [{"to": "addr", "amount": "1okt,2btc"}, ...]`)
+	cmd.Flags().String(Transfers, "", `Transfers details, format: [{"to": "addr", "amount": "1okb,2btc"}, ...]`)
 	cmd.Flags().String(TransfersFile, "", "File of transfers details, if transfers-file is not empty, --transfers will be ignore")
 	//cmd.MarkFlagRequired(Amount)
 	return cmd

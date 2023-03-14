@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,7 +12,7 @@ import (
 
 func TestAccountMapperGetSet(t *testing.T) {
 	app, ctx := createTestApp(true)
-	addr := sdk.AccAddress([]byte("some-address"))
+	addr := common.BytesToAddress(sdk.AccAddress([]byte("some-address"))).Bytes()
 
 	// no account before its created
 	acc := app.AccountKeeper.GetAccount(ctx, addr)
@@ -20,7 +21,7 @@ func TestAccountMapperGetSet(t *testing.T) {
 	// create account and check default values
 	acc = app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 	require.NotNil(t, acc)
-	require.Equal(t, addr, acc.GetAddress())
+	require.Equal(t, addr, acc.GetAddress().Bytes())
 	require.EqualValues(t, nil, acc.GetPubKey())
 	require.EqualValues(t, 0, acc.GetSequence())
 

@@ -20,6 +20,8 @@ var cases = []struct {
 	{10000},
 }
 
+var keyFormat = "key-%08d"
+
 func Test_Store_Iterate(t *testing.T) {
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("test-%d", i), func(t *testing.T) {
@@ -49,11 +51,34 @@ func fullFillStore(num int) (ethstate.Trie, map[string]string) {
 
 	kvs := make(map[string]string, num)
 	for i := 0; i < num; i++ {
-		k, v := fmt.Sprintf("key-%d", i), fmt.Sprintf("value-%d", i)
+		k, v := fmt.Sprintf(keyFormat, i), fmt.Sprintf("value-%d", i)
 		kvs[k] = v
 		if err := tr.TryUpdate([]byte(k), []byte(v)); err != nil {
 			panic(err)
 		}
 	}
 	return tr, kvs
+}
+
+func TestWrapIterator(t *testing.T) {
+	total := 10000
+	trie, kvs := fullFillStore(total)
+
+	iter := newMptIterator(trie, nil, nil)
+	defer iter.Close()
+	var count int
+	for ; iter.Valid(); iter.Next() {
+		count++
+	}
+	require.Equal(t, len(kvs), count)
+
+	startIndex := 3000
+	iter2 := newMptIterator(trie, []byte(fmt.Sprintf(keyFormat, startIndex)), nil)
+	defer iter2.Close()
+	var count2 int
+	for ; iter2.Valid(); iter2.Next() {
+		count2++
+	}
+	require.Equal(t, total-startIndex, count2)
+
 }

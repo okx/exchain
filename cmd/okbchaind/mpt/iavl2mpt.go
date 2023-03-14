@@ -3,11 +3,12 @@ package mpt
 import (
 	"bytes"
 	"fmt"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"log"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/trie"
 	apptypes "github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
@@ -58,7 +59,8 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	err = accTrie.TryUpdate(authtypes.GlobalAccountNumberKey, migrationApp.Codec().MustMarshalBinaryLengthPrefixed(accountNumber))
 	panicError(err)
 	fmt.Println("GlobalNumber", accountNumber)
-
+	//TODO need re-build migrateAccFromIavlToMpt cmd
+	nodes := trie.NewMergedNodeSet()
 	// 1.2 update every account to mpt
 	count, contractCount := 0, 0
 	batch := evmMptDb.TrieDB().DiskDB().NewBatch()
@@ -71,7 +73,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 		// update acc mpt for every account
 		panicError(accTrie.TryUpdate(key, value))
 		if count%100 == 0 {
-			pushData2Database(accMptDb, accTrie, committedHeight, false)
+			pushData2Database(accMptDb, accTrie, committedHeight, false, nodes)
 			log.Println(count)
 		}
 
@@ -82,7 +84,7 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 				// update evm mpt. Key is the address of the contract; Value is the empty root hash
 				panicError(evmTrie.TryUpdate(ethAcc.EthAddress().Bytes(), ethtypes.EmptyRootHash.Bytes()))
 				if contractCount%100 == 0 {
-					pushData2Database(evmMptDb, evmTrie, committedHeight, true)
+					pushData2Database(evmMptDb, evmTrie, committedHeight, true, nodes)
 				}
 
 				// write code to evm.db in direct
@@ -96,8 +98,8 @@ func migrateAccFromIavlToMpt(ctx *server.Context) {
 	})
 
 	// 1.3 make sure the last data is committed to the database
-	pushData2Database(accMptDb, accTrie, committedHeight, false)
-	pushData2Database(evmMptDb, evmTrie, committedHeight, true)
+	pushData2Database(accMptDb, accTrie, committedHeight, false, nodes)
+	pushData2Database(evmMptDb, evmTrie, committedHeight, true, nodes)
 
 	fmt.Println(fmt.Sprintf("Successfully migrate %d account (include %d contract account) at version %d", count, contractCount, committedHeight))
 }

@@ -6,18 +6,13 @@ import (
 
 	//"github.com/stretchr/testify/require"
 	"testing"
-
-	"github.com/okx/okbchain/libs/tendermint/types/time"
 )
 
 func TestDecay(t *testing.T) {
-	now := time.Now().Unix()
-	after := time.Now().AddDate(0, 0, 52*7).Unix()
-
 	tokens := sdk.NewDec(1000)
-	nowDec, err := calculateWeight(now, tokens)
-	require.NoError(t, err)
-	afterDec, err := calculateWeight(after, tokens)
-	require.NoError(t, err)
-	require.Equal(t, sdk.NewDec(2), afterDec.Quo(nowDec))
+	nowDec := calculateWeight(tokens)
+	afterDec := calculateWeight(tokens)
+	require.Equal(t, afterDec, nowDec)
+	require.Equal(t, afterDec, tokens)
+	require.Equal(t, nowDec, tokens)
 }

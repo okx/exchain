@@ -6,8 +6,8 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okx/okbchain/app"
 	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 	iavlstore "github.com/okx/okbchain/libs/cosmos-sdk/store/iavl"
@@ -84,17 +84,16 @@ func getStorageTrie(db ethstate.Database, addrHash, stateRoot ethcmn.Hash) ethst
 }
 
 // pushData2Database commit the data to the database
-func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, isEvm bool) {
-	var storageRoot ethcmn.Hash
-	root, err := trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot.SetBytes(leaf)
-		if storageRoot != ethtypes.EmptyRootHash {
-			db.TrieDB().Reference(storageRoot, parent)
-		}
-		return nil
-	})
+func pushData2Database(db ethstate.Database, tree ethstate.Trie, height int64, isEvm bool, nodes *trie.MergedNodeSet) {
+
+	root, set, err := tree.Commit(true)
 	panicError(err)
 
+	err = nodes.Merge(set)
+	panicError(err)
+
+	err = db.TrieDB().UpdateForOK(nodes, mpt.AccountStateRootRetriever.RetrieveStateRoot)
+	panicError(err)
 	err = db.TrieDB().Commit(root, false, nil)
 	panicError(err)
 

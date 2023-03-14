@@ -1,6 +1,7 @@
 package ut
 
 import (
+	ethcmm "github.com/ethereum/go-ethereum/common"
 	"testing"
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
@@ -24,7 +25,7 @@ func TestKeeper_AddDeposit(t *testing.T) {
 	proposalID := proposal.ProposalID
 
 	// nil address deposit
-	err = keeper.AddDeposit(ctx, proposalID, sdk.AccAddress{},
+	err = keeper.AddDeposit(ctx, proposalID, ethcmm.Address{}.Bytes(),
 		sdk.SysCoins{sdk.NewInt64DecCoin(sdk.DefaultBondDenom, 40)}, "")
 	require.NotNil(t, err)
 

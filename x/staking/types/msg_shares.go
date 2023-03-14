@@ -249,7 +249,7 @@ func (msg MsgDeposit) GetSignBytes() []byte {
 	return sdk.MustSortJSON(bz)
 }
 
-// MsgWithdraw - structure for withdrawing okt and the corresponding shares from all validators
+// MsgWithdraw - structure for withdrawing okb and the corresponding shares from all validators
 type MsgWithdraw struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
 	Amount           sdk.SysCoin    `json:"quantity" yaml:"quantity"`

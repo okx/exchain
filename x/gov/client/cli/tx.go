@@ -158,7 +158,7 @@ func getCmdDeposit(cdc *codec.Codec) *cobra.Command {
 find the proposal-id by running "%s query gov proposals".
 
 Example:
-$ %s tx gov deposit 1 10okt --from mykey
+$ %s tx gov deposit 1 10okb --from mykey
 `,
 				version.ClientName, version.ClientName,
 			),

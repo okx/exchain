@@ -9,10 +9,10 @@ import (
 
 func TestQueryString(t *testing.T) {
 	const (
-		balance                        = "1024.1024okt"
+		balance                        = "1024.1024okb"
 		number                         = int64(1024)
 		nonce                          = uint64(1024)
-		expectedQueryResBalanceStr     = "1024.1024okt"
+		expectedQueryResBalanceStr     = "1024.1024okb"
 		expectedQueryResBlockNumberStr = "1024"
 		expectedBytesStr               = "test bytes"
 		expectedQueryResNonceStr       = "1024"

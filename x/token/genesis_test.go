@@ -15,7 +15,7 @@ func TestDefault(t *testing.T) {
 	genesisState := defaultGenesisState()
 	err := validateGenesis(genesisState)
 	require.NoError(t, err)
-	defaultGenesisStateOKT()
+	defaultGenesisStateOKB()
 }
 
 func TestInitGenesis(t *testing.T) {
@@ -29,7 +29,7 @@ func TestInitGenesis(t *testing.T) {
 	params := keeper.GetParams(ctx)
 
 	var tokens []types.Token
-	tokens = append(tokens, defaultGenesisStateOKT())
+	tokens = append(tokens, defaultGenesisStateOKB())
 
 	var lockedCoins []types.AccCoins
 	decCoin := sdk.NewDecCoinFromDec(tokens[0].Symbol, sdk.NewDec(1234))

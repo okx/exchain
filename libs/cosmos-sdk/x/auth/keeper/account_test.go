@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
@@ -27,9 +26,9 @@ func Test_IterateAccounts(t *testing.T) {
 			addrs := make(map[ethcmn.Address]struct{}, c.num)
 			for i := 0; i < c.num; i++ {
 				arr := []byte{byte((i & 0xFF0000) >> 16), byte((i & 0xFF00) >> 8), byte(i & 0xFF)}
-				addr := sdk.AccAddress(arr)
+				addr := ethcmn.BytesToAddress(arr)
 				addrs[ethcmn.BytesToAddress(arr)] = struct{}{}
-				acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
+				acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr.Bytes())
 				app.AccountKeeper.SetAccount(ctx, acc)
 			}
 			app.Commit(abci.RequestCommit{})

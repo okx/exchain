@@ -36,7 +36,7 @@ func (adapter BankKeeperAdapter) IsSendEnabledCoins(ctx sdk.Context, coins ...sd
 	if !adapter.Keeper.GetSendEnabled(ctx) {
 		return sdkerrors.Wrapf(types.ErrSendDisabled, "transfers are currently disabled")
 	}
-	// todo weather allow different form okt coin send enable
+	// todo weather allow different form okb coin send enable
 	return nil
 }
 

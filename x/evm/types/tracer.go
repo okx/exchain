@@ -1,6 +1,7 @@
 package types
 
 import (
+	json2 "encoding/json"
 	"fmt"
 	"math/big"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers"
+	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	json "github.com/json-iterator/go"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 )
@@ -28,14 +30,14 @@ type TraceConfig struct {
 	DisableReturnData bool `json:"disableReturnData"`
 }
 
-func GetTracerResult(tracer vm.Tracer, result *core.ExecutionResult) ([]byte, error) {
+func GetTracerResult(tracer tracers.Tracer, result *core.ExecutionResult) ([]byte, error) {
 	var (
 		res []byte
 		err error
 	)
 	// Depending on the tracer type, format and return the output
 	switch tracer := tracer.(type) {
-	case *vm.StructLogger:
+	case *logger.StructLogger:
 		// If the result contains a revert reason, return it.
 		returnVal := fmt.Sprintf("%x", result.Return())
 		if len(result.Revert()) > 0 {
@@ -47,10 +49,8 @@ func GetTracerResult(tracer vm.Tracer, result *core.ExecutionResult) ([]byte, er
 			ReturnValue: returnVal,
 			StructLogs:  FormatLogs(tracer.StructLogs()),
 		})
-	case *tracers.Tracer:
-		res, err = tracer.GetResult()
 	default:
-		res = []byte(fmt.Sprintf("bad tracer type %T", tracer))
+		res, err = tracer.GetResult()
 	}
 	return res, err
 }
@@ -58,8 +58,28 @@ func GetTracerResult(tracer vm.Tracer, result *core.ExecutionResult) ([]byte, er
 // NoOpTracer is an empty implementation of vm.Tracer interface
 type NoOpTracer struct{}
 
+func (dt NoOpTracer) CaptureTxStart(gasLimit uint64) {
+}
+
+func (dt NoOpTracer) CaptureTxEnd(restGas uint64) {
+}
+
+func (dt NoOpTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
+}
+
+func (dt NoOpTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
+}
+
+func (dt NoOpTracer) GetResult() (json2.RawMessage, error) {
+	return json2.RawMessage(`{}`), nil
+}
+
+func (dt NoOpTracer) Stop(err error) {
+
+}
+
 // NewNoOpTracer creates a no-op vm.Tracer
-func NewNoOpTracer() *NoOpTracer {
+func NewNoOpTracer() tracers.Tracer {
 	return &NoOpTracer{}
 }
 
@@ -88,31 +108,6 @@ func (dt NoOpTracer) CaptureEnter(
 // CaptureExit implements vm.Tracer interface
 func (dt NoOpTracer) CaptureExit(output []byte, gasUsed uint64, err error) {}
 
-// CaptureState implements vm.Tracer interface
-func (dt NoOpTracer) CaptureState(
-	env *vm.EVM,
-	pc uint64,
-	op vm.OpCode,
-	gas, cost uint64,
-	scope *vm.ScopeContext,
-	rData []byte,
-	depth int,
-	err error,
-) {
-}
-
-// CaptureFault implements vm.Tracer interface
-func (dt NoOpTracer) CaptureFault(
-	env *vm.EVM,
-	pc uint64,
-	op vm.OpCode,
-	gas, cost uint64,
-	scope *vm.ScopeContext,
-	depth int,
-	err error,
-) {
-}
-
 // CaptureEnd implements vm.Tracer interface
 func (dt NoOpTracer) CaptureEnd(
 	output []byte,
@@ -133,14 +128,14 @@ func defaultTracerConfig() *TraceConfig {
 }
 func TestTracerConfig(traceConfig *TraceConfig) error {
 	if traceConfig.Tracer != "" {
-		_, err := tracers.New(traceConfig.Tracer, &tracers.Context{})
+		_, err := tracers.New(traceConfig.Tracer, &tracers.Context{}, nil)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
+func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer tracers.Tracer) {
 	if ctx.IsTraceTxLog() {
 		var err error
 		configBytes := ctx.TraceTxLogConfig()
@@ -155,20 +150,20 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 		}
 		if traceConfig.Tracer == "" {
 			//Basic tracer with config
-			logConfig := vm.LogConfig{
-				DisableMemory:     traceConfig.DisableMemory,
-				DisableStorage:    traceConfig.DisableStorage,
-				DisableStack:      traceConfig.DisableStack,
-				DisableReturnData: traceConfig.DisableReturnData,
-				Debug:             traceConfig.Debug,
+			logConfig := logger.Config{
+				EnableMemory:     !traceConfig.DisableMemory,
+				DisableStorage:   traceConfig.DisableStorage,
+				DisableStack:     traceConfig.DisableStack,
+				EnableReturnData: !traceConfig.DisableReturnData,
+				Debug:            traceConfig.Debug,
 			}
-			return vm.NewStructLogger(&logConfig)
+			return logger.NewStructLogger(&logConfig)
 		}
 		// Json-based tracer
 		tCtx := &tracers.Context{
 			TxHash: *txHash,
 		}
-		tracer, err = tracers.New(traceConfig.Tracer, tCtx)
+		tracer, err = tracers.New(traceConfig.Tracer, tCtx, nil)
 		if err != nil {
 			return NewNoOpTracer()
 		}

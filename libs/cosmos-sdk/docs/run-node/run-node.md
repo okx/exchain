@@ -41,13 +41,13 @@ The `~/.exchaind` folder has the following structure:
 
 Before starting the chain, you need to populate the state with at least one account. To do so, first [create a new account in the keyring](./keyring.md#adding-keys-to-the-keyring) named `my_validator` under the `test` keyring backend (feel free to choose another name and another backend).
 
-Now that you have created a local account, go ahead and grant it some `okt` tokens in your chain's genesis file. Doing so will also make sure your chain is aware of this account's existence:
+Now that you have created a local account, go ahead and grant it some `okb` tokens in your chain's genesis file. Doing so will also make sure your chain is aware of this account's existence:
 
 ```bash
-exchaind add-genesis-account $MY_VALIDATOR_ADDRESS 100000000okt
+exchaind add-genesis-account $MY_VALIDATOR_ADDRESS 100000000okb
 ```
 
-Recall that `$MY_VALIDATOR_ADDRESS` is a variable that holds the address of the `my_validator` key in the [keyring](./keyring.md#adding-keys-to-the-keyring). Also note that the tokens in the SDK have the `{amount}{denom}` format: `amount` is is a 18-digit-precision decimal number, and `denom` is the unique token identifier with its denomination key (e.g. `okt`). Here, we are granting `okt` tokens, as `okt` is the token identifier used for staking in [`exchaind`](https://github.com/okx/okbchain). For your own chain with its own staking denom, that token identifier should be used instead.
+Recall that `$MY_VALIDATOR_ADDRESS` is a variable that holds the address of the `my_validator` key in the [keyring](./keyring.md#adding-keys-to-the-keyring). Also note that the tokens in the SDK have the `{amount}{denom}` format: `amount` is is a 18-digit-precision decimal number, and `denom` is the unique token identifier with its denomination key (e.g. `okb`). Here, we are granting `okb` tokens, as `okb` is the token identifier used for staking in [`exchaind`](https://github.com/okx/okbchain). For your own chain with its own staking denom, that token identifier should be used instead.
 
 Now that your account has some tokens, you need to add a validator to your chain. Validators are special full-nodes that participate in the consensus process (implemented in the [underlying consensus engine](../intro/sdk-app-architecture.md#tendermint)) in order to add new blocks to the chain. Any account can declare its intention to become a validator operator, but only those with sufficient delegation get to enter the active set (for example, only the top 125 validator candidates with the most delegation get to be validators in the Cosmos Hub). For this guide, you will add your local node (created via the `init` command above) as a validator of your chain. Validators can be declared before a chain is first started via a special transaction included in the genesis file called a `gentx`:
 

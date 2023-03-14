@@ -9,7 +9,7 @@ import (
 	"github.com/okx/okbchain/x/token/types"
 )
 
-// default owner of okt
+// default owner of okb
 const DefaultTokenOwner = "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"
 
 // all state that must be provided in genesis file
@@ -24,14 +24,14 @@ type GenesisState struct {
 func defaultGenesisState() GenesisState {
 	return GenesisState{
 		Params:       types.DefaultParams(),
-		Tokens:       []types.Token{defaultGenesisStateOKT()},
+		Tokens:       []types.Token{defaultGenesisStateOKB()},
 		LockedAssets: nil,
 		LockedFees:   nil,
 	}
 }
 
-// default okt information
-func defaultGenesisStateOKT() types.Token {
+// default okb information
+func defaultGenesisStateOKB() types.Token {
 	addr, err := sdk.AccAddressFromBech32(DefaultTokenOwner)
 	if err != nil {
 		panic(err)
@@ -42,7 +42,7 @@ func defaultGenesisStateOKT() types.Token {
 		Description:         "OK Group Global Utility Token",
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
-		WholeName:           "OKT",
+		WholeName:           "OKB",
 		OriginalTotalSupply: totalSupply,
 		Owner:               addr,
 		Mintable:            true,

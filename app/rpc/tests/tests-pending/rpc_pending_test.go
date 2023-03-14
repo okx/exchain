@@ -39,7 +39,7 @@ import (
 
 const (
 	addrAStoreKey      = 0
-	defaultMinGasPrice = "0.000000001okt"
+	defaultMinGasPrice = "0.000000001okb"
 	latestBlockNumber  = "latest"
 	pendingBlockNumber = "pending"
 )

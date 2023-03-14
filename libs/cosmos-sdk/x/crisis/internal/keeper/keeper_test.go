@@ -27,13 +27,12 @@ func TestInvariants(t *testing.T) {
 }
 
 func TestAssertInvariants(t *testing.T) {
-	return // TODO: add back when fix mtp store iterator bug
-	//app := createTestApp()
-	//ctx := app.NewContext(true, abci.Header{})
-	//
-	//app.CrisisKeeper.RegisterRoute("testModule", "testRoute1", func(sdk.Context) (string, bool) { return "", false })
-	//require.NotPanics(t, func() { app.CrisisKeeper.AssertInvariants(ctx) })
-	//
-	//app.CrisisKeeper.RegisterRoute("testModule", "testRoute2", func(sdk.Context) (string, bool) { return "", true })
-	//require.Panics(t, func() { app.CrisisKeeper.AssertInvariants(ctx) })
+	app := createTestApp()
+	ctx := app.NewContext(true, abci.Header{})
+
+	app.CrisisKeeper.RegisterRoute("testModule", "testRoute1", func(sdk.Context) (string, bool) { return "", false })
+	require.NotPanics(t, func() { app.CrisisKeeper.AssertInvariants(ctx) })
+
+	app.CrisisKeeper.RegisterRoute("testModule", "testRoute2", func(sdk.Context) (string, bool) { return "", true })
+	require.Panics(t, func() { app.CrisisKeeper.AssertInvariants(ctx) })
 }
