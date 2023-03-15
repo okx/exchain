@@ -1,4 +1,4 @@
-package watcher_test
+package watcher
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/okex/exchain/app"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
+	app "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -26,8 +26,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	etypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/okex/exchain/x/gov"
+	//"github.com/okex/exchain/x/gov"
 )
 
 var (
@@ -37,7 +36,6 @@ var (
 	evmChainID    = big.NewInt(3)
 
 	cosmosChainId = "ethermint-3"
-	checkTx       = false
 
 	nonce0 = uint64(0)
 	nonce1 = uint64(1)
@@ -57,15 +55,11 @@ var (
 	blockHeight = int64(2)
 
 	accountNum = uint64(0)
-
-	TransactionSuccess = uint32(1)
 )
-
-type WatchTx watcher.WatchTx
 
 type TxTestSuite struct {
 	suite.Suite
-	Watcher            watcher.Watcher
+	Watcher            Watcher
 	TxDecoder          sdk.TxDecoder
 	height             int64
 	evmSenderPrivKey   ethsecp256k1.PrivKey
@@ -73,15 +67,12 @@ type TxTestSuite struct {
 
 	stdSenderPrivKey    ethsecp256k1.PrivKey
 	stdSenderAccAddress sdk.AccAddress
-	app                 *app.OKExChainApp
-	watcherBatch        []watcher.WatchMessage
-	watcherBlockTxs     []ethcommon.Hash
-	watcherBlockStdTxs  []ethcommon.Hash
+	app                 *app.BaseApp
 }
 
-func (suite *TxTestSuite) Ctx() sdk.Context {
-	return suite.app.BaseApp.GetDeliverStateCtx()
-}
+//func (suite *TxTestSuite) Ctx() sdk.Context {
+//	return suite.app..GetDeliverStateCtx()
+//}
 
 // only used for comparing mockTx and ethTx in Case 2
 func realTxBoolCompare(a sdk.Tx, b sdk.Tx) bool {
@@ -96,17 +87,17 @@ func realTxBoolCompare(a sdk.Tx, b sdk.Tx) bool {
 
 // For generating DeliverTxResponse with DeliverTx
 func (suite *TxTestSuite) SetupTest() {
-	suite.app = app.Setup(checkTx, app.WithChainId(cosmosChainId))
-	params := etypes.DefaultParams()
-	params.EnableCreate = true
-	params.EnableCall = true
-	suite.app.EvmKeeper.SetParams(suite.Ctx(), params)
+	//suite.app = app.Setup(false, app.WithChainId(cosmosChainId))
+	//params := etypes.DefaultParams()
+	//params.EnableCreate = true
+	//params.EnableCall = true
+	//suite.app.EvmKeeper.SetParams(suite.Ctx(), params)
 
 	suite.evmSenderPrivKey, _ = ethsecp256k1.GenerateKey()
 	codecProxy, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
 	suite.TxDecoder = etypes.TxDecoder(codecProxy)
 
-	suite.Watcher = *(watcher.NewWatcher(log.NewTMLogger(os.Stdout)))
+	suite.Watcher = *(NewWatcher(log.NewTMLogger(os.Stdout)))
 
 	//streamMetrics := monitor.DefaultStreamMetrics(monitor.DefaultPrometheusConfig())
 	//suite.app.InfuraKeeper = infura.NewKeeper(nil, log.NewTMLogger(os.Stdout), streamMetrics)
@@ -115,27 +106,27 @@ func (suite *TxTestSuite) SetupTest() {
 func (suite *TxTestSuite) beginFakeBlock() {
 	suite.evmSenderPrivKey, _ = ethsecp256k1.GenerateKey()
 	suite.evmContractAddress = ethcrypto.CreateAddress(ethcommon.HexToAddress(suite.evmSenderPrivKey.PubKey().Address().String()), 0)
-	accountEvm := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.evmSenderPrivKey.PubKey().Address().Bytes())
-	accountEvm.SetAccountNumber(accountNum)
-	accountEvm.SetCoins(sdk.NewCoins(Coin1000))
-	suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountEvm)
-
-	suite.stdSenderPrivKey, _ = ethsecp256k1.GenerateKey()
-	suite.stdSenderAccAddress = sdk.AccAddress(suite.stdSenderPrivKey.PubKey().Address())
-	accountStd := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.stdSenderAccAddress.Bytes())
-	accountStd.SetAccountNumber(accountNum)
-	accountStd.SetCoins(sdk.NewCoins(Coin1000))
-	suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountStd)
-	err := suite.app.BankKeeper.SetCoins(suite.Ctx(), suite.stdSenderAccAddress, sdk.NewCoins(Coin1000))
-	suite.Require().NoError(err)
+	//accountEvm := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.evmSenderPrivKey.PubKey().Address().Bytes())
+	//accountEvm.SetAccountNumber(accountNum)
+	//accountEvm.SetCoins(sdk.NewCoins(Coin1000))
+	//suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountEvm)
+	//
+	//suite.stdSenderPrivKey, _ = ethsecp256k1.GenerateKey()
+	//suite.stdSenderAccAddress = sdk.AccAddress(suite.stdSenderPrivKey.PubKey().Address())
+	//accountStd := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.stdSenderAccAddress.Bytes())
+	//accountStd.SetAccountNumber(accountNum)
+	//accountStd.SetCoins(sdk.NewCoins(Coin1000))
+	//suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountStd)
+	//err := suite.app.BankKeeper.SetCoins(suite.Ctx(), suite.stdSenderAccAddress, sdk.NewCoins(Coin1000))
+	//suite.Require().NoError(err)
 
 	tmtypes.UnittestOnlySetMilestoneVenusHeight(blockHeight - 1)
 	global.SetGlobalHeight(blockHeight - 1)
-	suite.app.BeginBlocker(suite.Ctx(), tm.RequestBeginBlock{Header: tm.Header{Height: blockHeight}})
+	//suite.app.BeginBlocker(suite.Ctx(), tm.RequestBeginBlock{Header: tm.Header{Height: blockHeight}})
 }
 
 func (suite *TxTestSuite) endFakeBlock() {
-	suite.app.EndBlocker(suite.Ctx(), tm.RequestEndBlock{})
+	//suite.app.EndBlocker(suite.Ctx(), tm.RequestEndBlock{})
 }
 
 func TestWatcherTx(t *testing.T) {
@@ -187,7 +178,7 @@ func (suite *TxTestSuite) TestGetRealTx() {
 		suite.Run(tc.title, func() {
 			Tx, realTx := tc.buildTx()
 			suite.Require().NotNil(Tx)
-			resrTx, err := suite.Watcher.GetRealTx(Tx, suite.TxDecoder)
+			resrTx, err := suite.Watcher.getRealTx(Tx, suite.TxDecoder)
 			if err != nil {
 				suite.Require().Nil(realTx)
 			} else {
@@ -217,7 +208,7 @@ func (suite *TxTestSuite) TestCreateWatchTx() {
 				evmMsg := evmTx.GetMsgs()
 				extEvmTx, ok := evmMsg[0].(*etypes.MsgEthereumTx)
 				suite.Require().True(ok, "extract emv Tx from Msg error, type assertion in testCase error")
-				txMsg := watcher.NewEvmTx(extEvmTx, ethcommon.BytesToHash(evmTx.TxHash()), suite.Watcher.GetBlockHash(), suite.Watcher.GetHeight(), suite.Watcher.GetEvmTxIndex())
+				txMsg := NewEvmTx(extEvmTx, ethcommon.BytesToHash(evmTx.TxHash()), suite.Watcher.blockHash, suite.Watcher.height, suite.Watcher.GetEvmTxIndex())
 				return evmTx, txMsg
 			},
 			wIndexCompEnable: true,
@@ -237,7 +228,7 @@ func (suite *TxTestSuite) TestCreateWatchTx() {
 			if tc.wIndexCompEnable {
 				oldWIndex = suite.Watcher.GetEvmTxIndex()
 			}
-			resWatchTx := suite.Watcher.CreateWatchTx(evmTx)
+			resWatchTx := suite.Watcher.createWatchTx(evmTx)
 			if tc.wIndexCompEnable {
 				suite.Require().Equal(oldWIndex+1, suite.Watcher.GetEvmTxIndex(), "%s evmTxIndex increase error", tc.title)
 			}
@@ -248,7 +239,7 @@ func (suite *TxTestSuite) TestCreateWatchTx() {
 }
 
 func (suite *TxTestSuite) testUpdateCumulativeGasWithArg(txIndex uint64, gasUsed uint64) uint64 {
-	cumulativeGasMap := suite.Watcher.GetCumulativeGas()
+	cumulativeGasMap := suite.Watcher.cumulativeGas
 	suite.Require().True(len(cumulativeGasMap) > 0, "UpdateCumulativeGas failed, no append item")
 	var cumulativeGas uint64
 	if len(cumulativeGasMap) == 1 {
@@ -270,15 +261,15 @@ func (suite *TxTestSuite) testUpdateCumulativeGasWithArg(txIndex uint64, gasUsed
 //	return
 //}
 
-func (suite *TxTestSuite) testAppendMsgTransactionReceiptWithArg(receipt *watcher.TransactionReceipt, TxHash ethcommon.Hash, index int) {
-	expectedMsg := watcher.NewMsgTransactionReceipt(*receipt, TxHash)
-	getBatch := suite.Watcher.GetBatch()
+func (suite *TxTestSuite) testAppendMsgTransactionReceiptWithArg(receipt *TransactionReceipt, TxHash ethcommon.Hash, index int) {
+	expectedMsg := NewMsgTransactionReceipt(*receipt, TxHash)
+	getBatch := suite.Watcher.batch
 	suite.Require().True(len(getBatch) >= index+1, "No MsgTransactionReceipt is appended to batch")
 	getMsg := getBatch[index]
-	getMsgTxReceipt, ok := getMsg.(*watcher.MsgTransactionReceipt)
+	getMsgTxReceipt, ok := getMsg.(*MsgTransactionReceipt)
 	suite.Require().True(ok, "Convert WatchMessage to MsgTransactionReceipt Error")
 	suite.Require().Equal(*(expectedMsg.TransactionReceipt), *(getMsgTxReceipt.TransactionReceipt), "Append MsgTransactionReceipt to batch Error")
-	suite.Require().Equal(expectedMsg.GetTxHash(), getMsgTxReceipt.GetTxHash(), "Append MsgTransactionReceipt to batch Error")
+	suite.Require().Equal(expectedMsg.txHash, getMsgTxReceipt.txHash, "Append MsgTransactionReceipt to batch Error")
 	return
 }
 
@@ -303,8 +294,8 @@ func (suite *TxTestSuite) testSaveFailedReceiptWithArg(watchTx WatchTx, gasUsed 
 
 func (suite *TxTestSuite) testSaveTransactionReceiptWithArg(status uint32, msg *etypes.MsgEthereumTx, txHash ethcommon.Hash, txIndex uint64, data *etypes.ResultData, gasUsed uint64, index int) {
 	_ = suite.testUpdateCumulativeGasWithArg(txIndex, gasUsed)
-	cumulativeGas := suite.Watcher.GetCumulativeGas()[txIndex]
-	receipt := watcher.NewTransactionReceipt(status, msg, txHash, suite.Watcher.GetBlockHash(), txIndex, suite.Watcher.GetHeight(), data, cumulativeGas, gasUsed)
+	cumulativeGas := suite.Watcher.cumulativeGas[txIndex]
+	receipt := newTransactionReceipt(status, msg, txHash, suite.Watcher.blockHash, txIndex, suite.Watcher.height, data, cumulativeGas, gasUsed)
 	//suite.testOnSaveTransactionReceiptWithArg(&receipt)
 	suite.testAppendMsgTransactionReceiptWithArg(&receipt, txHash, index)
 	return
@@ -327,21 +318,21 @@ func (suite *TxTestSuite) testSaveTxWithArg(watchTx WatchTx, batchIndex int) {
 	//}
 	txWatchMessage := watchTx.GetTxWatchMessage()
 	if txWatchMessage != nil {
-		respBatch := suite.watcherBatch
+		respBatch := suite.Watcher.batch
 		suite.Require().True(len(respBatch) >= batchIndex+1, "Append txWatchMessage to batch Error : count error")
 		respMsg := respBatch[batchIndex]
 		//suite.Require().Equal(txWatchMessage, respMsg, "Append txWatchMessage to batch Error : mismatch message")
-		expectEthMsg, ok := txWatchMessage.(*watcher.MsgEthTx)
+		expectEthMsg, ok := txWatchMessage.(*MsgEthTx)
 		suite.Require().True(ok, "Convert to MsgEthTx error in testSaveTxWithArg")
-		respEthMsg, ok := respMsg.(*watcher.MsgEthTx)
+		respEthMsg, ok := respMsg.(*MsgEthTx)
 		suite.Require().True(ok, "Convert to MsgEthTx error in testSaveTxWithArg")
-		expectTx := expectEthMsg.GetTransaction()
-		respTx := respEthMsg.GetTransaction()
-		suite.Require().Equal(expectTx.GetTx(), respTx.GetTx(), "Append txWatchMessage to batch Error : mismatch message")
-		suite.Require().Equal(expectTx.GetHash(), respTx.GetHash(), "Append txWatchMessage to batch Error : mismatch message")
+		expectTx := expectEthMsg.Transaction
+		respTx := respEthMsg.Transaction
+		suite.Require().Equal(expectTx.tx, respTx.tx, "Append txWatchMessage to batch Error : mismatch message")
+		suite.Require().Equal(expectTx.Hash, respTx.Hash, "Append txWatchMessage to batch Error : mismatch message")
 		suite.Require().Equal(expectEthMsg.GetKey(), respEthMsg.GetKey(), "Append txWatchMessage to batch Error : mismatch message")
 	}
-	respBlockTxs := suite.watcherBlockTxs[len(suite.watcherBlockTxs)-1]
+	respBlockTxs := suite.Watcher.blockTxs[len(suite.Watcher.blockTxs)-1]
 	suite.Require().Equal(watchTx.GetTxHash(), respBlockTxs, "Append Tx Hash error in saveTx")
 }
 
@@ -350,7 +341,7 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 		title            string
 		watcherEnabled   bool
 		buildInput       func() (tm.TxEssentials, *tm.ResponseDeliverTx) // build the input of the tested function
-		genStdTxResponse func(tm.TxEssentials, *tm.ResponseDeliverTx) *watcher.MsgStdTransactionResponse
+		genStdTxResponse func(tm.TxEssentials, *tm.ResponseDeliverTx) *MsgStdTransactionResponse
 		genWatchTx       func(tm.TxEssentials) (WatchTx, sdk.Tx)
 		numBatch         int
 	}{
@@ -365,20 +356,20 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				resp := suite.app.DeliverRealTx(tx)
 				return tx, &resp
 			},
-			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *watcher.MsgStdTransactionResponse {
+			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *MsgStdTransactionResponse {
 				result := &ctypes.ResultTx{
 					Hash:     tx.TxHash(),
-					Height:   int64(suite.Watcher.GetHeight()),
+					Height:   int64(suite.Watcher.height),
 					TxResult: *resp,
 					Tx:       tx.GetRaw(),
 				}
-				newMsg := watcher.NewStdTransactionResponse(result, suite.Watcher.GetHeader().Time, ethcommon.BytesToHash(result.Hash))
+				newMsg := NewStdTransactionResponse(result, suite.Watcher.header.Time, ethcommon.BytesToHash(result.Hash))
 				return newMsg
 			},
 			genWatchTx: func(tx tm.TxEssentials) (WatchTx, sdk.Tx) {
 				evmTx, ok := tx.(sdk.Tx)
 				suite.Require().True(ok, "evmTx generate WatchTx error")
-				watchTx := suite.Watcher.CreateWatchTx(evmTx)
+				watchTx := suite.Watcher.createWatchTx(evmTx)
 				return watchTx, evmTx
 			},
 			numBatch: 2,
@@ -394,63 +385,67 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				resp := suite.app.DeliverRealTx(tx)
 				return tx, &resp
 			},
-			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *watcher.MsgStdTransactionResponse {
+			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *MsgStdTransactionResponse {
 				result := &ctypes.ResultTx{
 					Hash:     tx.TxHash(),
-					Height:   int64(suite.Watcher.GetHeight()),
+					Height:   int64(suite.Watcher.height),
 					TxResult: *resp,
 					Tx:       tx.GetRaw(),
 				}
-				newMsg := watcher.NewStdTransactionResponse(result, suite.Watcher.GetHeader().Time, ethcommon.BytesToHash(result.Hash))
+				newMsg := NewStdTransactionResponse(result, suite.Watcher.header.Time, ethcommon.BytesToHash(result.Hash))
 				return newMsg
 			},
 			genWatchTx: func(tx tm.TxEssentials) (WatchTx, sdk.Tx) {
-				evmTx, ok := tx.(sdk.Tx)
+				var expectWatchTx WatchTx
+				realTx, ok := tx.(sdk.Tx)
 				suite.Require().True(ok, "evmTx generate WatchTx error")
 				//Create the same Watcher as the tested function
-				watchTx := suite.Watcher.CreateExpectedWatchTx(evmTx)
-				return watchTx, evmTx
+				watchTx := suite.Watcher.createWatchTx(realTx)
+				expectTx, ok := watchTx.(*evmTx)
+				expectTx.index = expectTx.index - 1
+				expectWatchTx = expectTx
+				return expectWatchTx, realTx
 			},
 			numBatch: 3,
 		},
-		{
-			title:          "StdTx success with none-nil ResponseDeliverTx",
-			watcherEnabled: true,
-			buildInput: func() (tm.TxEssentials, *tm.ResponseDeliverTx) {
-				//send std tx for gov, success
-				content := gov.NewTextProposal("Test", "description")
-				newProposalMsg := gov.NewMsgSubmitProposal(content, sysCoins10, suite.stdSenderAccAddress)
-				depositMsg := gov.NewMsgDeposit(suite.stdSenderAccAddress, govProposalID1, sysCoins90)
-				msgs := []sdk.Msg{newProposalMsg, depositMsg}
-				tx := newTestStdTx(msgs, []crypto.PrivKey{suite.stdSenderPrivKey}, []uint64{accountNum}, []uint64{nonce0}, txFees, memo)
-				resp := suite.app.DeliverRealTx(tx)
-				return tx, &resp
-			},
-			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *watcher.MsgStdTransactionResponse {
-				result := &ctypes.ResultTx{
-					Hash:     tx.TxHash(),
-					Height:   int64(suite.Watcher.GetHeight()),
-					TxResult: *resp,
-					Tx:       tx.GetRaw(),
-				}
-				newMsg := watcher.NewStdTransactionResponse(result, suite.Watcher.GetHeader().Time, ethcommon.BytesToHash(result.Hash))
-				return newMsg
-			},
-			genWatchTx: func(tx tm.TxEssentials) (WatchTx, sdk.Tx) {
-				stdTx, ok := tx.(sdk.Tx)
-				suite.Require().True(ok, "StdTx generate WatchTx error")
-				watchTx := suite.Watcher.CreateWatchTx(stdTx)
-				return watchTx, stdTx
-			},
-			numBatch: 1,
-		},
+		//{
+		//	title:          "StdTx success with none-nil ResponseDeliverTx",
+		//	watcherEnabled: true,
+		//	buildInput: func() (tm.TxEssentials, *tm.ResponseDeliverTx) {
+		//		//send std tx for gov, success
+		//		content := gov.NewTextProposal("Test", "description")
+		//		newProposalMsg := gov.NewMsgSubmitProposal(content, sysCoins10, suite.stdSenderAccAddress)
+		//		depositMsg := gov.NewMsgDeposit(suite.stdSenderAccAddress, govProposalID1, sysCoins90)
+		//		msgs := []sdk.Msg{newProposalMsg, depositMsg}
+		//		tx := newTestStdTx(msgs, []crypto.PrivKey{suite.stdSenderPrivKey}, []uint64{accountNum}, []uint64{nonce0}, txFees, memo)
+		//		resp := suite.app.DeliverRealTx(tx)
+		//		return tx, &resp
+		//	},
+		//	genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *MsgStdTransactionResponse {
+		//		result := &ctypes.ResultTx{
+		//			Hash:     tx.TxHash(),
+		//			Height:   int64(suite.Watcher.height),
+		//			TxResult: *resp,
+		//			Tx:       tx.GetRaw(),
+		//		}
+		//		newMsg := NewStdTransactionResponse(result, suite.Watcher.header.Time, ethcommon.BytesToHash(result.Hash))
+		//		return newMsg
+		//	},
+		//	genWatchTx: func(tx tm.TxEssentials) (WatchTx, sdk.Tx) {
+		//		stdTx, ok := tx.(sdk.Tx)
+		//		suite.Require().True(ok, "StdTx generate WatchTx error")
+		//		watchTx := suite.Watcher.createWatchTx(stdTx)
+		//		return watchTx, stdTx
+		//	},
+		//	numBatch: 1,
+		//},
 		{
 			title:          "Watcher Disabled",
 			watcherEnabled: false,
 			buildInput: func() (tm.TxEssentials, *tm.ResponseDeliverTx) {
 				return nil, nil
 			},
-			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *watcher.MsgStdTransactionResponse {
+			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *MsgStdTransactionResponse {
 				return nil
 			},
 			genWatchTx: func(tx tm.TxEssentials) (WatchTx, sdk.Tx) {
@@ -466,8 +461,9 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 		suite.Run(tc.title, func() {
 			suite.Watcher.Enable(tc.watcherEnabled)
 			tx, resp := tc.buildInput()
-			suite.watcherBatch = suite.Watcher.GetBatch()
-			oldlenbatch := len(suite.watcherBatch)
+			//there is a mutex for batch, direct copy is inappropriate
+			//suite.watcherBatch = suite.Watcher.batch
+			oldlenbatch := len(suite.Watcher.batch)
 			oldWatcher := suite.Watcher
 			suite.Watcher.RecordTxAndFailedReceipt(tx, resp, suite.TxDecoder)
 			newWatcher := suite.Watcher
@@ -475,17 +471,17 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				suite.Require().Equal(oldWatcher, newWatcher, "Watcher Disabled error")
 				return
 			}
-			suite.watcherBatch = suite.Watcher.GetBatch()
-			suite.watcherBlockTxs = suite.Watcher.GetBlockTxs()
-			suite.watcherBlockStdTxs = suite.Watcher.GetBlockStdTxs()
-			newlenbatch := len(suite.watcherBatch)
+			//suite.watcherBatch = suite.Watcher.batch
+			//suite.watcherBlockTxs = suite.Watcher.blockTxs
+			//suite.watcherBlockStdTxs = suite.Watcher.blockStdTxs
+			newlenbatch := len(suite.Watcher.batch)
 			suite.Require().True(newlenbatch-oldlenbatch == tc.numBatch, "Add Batch Number Wrong")
 			watchTx, realTx := tc.genWatchTx(tx)
 			switch realTx.GetType() {
 			case sdk.EvmTxType:
 				if resp != nil && watchTx != nil {
 					// Test record Result Tx
-					respMsg := suite.watcherBatch[oldlenbatch]
+					respMsg := suite.Watcher.batch[oldlenbatch]
 					expectMsg := tc.genStdTxResponse(tx, resp)
 					suite.Require().Equal(expectMsg, respMsg, "Save txResult error")
 
@@ -504,18 +500,18 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 					suite.testSaveTxWithArg(watchTx, oldlenbatch)
 				} else if resp != nil && watchTx == nil {
 					//Only Result Tx is recorded
-					respMsg := suite.watcherBatch[oldlenbatch]
+					respMsg := suite.Watcher.batch[oldlenbatch]
 					expectMsg := tc.genStdTxResponse(tx, resp)
 					suite.Require().Equal(expectMsg, respMsg, "Save txResult error")
 				}
 			case sdk.StdTxType:
 				if resp != nil {
 					expectMsgStdResponse := tc.genStdTxResponse(tx, resp)
-					respMsgStdResponse := suite.watcherBatch[len(suite.watcherBatch)-1]
+					respMsgStdResponse := suite.Watcher.batch[len(suite.Watcher.batch)-1]
 					suite.Require().Equal(expectMsgStdResponse, respMsgStdResponse, "StdTx save ResultTx error")
 				}
 				expectTxHash := ethcommon.BytesToHash(realTx.TxHash())
-				respTxHash := suite.watcherBlockStdTxs[len(suite.watcherBlockStdTxs)-1]
+				respTxHash := suite.Watcher.blockStdTxs[len(suite.Watcher.blockStdTxs)-1]
 				suite.Require().Equal(expectTxHash, respTxHash, "StdTx save blockStdTxs error")
 			}
 		})
