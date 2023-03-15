@@ -10,11 +10,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
 	clientcontext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
 	tmbytes "github.com/okx/okbchain/libs/tendermint/libs/bytes"
 	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
@@ -154,8 +156,12 @@ func FormatBlock(
 	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
 	transactionsRoot := ethtypes.EmptyRootHash
-	if len(header.DataHash) > 0 {
-		transactionsRoot = common.BytesToHash(header.DataHash)
+	if len(transactions) > 0 {
+		txBzs := make([][]byte, len(transactions))
+		for i := 0; i < len(transactions); i++ {
+			txBzs[i] = transactions[i].Hash.Bytes()
+		}
+		transactionsRoot = common.BytesToHash(merkle.SimpleHashFromByteSlices(txBzs))
 	}
 
 	parentHash := header.LastBlockID.Hash
