@@ -4,21 +4,21 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	clientcontext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 	"strconv"
 	"sync"
 
-	"github.com/gogo/protobuf/proto"
-	prototypes "github.com/okx/okbchain/x/evm/watcher/proto"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/okx/okbchain/app/rpc/namespaces/eth/state"
 	"github.com/okx/okbchain/app/types"
+	clientcontext "github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	evmtypes "github.com/okx/okbchain/x/evm/types"
+	prototypes "github.com/okx/okbchain/x/evm/watcher/proto"
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"

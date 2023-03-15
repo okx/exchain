@@ -13,16 +13,18 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogo/protobuf/proto"
+	"github.com/pkg/errors"
+	"github.com/status-im/keycard-go/hexutils"
+	"github.com/tendermint/go-amino"
+
 	app "github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/libs/tendermint/crypto/merkle"
 	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
 	"github.com/okx/okbchain/x/evm/types"
-	"github.com/pkg/errors"
-	"github.com/status-im/keycard-go/hexutils"
-	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -664,10 +666,17 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 	if timestamp < 0 {
 		timestamp = time.Now().Unix()
 	}
+
 	transactionsRoot := ethtypes.EmptyRootHash
-	if len(header.DataHash) > 0 {
-		transactionsRoot = common.BytesToHash(header.DataHash)
+	if len(txs.([]common.Hash)) > 0 {
+		txsHash := txs.([]common.Hash)
+		txBzs := make([][]byte, len(txsHash))
+		for i := 0; i < len(txsHash); i++ {
+			txBzs[i] = txsHash[i].Bytes()
+		}
+		transactionsRoot = common.BytesToHash(merkle.SimpleHashFromByteSlices(txBzs))
 	}
+
 	return Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
