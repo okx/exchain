@@ -399,10 +399,10 @@ func (store *AsyncKeyValueStore) Prune() {
 		needRemove := store.waitClearPtr
 		needClear := store.waitClearPtr.Next()
 		commitedTask := needClear.Value.(*commitTask)
-		_ = commitedTask.op.Replay(preCommitClearMap(store.preCommit))
 		store.preCommitList.Remove(needRemove)
-		atomic.AddInt64(&store.waitClear, -1)
 		store.waitClearPtr = needClear
+		_ = commitedTask.op.Replay(preCommitClearMap(store.preCommit))
+		atomic.AddInt64(&store.waitClear, -1)
 	}
 }
 
