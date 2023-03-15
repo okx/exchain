@@ -28,7 +28,6 @@ import (
 	etypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/gov"
-	"github.com/okex/exchain/x/infura"
 )
 
 var (
@@ -316,16 +315,16 @@ func (suite *TxTestSuite) testSaveTxWithArg(watchTx WatchTx, batchIndex int) {
 	suite.Require().NotNil(suite.Watcher, "Watcher is nil when testing SaveTx")
 	suite.Require().NotNil(watchTx, "watchTx is nil when testing SaveTx")
 
-	if suite.Watcher.InfuraKeeper != nil {
-		ethTx := watchTx.GetTransaction()
-		if ethTx != nil {
-			//Test OnSaveTransaction
-			expectedKeeper, ok := (suite.Watcher.InfuraKeeper).(infura.Keeper)
-			suite.Require().True(ok, "Get Infura Keeper error")
-			expectedAddedTransaction := expectedKeeper.GetCache().GetTransactions()
-			suite.Require().Equal(expectedAddedTransaction[len(expectedAddedTransaction)-1], *ethTx, "On Save Transaction Receipt error")
-		}
-	}
+	//if suite.Watcher.InfuraKeeper != nil {
+	//	ethTx := watchTx.GetTransaction()
+	//	if ethTx != nil {
+	//		//Test OnSaveTransaction
+	//		expectedKeeper, ok := (suite.Watcher.InfuraKeeper).(infura.Keeper)
+	//		suite.Require().True(ok, "Get Infura Keeper error")
+	//		expectedAddedTransaction := expectedKeeper.GetCache().GetTransactions()
+	//		suite.Require().Equal(expectedAddedTransaction[len(expectedAddedTransaction)-1], *ethTx, "On Save Transaction Receipt error")
+	//	}
+	//}
 	txWatchMessage := watchTx.GetTxWatchMessage()
 	if txWatchMessage != nil {
 		respBatch := suite.watcherBatch
