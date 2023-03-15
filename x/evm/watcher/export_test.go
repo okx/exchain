@@ -60,3 +60,28 @@ func (tx Transaction) GetTx() types.MsgEthereumTx {
 func (tx Transaction) GetHash() ethcommon.Hash {
 	return tx.Hash
 }
+
+func (m MsgTransactionReceipt) GetTxHash() []byte {
+	return m.txHash
+}
+
+func (wtx evmTx) SetIndex(index uint64) {
+	wtx.index = index
+	return
+}
+
+// Create the same Watcher as the tested function
+// with no evmTxIndex increase
+func (w *Watcher) CreateExpectedWatchTx(realTx sdk.Tx) WatchTx {
+	var txMsg WatchTx
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		evmTx, err := w.extractEvmTx(realTx)
+		if err != nil {
+			return nil
+		}
+		txMsg = NewEvmTx(evmTx, ethcommon.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex-1)
+	}
+
+	return txMsg
+}

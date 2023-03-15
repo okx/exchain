@@ -276,7 +276,10 @@ func (suite *TxTestSuite) testAppendMsgTransactionReceiptWithArg(receipt *watche
 	getBatch := suite.Watcher.GetBatch()
 	suite.Require().True(len(getBatch) >= index+1, "No MsgTransactionReceipt is appended to batch")
 	getMsg := getBatch[index]
-	suite.Require().Equal(expectedMsg, getMsg, "Append MsgTransactionReceipt to batch Error")
+	getMsgTxReceipt, ok := getMsg.(*watcher.MsgTransactionReceipt)
+	suite.Require().True(ok, "Convert WatchMessage to MsgTransactionReceipt Error")
+	suite.Require().Equal(*(expectedMsg.TransactionReceipt), *(getMsgTxReceipt.TransactionReceipt), "Append MsgTransactionReceipt to batch Error")
+	suite.Require().Equal(expectedMsg.GetTxHash(), getMsgTxReceipt.GetTxHash(), "Append MsgTransactionReceipt to batch Error")
 	return
 }
 
@@ -288,6 +291,8 @@ func (suite *TxTestSuite) testAppendMsgTransactionReceiptWithArg(receipt *watche
 // These 3 Tests are written in separate *WithArg functions above.
 
 func (suite *TxTestSuite) testSaveFailedReceiptWithArg(watchTx WatchTx, gasUsed uint64, index int) {
+	//watchTxIndex should minus 1 because the evmTxIndex increases by 1
+	//after creating a new watchTx
 	watchTxIndex := watchTx.GetIndex()
 	watchTxHash := watchTx.GetTxHash()
 	RespcumulativeGas := suite.testUpdateCumulativeGasWithArg(watchTxIndex, gasUsed)
@@ -403,7 +408,8 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 			genWatchTx: func(tx tm.TxEssentials) (WatchTx, sdk.Tx) {
 				evmTx, ok := tx.(sdk.Tx)
 				suite.Require().True(ok, "evmTx generate WatchTx error")
-				watchTx := suite.Watcher.CreateWatchTx(evmTx)
+				//Create the same Watcher as the tested function
+				watchTx := suite.Watcher.CreateExpectedWatchTx(evmTx)
 				return watchTx, evmTx
 			},
 			numBatch: 3,
