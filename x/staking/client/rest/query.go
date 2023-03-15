@@ -69,7 +69,6 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		validatorsHandlerFn(cliCtx),
 	).Methods("GET")
 
-	// get a single validator info
 	r.HandleFunc(
 		"/staking/validators/{validatorAddr}",
 		validatorHandlerFn(cliCtx),
@@ -111,6 +110,36 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		accountAddressHandlerFn(cliCtx),
 	).Methods("GET")
 
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/validators",
+		cm45ValidatorsHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/validators/{validatorAddr}",
+		cm45ValidatorHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/delegators/{delegatorAddr}/unbonding_delegations",
+		cm45DelegatorUnbondingDelegationsHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/delegations/{delegatorAddr}",
+		cm45DelegatorHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/pool",
+		cm45PoolHandlerFn(cliCtx),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/staking/v1beta1/params",
+		cm45ParamsHandlerFn(cliCtx),
+	).Methods("GET")
 }
 
 // HTTP request handler to query all delegator bonded validators
@@ -221,7 +250,6 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
-
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
 	}
@@ -245,7 +273,6 @@ func poolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
-
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
 	}
@@ -264,7 +291,6 @@ func paramsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
-
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
 	}

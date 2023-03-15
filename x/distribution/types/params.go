@@ -32,6 +32,18 @@ type Params struct {
 	RewardTruncatePrecision int64   `json:"reward_truncate_precision" yaml:"reward_truncate_precision"`
 }
 
+// WrappedParams is used to wrap the Params, thus making the rest API response compatible with cosmos-sdk
+type WrappedParams struct {
+	Params Params `json:"params" yaml:"params"`
+}
+
+// NewWrappedParams creates a new instance of WrappedParams
+func NewWrappedParams(params Params) WrappedParams {
+	return WrappedParams{
+		Params: params,
+	}
+}
+
 // ParamKeyTable returns the parameter key table.
 func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})

@@ -17,6 +17,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryParams(ctx, k)
 		case types.QueryTreasures:
 			return queryTreasures(ctx, k)
+		case types.QueryInflation:
+			return queryInflation(ctx, k)
 		case types.QueryBlockRewards:
 			return queryBlockRewards(ctx, k)
 		default:
@@ -64,9 +66,11 @@ func queryBlockRewards(ctx sdk.Context, k Keeper) ([]byte, error) {
 }
 
 func queryInflation(ctx sdk.Context, k Keeper) ([]byte, error) {
-	minter := k.GetMinter(ctx)
+	minter := k.GetMinterCustom(ctx)
+	params := k.GetParams(ctx)
+	inflation := k.GetInflation(ctx, &minter, params)
 
-	res, err := codec.MarshalJSONIndent(k.cdc, minter.Inflation)
+	res, err := codec.MarshalJSONIndent(k.cdc, inflation)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

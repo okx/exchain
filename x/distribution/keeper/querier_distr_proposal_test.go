@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
 )
 
 func getQueriedValidatorOutstandingRewards(t *testing.T, ctx sdk.Context, querier sdk.Querier,

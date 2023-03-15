@@ -19,6 +19,9 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryValidatorCommission:
 			return queryValidatorCommission(ctx, path[1:], req, k)
 
+		case types.QueryCM45ValidatorCommission:
+			return cm45QueryValidatorCommission(ctx, path[1:], req, k)
+
 		case types.QueryWithdrawAddr:
 			return queryDelegatorWithdrawAddress(ctx, path[1:], req, k)
 

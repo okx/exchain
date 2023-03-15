@@ -1,10 +1,11 @@
 package keeper
 
 import (
+	"github.com/pkg/errors"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/pkg/errors"
 )
 
 func (k Keeper) AddYieldFarming(ctx sdk.Context, yieldAmt sdk.Coins) error {
@@ -50,6 +51,28 @@ func (k Keeper) UpdateMinterCustom(ctx sdk.Context, minter *types.MinterCustom, 
 	}
 
 	k.SetMinterCustom(ctx, *minter)
+}
+
+// GetInflation returns the inflation of the current state of OKC,
+// and the calculation of inflation can be found at https://github.com/okex/oec/issues/1628.
+func (k Keeper) GetInflation(ctx sdk.Context, minter *types.MinterCustom, params types.Params) sdk.Dec {
+	height := uint64(ctx.BlockHeight())
+	deflationNum := height / (params.DeflationEpoch * params.BlocksPerYear)
+	mpb := uint64(minter.MintedPerBlock.AmountOf(params.MintDenom).TruncateInt64())
+	gmpb := uint64(k.originalMintedPerBlock.TruncateInt64())
+	genesisSupply := uint64(10000000)
+
+	subNum := 2 * params.DeflationEpoch * params.BlocksPerYear * gmpb
+	for i := 0; i < int(deflationNum); i++ {
+		subNum /= 2
+	}
+	addNum := 2 * params.DeflationEpoch * params.BlocksPerYear * gmpb
+	num3 := (height % (params.DeflationEpoch * params.BlocksPerYear)) * mpb
+	prevSupply := genesisSupply + addNum - subNum + num3
+
+	prevSupplyDec := sdk.NewDec(int64(prevSupply))
+	inflation := minter.MintedPerBlock.AmountOf(params.MintDenom).MulInt64(int64(params.BlocksPerYear)).Quo(prevSupplyDec)
+	return inflation
 }
 
 //______________________________________________________________________

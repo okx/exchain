@@ -7,44 +7,12 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
 )
 
-// RegisterRoutes registers staking-related REST handlers to a router
-func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	registerQueryRoutes(cliCtx, r)
-}
-
-func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	// Query the total supply of coins
-	r.HandleFunc(
-		"/supply/total",
-		totalSupplyHandlerFn(cliCtx),
-	).Methods("GET")
-
-	// Query the supply of a single denom
-	r.HandleFunc(
-		"/supply/total/{denom}",
-		supplyOfHandlerFn(cliCtx),
-	).Methods("GET")
-
-	// compatible with cosmos v0.45.1
-	// Query the total supply of coins
-	r.HandleFunc(
-		"/cosmos/bank/v1beta1/supply",
-		cm45TotalSupplyHandlerFn(cliCtx),
-	).Methods("GET")
-
-	// Query the supply of a single denom
-	r.HandleFunc(
-		"/cosmos/bank/v1beta1/supply/{denom}",
-		cm45SupplyOfHandlerFn(cliCtx),
-	).Methods("GET")
-}
-
-// HTTP request handler to query the total supply of coins
-func totalSupplyHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+func cm45TotalSupplyHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
 		if err != nil {
@@ -69,14 +37,15 @@ func totalSupplyHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var coins sdk.Coins
+		cliCtx.Codec.MustUnmarshalJSON(res, &coins)
+		supply := types.NewWrappedSupply(coins)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, supply)
 	}
 }
 
-// HTTP request handler to query the supply of a single denom
-func supplyOfHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+func cm45SupplyOfHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		denom := mux.Vars(r)["denom"]
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
@@ -96,8 +65,11 @@ func supplyOfHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var amount sdk.Dec
+		cliCtx.Codec.MustUnmarshalJSON(res, &amount)
+		coin := sdk.NewDecCoinFromDec(params.Denom, amount)
+		wrappedAmount := types.NewWrappedAmount(coin)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedAmount)
 	}
 }

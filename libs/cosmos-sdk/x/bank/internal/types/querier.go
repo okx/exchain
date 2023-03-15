@@ -13,3 +13,11 @@ type QueryBalanceParams struct {
 func NewQueryBalanceParams(addr sdk.AccAddress) QueryBalanceParams {
 	return QueryBalanceParams{Address: addr}
 }
+
+type WrappedBalances struct {
+	Balances sdk.Coins `json:"balances,omitempty"`
+}
+
+func NewWrappedBalances(coins sdk.Coins) WrappedBalances {
+	return WrappedBalances{Balances: coins}
+}

@@ -15,4 +15,7 @@ func RegisterRPCRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/block_info/{height}", BlockInfoRequestHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/validatorsets/latest", LatestValidatorSetRequestHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/validatorsets/{height}", ValidatorSetRequestHandlerFn(cliCtx)).Methods("GET")
+
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc("/cosmos/base/tendermint/v1beta1/blocks/latest", LatestBlockRequestHandlerFn(cliCtx)).Methods("GET")
 }
