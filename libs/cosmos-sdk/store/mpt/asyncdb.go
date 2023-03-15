@@ -381,10 +381,10 @@ func (store *AsyncKeyValueStore) pruneRoutine() {
 			for {
 				if store.mtx.TryLock() {
 					store.preCommitList.Remove(needRemove)
+					store.waitClearPtr = needClear
 					_ = commitedTask.op.Replay(preCommitClearMap(store.preCommit))
 					store.mtx.Unlock()
 					atomic.AddInt64(&store.waitClear, -1)
-					store.waitClearPtr = needClear
 					break
 				} else {
 					time.Sleep(1 * time.Millisecond)
