@@ -109,7 +109,7 @@ type Element struct {
 
 func (w preCommitClearMap) Put(key []byte, _ []byte) error {
 	if v, ok := w.data[string(key)]; ok {
-		if elep := (*Element)((unsafe.Pointer)(v.ele)); elep.list == nil {
+		if v.ele == w.store.waitClearPtr {
 			delete(w.data, string(key))
 		}
 	}
@@ -118,7 +118,7 @@ func (w preCommitClearMap) Put(key []byte, _ []byte) error {
 
 func (w preCommitClearMap) Delete(key []byte) error {
 	if v, ok := w.data[string(key)]; ok {
-		if elep := (*Element)((unsafe.Pointer)(v.ele)); elep.list == nil {
+		if v.ele == w.store.waitClearPtr {
 			delete(w.data, string(key))
 		}
 	}
@@ -138,6 +138,7 @@ type AsyncKeyValueStore struct {
 	preCommitTail *list.Element
 	preCommitPtr  *list.Element
 	waitClearPtr  *list.Element
+	needClearPtr  *list.Element
 
 	enableCommit     bool
 	disableAutoPrune bool
@@ -370,6 +371,7 @@ func (store *AsyncKeyValueStore) pruneRoutine() {
 		for store.waitClearPtr != preCommitPtr {
 			needRemove := store.waitClearPtr
 			needClear := store.waitClearPtr.Next()
+			store.needClearPtr = needClear
 			commitedTask := needClear.Value.(*commitTask)
 			for {
 				if store.mtx.TryLock() {
@@ -398,6 +400,7 @@ func (store *AsyncKeyValueStore) Prune() {
 	for store.waitClearPtr != preCommitPtr {
 		needRemove := store.waitClearPtr
 		needClear := store.waitClearPtr.Next()
+		store.needClearPtr = needClear
 		commitedTask := needClear.Value.(*commitTask)
 		store.preCommitList.Remove(needRemove)
 		store.waitClearPtr = needClear
