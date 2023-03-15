@@ -6,28 +6,25 @@ import (
 	"os"
 	"runtime/pprof"
 
-	app2 "github.com/okx/okbchain/libs/cosmos-sdk/server/types"
-
-	"github.com/okx/okbchain/libs/cosmos-sdk/server/grpc"
-	"github.com/okx/okbchain/libs/tendermint/consensus"
-
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okx/okbchain/libs/tendermint/rpc/client"
-
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/context"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/server/grpc"
+	app2 "github.com/okx/okbchain/libs/cosmos-sdk/server/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/iavl"
+	mptstore "github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okx/okbchain/libs/system"
+	"github.com/okx/okbchain/libs/tendermint/consensus"
 	"github.com/okx/okbchain/libs/tendermint/libs/cli"
 	"github.com/okx/okbchain/libs/tendermint/libs/log"
 	"github.com/okx/okbchain/libs/tendermint/mempool"
 	"github.com/okx/okbchain/libs/tendermint/node"
 	"github.com/okx/okbchain/libs/tendermint/p2p"
 	"github.com/okx/okbchain/libs/tendermint/proxy"
+	"github.com/okx/okbchain/libs/tendermint/rpc/client"
 	"github.com/okx/okbchain/libs/tendermint/rpc/client/local"
 	"github.com/okx/okbchain/libs/tendermint/state"
 	"github.com/spf13/cobra"
@@ -329,7 +326,9 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.MinCommitItemCount = viper.GetInt64(tmiavl.FlagIavlMinCommitItemCount)
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
-	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
+	EnableTreeAsyncCommit := viper.GetBool(system.FlagTreeEnableAsyncCommit)
+	tmiavl.EnableAsyncCommit = EnableTreeAsyncCommit
+	mptstore.EnableAsyncCommit = EnableTreeAsyncCommit
 	if viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) {
 		tmiavl.SetEnableFastStorage(false)
 		viper.Set(tmiavl.FlagIavlEnableFastStorage, false)
@@ -349,8 +348,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
 	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
 	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
-
-	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
 

@@ -9,8 +9,6 @@ import (
 const (
 	StoreTypeMPT = types.StoreTypeMPT
 
-	TriesInMemory = 100
-
 	// StoreKey is string representation of the store key for mpt
 	StoreKey = "mpt"
 )
@@ -20,6 +18,7 @@ const (
 	FlagTrieCacheSize     = "trie.cache-size"
 	FlagTrieNodesLimit    = "trie.nodes-limit"
 	FlagTrieImgsLimit     = "trie.imgs-limit"
+	FlagTrieInMemory      = "trie.in-memory"
 )
 
 var (
@@ -28,6 +27,9 @@ var (
 	TrieNodesLimit    uint  = 256  // MB
 	TrieImgsLimit     uint  = 4    // MB
 	TrieCommitGap     int64 = 100
+	TriesInMemory     uint  = 100
+
+	EnableAsyncCommit = false
 )
 
 var (
@@ -46,3 +48,7 @@ var (
 	EmptyCodeHash      = crypto.Keccak256Hash(nil)
 	EmptyCodeHashBytes = crypto.Keccak256(nil)
 )
+
+func UpdateCommitGapHeight(gap int64) {
+	TrieCommitGap = gap
+}

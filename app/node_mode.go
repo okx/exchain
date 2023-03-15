@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/spf13/viper"
-
 	"github.com/okx/okbchain/app/config"
 	appconfig "github.com/okx/okbchain/app/config"
 	"github.com/okx/okbchain/app/rpc/backend"
@@ -16,13 +14,14 @@ import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 	store "github.com/okx/okbchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okx/okbchain/libs/cosmos-sdk/types/innertx"
-	"github.com/okx/okbchain/libs/iavl"
+	"github.com/okx/okbchain/libs/system"
 	abcitypes "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/okx/okbchain/libs/tendermint/libs/log"
 	"github.com/okx/okbchain/libs/tendermint/mempool"
 	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	evmtypes "github.com/okx/okbchain/x/evm/types"
 	"github.com/okx/okbchain/x/evm/watcher"
+	"github.com/spf13/viper"
 )
 
 func setNodeConfig(ctx *server.Context) error {
@@ -59,14 +58,14 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(watcher.FlagFastQuery, false)
 	viper.SetDefault(backend.FlagApiBackendBlockLruCache, 30000)
 	viper.SetDefault(backend.FlagApiBackendTxLruCache, 100000)
-	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, false)
+	viper.SetDefault(system.FlagTreeEnableAsyncCommit, false)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(mempool.FlagEnablePendingPool, true)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
 		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
-		watcher.FlagFastQuery, false, iavl.FlagIavlEnableAsyncCommit, false,
+		watcher.FlagFastQuery, false, system.FlagTreeEnableAsyncCommit, false,
 		flags.FlagMaxOpenConnections, 20000, mempool.FlagEnablePendingPool, true,
 		server.FlagCORS, "*"))
 }
@@ -74,7 +73,7 @@ func setRpcConfig(ctx *server.Context) {
 func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode)
-	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, false)
+	viper.SetDefault(system.FlagTreeEnableAsyncCommit, false)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
@@ -84,7 +83,7 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(config.FlagEnablePGU, true)
 
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
-		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, false,
+		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode, system.FlagTreeEnableAsyncCommit, false,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
 		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000,
 		mempool.FlagEnablePendingPool, false))
@@ -94,13 +93,13 @@ func setArchiveConfig(ctx *server.Context) {
 	viper.SetDefault(server.FlagPruning, "nothing")
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
-	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, false)
+	viper.SetDefault(system.FlagTreeEnableAsyncCommit, false)
 	viper.SetDefault(flags.FlagMaxOpenConnections, 20000)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
 		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by archive node mode",
 		server.FlagPruning, "nothing", abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true,
-		iavl.FlagIavlEnableAsyncCommit, true, flags.FlagMaxOpenConnections, 20000,
+		system.FlagTreeEnableAsyncCommit, true, flags.FlagMaxOpenConnections, 20000,
 		server.FlagCORS, "*"))
 }
 

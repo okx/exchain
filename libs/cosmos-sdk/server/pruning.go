@@ -24,12 +24,11 @@ func GetPruningOptionsFromFlags() (types.PruningOptions, error) {
 	case types.PruningOptionNothing:
 		tmiavl.EnablePruningHistoryState = false
 		tmiavl.CommitIntervalHeight = 1
+		mpt.TrieCommitGap = 1
 		iavlcfg.DynamicConfig.SetCommitGapHeight(1)
-		mpt.TrieDirtyDisabled = true
 		return types.NewPruningOptionsFromString(strategy), nil
 
 	case types.PruningOptionDefault, types.PruningOptionEverything:
-		mpt.TrieDirtyDisabled = false
 		return types.NewPruningOptionsFromString(strategy), nil
 
 	case types.PruningOptionCustom:
