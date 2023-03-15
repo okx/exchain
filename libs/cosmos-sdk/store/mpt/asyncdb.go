@@ -357,9 +357,10 @@ func (store *AsyncKeyValueStore) commitRoutine() {
 		waitClear := atomic.AddInt64(&store.waitClear, 1)
 
 		if waitClear >= 100 || batchSize > 1_000_000 {
-			store.clearCh <- struct{}{}
+			// store.clearCh <- struct{}{}
 			batchSize = 0
 		}
+		store.clearCh <- struct{}{}
 	}
 }
 
