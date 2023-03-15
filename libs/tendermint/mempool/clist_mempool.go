@@ -1420,6 +1420,7 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
 	atomic.StoreInt64(&memTx.gasWanted, gas)
+	atomic.StoreUint32(&memTx.isSim, 1)
 	if gas < atomic.LoadInt64(&memTx.gasWanted) {
 		atomic.StoreInt64(&memTx.gasWanted, gas)
 	}
