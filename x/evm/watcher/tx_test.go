@@ -13,6 +13,7 @@ import (
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	app "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -26,7 +27,10 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	etypes "github.com/okex/exchain/x/evm/types"
+
 	//"github.com/okex/exchain/x/gov"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 var (
@@ -92,8 +96,32 @@ func (suite *TxTestSuite) SetupTest() {
 	//params.EnableCreate = true
 	//params.EnableCall = true
 	//suite.app.EvmKeeper.SetParams(suite.Ctx(), params)
+	//logger := defaultLogger()
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).
+		With("module", "mock")
+	pruningOpt := baseapp.SetPruning(store.PruneNothing)
+	db := dbm.NewMemDB()
+	// For decode tx in predeliver tx
+	txcodec, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
+	// Add evm router to execute evm tx
+	//routerOpt := func(bapp *baseapp.BaseApp) {
+	//	// TODO: can remove this once CheckTx doesnt process msgs.
+	//	bapp.Router().AddRoute(routeMsgCounter, func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+	//		return &sdk.Result{}, nil
+	//	})
+	//}
+	suite.app = baseapp.NewBaseApp("Watcher_Test", logger, db, etypes.TxDecoder(txcodec), pruningOpt)
+	//Set a arbitrary initchainer function to envoke SetBlockGasMeter
+	var initChainer sdk.InitChainer = func(ctx sdk.Context, req tm.RequestInitChain) tm.ResponseInitChain {
+		return tm.ResponseInitChain{}
+	}
+	suite.app.SetInitChainer(initChainer)
+	suite.app.InitChain(tm.RequestInitChain{})
+
+	//suite.app.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	suite.evmSenderPrivKey, _ = ethsecp256k1.GenerateKey()
+
 	codecProxy, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
 	suite.TxDecoder = etypes.TxDecoder(codecProxy)
 
@@ -353,7 +381,12 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				bytecode := ethcommon.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
 				tx := etypes.NewMsgEthereumTx(nonce0, nil, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
 				tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
-				resp := suite.app.DeliverRealTx(tx)
+				txBytes, err := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
+				suite.Require().NoError(err)
+				//tx.SetRaw(txBytes)
+				//tx.SetTxHash(tmtypes.Tx(txBytes).Hash(suite.height))
+				res := suite.app.PreDeliverRealTx(txBytes)
+				resp := suite.app.DeliverRealTx(res)
 				return tx, &resp
 			},
 			genStdTxResponse: func(tx tm.TxEssentials, resp *tm.ResponseDeliverTx) *MsgStdTransactionResponse {
