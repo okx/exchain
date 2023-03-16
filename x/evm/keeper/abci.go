@@ -86,7 +86,7 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 	}
 
 	if watcher.IsWatcherEnabled() && k.Watcher.IsFirstUse() {
-		store := ctx.KVStore(k.storeKey)
+		store := k.GetParamSubspace().CustomKVStore(ctx)
 		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
 		defer iteratorBlockedList.Close()
 		for ; iteratorBlockedList.Valid(); iteratorBlockedList.Next() {

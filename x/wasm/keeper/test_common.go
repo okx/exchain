@@ -44,7 +44,6 @@ import (
 	upgradetypes "github.com/okx/okbchain/libs/cosmos-sdk/x/upgrade"
 	distr "github.com/okx/okbchain/x/distribution"
 	"github.com/okx/okbchain/x/erc20"
-	"github.com/okx/okbchain/x/evm"
 	"github.com/okx/okbchain/x/staking"
 	token "github.com/okx/okbchain/x/token/types"
 
@@ -235,7 +234,7 @@ func createTestInput(
 		auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock,
+		token.StoreKey, token.KeyLock,
 		ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,

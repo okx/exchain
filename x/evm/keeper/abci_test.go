@@ -6,7 +6,12 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
+	"github.com/okx/okbchain/x/evm/types"
+	"github.com/okx/okbchain/x/evm/watcher"
+	"github.com/spf13/viper"
 	"math/big"
+	"os"
+	"time"
 )
 
 func (suite *KeeperTestSuite) TestBeginBlock() {
@@ -59,27 +64,26 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 	suite.Require().Equal(int64(10), bloom.Big().Int64())
 }
 
-// TODO need fix by lifei
-//func (suite *KeeperTestSuite) TestEndBlockWatcher() {
-//	// update the counters
-//	suite.app.EvmKeeper.Bloom.SetInt64(10)
-//	suite.app.EvmKeeper.Watcher.SetFirstUse(true)
-//
-//	store := suite.ctx.KVStore(suite.app.EvmKeeper.GetStoreKey())
-//	store.Set(types.GetContractDeploymentWhitelistMemberKey(suite.address.Bytes()), []byte(""))
-//	store.Set(types.GetContractBlockedListMemberKey(suite.address.Bytes()), []byte(""))
-//	viper.Set(watcher.FlagFastQueryLru, 100)
-//	_ = suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{Height: 10})
-//	suite.app.Commit(abci.RequestCommit{})
-//	time.Sleep(100 * time.Millisecond)
-//	querier := watcher.NewQuerier()
-//	res1 := querier.HasContractDeploymentWhitelist(suite.address.Bytes())
-//	res2 := querier.HasContractBlockedList(suite.address.Bytes())
-//	os.RemoveAll(watcher.WatchDbDir)
-//
-//	suite.Require().True(res1)
-//	suite.Require().True(res2)
-//}
+func (suite *KeeperTestSuite) TestEndBlockWatcher() {
+	// update the counters
+	suite.app.EvmKeeper.Bloom.SetInt64(10)
+	suite.app.EvmKeeper.Watcher.SetFirstUse(true)
+
+	store := suite.app.EvmKeeper.GetParamSubspace().CustomKVStore(suite.ctx)
+	store.Set(types.GetContractDeploymentWhitelistMemberKey(suite.address.Bytes()), []byte(""))
+	store.Set(types.GetContractBlockedListMemberKey(suite.address.Bytes()), []byte(""))
+	viper.Set(watcher.FlagFastQueryLru, 100)
+	_ = suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{Height: 10})
+	suite.app.Commit(abci.RequestCommit{})
+	time.Sleep(100 * time.Millisecond)
+	querier := watcher.NewQuerier()
+	res1 := querier.HasContractDeploymentWhitelist(suite.address.Bytes())
+	res2 := querier.HasContractBlockedList(suite.address.Bytes())
+	os.RemoveAll(watcher.WatchDbDir)
+
+	suite.Require().True(res1)
+	suite.Require().True(res2)
+}
 
 func (suite *KeeperTestSuite) TestResetCache() {
 	// fill journal

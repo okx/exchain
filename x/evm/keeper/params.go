@@ -32,3 +32,7 @@ func (k *Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
 	types.GetEvmParamsCache().SetNeedParamsUpdate()
 }
+
+func (k *Keeper) GetParamSubspace() types.Subspace {
+	return k.paramSpace
+}
