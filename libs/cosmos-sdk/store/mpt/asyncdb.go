@@ -16,6 +16,7 @@ import (
 type replayer interface {
 	Replay(w ethdb.KeyValueWriter) error
 	IsSingle() bool
+	GetBatch() ethdb.Batch
 }
 
 type preCommitValue struct {
@@ -41,6 +42,10 @@ func (op *singleOp) IsSingle() bool {
 	return true
 }
 
+func (op *singleOp) GetBatch() ethdb.Batch {
+	return nil
+}
+
 type multiOp []singleOp
 
 func (ops multiOp) Replay(w ethdb.KeyValueWriter) error {
@@ -54,6 +59,10 @@ func (ops multiOp) Replay(w ethdb.KeyValueWriter) error {
 
 func (ops multiOp) IsSingle() bool {
 	return false
+}
+
+func (op multiOp) GetBatch() ethdb.Batch {
+	return nil
 }
 
 type actionOp struct {
@@ -75,13 +84,29 @@ func (op *actionOp) IsSingle() bool {
 	return true
 }
 
+func (op *actionOp) GetBatch() ethdb.Batch {
+	return nil
+}
+
+type batchOp struct {
+	ethdb.Batch
+}
+
+func (op batchOp) IsSingle() bool {
+	return false
+}
+
+func (op batchOp) GetBatch() ethdb.Batch {
+	return op.Batch
+}
+
 type preCommitMap struct {
 	data  map[string]preCommitValue
 	store *AsyncKeyValueStore
 }
 
 func (w preCommitMap) Put(key []byte, value []byte) error {
-	w.data[amino.BytesToStr(key)] = preCommitValue{
+	w.data[string(key)] = preCommitValue{
 		value: value,
 		ele:   w.store.preCommitTail,
 	}
@@ -89,7 +114,7 @@ func (w preCommitMap) Put(key []byte, value []byte) error {
 }
 
 func (w preCommitMap) Delete(key []byte) error {
-	w.data[amino.BytesToStr(key)] = preCommitValue{
+	w.data[string(key)] = preCommitValue{
 		deleted: true,
 		ele:     w.store.preCommitTail,
 	}
@@ -241,9 +266,9 @@ func (store *AsyncKeyValueStore) Delete(key []byte) error {
 	return nil
 }
 
-func (store *AsyncKeyValueStore) batchWrite(player replayer) error {
+func (store *AsyncKeyValueStore) batchWrite(player ethdb.Batch) error {
 	task := &commitTask{
-		op: player,
+		op: batchOp{player},
 	}
 	store.mtx.Lock()
 	store.preCommitTail = store.preCommitList.PushBack(task)
@@ -340,11 +365,17 @@ func (store *AsyncKeyValueStore) commitRoutine() {
 		var batch ethdb.Batch
 
 		if !task.op.IsSingle() {
-			batch = store.KeyValueStore.NewBatch()
-			kvWriter = batch
+			if task.op.GetBatch() == nil {
+				batch = store.KeyValueStore.NewBatch()
+				kvWriter = batch
+			} else {
+				batch = task.op.GetBatch()
+			}
 		}
-		if err := task.op.Replay(kvWriter); err != nil {
-			panic(err)
+		if kvWriter != nil {
+			if err := task.op.Replay(kvWriter); err != nil {
+				panic(err)
+			}
 		}
 		if batch != nil {
 			if err := batch.Write(); err != nil {
@@ -417,62 +448,49 @@ func (store *AsyncKeyValueStore) setPreCommitPtr(ptr *list.Element) {
 }
 
 type asyncBatch struct {
-	ops       multiOp
-	store     *AsyncKeyValueStore
-	valueSize int
+	store *AsyncKeyValueStore
+	batch ethdb.Batch
 }
 
 func newAsyncBatch(store *AsyncKeyValueStore) *asyncBatch {
 	return &asyncBatch{
 		store: store,
+		batch: store.KeyValueStore.NewBatch(),
 	}
 }
 
 func (b *asyncBatch) Put(key []byte, value []byte) error {
-	key, value = common.CopyBytes(key), common.CopyBytes(value)
-	b.ops = append(b.ops, singleOp{
-		key:   key,
-		value: value,
-	})
-	b.valueSize += len(value)
-	return nil
+	return b.batch.Put(key, value)
 }
 
 func (b *asyncBatch) Delete(key []byte) error {
-	key = common.CopyBytes(key)
-	b.ops = append(b.ops, singleOp{
-		key:    key,
-		delete: true,
-	})
-	b.valueSize += len(key)
-	return nil
+	return b.batch.Delete(key)
 }
 
 func (b *asyncBatch) ValueSize() int {
-	return b.valueSize
+	return b.batch.ValueSize()
 }
 
 func (b *asyncBatch) Write() error {
-	ops := b.ops
-	b.ops = nil
-	return b.store.batchWrite(ops)
+	batch := b.batch
+	b.batch = nil
+	return b.store.batchWrite(batch)
 }
 
 func (b *asyncBatch) Reset() {
-	b.ops = b.ops[:0]
-	b.valueSize = 0
+	if b.batch == nil {
+		b.batch = b.store.KeyValueStore.NewBatch()
+	} else {
+		b.batch.Reset()
+	}
 }
 
 func (b *asyncBatch) Replay(w ethdb.KeyValueWriter) error {
-	return b.ops.Replay(w)
-}
-
-func (b *asyncBatch) IsSingle() bool {
-	return false
+	return b.batch.Replay(w)
 }
 
 var _ ethdb.Batch = (*asyncBatch)(nil)
-var _ replayer = (*asyncBatch)(nil)
+
 var _ replayer = (*multiOp)(nil)
 var _ replayer = (*singleOp)(nil)
 var _ replayer = (*actionOp)(nil)
