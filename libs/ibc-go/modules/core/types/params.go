@@ -7,7 +7,7 @@ import (
 )
 
 // DefaultIbcEnabled enabled
-const DefaultIbcEnabled = true
+const DefaultIbcEnabled = false
 
 // KeyIbcEnabled is store's key for IbcEnabled Params
 var KeyIbcEnabled = []byte("IbcEnabled")
