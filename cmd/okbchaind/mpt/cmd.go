@@ -18,6 +18,7 @@ func MptCmd(ctx *server.Context) *cobra.Command {
 		iavl2mptCmd(ctx),
 		cleanIavlStoreCmd(ctx),
 		mptViewerCmd(ctx),
+		AccountGetCmd(ctx),
 	)
 	cmd.PersistentFlags().UintVar(&types.TrieRocksdbBatchSize, types.FlagTrieRocksdbBatchSize, 100, "Concurrent rocksdb batch size for mpt")
 	cmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
