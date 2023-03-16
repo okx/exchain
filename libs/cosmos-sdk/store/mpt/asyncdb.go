@@ -135,7 +135,6 @@ type AsyncKeyValueStore struct {
 	preCommitTail *list.Element
 	preCommitPtr  *list.Element
 	waitClearPtr  *list.Element
-	needClearPtr  *list.Element
 
 	enableCommit     bool
 	disableAutoPrune bool
@@ -370,7 +369,6 @@ func (store *AsyncKeyValueStore) pruneRoutine() {
 		for store.waitClearPtr != preCommitPtr {
 			needRemove := store.waitClearPtr
 			needClear := store.waitClearPtr.Next()
-			store.needClearPtr = needClear
 			commitedTask := needClear.Value.(*commitTask)
 			for {
 				if store.mtx.TryLock() {
@@ -399,7 +397,6 @@ func (store *AsyncKeyValueStore) Prune() {
 	for store.waitClearPtr != preCommitPtr {
 		needRemove := store.waitClearPtr
 		needClear := store.waitClearPtr.Next()
-		store.needClearPtr = needClear
 		commitedTask := needClear.Value.(*commitTask)
 		store.preCommitList.Remove(needRemove)
 		store.waitClearPtr = needClear
