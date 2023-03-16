@@ -453,13 +453,11 @@ func (b *asyncBatch) ValueSize() int {
 }
 
 func (b *asyncBatch) Write() error {
-	ops := b.ops
-	b.ops = nil
-	return b.store.batchWrite(ops)
+	return b.store.batchWrite(b.ops)
 }
 
 func (b *asyncBatch) Reset() {
-	b.ops = b.ops[:0]
+	b.ops = make(multiOp, 0, len(b.ops))
 	b.valueSize = 0
 }
 
