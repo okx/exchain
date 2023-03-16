@@ -7,10 +7,10 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/okx/okbchain/libs/tendermint/libs/log"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	"github.com/tendermint/go-amino"
 )
 
 type replayer interface {
@@ -81,7 +81,7 @@ type preCommitMap struct {
 }
 
 func (w preCommitMap) Put(key []byte, value []byte) error {
-	w.data[string(key)] = preCommitValue{
+	w.data[amino.BytesToStr(key)] = preCommitValue{
 		value: value,
 		ele:   w.store.preCommitTail,
 	}
@@ -89,7 +89,7 @@ func (w preCommitMap) Put(key []byte, value []byte) error {
 }
 
 func (w preCommitMap) Delete(key []byte) error {
-	w.data[string(key)] = preCommitValue{
+	w.data[amino.BytesToStr(key)] = preCommitValue{
 		deleted: true,
 		ele:     w.store.preCommitTail,
 	}
@@ -102,15 +102,10 @@ func (w preCommitMap) Len() int {
 
 type preCommitClearMap preCommitMap
 
-type Element struct {
-	next, prev *Element
-	list       *list.List
-}
-
 func (w preCommitClearMap) Put(key []byte, _ []byte) error {
 	if v, ok := w.data[string(key)]; ok {
 		if v.ele == w.store.waitClearPtr {
-			delete(w.data, string(key))
+			delete(w.data, amino.BytesToStr(key))
 			atomic.AddInt64(&w.store.deletedNum, 1)
 		}
 	}
@@ -120,7 +115,7 @@ func (w preCommitClearMap) Put(key []byte, _ []byte) error {
 func (w preCommitClearMap) Delete(key []byte) error {
 	if v, ok := w.data[string(key)]; ok {
 		if v.ele == w.store.waitClearPtr {
-			delete(w.data, string(key))
+			delete(w.data, amino.BytesToStr(key))
 			atomic.AddInt64(&w.store.deletedNum, 1)
 		}
 	}
@@ -161,7 +156,7 @@ func NewAsyncKeyValueStore(db ethdb.KeyValueStore, autoClearOff bool) *AsyncKeyV
 	store := &AsyncKeyValueStore{
 		KeyValueStore: db,
 		preCommit: preCommitMap{
-			data: make(map[string]preCommitValue),
+			data: make(map[string]preCommitValue, 200_0000),
 		},
 		preCommitList:    list.New(),
 		commitCh:         make(chan struct{}, 10000*10),
@@ -205,7 +200,7 @@ func (store *AsyncKeyValueStore) Get(key []byte) ([]byte, error) {
 		if v.deleted {
 			return nil, nil
 		}
-		return v.value, nil
+		return common.CopyBytes(v.value), nil
 	}
 	return store.KeyValueStore.Get(key)
 }
