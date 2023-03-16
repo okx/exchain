@@ -19,7 +19,6 @@ const (
 	FlagIavlHeightOrphansCacheSize  = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum   = "iavl-max-committed-height-num"
 	FlagIavlFastStorageCacheSize    = "iavl-fast-storage-cache-size"
-	FlagIavlEnableFastStorage       = "iavl-enable-fast-storage"
 	FlagIavlDiscardFastStorage      = "discard-fast-storage"
 	DefaultIavlFastStorageCacheSize = 10000000
 )
