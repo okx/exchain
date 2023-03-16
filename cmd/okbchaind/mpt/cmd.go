@@ -2,7 +2,6 @@ package mpt
 
 import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/server"
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
@@ -20,7 +19,7 @@ func MptCmd(ctx *server.Context) *cobra.Command {
 		mptViewerCmd(ctx),
 		AccountGetCmd(ctx),
 	)
-	cmd.PersistentFlags().UintVar(&types.TrieRocksdbBatchSize, types.FlagTrieRocksdbBatchSize, 100, "Concurrent rocksdb batch size for mpt")
+
 	cmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 
 	return cmd

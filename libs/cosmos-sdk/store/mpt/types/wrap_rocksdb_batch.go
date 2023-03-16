@@ -4,146 +4,84 @@
 package types
 
 import (
-	"container/list"
-	"sync"
-	"sync/atomic"
-
-	"github.com/cosmos/gorocksdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 	tmdb "github.com/okx/okbchain/libs/tm-db"
 )
 
-type BatchCache struct {
-	batchList  *list.List
-	batchCache map[int64]*list.Element
-	maxSize    int
-
-	lock sync.Mutex
-}
-
-func NewBatchCache(maxSize int) *BatchCache {
-	return &BatchCache{
-		batchList:  list.New(),
-		batchCache: make(map[int64]*list.Element, maxSize),
-		maxSize:    maxSize,
-	}
-}
-
-func (bc *BatchCache) PushBack(batch *WrapRocksDBBatch) {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-
-	ele := bc.batchList.PushBack(batch)
-	bc.batchCache[batch.GetID()] = ele
-}
-
-func (bc *BatchCache) TryPopFront() *WrapRocksDBBatch {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-
-	if bc.batchList.Len() > bc.maxSize {
-		deathEle := bc.batchList.Front()
-		bc.batchList.Remove(deathEle)
-
-		deathBatch := deathEle.Value.(*WrapRocksDBBatch)
-		delete(bc.batchCache, deathBatch.GetID())
-
-		return deathBatch
-	}
-
-	return nil
-}
-
-func (bc *BatchCache) MoveToBack(id int64) {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-
-	if ele, ok := bc.batchCache[id]; ok {
-		bc.batchList.MoveToBack(ele)
-	}
-}
-
-var (
-	gBatchCache *BatchCache
-	batchIdSeed int64
-
-	initRocksdbBatchOnce sync.Once
-)
-
-func InstanceBatchCache() *BatchCache {
-	initRocksdbBatchOnce.Do(func() {
-		gBatchCache = NewBatchCache(int(TrieRocksdbBatchSize))
-	})
-
-	return gBatchCache
-}
-
 var _ ethdb.Batch = (*WrapRocksDBBatch)(nil)
 
+type record struct {
+	key   []byte
+	value []byte
+}
+
 type WrapRocksDBBatch struct {
-	*tmdb.RocksDBBatch
-	id int64
+	db      *tmdb.RocksDB
+	records []record
+	size    int
 }
 
 func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
-	sed := atomic.LoadInt64(&batchIdSeed)
-	batch := &WrapRocksDBBatch{tmdb.NewRocksDBBatch(db), sed}
-	atomic.AddInt64(&batchIdSeed, 1)
-
-	batchCache := InstanceBatchCache()
-	batchCache.PushBack(batch)
-	if deathBatch := batchCache.TryPopFront(); deathBatch != nil {
-		deathBatch.Close()
-	}
-
-	return batch
+	return &WrapRocksDBBatch{db: db}
 }
 
-func (wrsdbb *WrapRocksDBBatch) Put(key []byte, value []byte) error {
-	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
-
-	wrsdbb.Set(key, value)
+func (wrb *WrapRocksDBBatch) Put(key []byte, value []byte) error {
+	wrb.records = append(wrb.records, record{
+		key:   key,
+		value: nonNilBytes(value),
+	})
+	wrb.size += len(value)
 	return nil
 }
 
-func (wrsdbb *WrapRocksDBBatch) Delete(key []byte) error {
-	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
-
-	wrsdbb.RocksDBBatch.Delete(key)
+func (wrb *WrapRocksDBBatch) Delete(key []byte) error {
+	wrb.records = append(wrb.records, record{
+		key: key,
+	})
+	wrb.size += len(key)
 	return nil
 }
 
-func (wrsdbb *WrapRocksDBBatch) ValueSize() int {
-	return wrsdbb.Size()
+func (wrb *WrapRocksDBBatch) ValueSize() int {
+	return wrb.size
 }
 
-func (wrsdbb *WrapRocksDBBatch) Write() error {
-	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
-
-	return wrsdbb.RocksDBBatch.WriteWithoutClose()
-}
-
-// Replay replays the batch contents.
-func (wrsdbb *WrapRocksDBBatch) Replay(w ethdb.KeyValueWriter) error {
-	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
-
-	rp := &replayer{writer: w}
-
-	itr := wrsdbb.NewIterator()
-	for itr.Next() {
-		rcd := itr.Record()
-
-		switch rcd.Type {
-		case gorocksdb.WriteBatchValueRecord:
-			rp.Put(rcd.Key, rcd.Value)
-		case gorocksdb.WriteBatchDeletionRecord:
-			rp.Delete(rcd.Key)
+func (wrb *WrapRocksDBBatch) Write() error {
+	batch := tmdb.NewRocksDBBatch(wrb.db)
+	for _, rcd := range wrb.records {
+		if rcd.value != nil {
+			batch.Set(rcd.key, rcd.value)
+		} else {
+			batch.Delete(rcd.key)
 		}
 	}
 
+	return batch.Write()
+}
+
+// Replay replays the batch contents.
+func (wrb *WrapRocksDBBatch) Replay(w ethdb.KeyValueWriter) error {
+	var err error
+	for _, rcd := range wrb.records {
+		if rcd.value != nil {
+			err = w.Put(rcd.key, rcd.value)
+		} else {
+			err = w.Delete(rcd.key)
+		}
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func (wrsdbb *WrapRocksDBBatch) GetID() int64 {
-	return wrsdbb.id
+func (wrb *WrapRocksDBBatch) Reset() {
+	wrb.records = wrb.records[:0]
+}
+
+func nonNilBytes(bz []byte) []byte {
+	if bz == nil {
+		return []byte{}
+	}
+	return bz
 }

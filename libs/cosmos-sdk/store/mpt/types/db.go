@@ -10,14 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 )
 
-const (
-	FlagTrieRocksdbBatchSize = "trie.rocksdb-batch-size"
-)
-
-var (
-	TrieRocksdbBatchSize uint = 10
-)
-
 //------------------------------------------
 type (
 	BackendType string

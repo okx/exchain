@@ -17,7 +17,6 @@ import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
-	mpttypes "github.com/okx/okbchain/libs/cosmos-sdk/store/mpt/types"
 	sdkstoretypes "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	storetypes "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	tmiavl "github.com/okx/okbchain/libs/iavl"
@@ -257,7 +256,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagChainID, ChainID, "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
-	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
 	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")
