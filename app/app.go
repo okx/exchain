@@ -899,7 +899,6 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 
 	isFastStorage := appstatus.IsFastStorageStrategy()
 	iavl.SetEnableFastStorage(isFastStorage)
-	viper.Set(iavl.FlagIavlEnableFastStorage, isFastStorage)
 	// set external package flags
 	server.SetExternalPackageValue(cmd)
 

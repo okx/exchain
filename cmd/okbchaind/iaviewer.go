@@ -119,7 +119,6 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		Short: "Read iavl tree data from db",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			iavl.SetEnableFastStorage(false)
-			viper.Set(iavl.FlagIavlEnableFastStorage, false)
 		},
 	}
 	iavlCtx := &iaviewerContext{Codec: cdc, DbBackend: dbm.BackendType(ctx.Config.DBBackend), extra: map[string]interface{}{}}
