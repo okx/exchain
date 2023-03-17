@@ -42,7 +42,10 @@ func (mfd MempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	}
 	feeCoins := feeTx.GetFee()
 	gas := feeTx.GetGas()
-
+	//check fee denom weather is equal to okt
+	if !(len(feeCoins) == 1 && feeCoins[0].Denom == sdk.DefaultBondDenom) {
+		return ctx, sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "The denom of tx gas fee need: %s but got: %s", sdk.DefaultBondDenom, feeCoins[0].Denom)
+	}
 	// Ensure that the provided fees meet a minimum threshold for the validator,
 	// if this is a CheckTx. This is only for local mempool purposes, and thus
 	// is only ran on check tx.

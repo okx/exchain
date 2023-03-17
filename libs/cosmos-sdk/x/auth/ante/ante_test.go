@@ -347,19 +347,19 @@ func TestAnteHandlerFees(t *testing.T) {
 	tx = types.NewTestTx(ctx, msgs, privs, accnums, seqs, fee)
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInsufficientFunds)
 
-	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 149)))
+	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 149)))
 	app.AccountKeeper.SetAccount(ctx, acc1)
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInsufficientFunds)
 
 	require.True(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().Empty())
-	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf("atom"), sdk.NewDec(149)))
+	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf(sdk.DefaultBondDenom), sdk.NewDec(149)))
 
-	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150)))
+	acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150)))
 	app.AccountKeeper.SetAccount(ctx, acc1)
 	checkValidTx(t, anteHandler, ctx, tx, false)
 
-	require.True(sdk.DecEq(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().AmountOf("atom"), sdk.NewDec(150)))
-	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf("atom"), sdk.NewDec(0)))
+	require.True(sdk.DecEq(t, app.SupplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName).GetCoins().AmountOf(sdk.DefaultBondDenom), sdk.NewDec(150)))
+	require.True(sdk.DecEq(t, app.AccountKeeper.GetAccount(ctx, addr1).GetCoins().AmountOf(sdk.DefaultBondDenom), sdk.NewDec(0)))
 }
 
 // Test logic around memo gas consumption.
@@ -381,24 +381,24 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 	var tx sdk.Tx
 	msg := types.NewTestMsg(addr1)
 	privs, accnums, seqs := []crypto.PrivKey{priv1}, []uint64{0}, []uint64{0}
-	fee := types.NewStdFee(0, sdk.NewCoins(sdk.NewInt64Coin("atom", 0)))
+	fee := types.NewStdFee(0, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)})
 
 	// tx does not have enough gas
 	tx = types.NewTestTx(ctx, []sdk.Msg{msg}, privs, accnums, seqs, fee)
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrOutOfGas)
 
 	// tx with memo doesn't have enough gas
-	fee = types.NewStdFee(801, sdk.NewCoins(sdk.NewInt64Coin("atom", 0)))
+	fee = types.NewStdFee(801, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)})
 	tx = types.NewTestTxWithMemo(ctx, []sdk.Msg{msg}, privs, accnums, seqs, fee, "abcininasidniandsinasindiansdiansdinaisndiasndiadninsd")
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrOutOfGas)
 
 	// memo too large
-	fee = types.NewStdFee(50000, sdk.NewCoins(sdk.NewInt64Coin("atom", 0)))
+	fee = types.NewStdFee(50000, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)})
 	tx = types.NewTestTxWithMemo(ctx, []sdk.Msg{msg}, privs, accnums, seqs, fee, strings.Repeat("01234567890", 500))
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrMemoTooLarge)
 
 	// tx with memo has enough gas
-	fee = types.NewStdFee(50000, sdk.NewCoins(sdk.NewInt64Coin("atom", 0)))
+	fee = types.NewStdFee(50000, sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)})
 	tx = types.NewTestTxWithMemo(ctx, []sdk.Msg{msg}, privs, accnums, seqs, fee, strings.Repeat("0123456789", 10))
 	checkValidTx(t, anteHandler, ctx, tx, false)
 }
@@ -705,7 +705,7 @@ func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 	// verify that an secp256k1 account gets rejected
 	priv1, _, addr1 := types.KeyTestPubAddr()
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
-	_ = acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150)))
+	_ = acc1.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150)))
 	app.AccountKeeper.SetAccount(ctx, acc1)
 
 	var tx sdk.Tx
@@ -721,7 +721,7 @@ func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 	pub2 := priv2.PubKey()
 	addr2 := sdk.AccAddress(pub2.Address())
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
-	require.NoError(t, acc2.SetCoins(sdk.NewCoins(sdk.NewInt64Coin("atom", 150))))
+	require.NoError(t, acc2.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150))))
 	require.NoError(t, acc2.SetAccountNumber(1))
 	app.AccountKeeper.SetAccount(ctx, acc2)
 	msg = types.NewTestMsg(addr2)

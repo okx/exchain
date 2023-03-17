@@ -192,6 +192,7 @@ func GenTxCmd(ctx *server.Context, cdc *codec.Codec, mbm module.BasicManager, sm
 	if err := cmd.MarkFlagRequired(flags.FlagName); err != nil {
 		ctx.Logger.Error(err.Error())
 	}
+	cmd.Flags().String(flags.FlagFees, "", "Fees to pay along with transaction; eg: 10uatom")
 
 	return cmd
 }
