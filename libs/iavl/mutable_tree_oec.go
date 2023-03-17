@@ -292,6 +292,9 @@ func (tree *MutableTree) pruningSchedule() {
 }
 
 func (tree *MutableTree) waitCurrentPruningScheduleDone() {
+	if !EnablePruningHistoryState {
+		return
+	}
 	pruneWg := &sync.WaitGroup{}
 	pruneWg.Add(1)
 	tree.pruneCh <- pruneEvent{-1, pruneWg}
