@@ -102,7 +102,9 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 		exitSignal:          make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
-	gAsyncDB.SetLogger(logger.With("module", "asyncdb"))
+	if logger != nil {
+		gAsyncDB.SetLogger(logger.With("module", "asyncdb"))
+	}
 
 	return mptStore, err
 }
