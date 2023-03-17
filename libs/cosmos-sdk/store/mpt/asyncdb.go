@@ -106,7 +106,7 @@ func (w preCommitClearMap) Put(key []byte, _ []byte) error {
 	if v, ok := w.data[string(key)]; ok {
 		if v.ele == w.store.waitClearPtr {
 			delete(w.data, amino.BytesToStr(key))
-			atomic.AddInt64(&w.store.deletedNum, 1)
+			atomic.AddInt64(&w.store.clearNum, 1)
 		}
 	}
 	return nil
@@ -116,7 +116,7 @@ func (w preCommitClearMap) Delete(key []byte) error {
 	if v, ok := w.data[string(key)]; ok {
 		if v.ele == w.store.waitClearPtr {
 			delete(w.data, amino.BytesToStr(key))
-			atomic.AddInt64(&w.store.deletedNum, 1)
+			atomic.AddInt64(&w.store.clearNum, 1)
 		}
 	}
 	return nil
@@ -148,7 +148,7 @@ type AsyncKeyValueStore struct {
 	waitClear  int64
 	waitCommit int64
 
-	deletedNum int64
+	clearNum int64
 }
 
 func NewAsyncKeyValueStore(db ethdb.KeyValueStore, autoClearOff bool) *AsyncKeyValueStore {
@@ -287,13 +287,13 @@ func (store *AsyncKeyValueStore) NewBatch() ethdb.Batch {
 	return newAsyncBatch(store)
 }
 
-//func (store *AsyncKeyValueStore) Stat(property string) (string, error) {
-//	return store.KeyValueStore.Stat(property)
-//}
-//
-//func (store *AsyncKeyValueStore) Compact(start []byte, limit []byte) error {
-//	return store.KeyValueStore.Compact(start, limit)
-//}
+func (store *AsyncKeyValueStore) Stat(property string) (string, error) {
+	return store.KeyValueStore.Stat(property)
+}
+
+func (store *AsyncKeyValueStore) Compact(start []byte, limit []byte) error {
+	return store.KeyValueStore.Compact(start, limit)
+}
 
 func (store *AsyncKeyValueStore) Close() error {
 	if store == nil {
@@ -313,10 +313,10 @@ func (store *AsyncKeyValueStore) LogStats() {
 	}
 
 	store.logger.Info("AsyncKeyValueStore stats",
-		"waitCommit", atomic.LoadInt64(&store.waitCommit),
-		"waitClear", atomic.LoadInt64(&store.waitClear),
+		"waitCommitOp", atomic.LoadInt64(&store.waitCommit),
+		"waitClearOp", atomic.LoadInt64(&store.waitClear),
 		"preCommitMapSize", store.preCommit.Len(),
-		"deleted", atomic.LoadInt64(&store.deletedNum),
+		"clearInMap", atomic.LoadInt64(&store.clearNum),
 	)
 }
 
