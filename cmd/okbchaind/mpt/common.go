@@ -18,14 +18,13 @@ import (
 	"github.com/okx/okbchain/libs/iavl"
 	dbm "github.com/okx/okbchain/libs/tm-db"
 	tmdb "github.com/okx/okbchain/libs/tm-db"
-	evmtypes "github.com/okx/okbchain/x/evm/types"
 )
 
 const (
 	applicationDB = "application"
 
 	accStoreKey    = authtypes.StoreKey
-	evmStoreKey    = evmtypes.StoreKey
+	evmStoreKey    = "evm"
 	legacyStoreKey = "evmlegacy"
 
 	iavlAccKey       = "s/k:acc/"

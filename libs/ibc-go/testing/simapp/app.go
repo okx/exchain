@@ -313,7 +313,7 @@ func NewSimApp(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock,
+		token.StoreKey, token.KeyLock,
 		ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,

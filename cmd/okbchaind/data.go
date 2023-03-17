@@ -36,7 +36,6 @@ import (
 
 	distr "github.com/okx/okbchain/x/distribution"
 	"github.com/okx/okbchain/x/evidence"
-	"github.com/okx/okbchain/x/evm"
 	"github.com/okx/okbchain/x/gov"
 	"github.com/okx/okbchain/x/params"
 	"github.com/okx/okbchain/x/slashing"
@@ -449,7 +448,7 @@ func initAppStore(appDB dbm.DB) *rootmulti.Store {
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock,
+		token.StoreKey, token.KeyLock,
 	)
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 
