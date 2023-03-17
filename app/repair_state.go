@@ -131,7 +131,12 @@ func RepairState(ctx *server.Context, onStart bool) {
 		if onStart {
 			startVersion = commitVersion
 		} else {
-			startVersion = commitVersion - 2 // case: state machine broken
+			stateOkHeight := latestBlockHeight - 2 // case: state machine broken
+			if commitVersion <= stateOkHeight {
+				startVersion = commitVersion
+			} else {
+				startVersion = stateOkHeight
+			}
 		}
 	}
 	if startVersion <= 0 {

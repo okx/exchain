@@ -1162,6 +1162,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 
 	// updata commit gap height
 	gap := config.DynamicConfig.GetCommitGapHeight()
+	if version <= 1 {
+		gap = 1
+	}
 	if iavltree.EnableAsyncCommit {
 		iavltree.UpdateCommitGapHeight(gap)
 	}
