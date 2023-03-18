@@ -81,33 +81,6 @@ func (csdb *CommitStateDB) ForEachStorageMpt(so *stateObject, cb func(key, value
 	return nil
 }
 
-func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
-	var (
-		enc []byte
-		err error
-	)
-
-	tr := csdb.StorageTrie(addr)
-	if tr == nil {
-		return ethcmn.Hash{}
-	}
-
-	if enc, err = tr.TryGet(key.Bytes()); err != nil {
-		return ethcmn.Hash{}
-	}
-
-	var value ethcmn.Hash
-	if len(enc) > 0 {
-		_, content, _, err := rlp.Split(enc)
-		if err != nil {
-			return ethcmn.Hash{}
-		}
-		value.SetBytes(content)
-	}
-
-	return value
-}
-
 func (csdb *CommitStateDB) GetCodeByHashInRawDB(hash ethcmn.Hash) []byte {
 	code, err := csdb.db.ContractCode(ethcmn.Hash{}, hash)
 	if err != nil {

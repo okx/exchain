@@ -768,11 +768,6 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 	return ethcmn.Hash{}
 }
 
-// GetStateByKey retrieves a value from the given account's storage store.
-func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
-	return csdb.GetStateByKeyMpt(addr, key)
-}
-
 // GetCommittedState retrieves a value from the given account's committed
 // storage.
 func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {

@@ -138,15 +138,6 @@ func (suite *KeeperMptTestSuite) TestCommitStateDB_GetCommittedStateMpt() {
 	suite.Require().Equal(ethcmn.BytesToHash([]byte("value")), hash)
 }
 
-func (suite *KeeperMptTestSuite) TestCommitStateDB_GetStateByKeyMpt() {
-	suite.stateDB.WithContext(suite.ctx).SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
-	suite.stateDB.Commit(false)
-	suite.app.Commit(abci.RequestCommit{})
-	types.ResetCommitStateDB(suite.stateDB, suite.app.EvmKeeper.GenerateCSDBParams(), &suite.ctx)
-	hash := suite.stateDB.WithContext(suite.ctx).GetStateByKeyMpt(suite.address, ethcmn.BytesToHash([]byte("key")))
-	suite.Require().Equal(ethcmn.BytesToHash([]byte("value")), hash)
-}
-
 func (suite *KeeperMptTestSuite) TestStateDB_CodeMpt() {
 	testCase := []struct {
 		name     string

@@ -633,12 +633,13 @@ func (ms *MptStore) prefetchData() {
 func (ms *MptStore) SetUpgradeVersion(i int64) {}
 
 var (
-	keyPrefixStorageMpt = byte(0)
-	keyPrefixAddrMpt    = byte(1) // TODO auth.AddressStoreKeyPrefix
-	prefixSizeInMpt     = 1
-	storageKeySize      = prefixSizeInMpt + len(ethcmn.Address{}) + len(ethcmn.Hash{}) + len(ethcmn.Hash{})
-	addrKeySize         = prefixSizeInMpt + sdk.AddrLen
-	wasmContractKeySize = prefixSizeInMpt + sdk.WasmContractAddrLen
+	keyPrefixStorageMpt  = byte(0)
+	keyPrefixAddrMpt     = byte(1) // TODO auth.AddressStoreKeyPrefix
+	prefixSizeInMpt      = 1
+	storageKeySize       = prefixSizeInMpt + len(ethcmn.Address{}) + len(ethcmn.Hash{}) + len(ethcmn.Hash{})
+	addrKeySize          = prefixSizeInMpt + sdk.AddrLen
+	wasmContractKeySize  = prefixSizeInMpt + sdk.WasmContractAddrLen
+	storageKeyPrefixSize = prefixSizeInMpt + len(ethcmn.Address{}) + len(ethcmn.Hash{})
 )
 
 func AddressStoragePrefixMpt(address ethcmn.Address, stateRoot ethcmn.Hash) []byte {
@@ -684,4 +685,12 @@ func mptKeyType(key []byte) int {
 		return -1
 
 	}
+}
+
+func IsStoragePrefix(prefix []byte) bool {
+	return len(prefix) == storageKeyPrefixSize && prefix[0] == keyPrefixStorageMpt
+}
+
+func GetAddressFromStoragePrefix(prefix []byte) ethcmn.Address {
+	return ethcmn.BytesToAddress(prefix[1:21])
 }

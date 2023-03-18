@@ -10,6 +10,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/codec"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	store "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
@@ -218,16 +219,18 @@ func (i InternalDba) NewStore(parent store.KVStore, Prefix []byte) evmtypes.Stor
 		return nil
 	}
 
+	if mpt.IsStoragePrefix(Prefix) {
+		return StateStore{addr: mpt.GetAddressFromStoragePrefix(Prefix), ocProxy: i.ocProxy}
+	}
+
+	if len(Prefix) != 1 {
+		return nil
+	}
 	switch Prefix[0] {
 	case evmtypes.KeyPrefixChainConfig[0]:
 		return ConfigStore{defaultConfig: instanceOfChainConfig()}
 	case evmtypes.KeyPrefixBloom[0]:
 		return BloomStore{}
-	case evmtypes.KeyPrefixStorage[0]:
-		if len(Prefix) < 21 {
-			return nil
-		}
-		return StateStore{addr: common.BytesToAddress(Prefix[1:21]), ocProxy: i.ocProxy}
 	case evmtypes.KeyPrefixContractBlockedList[0]:
 		return ContractBlockedListStore{watcher.NewQuerier()}
 	case evmtypes.KeyPrefixContractDeploymentWhitelist[0]:

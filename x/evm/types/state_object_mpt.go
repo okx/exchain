@@ -142,10 +142,20 @@ func (so *stateObject) updateTrie(db ethstate.Database) (updated bool) {
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
 			store.Delete(key[:])
+			if !so.stateDB.ctx.IsCheckTx() {
+				if so.stateDB.ctx.GetWatcher().Enabled() {
+					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), key[:], ethcmn.Hash{}.Bytes())
+				}
+			}
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			store.Set(key[:], v)
+			if !so.stateDB.ctx.IsCheckTx() {
+				if so.stateDB.ctx.GetWatcher().Enabled() {
+					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), key[:], v)
+				}
+			}
 		}
 	}
 	if so.stateDB.prefetcher != nil {
