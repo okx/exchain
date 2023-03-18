@@ -331,6 +331,7 @@ func createTestInput(
 		&appCodec,
 		keys[stakingtypes.StoreKey],
 		supplyKeeper,
+		accountKeeper,
 		subspace(stakingtypes.ModuleName), monitor.NopStakingMetric(),
 	)
 	stakingKeeper.SetParams(ctx, TestingStakeParams)

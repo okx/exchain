@@ -394,7 +394,7 @@ func NewOKExChainApp(
 	)
 
 	stakingKeeper := staking.NewKeeper(
-		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.AccountKeeper, app.subspaces[staking.ModuleName],
 		stakingMetrics,
 	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)

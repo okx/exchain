@@ -20,11 +20,12 @@ var _ types.ValidatorSet = Keeper{}
 
 // Keeper is the keeper struct of the staking store
 type Keeper struct {
-	storeKey     sdk.StoreKey
-	cdcMarshl    *codec.CodecProxy
-	supplyKeeper types.SupplyKeeper
-	hooks        types.StakingHooks
-	paramstore   params.Subspace
+	storeKey      sdk.StoreKey
+	cdcMarshl     *codec.CodecProxy
+	supplyKeeper  types.SupplyKeeper
+	accountKeeper types.AccountKeeper
+	hooks         types.StakingHooks
+	paramstore    params.Subspace
 
 	metric              *monitor.StakingMetric
 	monitoredValidators []string
@@ -32,7 +33,7 @@ type Keeper struct {
 }
 
 // NewKeeper creates a new staking Keeper instance
-func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper, accountKeeper types.AccountKeeper,
 	paramstore params.Subspace, metrics *monitor.StakingMetric) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramstore.HasKeyTable() {
@@ -48,11 +49,12 @@ func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types
 	}
 
 	return Keeper{
-		storeKey:     key,
-		cdcMarshl:    cdcMarshl,
-		supplyKeeper: supplyKeeper,
-		paramstore:   paramstore,
-		hooks:        nil,
+		storeKey:      key,
+		cdcMarshl:     cdcMarshl,
+		supplyKeeper:  supplyKeeper,
+		accountKeeper: accountKeeper,
+		paramstore:    paramstore,
+		hooks:         nil,
 
 		metric:              metrics,
 		monitoredValidators: viper.GetStringSlice("test.monitored_validators"),
@@ -60,15 +62,16 @@ func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types
 	}
 }
 
-func NewKeeperWithNoParam(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+func NewKeeperWithNoParam(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper, accountKeeper types.AccountKeeper,
 	paramstore params.Subspace) Keeper {
 
 	return Keeper{
-		storeKey:     key,
-		cdcMarshl:    cdcMarshl,
-		supplyKeeper: supplyKeeper,
-		paramstore:   paramstore,
-		hooks:        nil,
+		storeKey:      key,
+		cdcMarshl:     cdcMarshl,
+		supplyKeeper:  supplyKeeper,
+		accountKeeper: accountKeeper,
+		paramstore:    paramstore,
+		hooks:         nil,
 	}
 }
 
