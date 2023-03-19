@@ -16,6 +16,7 @@ import (
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/rpc"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -44,6 +45,9 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
 
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc("/cosmos/tx/v1beta1/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/cosmos/tx/v1beta1/txs", authrest.CM45QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")
 	registerQueryRoutes(cliCtx, r)
 }
 

@@ -7,30 +7,31 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/spf13/cobra"
+
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/rest"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -99,7 +100,9 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.Interf
 	return cli.GetQueryCmd(cdc, reg)
 }
 
-func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *mux.Router) {}
+func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *mux.Router) {
+	rest.RegisterOriginRPCRoutersForGRPC(cliCtx, r)
+}
 
 // AppModule represents the AppModule for this module
 type AppModule struct {
@@ -136,8 +139,8 @@ func (a AppModule) NewHandler() sdk.Handler {
 }
 
 // TODO
-func (a AppModule) NewQuerierHandler() sdk.Querier {
-	return nil
+func (am AppModule) NewQuerierHandler() sdk.Querier {
+	return NewQuerier(am.keeper)
 }
 
 // LegacyQuerierHandler implements the AppModule interface
