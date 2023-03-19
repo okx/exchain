@@ -58,7 +58,8 @@ var (
 
 type TxTestSuite struct {
 	suite.Suite
-	app     *app.OKExChainApp
+	app *app.OKExChainApp
+	//ctx     sdk.Context
 	codec   *codec.Codec
 	Watcher watcher.Watcher
 	//TxDecoder          sdk.TxDecoder
@@ -73,9 +74,29 @@ type TxTestSuite struct {
 // For generating DeliverTxResponse with DeliverTx
 func (suite *TxTestSuite) SetupTest() {
 
-	//suite.app = app.Setup(false, app.WithChainId(cosmosChainId))
+	//compapp := app.Setup(false, app.WithChainId(cosmosChainId))
 	w := setupTest()
 	suite.app = w.app
+	// init chain must be called to stop deliverState from being nil
+	genesisState := app.NewDefaultGenesisState()
+	stateBytes, err := codec.MarshalJSONIndent(suite.app.Codec(), genesisState)
+	if err != nil {
+		panic(err)
+	}
+
+	// Initialize the chain
+	suite.app.InitChain(
+		tm.RequestInitChain{
+			Validators:    []tm.ValidatorUpdate{},
+			AppStateBytes: stateBytes,
+			ChainId:       cosmosChainId,
+		},
+	)
+
+	//suite.ctx = w.ctx
+	//suite.Require().NotNil(compapp, "")
+	//chain_id := "ethermint-3"
+	//ethermint.SetChainId(chain_id)
 	//suite.app = app.Setup(false, app.WithChainId(cosmosChainId))
 	//suite.Watcher = *(watcher.NewWatcher(log.NewTMLogger(os.Stdout)))
 
@@ -87,6 +108,7 @@ func (suite *TxTestSuite) SetupTest() {
 
 func (suite *TxTestSuite) Ctx() sdk.Context {
 	return suite.app.BaseApp.GetDeliverStateCtx()
+	//return suite.ctx
 }
 
 func (suite *TxTestSuite) beginFakeBlock() {
@@ -108,7 +130,7 @@ func (suite *TxTestSuite) beginFakeBlock() {
 
 	tmtypes.UnittestOnlySetMilestoneVenusHeight(blockHeight - 1)
 	global.SetGlobalHeight(blockHeight - 1)
-	suite.app.BeginBlocker(suite.Ctx(), tm.RequestBeginBlock{Header: tm.Header{Height: blockHeight}})
+	suite.app.BeginBlocker(suite.Ctx(), tm.RequestBeginBlock{Header: tm.Header{Height: blockHeight - 1}})
 }
 
 //func (suite *TxTestSuite) preExecute() {
@@ -146,6 +168,13 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				//Create evm contract - Owner.sol
 				bytecode := ethcommon.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
 				tx := etypes.NewMsgEthereumTx(nonce0, nil, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
+				//ctx := suite.Ctx()
+				// parse context chain ID to big.Int
+				//chainID, err := ethermint.ParseChainID(ctx.ChainID())
+				//suite.Require().NoError(err, "")
+
+				// sign transaction
+				//err = tx.Sign(chainID, suite.evmSenderPrivKey.ToECDSA())
 				tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
 				txBytes, err := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
 				suite.Require().NoError(err)
