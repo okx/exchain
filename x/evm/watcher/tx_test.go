@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 
@@ -143,13 +142,10 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 			title:          "evmTx success with none-nil ResponseDeliverTx",
 			watcherEnabled: true,
 			buildInput: func() (tm.TxEssentials, *tm.ResponseDeliverTx) {
-				// Call evm contract with function changeOwner, for saving data.
-				storeAddr := "0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424"
-				bytecode := ethcommon.FromHex(storeAddr)
-
-				tx := etypes.NewMsgEthereumTx(nonce0, &suite.evmContractAddress, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
+				//Create evm contract - Owner.sol
+				bytecode := ethcommon.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
+				tx := etypes.NewMsgEthereumTx(nonce0, nil, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
 				tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
-
 				txBytes, err := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
 				suite.Require().NoError(err)
 				res := suite.app.PreDeliverRealTx(txBytes)
@@ -192,6 +188,32 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 			watcherEnabled: false,
 			buildInput: func() (tm.TxEssentials, *tm.ResponseDeliverTx) {
 				return nil, nil
+			},
+			numBatch: 0,
+		},
+		{
+			title:          "ethTx with nil Response",
+			watcherEnabled: true,
+			buildInput: func() (tm.TxEssentials, *tm.ResponseDeliverTx) {
+				//Create evm contract - Owner.sol
+				bytecode := ethcommon.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
+				tx := etypes.NewMsgEthereumTx(nonce0, nil, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
+				tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
+				return tx, nil
+			},
+			numBatch: 1,
+		},
+		{
+			title:          "StdTx with nil Response",
+			watcherEnabled: true,
+			buildInput: func() (tm.TxEssentials, *tm.ResponseDeliverTx) {
+				//send std tx for gov, success
+				content := gov.NewTextProposal("Test", "description")
+				newProposalMsg := gov.NewMsgSubmitProposal(content, sysCoins10, suite.stdSenderAccAddress)
+				depositMsg := gov.NewMsgDeposit(suite.stdSenderAccAddress, govProposalID1, sysCoins90)
+				msgs := []sdk.Msg{newProposalMsg, depositMsg}
+				tx := newTestStdTx(msgs, []crypto.PrivKey{suite.stdSenderPrivKey}, []uint64{accountNum}, []uint64{nonce0}, txFees, memo)
+				return tx, nil
 			},
 			numBatch: 0,
 		},
@@ -245,6 +267,11 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 			if !tc.watcherEnabled {
 				suite.Require().Nil(err, "Watcher Disabled error")
 				suite.Require().Nil(WatchDataByte, "Watcher Disabled error")
+				return
+			}
+			if tc.numBatch == 0 {
+				suite.Require().Nil(err, "Get WatchData Byte error")
+				suite.Require().Nil(WatchDataByte, "Add Batch error : 0 batch should be added")
 				return
 			}
 			suite.Require().Nil(err, "Get WatchData Byte error")
