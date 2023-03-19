@@ -33,8 +33,6 @@ var (
 	evmGasLimit   = uint64(1000000)
 	evmGasPrice   = big.NewInt(10000)
 	evmChainID    = big.NewInt(3)
-	//For testing Import Cycle
-	//evmName = evm.ModuleName
 
 	cosmosChainId = "ethermint-3"
 
@@ -58,12 +56,9 @@ var (
 
 type TxTestSuite struct {
 	suite.Suite
-	app *app.OKExChainApp
-	//ctx     sdk.Context
-	codec   *codec.Codec
-	Watcher watcher.Watcher
-	//TxDecoder          sdk.TxDecoder
-	//height             int64
+	app                *app.OKExChainApp
+	codec              *codec.Codec
+	Watcher            watcher.Watcher
 	evmSenderPrivKey   ethsecp256k1.PrivKey
 	evmContractAddress ethcommon.Address
 
@@ -73,18 +68,15 @@ type TxTestSuite struct {
 
 // For generating DeliverTxResponse with DeliverTx
 func (suite *TxTestSuite) SetupTest() {
-
-	//compapp := app.Setup(false, app.WithChainId(cosmosChainId))
+	// Initialize OKExChainApp with already existing function
+	// to avoid the watcher being disabled.
 	w := setupTest()
 	suite.app = w.app
-	// init chain must be called to stop deliverState from being nil
+	// Re-Initialize the chain with none-nil chain-id
+	// to set the correct chain-id
 	genesisState := app.NewDefaultGenesisState()
 	stateBytes, err := codec.MarshalJSONIndent(suite.app.Codec(), genesisState)
-	if err != nil {
-		panic(err)
-	}
-
-	// Initialize the chain
+	suite.Require().Nil(err, "Re-Initialize chain error")
 	suite.app.InitChain(
 		tm.RequestInitChain{
 			Validators:    []tm.ValidatorUpdate{},
@@ -92,13 +84,6 @@ func (suite *TxTestSuite) SetupTest() {
 			ChainId:       cosmosChainId,
 		},
 	)
-
-	//suite.ctx = w.ctx
-	//suite.Require().NotNil(compapp, "")
-	//chain_id := "ethermint-3"
-	//ethermint.SetChainId(chain_id)
-	//suite.app = app.Setup(false, app.WithChainId(cosmosChainId))
-	//suite.Watcher = *(watcher.NewWatcher(log.NewTMLogger(os.Stdout)))
 
 	params := etypes.DefaultParams()
 	params.EnableCreate = true
@@ -108,7 +93,6 @@ func (suite *TxTestSuite) SetupTest() {
 
 func (suite *TxTestSuite) Ctx() sdk.Context {
 	return suite.app.BaseApp.GetDeliverStateCtx()
-	//return suite.ctx
 }
 
 func (suite *TxTestSuite) beginFakeBlock() {
@@ -133,19 +117,6 @@ func (suite *TxTestSuite) beginFakeBlock() {
 	suite.app.BeginBlocker(suite.Ctx(), tm.RequestBeginBlock{Header: tm.Header{Height: blockHeight - 1}})
 }
 
-//func (suite *TxTestSuite) preExecute() {
-//	//Create evm contract - Owner.sol
-//	bytecode := ethcommon.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
-//	tx := etypes.NewMsgEthereumTx(nonce0, nil, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
-//	//tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
-//	resp := suite.app.DeliverRealTx(tx)
-//	suite.Watcher.Enable(true)
-//	suite.Watcher.RecordTxAndFailedReceipt(tx, &resp, etypes.TxDecoder(suite.codec))
-//	// produce WatchData
-//	//suite.Watcher.Commit()
-//	//time.Sleep(time.Millisecond)
-//}
-
 func (suite *TxTestSuite) endFakeBlock() {
 	suite.app.EndBlocker(suite.Ctx(), tm.RequestEndBlock{})
 }
@@ -168,14 +139,8 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				//Create evm contract - Owner.sol
 				bytecode := ethcommon.FromHex("0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a36102c4806100dc6000396000f3fe608060405234801561001057600080fd5b5060043610610053576000357c010000000000000000000000000000000000000000000000000000000090048063893d20e814610058578063a6f9dae1146100a2575b600080fd5b6100606100e6565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6100e4600480360360208110156100b857600080fd5b81019080803573ffffffffffffffffffffffffffffffffffffffff16906020019092919050505061010f565b005b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff16905090565b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146101d1576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260138152602001807f43616c6c6572206973206e6f74206f776e65720000000000000000000000000081525060200191505060405180910390fd5b8073ffffffffffffffffffffffffffffffffffffffff166000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff167f342827c97908e5e2f71151c08502a66d44b6f758e3ac2f1de95f02eb95f0a73560405160405180910390a3806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505056fea265627a7a72315820f397f2733a89198bc7fed0764083694c5b828791f39ebcbc9e414bccef14b48064736f6c63430005100032")
 				tx := etypes.NewMsgEthereumTx(nonce0, nil, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
-				//ctx := suite.Ctx()
-				// parse context chain ID to big.Int
-				//chainID, err := ethermint.ParseChainID(ctx.ChainID())
-				//suite.Require().NoError(err, "")
-
-				// sign transaction
-				//err = tx.Sign(chainID, suite.evmSenderPrivKey.ToECDSA())
-				tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
+				err := tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
+				suite.Require().NoError(err)
 				txBytes, err := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
 				suite.Require().NoError(err)
 				res := suite.app.PreDeliverRealTx(txBytes)
@@ -192,7 +157,7 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				//Create evm contract - Owner.sol
 				bytecode := ethcommon.FromHex("0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424")
 				tx := etypes.NewMsgEthereumTx(nonce1, nil, evmAmountZero, evmGasLimit, evmGasPrice, bytecode)
-				//tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
+				tx.Sign(evmChainID, suite.evmSenderPrivKey.ToECDSA())
 				resp := suite.app.DeliverRealTx(tx)
 				return tx, &resp
 			},
@@ -251,47 +216,18 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 
 	suite.SetupTest()
 	suite.beginFakeBlock()
-	//suite.preExecute()
 	for _, tc := range testCases {
 		suite.Run(tc.title, func() {
-			//suite.Watcher = *suite.app.EvmKeeper.Watcher
 			//Reset Watcher when starting a new test case
 			suite.Watcher = *(watcher.NewWatcher(log.NewTMLogger(os.Stdout)))
 			suite.Watcher.Enable(tc.watcherEnabled)
 			simBlockHash := ethcommon.BytesToHash([]byte("block_hash"))
 			simHeader := tm.Header{}
 			suite.Watcher.NewHeight(uint64(blockHeight-1), simBlockHash, simHeader)
-			//suite.Watcher.
-
-			//global.SetGlobalHeight(blockHeight - 1)
-			//suite.app.BeginBlocker(suite.Ctx(), tm.RequestBeginBlock{Header: tm.Header{Height: blockHeight}})
-
+			//Build input transaction and ResponseDeliverTx
 			tx, resp := tc.buildInput()
-			//Get Old Batch from WatchData
-
-			//oldWDatagen := suite.Watcher.CreateWatchDataGenerator()
-			//oldWatchDataByte, err := oldWDatagen()
-			//suite.Require().Nil(err, "Get Old WatchData Byteerror")
-			//oldWatchDataInterface, err := suite.Watcher.UnmarshalWatchData(oldWatchDataByte)
-			//suite.Require().Nil(err, "Get Old WatchData Decode Result error")
-			//oldWatchData, ok := oldWatchDataInterface.(watcher.WatchData)
-			//suite.Require().True(ok, "Convert Old WatchData Result error")
-			//oldlenbatch := len(oldWatchData.Batches)
-
-			//Execute tested function
 			suite.Watcher.RecordTxAndFailedReceipt(tx, resp, etypes.TxDecoder(suite.codec))
-			// produce WatchData
-			//suite.Watcher.Commit()
-			//time.Sleep(time.Millisecond)
-			//Get New Batch from WatchData
-			//newWDatagen := suite.Watcher.CreateWatchDataGenerator()
-			//newWatchDataByte, err := newWDatagen()
-			//suite.Require().Nil(err, "Get New WatchData Byteerror")
-			//newWatchDataInterface, err := suite.Watcher.UnmarshalWatchData(newWatchDataByte)
-			//suite.Require().Nil(err, "Get New WatchData Decode Result error")
-			//newWatchData, ok := newWatchDataInterface.(watcher.WatchData)
-			//suite.Require().True(ok, "Convert New WatchData Result error")
-			//newlenbatch := len(newWatchData.Batches)
+			// Get batch from WatchData
 			WDatagen := suite.Watcher.CreateWatchDataGenerator()
 			WatchDataByte, err := WDatagen()
 			if !tc.watcherEnabled {
@@ -299,6 +235,7 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 				suite.Require().Nil(WatchDataByte, "Watcher Disabled error")
 				return
 			}
+			// 0 batch returns nil WatchDataByte
 			if tc.numBatch == 0 {
 				suite.Require().Nil(err, "Get WatchData Byte error")
 				suite.Require().Nil(WatchDataByte, "Add Batch error : 0 batch should be added")
@@ -310,7 +247,6 @@ func (suite *TxTestSuite) TestRecordTxAndFailedReceipt() {
 			WatchData, ok := WatchDataInterface.(watcher.WatchData)
 			suite.Require().True(ok, "Convert New WatchData Result error")
 			lenBatch := len(WatchData.Batches)
-
 			//Only test if the number of batches increase as expected.
 			suite.Require().True(lenBatch == tc.numBatch, "Add Batch Number Wrong")
 		})
