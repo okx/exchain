@@ -18,7 +18,6 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
-
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 
@@ -42,9 +41,7 @@ var (
 	nonce0 = uint64(0)
 	nonce1 = uint64(1)
 	//generate fees for stdTx
-	Coin10   = sdk.NewInt64Coin(sdk.DefaultBondDenom, 10)
 	Coin1000 = sdk.NewInt64Coin(sdk.DefaultBondDenom, 1000)
-	fees     = auth.NewStdFee(21000, sdk.NewCoins(Coin10))
 
 	txCoin10   = sdk.NewInt64Coin(sdk.DefaultBondDenom, 10)
 	txFees     = auth.NewStdFee(21000, sdk.NewCoins(txCoin10))
@@ -75,7 +72,11 @@ type TxTestSuite struct {
 
 // For generating DeliverTxResponse with DeliverTx
 func (suite *TxTestSuite) SetupTest() {
-	suite.app = app.Setup(false, app.WithChainId(cosmosChainId))
+
+	//suite.app = app.Setup(false, app.WithChainId(cosmosChainId))
+	w := setupTest()
+	suite.app = w.app
+	//suite.app = app.Setup(false, app.WithChainId(cosmosChainId))
 	//suite.Watcher = *(watcher.NewWatcher(log.NewTMLogger(os.Stdout)))
 
 	params := etypes.DefaultParams()
