@@ -16,6 +16,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgRegProxy{}, "okexchain/staking/MsgRegProxy", nil)
 	cdc.RegisterConcrete(MsgBindProxy{}, "okexchain/staking/MsgBindProxy", nil)
 	cdc.RegisterConcrete(MsgUnbindProxy{}, "okexchain/staking/MsgUnbindProxy", nil)
+	cdc.RegisterConcrete(CM45Validator{}, "cosmos-sdk/staking/validator", nil)
 }
 
 // ModuleCdc is generic sealed codec to be used throughout this module

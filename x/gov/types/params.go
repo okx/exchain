@@ -40,6 +40,17 @@ func NewDepositParams(minDeposit sdk.SysCoins, maxDepositPeriod time.Duration) D
 	}
 }
 
+func DefaultDepositParams() DepositParams {
+	return NewDepositParams(sdk.NewDecCoins(sdk.NewDecCoin("okt", sdk.NewInt(0))), 0)
+}
+
+func (p DepositParams) ToCM45DepositParams() CM45DepositParams {
+	return CM45DepositParams{
+		MinDeposit:       p.MinDeposit,
+		MaxDepositPeriod: sdk.FormatDuration(p.MaxDepositPeriod),
+	}
+}
+
 func (dp DepositParams) String() string {
 	return fmt.Sprintf(`Deposit Params:
   Min Deposit:        %s
@@ -81,6 +92,19 @@ func NewTallyParams(quorum, threshold, veto sdk.Dec) TallyParams {
 		Quorum:    quorum,
 		Threshold: threshold,
 		Veto:      veto,
+	}
+}
+
+func DefaultTallyParams() TallyParams {
+	return NewTallyParams(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+}
+
+func (tp TallyParams) ToCM45TallyParams() CM45TallyParams {
+	return CM45TallyParams{
+		Quorum:          tp.Quorum,
+		Threshold:       tp.Threshold,
+		Veto:            tp.Veto,
+		YesInVotePeriod: tp.YesInVotePeriod,
 	}
 }
 
@@ -130,6 +154,14 @@ func NewVotingParams(votingPeriod time.Duration) VotingParams {
 	return VotingParams{
 		VotingPeriod: votingPeriod,
 	}
+}
+
+func DefaultVotingParams() VotingParams {
+	return NewVotingParams(0)
+}
+
+func (vp VotingParams) ToCM45VotingParams() CM45VotingParams {
+	return CM45VotingParams{VotingPeriod: sdk.FormatDuration(vp.VotingPeriod)}
 }
 
 func (vp VotingParams) String() string {

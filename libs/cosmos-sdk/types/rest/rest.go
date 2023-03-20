@@ -28,6 +28,7 @@ const (
 	DefaultLimit   = 30             // should be consistent with tendermint/tendermint/rpc/core/pipe.go:19
 	TxMinHeightKey = "tx.minheight" // Inclusive minimum height filter
 	TxMaxHeightKey = "tx.maxheight" // Inclusive maximum height filter
+
 )
 
 // ResponseWithHeight defines a response object type that wraps an original
@@ -382,10 +383,85 @@ func ParseHTTPArgsWithLimit(r *http.Request, defaultLimit int) (tags []string, p
 	return tags, page, limit, nil
 }
 
+// ParseCM45PageRequest parses the request's URL in the way of cosmos v0.45.1.
+func ParseCM45PageRequest(r *http.Request) (pr *query.PageRequest, err error) {
+	var limit uint64
+	limitStr := r.FormValue("pagination.limit")
+	if limitStr == "" {
+		limit = DefaultLimit
+	} else {
+		limit, err = strconv.ParseUint(limitStr, 10, 0)
+		if err != nil {
+			return nil, err
+		} else if limit <= 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "limit must greater than 0")
+		}
+	}
+
+	var offset uint64
+	offsetStr := r.FormValue("pagination.offset")
+	if offsetStr == "" {
+		offset = DefaultOffset
+	} else {
+		offset, err = strconv.ParseUint(offsetStr, 10, 0)
+		if err != nil {
+			return pr, err
+		} else if offset < 0 {
+			return pr, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "offset must greater than 0")
+		}
+	}
+	var key []byte
+	keyStr := r.FormValue("pagination.key")
+	if keyStr == "" {
+		key = nil
+	} else {
+		if offsetStr != "" {
+			return pr, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "only one of offset or key should be set")
+		}
+		key = []byte(keyStr)
+	}
+
+	var countTotal bool
+	countTotalStr := r.FormValue("pagination.count_total")
+	if countTotalStr == "" {
+		countTotal = false
+	} else {
+		countTotal, err = strconv.ParseBool(countTotalStr)
+		if err != nil {
+			return pr, err
+		}
+	}
+	pr = &query.PageRequest{
+		Key:        key,
+		Offset:     offset,
+		Limit:      limit,
+		CountTotal: countTotal,
+	}
+	return pr, nil
+}
+
 // ParseHTTPArgs parses the request's URL and returns a slice containing all
 // arguments pairs. It separates page and limit used for pagination.
 func ParseHTTPArgs(r *http.Request) (tags []string, page, limit int, err error) {
 	return ParseHTTPArgsWithLimit(r, DefaultLimit)
+}
+
+// ParseEvents parses the request's URL and returns a slice containing all events.
+func ParseEvents(r *http.Request) (events []string, err error) {
+	events = make([]string, 0)
+	for key, values := range r.Form {
+		if key == "events" {
+			for i := 0; i < len(values); i++ {
+				var event string
+				event, err = url.QueryUnescape(values[i])
+				if err != nil {
+					return events, err
+				}
+				events = append(events, event)
+			}
+		}
+	}
+	return events, nil
 }
 
 func CheckBadRequestError(w http.ResponseWriter, err error) bool {

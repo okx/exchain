@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"strings"
 )
@@ -11,17 +13,23 @@ const (
 	// proposalTypeManageTreasures defines the type for a ManageContractTreasures
 	proposalTypeManageTreasures = "ManageTreasures"
 
+	// proposalTypeModifyNextBlockUpdate defines the type for a ModifyNextBlockUpdate
+	proposalTypeModifyNextBlockUpdate = "ModifyNextBlockUpdate"
+
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
 )
 
 func init() {
 	govtypes.RegisterProposalType(proposalTypeManageTreasures)
+	govtypes.RegisterProposalType(proposalTypeModifyNextBlockUpdate)
 	govtypes.RegisterProposalTypeCodec(ManageTreasuresProposal{}, "okexchain/mint/ManageTreasuresProposal")
+	govtypes.RegisterProposalTypeCodec(ModifyNextBlockUpdateProposal{}, "okexchain/mint/ModifyNextBlockUpdateProposal")
 }
 
 var (
 	_ govtypes.Content = (*ManageTreasuresProposal)(nil)
+	_ govtypes.Content = (*ModifyNextBlockUpdateProposal)(nil)
 )
 
 // ManageTreasuresProposal - structure for the proposal to add or delete treasures
@@ -119,6 +127,90 @@ func (mp ManageTreasuresProposal) String() string {
 		builder.WriteString(mp.Treasures[i].Proportion.String())
 		builder.Write([]byte{'\n'})
 	}
+
+	return strings.TrimSpace(builder.String())
+}
+
+// ModifyNextBlockUpdateProposal - structure for the proposal modify next block update
+type ModifyNextBlockUpdateProposal struct {
+	Title       string `json:"title" yaml:"title"`
+	Description string `json:"description" yaml:"description"`
+	BlockNum    uint64 `json:"block_num" yaml:"block_num"`
+}
+
+// NewModifyNextBlockUpdateProposal creates a new instance of ModifyNextBlockUpdateProposal
+func NewModifyNextBlockUpdateProposal(title, description string, blockNum uint64) ModifyNextBlockUpdateProposal {
+	return ModifyNextBlockUpdateProposal{
+		Title:       title,
+		Description: description,
+		BlockNum:    blockNum,
+	}
+}
+
+// GetTitle returns title of the proposal object
+func (mp ModifyNextBlockUpdateProposal) GetTitle() string {
+	return mp.Title
+}
+
+// GetDescription returns description of proposal object
+func (mp ModifyNextBlockUpdateProposal) GetDescription() string {
+	return mp.Description
+}
+
+// ProposalRoute returns route key of the proposal object
+func (mp ModifyNextBlockUpdateProposal) ProposalRoute() string {
+	return RouterKey
+}
+
+// ProposalType returns type of the proposal object
+func (mp ModifyNextBlockUpdateProposal) ProposalType() string {
+	return proposalTypeModifyNextBlockUpdate
+}
+
+// ValidateBasic validates the proposal
+func (mp ModifyNextBlockUpdateProposal) ValidateBasic() sdk.Error {
+	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus5(global.GetGlobalHeight()) {
+		return ErrNotReachedVenus5Height
+	}
+
+	if len(strings.TrimSpace(mp.Title)) == 0 {
+		return govtypes.ErrInvalidProposalContent("title is required")
+	}
+	if len(mp.Title) > govtypes.MaxTitleLength {
+		return govtypes.ErrInvalidProposalContent("title length is bigger than max title length")
+	}
+
+	if len(mp.Description) == 0 {
+		return govtypes.ErrInvalidProposalContent("description is required")
+	}
+
+	if len(mp.Description) > govtypes.MaxDescriptionLength {
+		return govtypes.ErrInvalidProposalContent("description length is bigger than max description length")
+	}
+
+	if mp.ProposalType() != proposalTypeModifyNextBlockUpdate {
+		return govtypes.ErrInvalidProposalType(mp.ProposalType())
+	}
+
+	if global.GetGlobalHeight() > 0 && mp.BlockNum <= uint64(global.GetGlobalHeight()) {
+		return ErrCodeInvalidHeight
+	}
+
+	return nil
+}
+
+// String returns a human readable string representation of a ModifyNextBlockUpdateProposal
+func (mp ModifyNextBlockUpdateProposal) String() string {
+	var builder strings.Builder
+	builder.WriteString(
+		fmt.Sprintf(`ModifyNextBlockUpdateProposal:
+ Title:					%s
+ Description:        	%s
+ Type:                	%s
+ BlockNum:				%d
+`,
+			mp.Title, mp.Description, mp.ProposalType(), mp.BlockNum),
+	)
 
 	return strings.TrimSpace(builder.String())
 }

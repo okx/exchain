@@ -28,6 +28,19 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		"/supply/total/{denom}",
 		supplyOfHandlerFn(cliCtx),
 	).Methods("GET")
+
+	// compatible with cosmos v0.45.1
+	// Query the total supply of coins
+	r.HandleFunc(
+		"/cosmos/bank/v1beta1/supply",
+		cm45TotalSupplyHandlerFn(cliCtx),
+	).Methods("GET")
+
+	// Query the supply of a single denom
+	r.HandleFunc(
+		"/cosmos/bank/v1beta1/supply/{denom}",
+		cm45SupplyOfHandlerFn(cliCtx),
+	).Methods("GET")
 }
 
 // HTTP request handler to query the total supply of coins

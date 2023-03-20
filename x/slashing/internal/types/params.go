@@ -37,6 +37,26 @@ func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})
 }
 
+// WrappedParams is used to wrap the Params, thus making the rest API response compatible with cosmos-sdk
+type WrappedParams struct {
+	Params CM45Params `json:"params" yaml:"params"`
+}
+
+// NewWrappedParams creates a new instance of WrappedParams
+func NewWrappedParams(params CM45Params) WrappedParams {
+	return WrappedParams{
+		Params: params,
+	}
+}
+
+type CM45Params struct {
+	SignedBlocksWindow      int64   `json:"signed_blocks_window" yaml:"signed_blocks_window"`
+	MinSignedPerWindow      sdk.Dec `json:"min_signed_per_window" yaml:"min_signed_per_window"`
+	DowntimeJailDuration    string  `json:"downtime_jail_duration" yaml:"downtime_jail_duration"`
+	SlashFractionDoubleSign sdk.Dec `json:"slash_fraction_double_sign" yaml:"slash_fraction_double_sign"`
+	SlashFractionDowntime   sdk.Dec `json:"slash_fraction_downtime" yaml:"slash_fraction_downtime"`
+}
+
 // Params - used for initializing default parameter for slashing at genesis
 type Params struct {
 	SignedBlocksWindow      int64         `json:"signed_blocks_window" yaml:"signed_blocks_window"`
@@ -58,6 +78,16 @@ func NewParams(
 		DowntimeJailDuration:    downtimeJailDuration,
 		SlashFractionDoubleSign: slashFractionDoubleSign,
 		SlashFractionDowntime:   slashFractionDowntime,
+	}
+}
+
+func (p Params) ToCM45Params() CM45Params {
+	return CM45Params{
+		SignedBlocksWindow:      p.SignedBlocksWindow,
+		MinSignedPerWindow:      p.MinSignedPerWindow,
+		DowntimeJailDuration:    sdk.FormatDuration(p.DowntimeJailDuration),
+		SlashFractionDoubleSign: p.SlashFractionDoubleSign,
+		SlashFractionDowntime:   p.SlashFractionDowntime,
 	}
 }
 

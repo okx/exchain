@@ -75,6 +75,22 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 		"/distribution/delegators/{delegatorAddr}/validators",
 		delegatorValidatorsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
+
+	// Compatible with cosmos v0.45.1
+	r.HandleFunc(
+		"/cosmos/distribution/v1beta1/delegators/{delegatorAddr}/rewards",
+		cm45DelegatorRewardsHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/distribution/v1beta1/validators/{validatorAddr}/commission",
+		cm45AccumulatedCommissionHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/distribution/v1beta1/params",
+		cm45ParamsHandlerFn(cliCtx, queryRoute),
+	).Methods("GET")
 }
 
 // HTTP request handler to query a delegation rewards
@@ -167,7 +183,6 @@ func accumulatedCommissionHandlerFn(cliCtx context.CLIContext, queryRoute string
 			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
-
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
 	}

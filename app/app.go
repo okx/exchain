@@ -156,6 +156,7 @@ var (
 			evmclient.ManageSysContractAddressProposalHandler,
 			evmclient.ManageContractByteCodeProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
+			govclient.ModifyNextBlockUpdateProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
@@ -709,7 +710,7 @@ func NewOKExChainApp(
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
 	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
-	app.setupUpgradeModules()
+	app.setupUpgradeModules(false)
 
 	vmbridge.RegisterServices(app.configurator, *app.VMBridgeKeeper)
 
@@ -768,6 +769,10 @@ func NewOKExChainApp(
 		// Initialize pinned codes in wasmvm as they are not persisted there
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
+		}
+
+		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
+			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
 		}
 	}
 

@@ -3,31 +3,31 @@ package main
 import (
 	"fmt"
 
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
-	"github.com/okex/exchain/x/wasm/proxy"
-
-	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
-	mintrest "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
-	erc20client "github.com/okex/exchain/x/erc20/client"
-	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
-	evmclient "github.com/okex/exchain/x/evm/client"
-
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okex/exchain/libs/cosmos-sdk/x/bank/client/rest"
+	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
+	mintrest "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
+	ibctransferrest "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/rest"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
 	dexrest "github.com/okex/exchain/x/dex/client/rest"
 	dist "github.com/okex/exchain/x/distribution"
 	distr "github.com/okex/exchain/x/distribution"
 	distrest "github.com/okex/exchain/x/distribution/client/rest"
+	erc20client "github.com/okex/exchain/x/erc20/client"
+	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
+	evmclient "github.com/okex/exchain/x/evm/client"
 	evmrest "github.com/okex/exchain/x/evm/client/rest"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	farmrest "github.com/okex/exchain/x/farm/client/rest"
@@ -35,11 +35,12 @@ import (
 	govrest "github.com/okex/exchain/x/gov/client/rest"
 	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	slashingrest "github.com/okex/exchain/x/slashing/client/rest"
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
 	wasmrest "github.com/okex/exchain/x/wasm/client/rest"
-	"github.com/spf13/viper"
+	"github.com/okex/exchain/x/wasm/proxy"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.
@@ -69,6 +70,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	authrest.RegisterRoutes(rs.CliCtx, v1Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v1Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v1Router)
+	slashingrest.RegisterRoutes(rs.CliCtx, v1Router)
 	distrest.RegisterRoutes(rs.CliCtx, v1Router, dist.StoreKey)
 
 	orderrest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -94,11 +96,12 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			evmclient.ManageSysContractAddressProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractByteCodeProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
+			mintclient.ModifyNextBlockUpdateProposalHandler.RESTHandler(rs.CliCtx),
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
 	mintrest.RegisterRoutes(rs.CliCtx, v1Router)
-
+	ibctransferrest.RegisterOriginRPCRoutersForGRPC(rs.CliCtx, v1Router)
 }
 
 func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {

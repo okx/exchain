@@ -4,7 +4,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	"github.com/okex/exchain/x/common"
-
 	govTypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -14,6 +13,8 @@ func NewManageTreasuresProposalHandler(k *Keeper) govTypes.Handler {
 		switch content := proposal.Content.(type) {
 		case types.ManageTreasuresProposal:
 			return handleManageTreasuresProposal(ctx, k, proposal)
+		case types.ModifyNextBlockUpdateProposal:
+			return handleModifyNextBlockUpdateProposal(ctx, k, proposal)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -39,5 +40,20 @@ func handleManageTreasuresProposal(ctx sdk.Context, k *Keeper, proposal *govType
 	if err := k.DeleteTreasures(ctx, manageTreasuresProposal.Treasures); err != nil {
 		return types.ErrTreasuresInternal(err)
 	}
+	return nil
+}
+
+func handleModifyNextBlockUpdateProposal(ctx sdk.Context, k *Keeper, proposal *govTypes.Proposal) sdk.Error {
+	modifyProposal, ok := proposal.Content.(types.ModifyNextBlockUpdateProposal)
+	if !ok {
+		return types.ErrUnexpectedProposalType
+	}
+	if modifyProposal.BlockNum <= uint64(ctx.BlockHeight()) {
+		return types.ErrNextBlockUpdateTooLate
+	}
+
+	minter := k.GetMinterCustom(ctx)
+	minter.NextBlockToUpdate = modifyProposal.BlockNum
+	k.SetMinterCustom(ctx, minter)
 	return nil
 }
