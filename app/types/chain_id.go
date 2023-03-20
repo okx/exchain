@@ -18,8 +18,8 @@ var (
 	ethermintChainID = regexp.MustCompile(fmt.Sprintf(`^(%s)%s(%s)$`, regexChainID, regexSeparator, regexEpoch))
 )
 
-const mainnetChainId = system.Chain + "-66"
-const testnetChainId = system.Chain + "-65"
+const mainnetChainId = system.Chain + "-196"
+const testnetChainId = system.TestnetPrefix + "-195"
 
 var (
 	chainIdSetOnce    sync.Once

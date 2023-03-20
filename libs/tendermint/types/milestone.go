@@ -23,16 +23,11 @@ var (
 )
 
 const (
-	MainNet = system.Chain + "-66"
-	TestNet = system.Chain + "-65"
+	MainNet = system.Chain + "-196"
+	TestNet = system.TestnetPrefix + "-195"
 
 	MILESTONE_EARTH  = "earth"
 	MILESTONE_Venus4 = "venus4"
-)
-
-const (
-	TestNetChangeChainId = 2270901
-	TestNetChainName1    = system.Chain + "-65"
 )
 
 func init() {

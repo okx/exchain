@@ -2,6 +2,7 @@ package system
 
 const (
 	Chain = "okbchain"
+	TestnetPrefix = "okbchaintest"
 	AppName = "OKBChain"
 	Server = Chain+"d"
 	Client = Chain+"cli"

@@ -41,7 +41,7 @@ const (
 )
 
 var (
-	ChainID = system.Chain + "-66"
+	ChainID = system.Chain + "-196"
 )
 
 //module hook

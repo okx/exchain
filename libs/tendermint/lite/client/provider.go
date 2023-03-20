@@ -70,10 +70,6 @@ func (p *provider) LatestFullCommit(chainID string, minHeight, maxHeight int64) 
 	if err != nil {
 		return
 	}
-	if !verifyEqualChainId(commit.ChainID, p.chainID, commit.Height) {
-		err = fmt.Errorf("expected chainID %s, got %s", p.chainID, commit.ChainID)
-		return
-	}
 	fc, err = p.fillFullCommit(commit.SignedHeader)
 	return
 }
@@ -103,10 +99,6 @@ func (p *provider) ValidatorSet(chainID string, height int64) (valset *types.Val
 }
 
 func (p *provider) getValidatorSet(chainID string, height int64) (valset *types.ValidatorSet, err error) {
-	if !verifyEqualChainId(chainID, p.chainID, height) {
-		err = fmt.Errorf("expected chainID %s, got %s", p.chainID, chainID)
-		return
-	}
 	if height < types.GetStartBlockHeight()+1 {
 		err = fmt.Errorf("expected height >= 1, got height %v", height)
 		return
@@ -135,13 +127,4 @@ func (p *provider) fillFullCommit(signedHeader types.SignedHeader) (fc lite.Full
 	}
 
 	return lite.NewFullCommit(signedHeader, valset, nextValset), nil
-}
-
-func verifyEqualChainId(chain1 string, flagChainId string, h int64) bool {
-	if flagChainId == types.TestNet {
-		if h < types.TestNetChangeChainId && chain1 == types.TestNetChainName1 {
-			return true
-		}
-	}
-	return chain1 == flagChainId
 }

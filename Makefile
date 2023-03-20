@@ -21,8 +21,6 @@ Name=okbchain
 ServerName=okbchaind
 ClientName=okbchaincli
 
-MarsHeight=1
-
 LINK_STATICALLY = false
 cgo_flags=
 
@@ -68,8 +66,7 @@ ldflags = -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.Commit=$(COMMIT) \
   -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.CosmosSDK=$(CosmosSDK) \
   -X $(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
-  -X "$(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
-  -X $(GithubTop)/okx/okbchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
+  -X "$(GithubTop)/okx/okbchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)"
 
 
 ifeq ($(WITH_ROCKSDB),true)
@@ -77,7 +74,7 @@ ifeq ($(WITH_ROCKSDB),true)
 endif
 
 ifeq ($(MAKECMDGOALS),testnet)
-  ldflags += -X github.com/okx/okbchain/libs/cosmos-sdk/server.ChainID=okbchain-65
+  ldflags += -X github.com/okx/okbchain/libs/cosmos-sdk/server.ChainID=okbchaintest-195
 endif
 
 ifeq ($(LINK_STATICALLY),true)
