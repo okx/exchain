@@ -18,8 +18,6 @@ import (
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
-	//"github.com/okex/exchain/x/evm"
 	etypes "github.com/okex/exchain/x/evm/types"
 )
 
