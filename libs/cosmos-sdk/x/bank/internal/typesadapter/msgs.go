@@ -5,7 +5,7 @@ import (
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
 	txmsg "github.com/okx/okbchain/libs/cosmos-sdk/types/ibc-adapter"
-	okc_types "github.com/okx/okbchain/libs/cosmos-sdk/x/bank/internal/types"
+	okbc_types "github.com/okx/okbchain/libs/cosmos-sdk/x/bank/internal/types"
 	"github.com/okx/okbchain/libs/system"
 )
 
@@ -109,10 +109,10 @@ func (msg *MsgMultiSend) ValidateBasic() error {
 	// this just makes sure all the inputs and outputs are properly formatted,
 	// not that they actually have the money inside
 	if len(msg.Inputs) == 0 {
-		return okc_types.ErrNoInputs
+		return okbc_types.ErrNoInputs
 	}
 	if len(msg.Outputs) == 0 {
-		return okc_types.ErrNoOutputs
+		return okbc_types.ErrNoOutputs
 	}
 	return ValidateInputsOutputs(msg.Inputs, msg.Outputs)
 }
@@ -221,7 +221,7 @@ func ValidateInputsOutputs(inputs []Input, outputs []Output) error {
 
 	// make sure inputs and outputs match
 	if !totalIn.IsEqual(totalOut) {
-		return okc_types.ErrInputOutputMismatch
+		return okbc_types.ErrInputOutputMismatch
 	}
 
 	return nil

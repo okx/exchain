@@ -118,7 +118,7 @@ func (suite *RPCPendingTestSuite) SetupTest() {
 	viper.Set(flags.FlagHome, serverDir)
 	viper.Set(rpc.FlagPersonalAPI, true)
 
-	chainId := apptesting.GetOKChainID(1)
+	chainId := apptesting.GetOKBChainID(1)
 	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
 	suite.chain = suite.coordinator.GetChain(chainId)
 	suite.chain.App().SetOption(abci.RequestSetOption{

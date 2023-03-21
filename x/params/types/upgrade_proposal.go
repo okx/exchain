@@ -13,10 +13,10 @@ import (
 type UpgradeStatus uint32
 
 const (
-	ProposalTypeUpgrade = "oKCUpgrade"
-	UpgradeRouterKey    = "okcUpgrade"
+	ProposalTypeUpgrade = "OKBCUpgrade"
+	UpgradeRouterKey    = "okbcUpgrade"
 
-	QueryUpgrade = "okcUpgrade"
+	QueryUpgrade = "okbcUpgrade"
 
 	maxNameLength = 140
 

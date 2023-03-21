@@ -109,7 +109,7 @@ func (suite *RPCTestSuite) SetupTest() {
 	defer os.RemoveAll(serverDir)
 	viper.Set(flags.FlagHome, serverDir)
 
-	chainId := apptesting.GetOKChainID(1)
+	chainId := apptesting.GetOKBChainID(1)
 	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
 	suite.chain = suite.coordinator.GetChain(chainId)
 	suite.chain.App().SetOption(abci.RequestSetOption{

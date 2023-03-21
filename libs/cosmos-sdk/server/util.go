@@ -66,7 +66,7 @@ func PersistentPreRunEFn(context *Context) func(*cobra.Command, []string) error 
 				viper.Set(state.FlagDeliverTxsExecMode, state.DeliverTxsExecModeParallel)
 			}
 		}
-		// okchain
+		// okbchain
 		output := os.Stdout
 		if !config.LogStdout {
 			output, err = os.OpenFile(config.LogFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)

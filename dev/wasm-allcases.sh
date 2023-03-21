@@ -59,7 +59,7 @@ EXCHAIN_DEVNET_VAL_ADMIN_MNEMONIC=(
 
 VAL_NODE_NUM=${#EXCHAIN_DEVNET_VAL_ADMIN_MNEMONIC[@]}
 
-CHAIN_ID="exchain-67"
+CHAIN_ID="okbchain-197"
 NODE="http://localhost:26657"
 while getopts "c:i:" opt; do
   case $opt in
@@ -88,7 +88,7 @@ admin18=$(exchaincli keys show admin18 -a)
 admin17=$(exchaincli keys show admin17 -a)
 proposal_deposit="100okb"
 
-if [[ $CHAIN_ID == "exchain-64" ]];
+if [[ $CHAIN_ID == "okbchain-194" ]];
 then
   for ((i=0; i<${VAL_NODE_NUM}; i++))
   do
@@ -104,7 +104,7 @@ fi;
 # usage:
 #   proposal_vote {proposal_id}
 proposal_vote() {
-  if [[ $CHAIN_ID == "exchain-67" ]];
+  if [[ $CHAIN_ID == "okbchain-197" ]];
   then
     res=$(exchaincli tx gov vote "$proposal_id" yes --from captain $TX_EXTRA)
   else

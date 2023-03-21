@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
 
-CHAIN_ID="exchain-67"
+CHAIN_ID="okbchain-197"
 NODE="http://localhost:26657"
 QUERY_EXTRA="--node=$NODE"
 TX_EXTRA_UNBLOCKED="--fees 0.01okb --gas 3000000 --chain-id=$CHAIN_ID --node $NODE -b async -y"

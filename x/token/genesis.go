@@ -37,9 +37,9 @@ func defaultGenesisStateOKB() types.Token {
 		panic(err)
 	}
 
-	totalSupply := sdk.NewDec(1000000000)
+	totalSupply := sdk.NewDec(300000000)
 	return types.Token{
-		Description:         "OK Group Global Utility Token",
+		Description:         "The utility token of the OKX ecosystem",
 		Symbol:              common.NativeToken,
 		OriginalSymbol:      common.NativeToken,
 		WholeName:           "OKB",

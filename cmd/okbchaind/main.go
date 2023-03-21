@@ -45,7 +45,7 @@ import (
 )
 
 const flagInvCheckPeriod = "inv-check-period"
-const OkcEnvPrefix = system.EnvPrefix
+const OkbcEnvPrefix = system.EnvPrefix
 
 var invCheckPeriod uint
 
@@ -113,7 +113,7 @@ func main() {
 	preCheckLongFlagSyntax()
 
 	// prepare and add flags
-	executor := cli.PrepareBaseCmd(rootCmd, OkcEnvPrefix, app.DefaultNodeHome)
+	executor := cli.PrepareBaseCmd(rootCmd, OkbcEnvPrefix, app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
 	rootCmd.PersistentFlags().Bool(server.FlagGops, false, "Enable gops metrics collection")
@@ -134,7 +134,7 @@ func initEnv() {
 }
 
 func checkSetEnv(envName string, value string) {
-	realEnvName := OkcEnvPrefix + "_" + strings.ToUpper(envName)
+	realEnvName := OkbcEnvPrefix + "_" + strings.ToUpper(envName)
 	_, ok := os.LookupEnv(realEnvName)
 	if !ok {
 		_ = os.Setenv(realEnvName, value)

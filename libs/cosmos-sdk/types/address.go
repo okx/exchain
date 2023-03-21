@@ -106,7 +106,7 @@ func IsETHAddress(addr string) bool {
 	return strings.HasPrefix(addr, "0x")
 }
 
-func IsOKCAddress(addr string) bool {
+func IsOKBCAddress(addr string) bool {
 	return strings.HasPrefix(addr, GetConfig().GetBech32AccountAddrPrefix())
 }
 

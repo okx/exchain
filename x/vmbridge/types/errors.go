@@ -21,7 +21,7 @@ var (
 	ErrEvmExecuteFailed = sdkerrors.Register(ModuleName, 7, "the evm execute")
 
 	ErrVMBridgeEnable = sdkerrors.Register(ModuleName, 8, "the vmbridge is disable")
-	ErrIsNotOKCAddr   = sdkerrors.Register(ModuleName, 9, "the address prefix must be ex")
+	ErrIsNotOKBCAddr  = sdkerrors.Register(ModuleName, 9, "the address prefix must be ex")
 	ErrIsNotETHAddr   = sdkerrors.Register(ModuleName, 10, "the address prefix must be 0x")
 )
 

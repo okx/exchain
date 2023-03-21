@@ -28,7 +28,7 @@ func (t *BroadcastTxRequest) GetData() []byte {
 
 func (t *BroadcastTxResponse) HandleResponse(codec *codec.CodecProxy, data interface{}) interface{} {
 	resp := data.(sdktypes.TxResponse)
-	logs := convOkcLogs2Proto(resp.Logs)
+	logs := convOkbcLogs2Proto(resp.Logs)
 	t.TxResponse = &types.TxResponse{
 		Height:    resp.Height,
 		TxHash:    resp.TxHash,
@@ -54,7 +54,7 @@ func (t *BroadcastTxResponse) HandleResponse(codec *codec.CodecProxy, data inter
 	return t
 }
 
-func convOkcLogs2Proto(ls sdktypes.ABCIMessageLogs) types.ABCIMessageLogs {
+func convOkbcLogs2Proto(ls sdktypes.ABCIMessageLogs) types.ABCIMessageLogs {
 	logs := make(types.ABCIMessageLogs, 0)
 	for _, l := range ls {
 		es := make(types.StringEvents, 0)

@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-const ChainName = "OKC"
+const ChainName = "OKBC"
 var once sync.Once
 var pid int
 

@@ -17,7 +17,7 @@ type (
 	}
 
 	Token struct {
-		Description         string         `json:"description" v2:"description"`                     // e.g. "OK Group Global Utility Token"
+		Description         string         `json:"description" v2:"description"`                     // e.g. "The utility token of the OKX ecosystem"
 		Symbol              string         `json:"symbol" v2:"symbol"`                               // e.g. system.Currency
 		OriginalSymbol      string         `json:"original_symbol" v2:"original_symbol"`             // e.g. "OKB"
 		WholeName           string         `json:"whole_name" v2:"whole_name"`                       // e.g. "OKB"

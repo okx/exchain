@@ -37,7 +37,7 @@ import (
 
 	"github.com/okx/okbchain/app/crypto/ethsecp256k1"
 	apptypes "github.com/okx/okbchain/app/types"
-	okcapptypes "github.com/okx/okbchain/app/types"
+	okbcapptypes "github.com/okx/okbchain/app/types"
 	clienttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okx/okbchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okx/okbchain/libs/ibc-go/modules/core/24-host"
@@ -269,7 +269,7 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 	require.True(t, ok)
 	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
 
-	genesisAcc := &okcapptypes.EthAccount{
+	genesisAcc := &okbcapptypes.EthAccount{
 		BaseAccount: auth.NewBaseAccount(ethPubkey.Address().Bytes(), balance, ethPubkey, 0, 0),
 		CodeHash:    []byte{},
 	}

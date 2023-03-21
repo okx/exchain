@@ -1,8 +1,8 @@
 #!/bin/bash
 
 KEY="captain"
-CHAINID="exchain-67"
-MONIKER="okc"
+CHAINID="okbchain-197"
+MONIKER="okbc"
 CURDIR=`dirname $0`
 HOME_SERVER=$CURDIR/"_cache_evm"
 

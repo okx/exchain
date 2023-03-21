@@ -221,7 +221,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
-			types.ErrIsNotOKCAddr,
+			types.ErrIsNotOKBCAddr,
 		},
 		{
 			"normal topic,recipient is ex",
@@ -362,7 +362,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 		{
 			"recipient is bytes",
 			func() {
-				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"wasmAddr\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"recipient\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"wasmAddr\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"recipient\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKBCSendToWasm\",\"type\":\"event\"}]"
 
 				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
 				suite.Require().NoError(err)
@@ -383,7 +383,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 		{
 			"wasmAddr is bytes",
 			func() {
-				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"wasmAddr\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"wasmAddr\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKBCSendToWasm\",\"type\":\"event\"}]"
 
 				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
 				suite.Require().NoError(err)
@@ -400,9 +400,9 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 			nil,
 		},
 		{
-			"event __OKCSendToWasm(string,uint256) ",
+			"event __OKBCSendToWasm(string,uint256) ",
 			func() {
-				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKBCSendToWasm\",\"type\":\"event\"}]"
 
 				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
 				suite.Require().NoError(err)
@@ -415,9 +415,9 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 			errors.New("abi: cannot marshal in to go type: length insufficient 160 require 16417"),
 		},
 		{
-			"event __OKCSendToWasm(string,string,string,uint256) ",
+			"event __OKBCSendToWasm(string,string,string,uint256) ",
 			func() {
-				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient2\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient1\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient2\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient1\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKBCSendToWasm\",\"type\":\"event\"}]"
 
 				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
 				suite.Require().NoError(err)
@@ -436,7 +436,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 		{
 			"amount is negative",
 			func() {
-				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"wasmAddr\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"int8\",\"name\":\"amount\",\"type\":\"int8\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]\n"
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"wasmAddr\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"int8\",\"name\":\"amount\",\"type\":\"int8\"}],\"name\":\"__OKBCSendToWasm\",\"type\":\"event\"}]\n"
 
 				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
 				suite.Require().NoError(err)

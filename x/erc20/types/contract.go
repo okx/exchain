@@ -22,7 +22,7 @@ var (
 	IbcEvmModuleETHAddr  common.Address
 	IbcEvmModuleBechAddr sdk.AccAddress
 
-	// ModuleERC20Contract is the compiled okc erc20 contract
+	// ModuleERC20Contract is the compiled okbc erc20 contract
 	ModuleERC20Contract CompiledContract
 
 	//go:embed contracts/implement.json
@@ -34,7 +34,7 @@ var (
 const (
 	IbcEvmModuleName = "ibc-evm"
 
-	ContractMintMethod = "mint_by_okc_module"
+	ContractMintMethod = "mint_by_okbc_module"
 
 	ProxyContractUpgradeTo   = "upgradeTo"
 	ProxyContractChangeAdmin = "changeAdmin"

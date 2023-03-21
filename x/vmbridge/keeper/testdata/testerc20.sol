@@ -8,7 +8,7 @@ contract Exchange is ERC20 {
 
     string public wasmContractAddress = "ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27";
 
-    event __OKCSendToWasm(string wasmAddr, string recipient, uint256 amount);
+    event __OKBCSendToWasm(string wasmAddr, string recipient, uint256 amount);
 
     function initialize(string memory denom_, uint8 decimals_) public {
         __ERC20_init(denom_, denom_, decimals_);
@@ -38,7 +38,7 @@ contract Exchange is ERC20 {
     // send an "amount" of the contract token to recipient on wasm
     function send_to_wasm(string memory recipient,string memory wasmContract , uint256 amount) public {
         _burn(msg.sender, amount);
-        emit __OKCSendToWasm(wasmContract,recipient, amount);
+        emit __OKBCSendToWasm(wasmContract,recipient, amount);
     }
 }
 
