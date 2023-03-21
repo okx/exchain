@@ -62,6 +62,7 @@ func (b *RocksDBBatch) WriteSync() error {
 }
 
 // Close implements Batch.
+// Close may be called multiple times.
 func (b *RocksDBBatch) Close() {
 	if b.batch != nil {
 		b.batch.Destroy()
@@ -79,7 +80,7 @@ func (b *RocksDBBatch) Reset() {
 	b.batch.Clear()
 }
 
-func (b *RocksDBBatch) NewIterator() *gorocksdb.WriteBatchIterator{
+func (b *RocksDBBatch) NewIterator() *gorocksdb.WriteBatchIterator {
 	b.assertOpen()
 	return b.batch.NewIterator()
 }

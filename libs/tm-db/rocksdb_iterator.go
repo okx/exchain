@@ -162,7 +162,3 @@ func moveSliceToBytes(s *gorocksdb.Slice) []byte {
 	copy(v, s.Data())
 	return v
 }
-
-func (itr RocksDBIterator) Release() *RocksDBIterator {
-	return NewRocksDBIterator(itr.source, itr.start, itr.end, itr.isReverse)
-}

@@ -48,6 +48,7 @@ func (wrb *WrapRocksDBBatch) ValueSize() int {
 
 func (wrb *WrapRocksDBBatch) Write() error {
 	batch := tmdb.NewRocksDBBatch(wrb.db)
+	defer batch.Close()
 	for _, rcd := range wrb.records {
 		if rcd.value != nil {
 			batch.Set(rcd.key, rcd.value)
