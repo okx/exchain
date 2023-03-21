@@ -260,6 +260,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().UintVar(&mpt.TrieImgsLimit, mpt.FlagTrieImgsLimit, 4, "Max img size (MB) cached in triedb")
 	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 32, "Size (MB) to cache account")
 	cmd.Flags().UintVar(&mpt.TriesInMemory, mpt.FlagTrieInMemory, 100, "Max cache tire count in Memory")
+	cmd.Flags().BoolVar(&mpt.TrieAsyncDB, mpt.FlagTrieAsyncDB, true, "Enable async commit to trie db")
 	cmd.Flags().Int64(FlagCommitGapHeight, 100, "Block interval to commit cached data into db, affects iavl & mpt")
 
 	cmd.Flags().Int64(FlagFastSyncGap, 20, "Block height interval to switch fast-sync mode")

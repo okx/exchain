@@ -24,6 +24,7 @@ var (
 	gMptDatabase ethstate.Database = nil
 	initMptOnce  sync.Once
 	gStatic      = NewRuntimeState()
+	gAsyncDB     *AsyncKeyValueStore
 )
 
 func InstanceOfMptStore() ethstate.Database {
@@ -41,6 +42,10 @@ func InstanceOfMptStore() ethstate.Database {
 			panic("fail to open database: " + e.Error())
 		}
 		nkvstore := NewStatKeyValueStore(kvstore, gStatic)
+		if EnableAsyncCommit && TrieAsyncDB {
+			gAsyncDB = NewAsyncKeyValueStore(nkvstore, false)
+			nkvstore = gAsyncDB
+		}
 
 		db := rawdb.NewDatabase(nkvstore)
 		gMptDatabase = ethstate.NewDatabaseWithConfig(db, &trie.Config{

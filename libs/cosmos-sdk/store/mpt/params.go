@@ -19,6 +19,7 @@ const (
 	FlagTrieNodesLimit    = "trie.nodes-limit"
 	FlagTrieImgsLimit     = "trie.imgs-limit"
 	FlagTrieInMemory      = "trie.in-memory"
+	FlagTrieAsyncDB       = "trie.asyncdb"
 )
 
 var (
@@ -28,6 +29,7 @@ var (
 	TrieImgsLimit     uint  = 4    // MB
 	TrieCommitGap     int64 = 100
 	TriesInMemory     uint  = 100
+	TrieAsyncDB             = true
 
 	EnableAsyncCommit = false
 )
