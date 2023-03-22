@@ -56,6 +56,48 @@ func (h SendToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address,
 	return h.Keeper.SendToWasm(ctx, caller, wasmAddr, recipient, amount)
 }
 
+// event __OKCCallToWasm(string wasmAddr,uint256 value, string calldata)
+type CallToWasmEventHandler struct {
+	Keeper
+}
+
+func NewCallToWasmEventHandler(k Keeper) *CallToWasmEventHandler {
+	return &CallToWasmEventHandler{k}
+}
+
+// EventID Return the id of the log signature it handles
+func (h CallToWasmEventHandler) EventID() common.Hash {
+	return types.CallToWasmEvent.ID
+}
+
+// Handle Process the log
+func (h CallToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
+	if !tmtypes.HigherThanEarth(ctx.BlockHeight()) {
+		errMsg := fmt.Sprintf("vmbridger not supprt at height %d", ctx.BlockHeight())
+		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+	}
+
+	params := h.wasmKeeper.GetParams(ctx)
+	if !params.VmbridgeEnable {
+		return types.ErrVMBridgeEnable
+	}
+
+	logger := h.Keeper.Logger()
+	unpacked, err := types.CallToWasmEvent.Inputs.Unpack(data)
+	if err != nil {
+		// log and ignore
+		logger.Error("log signature matches but failed to decode", "error", err)
+		return nil
+	}
+
+	caller := sdk.AccAddress(contract.Bytes())
+	wasmAddr := unpacked[0].(string)
+	value := sdk.NewIntFromBigInt(unpacked[1].(*big.Int))
+	calldata := unpacked[2].(string)
+
+	return h.Keeper.CallToWasm(ctx, caller, wasmAddr, value, calldata)
+}
+
 // wasm call evm for erc20 exchange cw20,
 func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient string, amount sdk.Int) (success bool, err error) {
 	if !sdk.IsETHAddress(recipient) {
@@ -90,6 +132,38 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 		return false, err
 	}
 	success, err = types.GetMintERC20Output(result.Ret)
+	if watcher.IsWatcherEnabled() && err == nil {
+		ctx.GetWatcher().Finalize()
+	}
+	return success, err
+}
+
+// wasm call evm
+func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata string, value sdk.Int) (success bool, err error) {
+
+	if !sdk.IsETHAddress(contract) {
+		return false, types.ErrIsNotETHAddr
+	}
+
+	contractAccAddr, err := sdk.AccAddressFromBech32(contract)
+	if err != nil {
+		return false, err
+	}
+	conrtractAddr := common.BytesToAddress(contractAccAddr.Bytes())
+
+	input, err := types.GetCallByWasmInput(caller, calldata)
+	if err != nil {
+		return false, err
+	}
+	// k.CallEvm will call evm, so we must enable evm watch db with follow code
+	if watcher.IsWatcherEnabled() {
+		ctx.SetWatcher(watcher.NewTxWatcher())
+	}
+	_, result, err := k.CallEvm(ctx, &conrtractAddr, value.BigInt(), input)
+	if err != nil {
+		return false, err
+	}
+	success, err = types.GetCallByWasmOutput(result.Ret)
 	if watcher.IsWatcherEnabled() && err == nil {
 		ctx.GetWatcher().Finalize()
 	}

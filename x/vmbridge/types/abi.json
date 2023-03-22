@@ -25,6 +25,55 @@
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "wasmAddr",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "calldata",
+        "type": "string"
+      }
+    ],
+    "name": "__OKCCallToWasm",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "callerWasmAddr",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "calldata",
+        "type": "string"
+      }
+    ],
+    "name": "callByWasm",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "success",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "string",

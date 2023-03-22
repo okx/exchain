@@ -618,6 +618,7 @@ func NewOKExChainApp(
 				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
 				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+				vmbridge.NewCallToWasmEventHandler(*app.VMBridgeKeeper),
 			),
 			app.FeeSplitKeeper.Hooks(),
 		),
