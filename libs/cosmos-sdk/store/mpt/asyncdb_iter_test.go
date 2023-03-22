@@ -51,7 +51,9 @@ func (store *mockIterTestAsycnDB) Delete(key []byte) error {
 func TestAsyncdbIterator(t *testing.T) {
 	memDb := memorydb.New()
 	asyncDb := &mockIterTestAsycnDB{
-		NewAsyncKeyValueStore(memDb, true),
+		NewAsyncKeyValueStoreWithOptions(memDb, AsyncKeyValueStoreOptions{
+			DisableAutoPrune: true,
+		}),
 	}
 
 	iter := asyncDb.NewIterator(nil, nil)
@@ -97,7 +99,9 @@ func TestAsyncdbIterator(t *testing.T) {
 	require.NoError(t, iter.Error())
 
 	asyncDb = &mockIterTestAsycnDB{
-		NewAsyncKeyValueStore(memDb, true),
+		NewAsyncKeyValueStoreWithOptions(memDb, AsyncKeyValueStoreOptions{
+			DisableAutoPrune: true,
+		}),
 	}
 	iter = asyncDb.NewIterator(nil, nil)
 	for i := 0; i < 100; i++ {
