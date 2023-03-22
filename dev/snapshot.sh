@@ -2,7 +2,7 @@
 
 HOME=$1
 VERSION=$2
-CMD=exchaind
+CMD=okbchaind
 NUM_EXECUTIONS=2
 
 set -e
@@ -18,15 +18,15 @@ killbyname() {
 }
 
 
-killbyname exchaind
-killbyname exchaincli
+killbyname okbchaind
+killbyname okbchaincli
 
 set -x # activate debugging
 
 
 if [ "$1" == "-h" ];
 then
-    echo "Usage: exchaind [home] [s0|s1]"
+    echo "Usage: okbchaind [home] [s0|s1]"
     exit 0
 fi
 

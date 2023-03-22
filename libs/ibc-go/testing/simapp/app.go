@@ -3,7 +3,6 @@ package simapp
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	"io"
 	"math/big"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 
 	authante "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/ante"
 	icacontroller "github.com/okx/okbchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
@@ -291,7 +292,7 @@ func NewSimApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *SimApp {
-	logger.Info("Starting OEC")
+	logger.Info("Starting OKBC")
 	//onceLog.Do(func() {
 	//	iavl.SetLogger(logger.With("module", "iavl"))
 	//	logStartingFlags(logger)
@@ -807,8 +808,8 @@ func (app *SimApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abc
 
 // EndBlocker updates every end block
 func (app *SimApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	// if appconfig.GetOecConfig().GetEnableDynamicGp() {
-	// 	GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, appconfig.GetOecConfig().GetDynamicGpWeight())
+	// if appconfig.GetOkbcConfig().GetEnableDynamicGp() {
+	// 	GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, appconfig.GetOkbcConfig().GetDynamicGpWeight())
 	// 	app.blockGasPrice = app.blockGasPrice[:0]
 	// }
 

@@ -194,11 +194,3 @@ In [abci app](https://github.com/okx/okbchain/blob/master/app/app.go#L109)
 * [Rest smoke LCD test](https://github.com/okx/okbchain/blob/master/lcd_test/wasm_test.go)
 
 
-
-## Pull requests
-* https://github.com/okx/exchain/pull/190
-* https://github.com/okx/exchain/pull/186
-* https://github.com/okx/exchain/pull/183
-* https://github.com/okx/exchain/pull/180
-* https://github.com/okx/exchain/pull/179
-* https://github.com/okx/exchain/pull/173

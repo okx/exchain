@@ -45,7 +45,7 @@ func TestInitApp(t *testing.T) {
 
 // TextDeliverTx ensures we can write a tx
 func TestDeliverTx(t *testing.T) {
-	appconfig.GetOecConfig().SetDynamicGpMode(0)
+	appconfig.GetOkbcConfig().SetDynamicGpMode(0)
 	// set up an app
 	app, closer, err := SetupApp()
 	// closer may need to be run, even when error in later stage

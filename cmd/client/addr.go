@@ -3,17 +3,18 @@ package client
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okx/okbchain/libs/system"
 	"strings"
+
+	"github.com/okx/okbchain/libs/system"
 
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 )
 
 const (
-	okexPrefix = "okexchain"
-	exPrefix   = "ex"
-	rawPrefix  = "0x"
+	okxPrefix = "okbchain"
+	exPrefix  = "ex"
+	rawPrefix = "0x"
 )
 
 type accAddrToPrefixFunc func(sdk.AccAddress, string) string
@@ -22,10 +23,10 @@ type accAddrToPrefixFunc func(sdk.AccAddress, string) string
 func AddrCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "addr",
-		Short: "opreate all kind of address in the "+system.ChainName+" network",
-		Long: ` Address is a identification for join in the `+system.ChainName+` network.
+		Short: "opreate all kind of address in the " + system.ChainName + " network",
+		Long: ` Address is a identification for join in the ` + system.ChainName + ` network.
 
-	The address in `+system.ChainName+` network begins with "ex" or "0x"`,
+	The address in ` + system.ChainName + ` network begins with "ex" or "0x"`,
 	}
 	cmd.AddCommand(convertCommand())
 	return cmd
@@ -35,32 +36,32 @@ func AddrCommands() *cobra.Command {
 func convertCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "convert [sourceAddr]",
-		Short: "convert source address to all kind of address in the "+system.ChainName+" network",
-		Long: `sourceAddr must be begin with "okexchain","ex" or "0x".
+		Short: "convert source address to all kind of address in the " + system.ChainName + " network",
+		Long: `sourceAddr must be begin with "okbchain","ex" or "0x".
 	
 	When input one of these address, we will convert to the other kinds.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			addrList := make(map[string]string)
-			targetPrefix := []string{okexPrefix, exPrefix, rawPrefix}
+			targetPrefix := []string{okxPrefix, exPrefix, rawPrefix}
 			srcAddr := args[0]
 
 			// register func to encode account address to prefix address.
 			toPrefixFunc := map[string]accAddrToPrefixFunc{
-				okexPrefix: bech32FromAccAddr,
-				exPrefix:   bech32FromAccAddr,
-				rawPrefix:  hexFromAccAddr,
+				okxPrefix: bech32FromAccAddr,
+				exPrefix:  bech32FromAccAddr,
+				rawPrefix: hexFromAccAddr,
 			}
 
-			// prefix is "okexchain","ex" or "0x"
+			// prefix is "okbchain","ex" or "0x"
 			// convert srcAddr to accAddr
 			var accAddr sdk.AccAddress
 			var err error
 			switch {
-			case strings.HasPrefix(srcAddr, okexPrefix):
+			case strings.HasPrefix(srcAddr, okxPrefix):
 				//source address parse to account address
-				addrList[okexPrefix] = srcAddr
-				accAddr, err = bech32ToAccAddr(okexPrefix, srcAddr)
+				addrList[okxPrefix] = srcAddr
+				accAddr, err = bech32ToAccAddr(okxPrefix, srcAddr)
 
 			case strings.HasPrefix(srcAddr, exPrefix):
 				//source address parse to account address

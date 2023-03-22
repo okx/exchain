@@ -4,16 +4,16 @@
 ## Input parameters
 ##
 ID=${ID:-0}
-LOG=${LOG:-exchaind.log}
+LOG=${LOG:-okbchaind.log}
 
 ##
 ## Run binary with all parameters
 ##
-export EXCHAINDHOME="/exchaind/node${ID}/exchaind"
+export OKBCHAINDHOME="/okbchaind/node${ID}/okbchaind"
 
-if [ -d "$(dirname "${EXCHAINDHOME}"/"${LOG}")" ]; then
-  exchaind --chain-id exchain-1 --home "${EXCHAINDHOME}" "$@" | tee "${EXCHAINDHOME}/${LOG}"
+if [ -d "$(dirname "${OKBCHAINDHOME}"/"${LOG}")" ]; then
+  okbchaind --chain-id okbchain-1 --home "${OKBCHAINDHOME}" "$@" | tee "${OKBCHAINDHOME}/${LOG}"
 else
-  exchaind --chain-id exchain-1 --home "${EXCHAINDHOME}" "$@"
+  okbchaind --chain-id okbchain-1 --home "${OKBCHAINDHOME}" "$@"
 fi
 

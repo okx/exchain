@@ -16,8 +16,8 @@ mpt.db
 /rocksdb/
 dump.rdb
 # Build
-.exchaind
-.exchaincli
+.okbchaind
+.okbchaincli
 vendor*
 build
 tools/
@@ -32,18 +32,12 @@ doc
 # Data - ideally these don't exist
 baseapp/data/*
 client/lcd/keys/*
-cmd/exchaincli/statik/statik.go
 mytestnet
 doc/statik/statik.go
 dev/cache
 cmd/launch/launch
-cmd/exchaincli/exchaincli
-cmd/exchaind/exchaind
-cmd/exchaintool/exchaintool
 cmd/tiger/tiger
-cmd/exchaind/testnet_okchain.go
 dev/testnet/cache
-testnet_exchain.go
 tools
 x/vmbridge/keeper/data/*
 libs/ibc-go/modules/apps/27-interchain-accounts/controller/data/*

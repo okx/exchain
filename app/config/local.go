@@ -14,15 +14,15 @@ const (
 )
 
 type LocalClient struct {
-	path    string
-	dir     string
-	oecConf *OecConfig
-	logger  log.Logger
-	watcher *fsnotify.Watcher
-	close   chan struct{}
+	path     string
+	dir      string
+	okbcConf *OkbcConfig
+	logger   log.Logger
+	watcher  *fsnotify.Watcher
+	close    chan struct{}
 }
 
-func NewLocalClient(path string, oecConf *OecConfig, logger log.Logger) (*LocalClient, error) {
+func NewLocalClient(path string, okbcConf *OkbcConfig, logger log.Logger) (*LocalClient, error) {
 	if logger == nil {
 		logger = log.NewNopLogger()
 	}
@@ -32,12 +32,12 @@ func NewLocalClient(path string, oecConf *OecConfig, logger log.Logger) (*LocalC
 		return nil, err
 	}
 	client := &LocalClient{
-		path:    path,
-		dir:     dir,
-		oecConf: oecConf,
-		logger:  logger,
-		watcher: watcher,
-		close:   make(chan struct{}),
+		path:     path,
+		dir:      dir,
+		okbcConf: okbcConf,
+		logger:   logger,
+		watcher:  watcher,
+		close:    make(chan struct{}),
 	}
 	go func() {
 		for {
@@ -99,8 +99,8 @@ func (a *LocalClient) LoadConfig() (loaded bool) {
 	}
 	loaded = true
 	for k, v := range conf {
-		a.oecConf.updateFromKVStr(k, v)
+		a.okbcConf.updateFromKVStr(k, v)
 	}
-	a.logger.Info(a.oecConf.format())
+	a.logger.Info(a.okbcConf.format())
 	return
 }

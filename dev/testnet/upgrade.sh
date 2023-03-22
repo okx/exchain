@@ -22,17 +22,17 @@ function killbyname_gracefully() {
   echo "All <$NAME> killed gracefully!"
 }
 
-function build_exchain() {
+function build_okbchain() {
   version=$1
   (cd ../.. && git checkout dev && git pull && git checkout $version && make install)
-  echo "exchaind version ////"
-  exchaind version
+  echo "okbchaind version ////"
+  okbchaind version
 }
 
 function get_latest_height() {
   node=$1
   port=`echo $RPC_PORT_MAP | jq .$node`
-  height=`exchaincli status --node http://${IP}:${port} | jq .sync_info.latest_block_height | awk '{ gsub(/"/,""); print $0 }'`
+  height=`okbchaincli status --node http://${IP}:${port} | jq .sync_info.latest_block_height | awk '{ gsub(/"/,""); print $0 }'`
   echo $height
 }
 
@@ -116,7 +116,7 @@ function send_tx() {
 function start_node() {
   index=$1
   node_name=$2
-  exchaind_opts=${@:3}
+  okbchaind_opts=${@:3}
 
   if [[ $index == "0" ]] ; then
     p2pport=${seedp2pport}
@@ -131,7 +131,7 @@ function start_node() {
   
   nohup ${BIN_NAME} start \
     --chain-id ${CHAIN_ID} \
-    --home cache/node${index}/exchaind \
+    --home cache/node${index}/okbchaind \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
     --rest.laddr tcp://${IP}:${restport} \
@@ -140,19 +140,19 @@ function start_node() {
     --append-pid=true \
     --p2p.addr_book_strict=false \
     --enable-preruntx=${PRERUN} \
-    ${exchaind_opts} \
+    ${okbchaind_opts} \
     > cache/${node_name}.log 2>&1 &
 }
 
 function add_val() {
   index=$1
   node_name=val${index}
-  seed_addr=$(exchaind tendermint show-node-id --home cache/node0/exchaind)@${IP}:${seedp2pport}
+  seed_addr=$(okbchaind tendermint show-node-id --home cache/node0/okbchaind)@${IP}:${seedp2pport}
   echo "add val >>> "$node_name
 
-  exchaind_opts="--p2p.allow_duplicate_ip  --p2p.pex=false  --p2p.addr_book_strict=false  --consensus.timeout_commit 600ms    --upload-delta=false  --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1  --consensus-role=v${index}  --p2p.seeds ${seed_addr} "
+  okbchaind_opts="--p2p.allow_duplicate_ip  --p2p.pex=false  --p2p.addr_book_strict=false  --consensus.timeout_commit 600ms    --upload-delta=false  --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1  --consensus-role=v${index}  --p2p.seeds ${seed_addr} "
 
-  start_node $index $node_name $exchaind_opts
+  start_node $index $node_name $okbchaind_opts
 }
 
 function add_seed() {
@@ -160,9 +160,9 @@ function add_seed() {
   node_name=val${index}
   echo "add seed >>> "$node_name
 
-  exchaind_opts="--p2p.seed_mode=true  --p2p.allow_duplicate_ip  --p2p.pex=false  --p2p.addr_book_strict=false  --consensus.timeout_commit 600ms  --upload-delta=false  --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1  --consensus-role=v$index "
+  okbchaind_opts="--p2p.seed_mode=true  --p2p.allow_duplicate_ip  --p2p.pex=false  --p2p.addr_book_strict=false  --consensus.timeout_commit 600ms  --upload-delta=false  --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1  --consensus-role=v$index "
 
-  start_node $index $node_name $exchaind_opts
+  start_node $index $node_name $okbchaind_opts
 }
 
 function add_rpc() {
@@ -170,10 +170,10 @@ function add_rpc() {
   node_name=rpc${index}
   echo "add rpc >>> "$node_name
   
-  seed_addr=$(exchaind tendermint show-node-id --home cache/node0/exchaind)@${IP}:${seedp2pport}
+  seed_addr=$(okbchaind tendermint show-node-id --home cache/node0/okbchaind)@${IP}:${seedp2pport}
 
-  exchaind_opts="--p2p.seeds ${seed_addr} "
-  start_node $index $node_name $exchaind_opts
+  okbchaind_opts="--p2p.seeds ${seed_addr} "
+  start_node $index $node_name $okbchaind_opts
 }
 
 function case_prepare() {
@@ -185,7 +185,7 @@ function case_prepare() {
   killbyname_gracefully "./client"
 
   bash testnet.sh -i
-  build_exchain $version1
+  build_okbchain $version1
   bash testnet.sh -s -n 4
   bash addnewnode.sh -n 4
   bash addnewnode.sh -n 5
@@ -239,11 +239,11 @@ function case_1() {
   sleep 30
 
   #STEP kill rpc
-  killbyname_gracefully "cache/node4/exchaind"
+  killbyname_gracefully "cache/node4/okbchaind"
   sleep 2
 
   #STEP BUILD version2
-  build_exchain $version2
+  build_okbchain $version2
 
   #STEP add rpc
   add_rpc 4
@@ -255,7 +255,7 @@ function case_1() {
   check_block rpc4 tx
 
   #STEP kill 25% v
-  killbyname_gracefully "cache/node3/exchaind"
+  killbyname_gracefully "cache/node3/okbchaind"
   sleep 3
 
   #STEP add v
@@ -288,10 +288,10 @@ function case_2() {
   sleep 30
 
   #STEP BUILD version2
-  build_exchain $version2
+  build_okbchain $version2
 
   #STEP upgrade 25% v
-  killbyname_gracefully "cache/node3/exchaind"
+  killbyname_gracefully "cache/node3/okbchaind"
   sleep 3
   add_val 3
   sleep 20
@@ -300,15 +300,15 @@ function case_2() {
   check_block val3 tx
 
   #STEP upgrade 100% v
-  killbyname_gracefully "cache/node2/exchaind"
+  killbyname_gracefully "cache/node2/okbchaind"
   sleep 3
   add_val 2
 
-  killbyname_gracefully "cache/node1/exchaind"
+  killbyname_gracefully "cache/node1/okbchaind"
   sleep 3
   add_val 1
 
-  killbyname_gracefully "cache/node0/exchaind"
+  killbyname_gracefully "cache/node0/okbchaind"
   sleep 3
   add_seed
   
@@ -321,8 +321,8 @@ function case_2() {
 
   #STEP upgrade 100% rpc
   #STEP kill rpc
-  killbyname_gracefully "cache/node4/exchaind"
-  killbyname_gracefully "cache/node5/exchaind"
+  killbyname_gracefully "cache/node4/okbchaind"
+  killbyname_gracefully "cache/node5/okbchaind"
   sleep 3
 
   #STEP add rpc
@@ -357,13 +357,13 @@ function case_3() {
   sleep 30
 
   #STEP BUILD version2
-  build_exchain $version2
+  build_okbchain $version2
 
   #STEP upgrade 100% v
-  killbyname_gracefully "cache/node3/exchaind"
-  killbyname_gracefully "cache/node2/exchaind"
-  killbyname_gracefully "cache/node1/exchaind"
-  killbyname_gracefully "cache/node0/exchaind"
+  killbyname_gracefully "cache/node3/okbchaind"
+  killbyname_gracefully "cache/node2/okbchaind"
+  killbyname_gracefully "cache/node1/okbchaind"
+  killbyname_gracefully "cache/node0/okbchaind"
   sleep 3
 
   add_seed
@@ -379,7 +379,7 @@ function case_3() {
   check_block val3 tx
 
   #STEP upgrade 1 rpc
-  killbyname_gracefully "cache/node5/exchaind"
+  killbyname_gracefully "cache/node5/okbchaind"
   add_rpc 5
   sleep 10
 
@@ -392,7 +392,7 @@ if [ -z ${IP} ]; then
   IP="127.0.0.1"
 fi
 
-### send two params , the first is the old version of exchain, the second is the newer version.
+### send two params , the first is the old version of okbchain, the second is the newer version.
 exc_version1=$1
 exc_version2=$2
 caseopt $exc_version1 $exc_version2

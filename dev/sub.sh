@@ -8,4 +8,4 @@ then
 fi
 
 rm -rf $1/*
-exchaind subscribe logs localhost:9092 $1
+okbchaind subscribe logs localhost:9092 $1

@@ -191,7 +191,7 @@ function start() {
   echo "======== Startup validator nodes...========="
   for ((index = 1; index < ${1}; index++)); do
     ((p2pport = BASE_PORT_PREFIX + index * 100 + P2P_PORT_SUFFIX))
-    ((rpcport = BASE_PORT_PREFIX + index * 100 + RPC_PORT_SUFFIX))  # for exchaincli
+    ((rpcport = BASE_PORT_PREFIX + index * 100 + RPC_PORT_SUFFIX))  # for okbchaincli
     ((restport = index * 100 + REST_PORT)) # for evm tx
     run $index false ${p2pport} ${rpcport} $restport --p2p.seeds ${seed}@${IP}:${seedp2pport}
   done

@@ -11,9 +11,9 @@ Version=v0.19.6
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
-Name=oecclient
-ServerName=exchaind
-ClientName=exchaincli
+Name=okbclient
+ServerName=okbchaind
+ClientName=okbchaincli
 
 
 # process linker flags

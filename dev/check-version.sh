@@ -36,7 +36,7 @@ check_go_verison() {
   # checkout go version
   go_version=$(go version | awk '{print$3}' | awk '{ gsub(/go/,""); print $0 }')
   if version_lt $go_version $GO_VERSION; then
-     echo "ERROR: exchain requires go${GO_VERSION}+,please install"
+     echo "ERROR: okbchain requires go${GO_VERSION}+,please install"
      exit 1
   fi
 
@@ -75,7 +75,7 @@ check_rocksdb_version() {
   # checkout go version
 
   if [ "$rocksdb_version" != "$ROCKSDB_VERSION" ]; then
-    echo "ERROR: exchain requires rocksdb-v${ROCKSDB_VERSION},current: v$rocksdb_version , please install with command (make rocksdb)"
+    echo "ERROR: okbchain requires rocksdb-v${ROCKSDB_VERSION},current: v$rocksdb_version , please install with command (make rocksdb)"
     exit 1
   fi
   echo "rocksdb check success: "$rocksdb_version

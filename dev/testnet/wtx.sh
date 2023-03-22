@@ -4,10 +4,10 @@
 
 sleep 3
 
-exchaincli status -n tcp://localhost:26657 |grep -v validator_info |grep id
-exchaincli status -n tcp://localhost:26757 |grep -v validator_info |grep id
-exchaincli status -n tcp://localhost:26857 |grep -v validator_info |grep id
-exchaincli status -n tcp://localhost:26957 |grep -v validator_info |grep id
+okbchaincli status -n tcp://localhost:26657 |grep -v validator_info |grep id
+okbchaincli status -n tcp://localhost:26757 |grep -v validator_info |grep id
+okbchaincli status -n tcp://localhost:26857 |grep -v validator_info |grep id
+okbchaincli status -n tcp://localhost:26957 |grep -v validator_info |grep id
 
 exit
     "id": "0b066ca0790f27a6595560b23bf1a1193f100797",

@@ -261,7 +261,7 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	maxGP := new(big.Int).Mul(minGP, big.NewInt(5000))
 
 	rgp := new(big.Int).Set(minGP)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+	if appconfig.GetOkbcConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
 		// If current block is not congested, rgp == minimal gas price.
 		if mempool.IsCongested {
 			rgp.Set(mempool.GlobalRecommendedGP)
@@ -271,8 +271,8 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 			rgp.Set(minGP)
 		}
 
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 1 {
-			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
+		if appconfig.GetOkbcConfig().GetDynamicGpCoefficient() > 1 {
+			coefficient := big.NewInt(int64(appconfig.GetOkbcConfig().GetDynamicGpCoefficient()))
 			rgp = new(big.Int).Mul(rgp, coefficient)
 		}
 
@@ -292,7 +292,7 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	maxGP := new(big.Int).Mul(minGP, big.NewInt(5000))
 
 	avgGP := new(big.Int).Set(minGP)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+	if appconfig.GetOkbcConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
 		if mempool.IsCongested {
 			avgGP.Set(mempool.GlobalRecommendedGP)
 		}
@@ -301,8 +301,8 @@ func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 			avgGP.Set(minGP)
 		}
 
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 1 {
-			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
+		if appconfig.GetOkbcConfig().GetDynamicGpCoefficient() > 1 {
+			coefficient := big.NewInt(int64(appconfig.GetOkbcConfig().GetDynamicGpCoefficient()))
 			avgGP = new(big.Int).Mul(avgGP, coefficient)
 		}
 
@@ -1071,7 +1071,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return hexutil.Uint64(estimatedGas), nil
 	}
 
-	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
+	gasBuffer := estimatedGas / 100 * config.GetOkbcConfig().GetGasLimitBuffer()
 	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
 	//simple add EvmHookGasEstimate,run tx will refund the extra gas
 	gas := estimatedGas + gasBuffer + EvmHookGasEstimate

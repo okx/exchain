@@ -16,10 +16,10 @@ const FlagApollo = "config.apollo"
 type ApolloClient struct {
 	Namespace string
 	*agollo.Client
-	oecConf *OecConfig
+	okbcConf *OkbcConfig
 }
 
-func NewApolloClient(oecConf *OecConfig) *ApolloClient {
+func NewApolloClient(okbcConf *OkbcConfig) *ApolloClient {
 	// IP|AppID|NamespaceName
 	params := strings.Split(viper.GetString(FlagApollo), "|")
 	if len(params) != 3 {
@@ -45,9 +45,9 @@ func NewApolloClient(oecConf *OecConfig) *ApolloClient {
 	apc := &ApolloClient{
 		params[2],
 		client,
-		oecConf,
+		okbcConf,
 	}
-	client.AddChangeListener(&CustomChangeListener{oecConf})
+	client.AddChangeListener(&CustomChangeListener{okbcConf})
 
 	return apc
 }
@@ -57,24 +57,24 @@ func (a *ApolloClient) LoadConfig() (loaded bool) {
 	cache.Range(func(key, value interface{}) bool {
 		loaded = true
 
-		a.oecConf.update(key, value)
+		a.okbcConf.update(key, value)
 		return true
 	})
-	confLogger.Info(a.oecConf.format())
+	confLogger.Info(a.okbcConf.format())
 	return
 }
 
 type CustomChangeListener struct {
-	oecConf *OecConfig
+	okbcConf *OkbcConfig
 }
 
 func (c *CustomChangeListener) OnChange(changeEvent *storage.ChangeEvent) {
 	for key, value := range changeEvent.Changes {
 		if value.ChangeType != storage.DELETED {
-			c.oecConf.update(key, value.NewValue)
+			c.okbcConf.update(key, value.NewValue)
 		}
 	}
-	confLogger.Info(c.oecConf.format())
+	confLogger.Info(c.okbcConf.format())
 }
 
 func (c *CustomChangeListener) OnNewestChange(event *storage.FullChangeEvent) {

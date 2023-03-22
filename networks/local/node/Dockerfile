@@ -5,21 +5,21 @@ ENV PACKAGES curl make git libc-dev bash gcc
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y $PACKAGES
 
-WORKDIR /exchain
+WORKDIR /okbchain
 # Add source files
 COPY . .
 
-# build exchain
+# build okbchain
 RUN make build-linux
 
 # Final image
-FROM golang:1.17 as final
+FROM golang:1.20 as final
 
-WORKDIR /exchaind
+WORKDIR /okbchaind
 # Copy over binaries from the build-env
-COPY --from=build-env /exchain/build/exchaind /usr/bin/exchaind
-COPY --from=build-env /exchain/build/exchaincli /usr/bin/exchaincli
-COPY --from=build-env /exchain/networks/local/node/wrapper.sh /usr/bin/wrapper.sh
+COPY --from=build-env /okbchain/build/okbchaind /usr/bin/okbchaind
+COPY --from=build-env /okbchain/build/okbchaincli /usr/bin/okbchaincli
+COPY --from=build-env /okbchain/networks/local/node/wrapper.sh /usr/bin/wrapper.sh
 
 EXPOSE 26656 26657
 ENTRYPOINT ["/usr/bin/wrapper.sh"]

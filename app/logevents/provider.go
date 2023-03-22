@@ -57,7 +57,7 @@ func (p *provider) init() {
 		p.identity = role
 	}
 
-	p.kafka = newLogClient(p.logServerUrl, OECLogTopic, HeartbeatTopic, p.identity)
+	p.kafka = newLogClient(p.logServerUrl, OKBCLogTopic, HeartbeatTopic, p.identity)
 
 	p.logger.Info("Provider init", "url", p.logServerUrl, "id", p.identity)
 

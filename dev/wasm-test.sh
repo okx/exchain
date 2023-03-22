@@ -23,7 +23,7 @@ killbyname() {
 run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
 
-    exchaind start --rpc.unsafe \
+    okbchaind start --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
@@ -59,41 +59,41 @@ run() {
 }
 
 
-killbyname exchaind
-killbyname exchaincli
+killbyname okbchaind
+killbyname okbchaincli
 
 set -x # activate debugging
 
 # run
 
 # remove existing daemon and client
-rm -rf ~/.exchain*
+rm -rf ~/.okbchain*
 rm -rf $HOME_SERVER
 
 (cd .. && make install)
 
 # Set up config for CLI
-exchaincli config chain-id $CHAINID
-exchaincli config output json
-exchaincli config indent true
-exchaincli config trust-node true
-exchaincli config keyring-backend test
+okbchaincli config chain-id $CHAINID
+okbchaincli config output json
+okbchaincli config indent true
+okbchaincli config trust-node true
+okbchaincli config keyring-backend test
 
 # if $KEY exists it should be deleted
 #
 #    "eth_address": "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F",
 #     prikey: 8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17
-exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
+okbchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
 
 #    "eth_address": "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0",
-exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y --algo="" --coin-type 118
+okbchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y --algo="" --coin-type 118
 
-exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
+okbchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
 
-exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
+okbchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
 
 # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
-exchaind init $MONIKER --chain-id $CHAINID --home $HOME_SERVER
+okbchaind init $MONIKER --chain-id $CHAINID --home $HOME_SERVER
 
 # Change parameter token denominations to okb
 cat $HOME_SERVER/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="okb"' > $HOME_SERVER/config/tmp_genesis.json && mv $HOME_SERVER/config/tmp_genesis.json $HOME_SERVER/config/genesis.json
@@ -114,19 +114,19 @@ else
 fi
 
 # Allocate genesis accounts (cosmos formatted addresses)
-exchaind add-genesis-account $(exchaincli keys show $KEY    -a) 100000000okb --home $HOME_SERVER
-exchaind add-genesis-account $(exchaincli keys show admin16 -a) 900000000okb --home $HOME_SERVER
-exchaind add-genesis-account $(exchaincli keys show admin17 -a) 900000000okb --home $HOME_SERVER
-exchaind add-genesis-account $(exchaincli keys show admin18 -a) 900000000okb --home $HOME_SERVER
+okbchaind add-genesis-account $(okbchaincli keys show $KEY    -a) 100000000okb --home $HOME_SERVER
+okbchaind add-genesis-account $(okbchaincli keys show admin16 -a) 900000000okb --home $HOME_SERVER
+okbchaind add-genesis-account $(okbchaincli keys show admin17 -a) 900000000okb --home $HOME_SERVER
+okbchaind add-genesis-account $(okbchaincli keys show admin18 -a) 900000000okb --home $HOME_SERVER
 
 # Sign genesis transaction
-exchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER
+okbchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER
 
 # Collect genesis tx
-exchaind collect-gentxs --home $HOME_SERVER
+okbchaind collect-gentxs --home $HOME_SERVER
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
-exchaind validate-genesis --home $HOME_SERVER
-exchaincli config keyring-backend test
+okbchaind validate-genesis --home $HOME_SERVER
+okbchaincli config keyring-backend test
 
 run

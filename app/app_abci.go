@@ -45,7 +45,7 @@ func (app *OKBChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEnd
 
 // Commit implements the Application interface
 func (app *OKBChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-	if gcInterval := appconfig.GetOecConfig().GetGcInterval(); gcInterval > 0 {
+	if gcInterval := appconfig.GetOkbcConfig().GetGcInterval(); gcInterval > 0 {
 		if (app.BaseApp.LastBlockHeight()+1)%int64(gcInterval) == 0 {
 			startTime := time.Now()
 			runtime.GC()

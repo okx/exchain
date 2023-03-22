@@ -27,10 +27,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-var _ tmconfig.IDynamicConfig = &OecConfig{}
-var _ iavlconfig.IDynamicConfig = &OecConfig{}
+var _ tmconfig.IDynamicConfig = &OkbcConfig{}
+var _ iavlconfig.IDynamicConfig = &OkbcConfig{}
 
-type OecConfig struct {
+type OkbcConfig struct {
 	// mempool.recheck
 	mempoolRecheck bool
 	// mempool.force_recheck_gap
@@ -210,20 +210,20 @@ var (
 
 	mainnetNodeIdWhitelist = []string{}
 
-	oecConfig  *OecConfig
+	okbcConfig *OkbcConfig
 	once       sync.Once
 	confLogger log.Logger
 )
 
-func GetOecConfig() *OecConfig {
+func GetOkbcConfig() *OkbcConfig {
 	once.Do(func() {
-		oecConfig = NewOecConfig()
+		okbcConfig = NewOkbcConfig()
 	})
-	return oecConfig
+	return okbcConfig
 }
 
-func NewOecConfig() *OecConfig {
-	c := defaultOecConfig()
+func NewOkbcConfig() *OkbcConfig {
+	c := defaultOkbcConfig()
 	c.loadFromConfig()
 
 	if viper.GetBool(FlagEnableDynamic) {
@@ -248,8 +248,8 @@ func NewOecConfig() *OecConfig {
 	return c
 }
 
-func defaultOecConfig() *OecConfig {
-	return &OecConfig{
+func defaultOkbcConfig() *OkbcConfig {
+	return &OkbcConfig{
 		mempoolRecheck:         false,
 		mempoolForceRecheckGap: 2000,
 		commitGapHeight:        iavlconfig.DefaultCommitGapHeight,
@@ -260,13 +260,13 @@ func defaultOecConfig() *OecConfig {
 func RegisterDynamicConfig(logger log.Logger) {
 	confLogger = logger
 	// set the dynamic config
-	oecConfig := GetOecConfig()
-	tmconfig.SetDynamicConfig(oecConfig)
-	iavlconfig.SetDynamicConfig(oecConfig)
-	trace.SetDynamicConfig(oecConfig)
+	okbConfig := GetOkbcConfig()
+	tmconfig.SetDynamicConfig(okbConfig)
+	iavlconfig.SetDynamicConfig(okbConfig)
+	trace.SetDynamicConfig(okbConfig)
 }
 
-func (c *OecConfig) loadFromConfig() {
+func (c *OkbcConfig) loadFromConfig() {
 	c.SetMempoolRecheck(viper.GetBool(FlagMempoolRecheck))
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
@@ -324,12 +324,12 @@ func resolveSentryAddrs(plain string) []string {
 	return strings.Split(plain, ";")
 }
 
-func (c *OecConfig) loadFromApollo() bool {
+func (c *OkbcConfig) loadFromApollo() bool {
 	client := NewApolloClient(c)
 	return client.LoadConfig()
 }
 
-func (c *OecConfig) loadFromLocal() (bool, error) {
+func (c *OkbcConfig) loadFromLocal() (bool, error) {
 	var err error
 	rootDir := viper.GetString("home")
 	configPath := path.Join(rootDir, "config", LocalDynamicConfigPath)
@@ -346,7 +346,7 @@ func (c *OecConfig) loadFromLocal() (bool, error) {
 	return ok, err
 }
 
-func (c *OecConfig) format() string {
+func (c *OkbcConfig) format() string {
 	return fmt.Sprintf(`%s config:
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
@@ -413,12 +413,12 @@ func (c *OecConfig) format() string {
 	)
 }
 
-func (c *OecConfig) update(key, value interface{}) {
+func (c *OkbcConfig) update(key, value interface{}) {
 	k, v := key.(string), value.(string)
 	c.updateFromKVStr(k, v)
 }
 
-func (c *OecConfig) updateFromKVStr(k, v string) {
+func (c *OkbcConfig) updateFromKVStr(k, v string) {
 	switch k {
 	case FlagMempoolRecheck:
 		r, err := strconv.ParseBool(v)
@@ -662,85 +662,85 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 
 }
 
-func (c *OecConfig) GetEnableAnalyzer() bool {
+func (c *OkbcConfig) GetEnableAnalyzer() bool {
 	return c.enableAnalyzer
 }
-func (c *OecConfig) SetEnableAnalyzer(value bool) {
+func (c *OkbcConfig) SetEnableAnalyzer(value bool) {
 	c.enableAnalyzer = value
 }
 
-func (c *OecConfig) GetMempoolRecheck() bool {
+func (c *OkbcConfig) GetMempoolRecheck() bool {
 	return c.mempoolRecheck
 }
-func (c *OecConfig) SetMempoolRecheck(value bool) {
+func (c *OkbcConfig) SetMempoolRecheck(value bool) {
 	c.mempoolRecheck = value
 }
 
-func (c *OecConfig) GetMempoolForceRecheckGap() int64 {
+func (c *OkbcConfig) GetMempoolForceRecheckGap() int64 {
 	return c.mempoolForceRecheckGap
 }
-func (c *OecConfig) SetMempoolForceRecheckGap(value int64) {
+func (c *OkbcConfig) SetMempoolForceRecheckGap(value int64) {
 	if value <= 0 {
 		return
 	}
 	c.mempoolForceRecheckGap = value
 }
 
-func (c *OecConfig) GetMempoolSize() int {
+func (c *OkbcConfig) GetMempoolSize() int {
 	return c.mempoolSize
 }
-func (c *OecConfig) SetMempoolSize(value int) {
+func (c *OkbcConfig) SetMempoolSize(value int) {
 	if value < 0 {
 		return
 	}
 	c.mempoolSize = value
 }
 
-func (c *OecConfig) GetMempoolCacheSize() int {
+func (c *OkbcConfig) GetMempoolCacheSize() int {
 	return c.mempoolCacheSize
 }
-func (c *OecConfig) SetMempoolCacheSize(value int) {
+func (c *OkbcConfig) SetMempoolCacheSize(value int) {
 	if value < 0 {
 		return
 	}
 	c.mempoolCacheSize = value
 }
 
-func (c *OecConfig) GetMempoolFlush() bool {
+func (c *OkbcConfig) GetMempoolFlush() bool {
 	return c.mempoolFlush
 }
-func (c *OecConfig) SetMempoolFlush(value bool) {
+func (c *OkbcConfig) SetMempoolFlush(value bool) {
 	c.mempoolFlush = value
 }
 
-func (c *OecConfig) GetEnableWtx() bool {
+func (c *OkbcConfig) GetEnableWtx() bool {
 	return c.enableWtx
 }
 
-func (c *OecConfig) SetDeliverTxsExecuteMode(mode int) {
+func (c *OkbcConfig) SetDeliverTxsExecuteMode(mode int) {
 	c.deliverTxsMode = mode
 }
 
-func (c *OecConfig) GetDeliverTxsExecuteMode() int {
+func (c *OkbcConfig) GetDeliverTxsExecuteMode() int {
 	return c.deliverTxsMode
 }
 
-func (c *OecConfig) SetEnableWtx(value bool) {
+func (c *OkbcConfig) SetEnableWtx(value bool) {
 	c.enableWtx = value
 }
 
-func (c *OecConfig) GetNodeKeyWhitelist() []string {
+func (c *OkbcConfig) GetNodeKeyWhitelist() []string {
 	return c.nodeKeyWhitelist
 }
 
-func (c *OecConfig) GetMempoolCheckTxCost() bool {
+func (c *OkbcConfig) GetMempoolCheckTxCost() bool {
 	return c.mempoolCheckTxCost
 }
-func (c *OecConfig) SetMempoolCheckTxCost(value bool) {
+func (c *OkbcConfig) SetMempoolCheckTxCost(value bool) {
 	c.mempoolCheckTxCost = value
 }
 
-func (c *OecConfig) SetNodeKeyWhitelist(value string) {
+func (c *OkbcConfig) SetNodeKeyWhitelist(value string) {
 	idList := resolveNodeKeyWhitelist(value)
 
 	for _, id := range idList {
@@ -754,82 +754,82 @@ func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 	}
 }
 
-func (c *OecConfig) GetSentryAddrs() []string {
+func (c *OkbcConfig) GetSentryAddrs() []string {
 	return c.sentryAddrs
 }
 
-func (c *OecConfig) SetSentryAddrs(value string) {
+func (c *OkbcConfig) SetSentryAddrs(value string) {
 	addrs := resolveSentryAddrs(value)
 	for _, addr := range addrs {
 		c.sentryAddrs = append(c.sentryAddrs, strings.TrimSpace(addr))
 	}
 }
 
-func (c *OecConfig) GetMaxTxNumPerBlock() int64 {
+func (c *OkbcConfig) GetMaxTxNumPerBlock() int64 {
 	return c.maxTxNumPerBlock
 }
-func (c *OecConfig) SetMaxTxNumPerBlock(value int64) {
+func (c *OkbcConfig) SetMaxTxNumPerBlock(value int64) {
 	if value < 0 {
 		return
 	}
 	c.maxTxNumPerBlock = value
 }
 
-func (c *OecConfig) GetEnableDeleteMinGPTx() bool {
+func (c *OkbcConfig) GetEnableDeleteMinGPTx() bool {
 	return c.enableDeleteMinGPTx
 }
 
-func (c *OecConfig) SetEnableDeleteMinGPTx(enable bool) {
+func (c *OkbcConfig) SetEnableDeleteMinGPTx(enable bool) {
 	c.enableDeleteMinGPTx = enable
 }
 
-func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
+func (c *OkbcConfig) GetMaxGasUsedPerBlock() int64 {
 	return c.maxGasUsedPerBlock
 }
 
-func (c *OecConfig) SetMaxGasUsedPerBlock(value int64) {
+func (c *OkbcConfig) SetMaxGasUsedPerBlock(value int64) {
 	if value < -1 {
 		return
 	}
 	c.maxGasUsedPerBlock = value
 }
 
-func (c *OecConfig) GetEnablePGU() bool {
+func (c *OkbcConfig) GetEnablePGU() bool {
 	return c.enablePGU
 }
 
-func (c *OecConfig) SetEnablePGU(value bool) {
+func (c *OkbcConfig) SetEnablePGU(value bool) {
 	c.enablePGU = value
 }
 
-func (c *OecConfig) GetPGUAdjustment() float64 {
+func (c *OkbcConfig) GetPGUAdjustment() float64 {
 	return c.pguAdjustment
 }
 
-func (c *OecConfig) SetPGUAdjustment(value float64) {
+func (c *OkbcConfig) SetPGUAdjustment(value float64) {
 	c.pguAdjustment = value
 }
 
-func (c *OecConfig) GetGasLimitBuffer() uint64 {
+func (c *OkbcConfig) GetGasLimitBuffer() uint64 {
 	return c.gasLimitBuffer
 }
-func (c *OecConfig) SetGasLimitBuffer(value uint64) {
+func (c *OkbcConfig) SetGasLimitBuffer(value uint64) {
 	c.gasLimitBuffer = value
 }
 
-func (c *OecConfig) GetEnableDynamicGp() bool {
+func (c *OkbcConfig) GetEnableDynamicGp() bool {
 	return c.enableDynamicGp
 }
 
-func (c *OecConfig) SetEnableDynamicGp(value bool) {
+func (c *OkbcConfig) SetEnableDynamicGp(value bool) {
 	c.enableDynamicGp = value
 }
 
-func (c *OecConfig) GetDynamicGpWeight() int {
+func (c *OkbcConfig) GetDynamicGpWeight() int {
 	return c.dynamicGpWeight
 }
 
-func (c *OecConfig) SetDynamicGpWeight(value int) {
+func (c *OkbcConfig) SetDynamicGpWeight(value int) {
 	if value <= 0 {
 		value = 1
 	} else if value > 100 {
@@ -838,10 +838,10 @@ func (c *OecConfig) SetDynamicGpWeight(value int) {
 	c.dynamicGpWeight = value
 }
 
-func (c *OecConfig) GetDynamicGpCoefficient() int {
+func (c *OkbcConfig) GetDynamicGpCoefficient() int {
 	return c.dynamicGpCoefficient
 }
-func (c *OecConfig) SetDynamicGpCoefficient(value int) {
+func (c *OkbcConfig) SetDynamicGpCoefficient(value int) {
 	if value <= 0 {
 		value = 1
 	} else if value > 100 {
@@ -850,44 +850,44 @@ func (c *OecConfig) SetDynamicGpCoefficient(value int) {
 	c.dynamicGpCoefficient = value
 }
 
-func (c *OecConfig) GetDynamicGpMaxGasUsed() int64 {
+func (c *OkbcConfig) GetDynamicGpMaxGasUsed() int64 {
 	return c.dynamicGpMaxGasUsed
 }
 
-func (c *OecConfig) SetDynamicGpMaxGasUsed(value int64) {
+func (c *OkbcConfig) SetDynamicGpMaxGasUsed(value int64) {
 	if value < -1 {
 		return
 	}
 	c.dynamicGpMaxGasUsed = value
 }
 
-func (c *OecConfig) GetDynamicGpMaxTxNum() int64 {
+func (c *OkbcConfig) GetDynamicGpMaxTxNum() int64 {
 	return c.dynamicGpMaxTxNum
 }
 
-func (c *OecConfig) SetDynamicGpMaxTxNum(value int64) {
+func (c *OkbcConfig) SetDynamicGpMaxTxNum(value int64) {
 	if value < 0 {
 		return
 	}
 	c.dynamicGpMaxTxNum = value
 }
 
-func (c *OecConfig) GetDynamicGpMode() int {
+func (c *OkbcConfig) GetDynamicGpMode() int {
 	return c.dynamicGpMode
 }
 
-func (c *OecConfig) SetDynamicGpMode(value int) {
+func (c *OkbcConfig) SetDynamicGpMode(value int) {
 	if value < 0 || value > 2 {
 		return
 	}
 	c.dynamicGpMode = value
 }
 
-func (c *OecConfig) GetDynamicGpCheckBlocks() int {
+func (c *OkbcConfig) GetDynamicGpCheckBlocks() int {
 	return c.dynamicGpCheckBlocks
 }
 
-func (c *OecConfig) SetDynamicGpCheckBlocks(value int) {
+func (c *OkbcConfig) SetDynamicGpCheckBlocks(value int) {
 	if value <= 0 {
 		value = 1
 	} else if value > 100 {
@@ -896,95 +896,95 @@ func (c *OecConfig) SetDynamicGpCheckBlocks(value int) {
 	c.dynamicGpCheckBlocks = value
 }
 
-func (c *OecConfig) GetCsTimeoutPropose() time.Duration {
+func (c *OkbcConfig) GetCsTimeoutPropose() time.Duration {
 	return c.csTimeoutPropose
 }
-func (c *OecConfig) SetCsTimeoutPropose(value time.Duration) {
+func (c *OkbcConfig) SetCsTimeoutPropose(value time.Duration) {
 	if value < 0 {
 		return
 	}
 	c.csTimeoutPropose = value
 }
 
-func (c *OecConfig) GetCsTimeoutProposeDelta() time.Duration {
+func (c *OkbcConfig) GetCsTimeoutProposeDelta() time.Duration {
 	return c.csTimeoutProposeDelta
 }
-func (c *OecConfig) SetCsTimeoutProposeDelta(value time.Duration) {
+func (c *OkbcConfig) SetCsTimeoutProposeDelta(value time.Duration) {
 	if value < 0 {
 		return
 	}
 	c.csTimeoutProposeDelta = value
 }
 
-func (c *OecConfig) GetCsTimeoutPrevote() time.Duration {
+func (c *OkbcConfig) GetCsTimeoutPrevote() time.Duration {
 	return c.csTimeoutPrevote
 }
-func (c *OecConfig) SetCsTimeoutPrevote(value time.Duration) {
+func (c *OkbcConfig) SetCsTimeoutPrevote(value time.Duration) {
 	if value < 0 {
 		return
 	}
 	c.csTimeoutPrevote = value
 }
 
-func (c *OecConfig) GetCsTimeoutPrevoteDelta() time.Duration {
+func (c *OkbcConfig) GetCsTimeoutPrevoteDelta() time.Duration {
 	return c.csTimeoutPrevoteDelta
 }
-func (c *OecConfig) SetCsTimeoutPrevoteDelta(value time.Duration) {
+func (c *OkbcConfig) SetCsTimeoutPrevoteDelta(value time.Duration) {
 	if value < 0 {
 		return
 	}
 	c.csTimeoutPrevoteDelta = value
 }
 
-func (c *OecConfig) GetCsTimeoutPrecommit() time.Duration {
+func (c *OkbcConfig) GetCsTimeoutPrecommit() time.Duration {
 	return c.csTimeoutPrecommit
 }
-func (c *OecConfig) SetCsTimeoutPrecommit(value time.Duration) {
+func (c *OkbcConfig) SetCsTimeoutPrecommit(value time.Duration) {
 	if value < 0 {
 		return
 	}
 	c.csTimeoutPrecommit = value
 }
 
-func (c *OecConfig) GetCsTimeoutPrecommitDelta() time.Duration {
+func (c *OkbcConfig) GetCsTimeoutPrecommitDelta() time.Duration {
 	return c.csTimeoutPrecommitDelta
 }
-func (c *OecConfig) SetCsTimeoutPrecommitDelta(value time.Duration) {
+func (c *OkbcConfig) SetCsTimeoutPrecommitDelta(value time.Duration) {
 	if value < 0 {
 		return
 	}
 	c.csTimeoutPrecommitDelta = value
 }
 
-func (c *OecConfig) GetCsTimeoutCommit() time.Duration {
+func (c *OkbcConfig) GetCsTimeoutCommit() time.Duration {
 	return c.csTimeoutCommit
 }
-func (c *OecConfig) SetCsTimeoutCommit(value time.Duration) {
+func (c *OkbcConfig) SetCsTimeoutCommit(value time.Duration) {
 	if value < 0 {
 		return
 	}
 	c.csTimeoutCommit = value
 }
 
-func (c *OecConfig) GetIavlCacheSize() int {
+func (c *OkbcConfig) GetIavlCacheSize() int {
 	return c.iavlCacheSize
 }
-func (c *OecConfig) SetIavlCacheSize(value int) {
+func (c *OkbcConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
 }
 
-func (c *OecConfig) GetIavlFSCacheSize() int64 {
+func (c *OkbcConfig) GetIavlFSCacheSize() int64 {
 	return c.iavlFSCacheSize
 }
 
-func (c *OecConfig) SetIavlFSCacheSize(value int64) {
+func (c *OkbcConfig) SetIavlFSCacheSize(value int64) {
 	c.iavlFSCacheSize = value
 }
 
-func (c *OecConfig) GetCommitGapHeight() int64 {
+func (c *OkbcConfig) GetCommitGapHeight() int64 {
 	return atomic.LoadInt64(&c.commitGapHeight)
 }
-func (c *OecConfig) SetCommitGapHeight(value int64) {
+func (c *OkbcConfig) SetCommitGapHeight(value int64) {
 	if IsPruningOptionNothing() { // pruning nothing the gap should 1
 		value = 1
 	}
@@ -1002,43 +1002,43 @@ func IsPruningOptionNothing() bool {
 	return false
 }
 
-func (c *OecConfig) GetActiveVC() bool {
+func (c *OkbcConfig) GetActiveVC() bool {
 	return c.activeVC
 }
-func (c *OecConfig) SetActiveVC(value bool) {
+func (c *OkbcConfig) SetActiveVC(value bool) {
 	c.activeVC = value
 	consensus.SetActiveVC(value)
 }
 
-func (c *OecConfig) GetBlockPartSize() int {
+func (c *OkbcConfig) GetBlockPartSize() int {
 	return c.blockPartSizeBytes
 }
-func (c *OecConfig) SetBlockPartSize(value int) {
+func (c *OkbcConfig) SetBlockPartSize(value int) {
 	c.blockPartSizeBytes = value
 	tmtypes.UpdateBlockPartSizeBytes(value)
 }
 
-func (c *OecConfig) GetBlockCompressType() int {
+func (c *OkbcConfig) GetBlockCompressType() int {
 	return c.blockCompressType
 }
-func (c *OecConfig) SetBlockCompressType(value int) {
+func (c *OkbcConfig) SetBlockCompressType(value int) {
 	c.blockCompressType = value
 	tmtypes.BlockCompressType = value
 }
 
-func (c *OecConfig) GetBlockCompressFlag() int {
+func (c *OkbcConfig) GetBlockCompressFlag() int {
 	return c.blockCompressFlag
 }
-func (c *OecConfig) SetBlockCompressFlag(value int) {
+func (c *OkbcConfig) SetBlockCompressFlag(value int) {
 	c.blockCompressFlag = value
 	tmtypes.BlockCompressFlag = value
 }
 
-func (c *OecConfig) GetGcInterval() int {
+func (c *OkbcConfig) GetGcInterval() int {
 	return c.gcInterval
 }
 
-func (c *OecConfig) SetGcInterval(value int) {
+func (c *OkbcConfig) SetGcInterval(value int) {
 	// close gc for debug
 	if value > 0 {
 		debug.SetGCPercent(-1)
@@ -1049,29 +1049,29 @@ func (c *OecConfig) SetGcInterval(value int) {
 
 }
 
-func (c *OecConfig) GetCommitGapOffset() int64 {
+func (c *OkbcConfig) GetCommitGapOffset() int64 {
 	return c.commitGapOffset
 }
 
-func (c *OecConfig) SetCommitGapOffset(value int64) {
+func (c *OkbcConfig) SetCommitGapOffset(value int64) {
 	if value < 0 {
 		value = 0
 	}
 	c.commitGapOffset = value
 }
 
-func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
+func (c *OkbcConfig) GetEnableHasBlockPartMsg() bool {
 	return c.enableHasBlockPartMsg
 }
 
-func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
+func (c *OkbcConfig) SetEnableHasBlockPartMsg(value bool) {
 	c.enableHasBlockPartMsg = value
 }
 
-func (c *OecConfig) GetIavlAcNoBatch() bool {
+func (c *OkbcConfig) GetIavlAcNoBatch() bool {
 	return c.iavlAcNoBatch
 }
 
-func (c *OecConfig) SetIavlAcNoBatch(value bool) {
+func (c *OkbcConfig) SetIavlAcNoBatch(value bool) {
 	c.iavlAcNoBatch = value
 }

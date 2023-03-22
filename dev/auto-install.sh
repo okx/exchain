@@ -56,7 +56,7 @@ GetArchitecture() {
           echo "echo Arch Linux detected."
           os="linux"
           deptool="ldd"
-          goAchive="go1.17.linux-amd64.tar.gz"
+          goAchive="go1.20.2.linux-amd64.tar.gz"
           libArray=("/usr/local/lib/librocksdb.so.6.27.3" "/usr/local/lib/librocksdb.so.6.27" "/usr/local/lib/librocksdb.so.6" "/usr/local/lib/librocksdb.so" "/usr/lib/librocksdb.so.6.27.3" "/usr/lib/librocksdb.so.6.27" "/usr/lib/librocksdb.so.6" "/usr/lib/librocksdb.so")
           rocksdbdep=("/usr/local/lib/pkconfig/rocksdb.pc" "/usr/local/include/rocksdb" "/usr/local/lib/librocksdb.so*" "/usr//lib/pkconfig/rocksdb.pc" "/usr/include/rocksdb" "/usr/lib/librocksdb.so*")
           case "$(getOSName)" in
@@ -108,9 +108,9 @@ GetArchitecture() {
           echo "$_cputype"
           if [ "$_cputype" == "arm64" ]
           then
-            goAchive="go1.17.darwin-arm64.tar.gz"
+            goAchive="go1.20.2.darwin-arm64.tar.gz"
           else
-            goAchive="go1.17.darwin-amd64.tar.gz"
+            goAchive="go1.20.2.darwin-amd64.tar.gz"
           fi
           brew install wget
   else
@@ -121,12 +121,12 @@ GetArchitecture() {
 }
 
 download() {
-  rm -rf "$HOME"/.exchain/src
-  mkdir -p "$HOME"/.exchain/src
+  rm -rf "$HOME"/.okbchain/src
+  mkdir -p "$HOME"/.okbchain/src
   tag=`wget -qO- -t1 -T2 --no-check-certificate "https://api.github.com/repos/okx/okbchain/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g'`
-  wget --no-check-certificate "https://github.com/okx/okbchain/archive/refs/tags/${tag}.tar.gz" -O "$HOME"/.exchain/src/exchain.tar.gz
+  wget --no-check-certificate "https://github.com/okx/okbchain/archive/refs/tags/${tag}.tar.gz" -O "$HOME"/.okbchain/src/okbchain.tar.gz
   ver=$(echo $tag| sed 's/v//g')
-  cd "$HOME"/.exchain/src && tar zxvf exchain.tar.gz &&  cd exchain-"$ver"
+  cd "$HOME"/.okbchain/src && tar zxvf okbchain.tar.gz &&  cd okbchain-"$ver"
 }
 
 function checkgoversion { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
@@ -222,12 +222,12 @@ Prepare() {
 
   v=$(/usr/local/go/bin/go version | { read _ _ v _; echo ${v#go}; })
   # shellcheck disable=SC2046
-  if [ $(checkgoversion "$v") -ge $(checkgoversion "1.17") ]
+  if [ $(checkgoversion "$v") -ge $(checkgoversion "1.20") ]
   then
     echo "$v"
     echo "should not install go"
   else
-    echo "should install go version above 1.17"
+    echo "should install go version above 1.20"
     installgo
   fi
 
@@ -263,14 +263,14 @@ checkjcmalloc() {
     done
 }
 
-InstallExchain() {
-  echo "InstallExchain...."
+Installokbchain() {
+  echo "Installokbchain...."
 
   download
-  cd "$HOME"/.exchain/src/exchain-${ver}
+  cd "$HOME"/.okbchain/src/okbchain-${ver}
   checkjcmalloc
   #if alpine add LINK_STATICALLY=true
-  echo "compile exchain...."
+  echo "compile okbchain...."
   rm -rf ~/.cache/go-build
   if [ "$dynamicLink" == "TRUE" ]; then
     make mainnet WITH_ROCKSDB=true
@@ -279,13 +279,13 @@ InstallExchain() {
     make mainnet WITH_ROCKSDB=true LINK_STATICALLY=true
   fi
 
-  if ! type exchaind > /dev/null 2>&1; then
+  if ! type okbchaind > /dev/null 2>&1; then
     export PATH=$PATH:$HOME/go/bin
   fi
-  echo "InstallExchain completed"
+  echo "Installokbchain completed"
   printLogo
 }
 
 GetArchitecture
 Prepare
-InstallExchain
+Installokbchain
