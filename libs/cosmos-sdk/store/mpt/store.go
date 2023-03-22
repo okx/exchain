@@ -101,6 +101,9 @@ func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Databa
 		retriever:           retriever,
 		exitSignal:          make(chan struct{}),
 	}
+	if mptStore.logger == nil {
+		mptStore.logger = tmlog.NewNopLogger()
+	}
 	err := mptStore.openTrie(id)
 	if logger != nil {
 		gAsyncDB.SetLogger(logger.With("module", "asyncdb"))
@@ -137,9 +140,7 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 	ms.startVersion = id.Version
 	ms.originalRoot = openedRootHash
 
-	if ms.logger != nil {
-		ms.logger.Info("open acc mpt trie", "version", openHeight, "trieHash", openedRootHash)
-	}
+	ms.logger.Info("open acc mpt trie", "version", openHeight, "trieHash", openedRootHash)
 
 	ms.StartPrefetcher("mptStore")
 	ms.prefetchData()
@@ -394,9 +395,7 @@ func (ms *MptStore) fullNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		}
 	}
 	ms.SetLatestStoredBlockHeight(uint64(curHeight))
-	if ms.logger != nil {
-		ms.logger.Info("sync push acc data to db", "block", curHeight, "trieHash", curMptRoot)
-	}
+	ms.logger.Info("sync push acc data to db", "block", curHeight, "trieHash", curMptRoot)
 }
 
 // otherNodePersist persist data with pruning
@@ -433,9 +432,7 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 			gAsyncDB.LogStats()
 		}
 		ms.SetLatestStoredBlockHeight(uint64(curHeight))
-		if ms.logger != nil {
-			ms.logger.Info("async push acc data to db", "block", curHeight, "trieHash", chRoot)
-		}
+		ms.logger.Info("async push acc data to db", "block", curHeight, "trieHash", chRoot)
 	}
 	gAsyncDB.Prune()
 	// Garbage collect anything below our required write retention
@@ -485,24 +482,26 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 				recentMptRoot = ethcmn.Hash{}
 			} else {
 				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
-					if ms.logger != nil {
-						ms.logger.Error("Failed to commit recent state trie", "err", err)
-					}
+					ms.logger.Error("Failed to commit recent state trie", "err", err)
 					break
 				}
 			}
 			ms.SetLatestStoredBlockHeight(version)
-			if ms.logger != nil {
-				ms.logger.Info("Writing acc cached state to disk", "block", version, "trieHash", recentMptRoot)
-			}
+			ms.logger.Info("Writing acc cached state to disk", "block", version, "trieHash", recentMptRoot)
 		}
 
 		for !ms.triegc.Empty() {
 			ms.db.TrieDB().Dereference(ms.triegc.PopItem().(ethcmn.Hash))
 		}
+	}
+
+	if gAsyncDB != nil {
+		ms.logger.Error("Closing async database")
 		err := gAsyncDB.Close()
-		if ms.logger != nil && err != nil {
+		if err != nil {
 			ms.logger.Error("Close async db", "err", err)
+		} else {
+			ms.logger.Error("Close async db OK.")
 		}
 	}
 
