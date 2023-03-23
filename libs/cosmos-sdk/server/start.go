@@ -331,6 +331,7 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	mptstore.EnableAsyncCommit = EnableTreeAsyncCommit
 	if viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) {
 		tmiavl.SetEnableFastStorage(false)
+		mptstore.DisableSnapshot()
 	}
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 

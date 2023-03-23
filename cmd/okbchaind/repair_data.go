@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -62,5 +63,8 @@ func setExternalPackageValue() {
 		appstatus.GetFastStorageVersion() >= viper.GetInt64(app.FlagStartHeight) {
 		tmiavl.SetEnableFastStorage(true)
 		tmiavl.SetIgnoreAutoUpgrade(true)
+	}
+	if !viper.GetBool(tmiavl.FlagIavlDiscardFastStorage) {
+		mpt.SetSnapshotRebuild(true)
 	}
 }
