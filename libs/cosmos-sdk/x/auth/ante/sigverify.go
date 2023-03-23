@@ -231,12 +231,30 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
+		if !simulate && (len(signBytes) == 0 || !verifyBytes(pubKey, signBytes, sig)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func verifyBytes(pubKey crypto.PubKey, msg []byte, sig []byte) bool {
+	if pubKey.VerifyBytes(msg, sig) {
+		return true
+	}
+
+	switch pk := pubKey.(type) {
+	case secp256k1.PubKeySecp256k1:
+		newPubKey := ethsecp256k1.PubKey(pk[:])
+		return newPubKey.VerifyBytes(msg, sig)
+	case ethsecp256k1.PubKey:
+		newPubKey := secp256k1.PubKeySecp256k1{}
+		copy(newPubKey[:], pk)
+		return newPubKey.VerifyBytes(msg, sig)
+	}
+
+	return false
 }
 
 // IncrementSequenceDecorator handles incrementing sequences of all signers.
