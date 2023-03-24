@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/okx/okbchain/app"
 	"github.com/okx/okbchain/libs/cosmos-sdk/types/tx"
 	"github.com/okx/okbchain/x/wasm/proxy"
@@ -14,10 +12,8 @@ import (
 	evmclient "github.com/okx/okbchain/x/evm/client"
 
 	"github.com/okx/okbchain/app/rpc"
-	"github.com/okx/okbchain/app/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/lcd"
-	"github.com/okx/okbchain/libs/cosmos-sdk/server"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 	authrest "github.com/okx/okbchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okx/okbchain/libs/cosmos-sdk/x/bank/client/rest"
@@ -34,7 +30,6 @@ import (
 	"github.com/okx/okbchain/x/token"
 	tokensrest "github.com/okx/okbchain/x/token/client/rest"
 	wasmrest "github.com/okx/okbchain/x/wasm/client/rest"
-	"github.com/spf13/viper"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.
@@ -43,12 +38,8 @@ import (
 func registerRoutes(rs *lcd.RestServer) {
 	registerGrpc(rs)
 	rpc.RegisterRoutes(rs)
-	pathPrefix := viper.GetString(server.FlagRestPathPrefix)
-	if pathPrefix == "" {
-		pathPrefix = types.EthBech32Prefix
-	}
-	registerRoutesV1(rs, pathPrefix)
-	registerRoutesV2(rs, pathPrefix)
+	registerRoutesV1(rs)
+	registerRoutesV2(rs)
 	proxy.SetCliContext(rs.CliCtx)
 }
 
@@ -58,8 +49,8 @@ func registerGrpc(rs *lcd.RestServer) {
 	tx.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
 }
 
-func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
-	v1Router := rs.Mux.PathPrefix(fmt.Sprintf("/%s/v1", pathPrefix)).Name("v1").Subrouter()
+func registerRoutesV1(rs *lcd.RestServer) {
+	v1Router := rs.Mux.PathPrefix("/v1").Name("v1").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v1Router)
 	authrest.RegisterRoutes(rs.CliCtx, v1Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -92,8 +83,8 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 
 }
 
-func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
-	v2Router := rs.Mux.PathPrefix(fmt.Sprintf("/%s/v2", pathPrefix)).Name("v1").Subrouter()
+func registerRoutesV2(rs *lcd.RestServer) {
+	v2Router := rs.Mux.PathPrefix("/v2").Name("v2").Subrouter()
 	client.RegisterRoutes(rs.CliCtx, v2Router)
 	authrest.RegisterRoutes(rs.CliCtx, v2Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v2Router)
