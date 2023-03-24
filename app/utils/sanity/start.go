@@ -1,6 +1,9 @@
 package sanity
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app/config"
@@ -11,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
+	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/infura"
 )
@@ -108,7 +112,7 @@ var (
 )
 
 // CheckStart check start command.If it has conflict pair above. then return the conflict error
-func CheckStart() error {
+func CheckStart(ctx *server.Context) error {
 	if viper.GetBool(FlagDisableSanity) {
 		return nil
 	}
@@ -129,5 +133,115 @@ func CheckStart() error {
 		}
 	}
 
+	rocksDBMisspelling(ctx)
 	return nil
+}
+
+func rocksDBMisspelling(ctx *server.Context) {
+	//A copy of all the constant variables indicating rocksDB option parameters
+	//in exchain/libs/tm-db/rocksdb.go
+	const editDistanceThreshold = 2
+	var minIndex int
+	rocksDBConst := []string{
+		"block_size",
+		"block_cache",
+		"statistics",
+		"max_open_files",
+		"allow_mmap_reads",
+		"allow_mmap_writes",
+		"unordered_write",
+		"pipelined_write",
+	}
+	params := parseOptParams(viper.GetString(db.FlagRocksdbOpts))
+	if params == nil {
+		return
+	}
+	for _, str := range rocksDBConst {
+		delete(params, str)
+	}
+	if len(params) != 0 {
+		for inputOpt, _ := range params {
+			optEditDistance := make([]int, len(rocksDBConst))
+			minDistance := 20
+			for i, expectOpt := range rocksDBConst {
+				optEditDistance[i] = editDistance(inputOpt, expectOpt)
+				if optEditDistance[i] < minDistance {
+					minDistance = optEditDistance[i]
+					minIndex = i
+				}
+			}
+			if minDistance <= editDistanceThreshold {
+				ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, expect %s", db.FlagRocksdbOpts, inputOpt, rocksDBConst[minIndex]))
+			} else {
+				ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, invalid parameter", db.FlagRocksdbOpts, inputOpt))
+			}
+		}
+	}
+
+	return
+}
+
+func parseOptParams(params string) map[string]struct{} {
+	if len(params) == 0 {
+		return nil
+	}
+
+	opts := make(map[string]struct{})
+	for _, s := range strings.Split(params, ",") {
+		opt := strings.Split(s, "=")
+		if len(opt) != 2 {
+			panic("Invalid options parameter, like this 'block_size=4kb,statistics=true")
+		}
+		opts[strings.TrimSpace(opt[0])] = struct{}{}
+	}
+	return opts
+}
+
+func editDistance(s, t string) int {
+	m := len(s)
+	n := len(t)
+
+	if m == 0 {
+		return n
+	}
+
+	if n == 0 {
+		return m
+	}
+
+	// 创建二维切片
+	d := make([][]int, m+1)
+	for i := range d {
+		d[i] = make([]int, n+1)
+	}
+
+	// 初始化第一行和第一列
+	for i := 0; i <= m; i++ {
+		d[i][0] = i
+	}
+	for j := 0; j <= n; j++ {
+		d[0][j] = j
+	}
+
+	// 计算编辑距离
+	for j := 1; j <= n; j++ {
+		for i := 1; i <= m; i++ {
+			if s[i-1] == t[j-1] {
+				d[i][j] = d[i-1][j-1]
+			} else {
+				insert := d[i][j-1] + 1
+				delete := d[i-1][j] + 1
+				substitute := d[i-1][j-1] + 1
+				if insert <= delete && insert <= substitute {
+					d[i][j] = insert
+				} else if delete <= insert && delete <= substitute {
+					d[i][j] = delete
+				} else {
+					d[i][j] = substitute
+				}
+			}
+		}
+	}
+
+	return d[m][n]
 }
