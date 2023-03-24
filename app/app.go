@@ -941,7 +941,7 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 
 func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// check start flag conflicts
-	err := sanity.CheckStart()
+	err := sanity.CheckStart(ctx)
 	if err != nil {
 		return err
 	}
