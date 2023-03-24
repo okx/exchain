@@ -400,7 +400,7 @@ func TestConsensusParamsAmino(t *testing.T) {
 
 var responseDeliverTxTestCases = []*ResponseDeliverTx{
 	{},
-	{123, nil, "", "", 0, 0, nil, "", struct{}{}, nil, 0},
+	{123, nil, "", "", 0, 0, nil, "", nil, 0, struct{}{}, nil, 0},
 	{Code: 123, Data: []byte("this is data"), Log: "log123", Info: "123info", GasWanted: 1234445, GasUsed: 98, Events: []Event{}, Codespace: "sssdasf"},
 	{Code: math.MaxUint32, GasWanted: math.MaxInt64, GasUsed: math.MaxInt64},
 	{Code: 0, GasWanted: -1, GasUsed: -1},

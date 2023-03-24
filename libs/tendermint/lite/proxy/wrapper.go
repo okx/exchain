@@ -120,6 +120,10 @@ func (w Wrapper) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return resBlock, nil
 }
 
+func (w Wrapper) BlockByHash(hash []byte) (*ctypes.ResultBlock, error) {
+	return nil, nil
+}
+
 // Commit downloads the Commit and certifies it with the lite.
 //
 // This is the foundation for all other verification in this module

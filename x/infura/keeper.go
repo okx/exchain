@@ -3,6 +3,7 @@ package infura
 import (
 	"github.com/okx/okbchain/libs/tendermint/libs/log"
 	"github.com/okx/okbchain/x/common/monitor"
+	evmtypes "github.com/okx/okbchain/x/evm/types"
 	evm "github.com/okx/okbchain/x/evm/watcher"
 )
 
@@ -29,7 +30,7 @@ func (k Keeper) OnSaveTransactionReceipt(tr evm.TransactionReceipt) {
 	k.stream.cache.AddTransactionReceipt(tr)
 }
 
-func (k Keeper) OnSaveBlock(b evm.Block) {
+func (k Keeper) OnSaveBlock(b evmtypes.Block) {
 	k.stream.cache.AddBlock(b)
 }
 

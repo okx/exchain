@@ -299,6 +299,10 @@ func (c *Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return res, nil
 }
 
+func (c *Client) BlockByHash(hash []byte) (*ctypes.ResultBlock, error) {
+	return nil, nil
+}
+
 // Block calls rpcclient#Block and then verifies the result.
 func (c *Client) BlockInfo(height *int64) (*types.BlockMeta, error) {
 	res, err := c.next.BlockInfo(height)

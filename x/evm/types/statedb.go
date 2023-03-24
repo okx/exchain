@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/VictoriaMetrics/fastcache"
-	ethermint "github.com/okx/okbchain/app/types"
-	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/VictoriaMetrics/fastcache"
+	ethermint "github.com/okx/okbchain/app/types"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okx/okbchain/libs/system/trace"
 
@@ -1146,8 +1147,8 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 // CreateAccount is called during the EVM CREATE operation. The situation might
 // arise that a contract does the following:
 //
-//   1. sends funds to sha(account ++ (nonce + 1))
-//   2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
+//  1. sends funds to sha(account ++ (nonce + 1))
+//  2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
 //
 // Carrying over the balance ensures that Ether doesn't disappear.
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {

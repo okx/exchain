@@ -1,8 +1,9 @@
 package utils
 
 import (
-	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 	"testing"
+
+	codectypes "github.com/okx/okbchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/okx/okbchain/libs/tendermint/rpc/client/mock"
 	ctypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
@@ -39,6 +40,10 @@ func (mock TxSearchMock) TxSearch(query string, prove bool, page, perPage int, o
 func (mock TxSearchMock) Block(height *int64) (*ctypes.ResultBlock, error) {
 	// any non nil Block needs to be returned. used to get time value
 	return &ctypes.ResultBlock{Block: &tmtypes.Block{}}, nil
+}
+
+func (mock TxSearchMock) BlockByHash(hash []byte) (*ctypes.ResultBlock, error) {
+	return nil, nil
 }
 
 func newTestCodec() *codec.CodecProxy {

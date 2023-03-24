@@ -197,8 +197,8 @@ func TestABCIResponsesAmino(t *testing.T) {
 		},
 		{
 			[]*abci.ResponseDeliverTx{
-				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
-				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", nil, 0, struct{}{}, []byte{}, 1},
+				{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", nil, 0, struct{}{}, []byte{}, 1},
 			},
 			&abci.ResponseEndBlock{
 				ValidatorUpdates: []abci.ValidatorUpdate{
@@ -256,7 +256,7 @@ func BenchmarkABCIResponsesMarshalAmino(b *testing.B) {
 	tmp := ethcmn.HexToHash("testhahs")
 	resp := sm.ABCIResponses{
 		[]*abci.ResponseDeliverTx{
-			{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", struct{}{}, []byte{}, 1},
+			{}, nil, {12, tmp[:], "log", "info", 123, 456, []abci.Event{}, "sss", nil, 0, struct{}{}, []byte{}, 1},
 		},
 		&abci.ResponseEndBlock{
 			ValidatorUpdates: []abci.ValidatorUpdate{

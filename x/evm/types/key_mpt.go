@@ -19,7 +19,15 @@ func AppendBloomKey(height int64) []byte {
 }
 
 func AppendHeightHashKey(height uint64) []byte {
-	return append(KeyPrefixHeightHash, HeightHashKey(height)...)
+	return append(KeyPrefixHeightHash, HeightKey(height)...)
+}
+
+func AppendBlockByHeightKey(height uint64) []byte {
+	return append(KeyPrefixEthBlockByHeight, HeightKey(height)...)
+}
+
+func AppendBlockByHashKey(blockHash []byte) []byte {
+	return append(KeyPrefixEthBlockByHash, blockHash...)
 }
 
 /*

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 )
 
 // BlockNumber represents decoding hex string to block values
@@ -22,7 +21,7 @@ var (
 	// PendingBlockNumber mapping from "pending" to -1 for tm query
 	PendingBlockNumber = BlockNumber(-1)
 	// EarliestBlockNumber mapping from "earliest" to (genesisHeight + 1) for tm query (earliest query not supported)
-	EarliestBlockNumber = BlockNumber(tmtypes.GetStartBlockHeight() + 1)
+	EarliestBlockNumber = BlockNumber(1)
 
 	ErrResourceNotFound = errors.New("resource not found")
 )
@@ -62,6 +61,10 @@ func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
 	}
 	if blckNum > math.MaxInt64 {
 		return fmt.Errorf("blocknumber too high")
+	}
+	if blckNum == 0 {
+		*bn = EarliestBlockNumber
+		return nil
 	}
 
 	*bn = BlockNumber(blckNum)
@@ -138,6 +141,11 @@ func (bnh *BlockNumberOrHash) UnmarshalJSON(data []byte) error {
 			if blckNum > math.MaxInt64 {
 				return fmt.Errorf("blocknumber too high")
 			}
+			if blckNum == 0 {
+				bnh.BlockNumber = &EarliestBlockNumber
+				return nil
+			}
+
 			bn := BlockNumber(blckNum)
 			bnh.BlockNumber = &bn
 			return nil

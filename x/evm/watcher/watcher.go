@@ -3,11 +3,9 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okx/okbchain/app/rpc/namespaces/eth/state"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
@@ -58,7 +56,18 @@ var (
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
+	onceCheckRpc   sync.Once
+	isRpcNode      = false
 )
+
+func IsRpcNode() bool {
+	onceCheckRpc.Do(func() {
+		if viper.GetString("tx_index.indexer") == "kv" {
+			isRpcNode = true
+		}
+	})
+	return isRpcNode
+}
 
 func IsWatcherEnabled() bool {
 	onceEnable.Do(func() {
@@ -211,20 +220,19 @@ func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
 	}
 }
 
-func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
+func (w *Watcher) SaveBlock(block evmtypes.Block, ethBlockHash common.Hash) {
 	if !w.Enabled() {
 		return
 	}
-	block := newBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
 	if w.InfuraKeeper != nil {
 		w.InfuraKeeper.OnSaveBlock(block)
 	}
-	wMsg := NewMsgBlock(block)
+	wMsg := NewMsgBlock(block, ethBlockHash)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
 
-	wInfo := NewMsgBlockInfo(w.height, w.blockHash)
+	wInfo := NewMsgBlockInfo(w.height, ethBlockHash)
 	if wInfo != nil {
 		w.batch = append(w.batch, wInfo)
 	}
@@ -598,7 +606,7 @@ func filterDirtyList(datas [][]byte) [][]byte {
 	return ret
 }
 
-/////////// job
+// ///////// job
 func (w *Watcher) jobRoutine() {
 	if !w.Enabled() {
 		return

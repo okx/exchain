@@ -46,7 +46,6 @@ var _ client.Client = Client{}
 
 // Call is used by recorders to save a call and response.
 // It can also be used to configure mock responses.
-//
 type Call struct {
 	Name     string
 	Args     interface{}
@@ -152,6 +151,10 @@ func (c Client) Genesis() (*ctypes.ResultGenesis, error) {
 
 func (c Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return core.Block(&rpctypes.Context{}, height)
+}
+
+func (c Client) BlockByHash(hash []byte) (*ctypes.ResultBlock, error) {
+	return core.BlockByHash(&rpctypes.Context{}, hash)
 }
 
 func (c Client) Commit(height *int64) (*ctypes.ResultCommit, error) {

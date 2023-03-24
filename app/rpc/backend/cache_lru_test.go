@@ -3,6 +3,8 @@ package backend
 import (
 	"testing"
 
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okx/okbchain/x/evm/watcher"
@@ -12,11 +14,11 @@ import (
 
 func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 	type args struct {
-		block *watcher.Block
+		block *evmtypes.Block
 	}
 	type result struct {
 		blockCount int
-		block      *watcher.Block
+		block      *evmtypes.Block
 		txCount    int
 	}
 	tests := []struct {
@@ -27,7 +29,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 		{
 			name: "cache empty Block",
 			args: args{
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
 					Transactions: []*watcher.Transaction{},
@@ -35,7 +37,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 			},
 			result: result{
 				blockCount: 1,
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
 					Transactions: []*watcher.Transaction{},
@@ -46,7 +48,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 		{
 			name: "duplicate Block",
 			args: args{
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
 					Transactions: []*watcher.Transaction{},
@@ -54,7 +56,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 			},
 			result: result{
 				blockCount: 1,
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
 					Transactions: []*watcher.Transaction{},
@@ -65,7 +67,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 		{
 			name: "Block with txs",
 			args: args{
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number: hexutil.Uint64(0x11),
 					Hash:   common.HexToHash("0x3bb254ed105476b94583eec8375c5d2fc0a5cf50047c5912b4337ba43a837b88"),
 					Transactions: []*watcher.Transaction{
@@ -79,7 +81,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 			result: result{
 				blockCount: 2,
 				txCount:    1,
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number: hexutil.Uint64(0x11),
 					Hash:   common.HexToHash("0x3bb254ed105476b94583eec8375c5d2fc0a5cf50047c5912b4337ba43a837b88"),
 					Transactions: []*watcher.Transaction{
@@ -181,11 +183,11 @@ func TestLruCache_AddOrUpdateTransaction(t *testing.T) {
 
 func TestLruCache_GetBlockByNumber(t *testing.T) {
 	type args struct {
-		block *watcher.Block
+		block *evmtypes.Block
 	}
 	type result struct {
 		blockCount int
-		block      *watcher.Block
+		block      *evmtypes.Block
 		txCount    int
 	}
 	tests := []struct {
@@ -196,7 +198,7 @@ func TestLruCache_GetBlockByNumber(t *testing.T) {
 		{
 			name: "Get Block by Number",
 			args: args{
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
 					Transactions: []*watcher.Transaction{},
@@ -204,7 +206,7 @@ func TestLruCache_GetBlockByNumber(t *testing.T) {
 			},
 			result: result{
 				blockCount: 1,
-				block: &watcher.Block{
+				block: &evmtypes.Block{
 					Number:       hexutil.Uint64(0x10),
 					Hash:         common.HexToHash("0x6b2cfa0a20e291ca0bb58b2112086f247026bb94a65133e87ee3aaa4658399e5"),
 					Transactions: []*watcher.Transaction{},

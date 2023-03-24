@@ -295,13 +295,16 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
 
-	return abci.ResponseDeliverTx{
+	deliverTx := abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
 		Log:       info.result.Log,
 		Data:      info.result.Data,
 		Events:    info.result.Events.ToABCIEvents(),
 	}
+	deliverTx.SetHash(realTx.TxHash())
+	deliverTx.SetType(int(realTx.GetType()))
+	return deliverTx
 }
 
 func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
@@ -342,14 +345,16 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
-
-	return abci.ResponseDeliverTx{
+	deliverTx := abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
 		GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
 		Log:       info.result.Log,
 		Data:      info.result.Data,
 		Events:    info.result.Events.ToABCIEvents(),
 	}
+	deliverTx.SetHash(realTx.TxHash())
+	deliverTx.SetType(int(realTx.GetType()))
+	return deliverTx
 }
 
 // runTx processes a transaction within a given execution mode, encoded transaction

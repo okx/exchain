@@ -1,12 +1,15 @@
 package infura
 
-import evm "github.com/okx/okbchain/x/evm/watcher"
+import (
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+	evm "github.com/okx/okbchain/x/evm/watcher"
+)
 
 const defaultCacheCap = 2000
 
 type Cache struct {
 	transactionReceipts []evm.TransactionReceipt
-	block               *evm.Block
+	block               *evmtypes.Block
 	transactions        []evm.Transaction
 	contractCodes       map[string][]byte
 }
@@ -35,11 +38,11 @@ func (c *Cache) GetTransactionReceipts() []evm.TransactionReceipt {
 	return c.transactionReceipts
 }
 
-func (c *Cache) AddBlock(b evm.Block) {
+func (c *Cache) AddBlock(b evmtypes.Block) {
 	c.block = &b
 }
 
-func (c *Cache) GetBlock() evm.Block {
+func (c *Cache) GetBlock() evmtypes.Block {
 	return *c.block
 }
 

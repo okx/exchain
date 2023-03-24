@@ -66,6 +66,7 @@ type ABCIClient interface {
 // and prove anything about the chain.
 type SignClient interface {
 	Block(height *int64) (*ctypes.ResultBlock, error)
+	BlockByHash(hash []byte) (*ctypes.ResultBlock, error)
 	BlockInfo(height *int64) (*types.BlockMeta, error)
 	BlockResults(height *int64) (*ctypes.ResultBlockResults, error)
 	Commit(height *int64) (*ctypes.ResultCommit, error)

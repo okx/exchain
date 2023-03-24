@@ -35,7 +35,8 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.SetHeightHash(ctx, uint64(height), blockHash)
 	k.SetBlockHeight(ctx, currentHash, height)
 	// Add latest block height and hash to cache
-	k.AddHeightHashToCache(req.Header.GetHeight(), blockHash.Hex())
+	k.AddHeightHashToCache(height, blockHash.Hex())
+	// Add latest block height and hash to cache
 	// reset counters that are used on CommitStateDB.Prepare
 	if !ctx.IsTraceTx() {
 		k.Bloom = big.NewInt(0)
@@ -65,8 +66,8 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
-	k.SetBlockBloom(ctx, req.Height, bloom)
 
+	k.SetBlockBloom(ctx, req.Height, bloom)
 	if types.GetEnableBloomFilter() {
 		// the hash of current block is stored when executing BeginBlock of next block.
 		// so update section in the next block.
@@ -107,13 +108,30 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 		k.Watcher.Used()
 	}
 
-	if watcher.IsWatcherEnabled() {
-		params := k.GetParams(ctx)
-		k.Watcher.SaveParams(params)
+	if watcher.IsRpcNode() {
+		// eth block
+		var evmTxs []common.Hash
+		var gasUsed int64
+		for _, txRes := range req.DeliverTxs {
+			if txRes.GetType() == int(sdk.EvmTxType) {
+				gasUsed += txRes.GasUsed
+				evmTxs = append(evmTxs, common.BytesToHash(txRes.GetHash()))
+			}
+		}
+		block, ethBlockHash := watcher.NewBlock(uint64(req.Height), bloom,
+			ctx.BlockHeader(), uint64(0xffffffff), big.NewInt(gasUsed), evmTxs)
 
-		k.Watcher.SaveBlock(bloom)
+		k.SetEthBlockByHeight(ctx, uint64(req.Height), block)
+		k.SetEthBlockByHash(ctx, ethBlockHash.Bytes(), block)
 
-		k.Watcher.SaveBlockStdTxHash()
+		if watcher.IsWatcherEnabled() {
+			params := k.GetParams(ctx)
+			k.Watcher.SaveParams(params)
+
+			k.Watcher.SaveBlock(block, ethBlockHash)
+
+			k.Watcher.SaveBlockStdTxHash()
+		}
 	}
 
 	k.UpdateInnerBlockData()

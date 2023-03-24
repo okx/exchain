@@ -62,7 +62,7 @@ func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *watcher.Tr
 }
 
 // RpcBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block, fullTx bool) (*watcher.Block, error) {
+func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block, fullTx bool) (*evmtypes.Block, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
 	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
-) *watcher.Block {
+) *evmtypes.Block {
 	transactionsRoot := ethtypes.EmptyRootHash
 	if len(transactions) > 0 {
 		txBzs := make([][]byte, len(transactions))
@@ -168,11 +168,11 @@ func FormatBlock(
 	if parentHash == nil {
 		parentHash = ethtypes.EmptyRootHash.Bytes()
 	}
-	ret := &watcher.Block{
+	ret := &evmtypes.Block{
 		Number:           hexutil.Uint64(header.Height),
 		Hash:             common.BytesToHash(curBlockHash),
 		ParentHash:       common.BytesToHash(parentHash),
-		Nonce:            watcher.BlockNonce{},    // PoW specific
+		Nonce:            evmtypes.BlockNonce{},   // PoW specific
 		UncleHash:        ethtypes.EmptyUncleHash, // No uncles in Tendermint
 		LogsBloom:        bloom,
 		TransactionsRoot: transactionsRoot,

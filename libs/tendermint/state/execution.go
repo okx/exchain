@@ -541,7 +541,11 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	close(stopedCh)
 
 	// End block.
-	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
+
+	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{
+		Height:     block.Height,
+		DeliverTxs: abciResponses.DeliverTxs,
+	})
 	if err != nil {
 		logger.Error("Error in proxyAppConn.EndBlock", "err", err)
 		return nil, err

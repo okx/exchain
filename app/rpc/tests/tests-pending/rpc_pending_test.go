@@ -102,6 +102,7 @@ func commitBlock(suite *RPCPendingTestSuite) {
 }
 func (suite *RPCPendingTestSuite) SetupTest() {
 	// set okbchaincli path
+	viper.Set("tx_index.indexer", "kv")
 	cliDir, err := ioutil.TempDir("", ".okbchaincli")
 	if err != nil {
 		panic(err)
@@ -273,7 +274,7 @@ func (suite *RPCPendingTestSuite) TestEth_Pending_GetBlockTransactionCountByNumb
 
 func (suite *RPCPendingTestSuite) TestEth_Pending_GetBlockByNumber() {
 	//waitForBlock(5)
-
+	commitBlock(suite)
 	rpcResLatest := util.Call(suite.T(), suite.addr, "eth_getBlockByNumber", []interface{}{latestBlockNumber, true})
 	rpcResPending := util.Call(suite.T(), suite.addr, "eth_getBlockByNumber", []interface{}{pendingBlockNumber, true})
 

@@ -7,11 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -356,7 +357,7 @@ func (api *PublicEthereumAPI) accounts() ([]common.Address, error) {
 func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_blockNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
-	return api.backend.BlockNumber()
+	return hexutil.Uint64(api.backend.BlockNumber()), nil
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
@@ -1083,7 +1084,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
+func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*evmtypes.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
 	blockRes, err := api.backend.GetBlockByHash(hash, fullTx)
@@ -1093,7 +1094,7 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*wa
 	return blockRes, err
 }
 
-func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (blockRes *watcher.Block, err error) {
+func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (blockRes *evmtypes.Block, err error) {
 	if blockNum != rpctypes.PendingBlockNumber {
 		blockRes, err = api.backend.GetBlockByNumber(blockNum, fullTx)
 		return
@@ -1142,7 +1143,7 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fu
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
+func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*evmtypes.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
 

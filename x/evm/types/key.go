@@ -28,16 +28,19 @@ var (
 	KeyPrefixContractBlockedList         = []byte{0x09}
 	KeyPrefixSysContractAddress          = []byte{0x10}
 	KeyPrefixContractCodeHash            = []byte{0x11}
-
-	KeyPrefixEvmRootHash = []byte("evmRootHash")
+	KeyPrefixEthBlockByHeight            = []byte{0x12}
+	KeyPrefixEthBlockByHash              = []byte{0x13}
+	KeyPrefixEvmRootHash                 = []byte("evmRootHash")
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
 // The key will be composed in the following order:
-//   key = prefix + bytes(height)
+//
+//	key = prefix + bytes(height)
+//
 // This ordering facilitates the iteration by height for the EVM GetHashFn
 // queries.
-func HeightHashKey(height uint64) []byte {
+func HeightKey(height uint64) []byte {
 	return sdk.Uint64ToBigEndian(height)
 }
 

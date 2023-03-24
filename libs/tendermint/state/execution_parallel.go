@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/okx/okbchain/libs/system/trace"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	"github.com/okx/okbchain/libs/tendermint/libs/log"
@@ -45,7 +46,10 @@ func execBlockOnProxyAppAsync(
 	}
 
 	// End block.
-	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
+	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{
+		Height:     block.Height,
+		DeliverTxs: abciResponses.DeliverTxs,
+	})
 	if err != nil {
 		logger.Error("Error in proxyAppConn.EndBlock", "err", err)
 		return nil, err

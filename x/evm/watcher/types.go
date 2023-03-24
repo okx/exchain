@@ -2,7 +2,6 @@ package watcher
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -556,57 +555,6 @@ func (m MsgBlock) GetType() uint32 {
 	return TypeOthers
 }
 
-// A BlockNonce is a 64-bit hash which proves (combined with the
-// mix-hash) that a sufficient amount of computation has been carried
-// out on a block.
-type BlockNonce [8]byte
-
-// EncodeNonce converts the given integer to a block nonce.
-func EncodeNonce(i uint64) BlockNonce {
-	var n BlockNonce
-	binary.BigEndian.PutUint64(n[:], i)
-	return n
-}
-
-// Uint64 returns the integer value of a block nonce.
-func (n BlockNonce) Uint64() uint64 {
-	return binary.BigEndian.Uint64(n[:])
-}
-
-// MarshalText encodes n as a hex string with 0x prefix.
-func (n BlockNonce) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(n[:]).MarshalText()
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (n *BlockNonce) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
-}
-
-// Block represents a transaction returned to RPC clients.
-type Block struct {
-	Number           hexutil.Uint64 `json:"number"`
-	Hash             common.Hash    `json:"hash"`
-	ParentHash       common.Hash    `json:"parentHash"`
-	Nonce            BlockNonce     `json:"nonce"`
-	UncleHash        common.Hash    `json:"sha3Uncles"`
-	LogsBloom        ethtypes.Bloom `json:"logsBloom"`
-	TransactionsRoot common.Hash    `json:"transactionsRoot"`
-	StateRoot        common.Hash    `json:"stateRoot"`
-	Miner            common.Address `json:"miner"`
-	MixHash          common.Hash    `json:"mixHash"`
-	Difficulty       hexutil.Uint64 `json:"difficulty"`
-	TotalDifficulty  hexutil.Uint64 `json:"totalDifficulty"`
-	ExtraData        hexutil.Bytes  `json:"extraData"`
-	Size             hexutil.Uint64 `json:"size"`
-	GasLimit         hexutil.Uint64 `json:"gasLimit"`
-	GasUsed          *hexutil.Big   `json:"gasUsed"`
-	Timestamp        hexutil.Uint64 `json:"timestamp"`
-	Uncles           []common.Hash  `json:"uncles"`
-	ReceiptsRoot     common.Hash    `json:"receiptsRoot"`
-	Transactions     interface{}    `json:"transactions"`
-}
-
 // Transaction represents a transaction returned to RPC clients.
 type Transaction struct {
 	BlockHash         *common.Hash    `json:"blockHash"`
@@ -661,7 +609,8 @@ func (tr *Transaction) GetValue() string {
 	return string(buf)
 }
 
-func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) Block {
+func NewBlock(height uint64, blockBloom ethtypes.Bloom, header abci.Header, gasLimit uint64,
+	gasUsed *big.Int, txs interface{}) (types.Block, common.Hash) {
 	timestamp := header.Time.Unix()
 	if timestamp < 0 {
 		timestamp = time.Now().Unix()
@@ -677,12 +626,11 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 		transactionsRoot = common.BytesToHash(merkle.SimpleHashFromByteSlices(txBzs))
 	}
 
-	return Block{
+	block := types.Block{
 		Number:           hexutil.Uint64(height),
-		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
-		Nonce:            BlockNonce{},
-		UncleHash:        common.Hash{},
+		Nonce:            types.BlockNonce{},
+		UncleHash:        ethtypes.EmptyUncleHash,
 		LogsBloom:        blockBloom,
 		TransactionsRoot: transactionsRoot,
 		StateRoot:        common.BytesToHash(header.AppHash),
@@ -696,17 +644,20 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 		GasUsed:          (*hexutil.Big)(gasUsed),
 		Timestamp:        hexutil.Uint64(timestamp),
 		Uncles:           []common.Hash{},
-		ReceiptsRoot:     common.Hash{},
+		ReceiptsRoot:     ethtypes.EmptyRootHash,
 		Transactions:     txs,
 	}
+	ethBlockHash := block.EthHash()
+	block.Hash = ethBlockHash
+	return block, ethBlockHash
 }
 
-func NewMsgBlock(b Block) *MsgBlock {
+func NewMsgBlock(b types.Block, blockHash common.Hash) *MsgBlock {
 	jsBlock, e := json.Marshal(b)
 	if e != nil {
 		return nil
 	}
-	return &MsgBlock{blockHash: b.Hash.Bytes(), block: string(jsBlock)}
+	return &MsgBlock{blockHash: blockHash.Bytes(), block: string(jsBlock)}
 }
 
 func (m MsgBlock) GetKey() []byte {

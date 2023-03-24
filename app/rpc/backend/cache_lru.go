@@ -3,6 +3,8 @@ package backend
 import (
 	"errors"
 
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+
 	"github.com/ethereum/go-ethereum/common"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okx/okbchain/x/evm/watcher"
@@ -56,14 +58,14 @@ func NewLruCache() *LruCache {
 	}
 }
 
-func (lc *LruCache) GetBlockByNumber(number uint64, fullTx bool) (*watcher.Block, error) {
+func (lc *LruCache) GetBlockByNumber(number uint64, fullTx bool) (*evmtypes.Block, error) {
 	hash, err := lc.GetBlockHash(number)
 	if err != nil {
 		return nil, err
 	}
 	return lc.GetBlockByHash(hash, fullTx)
 }
-func (lc *LruCache) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
+func (lc *LruCache) GetBlockByHash(hash common.Hash, fullTx bool) (*evmtypes.Block, error) {
 	var data interface{}
 	var ok bool
 	if fullTx {
@@ -74,13 +76,13 @@ func (lc *LruCache) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Bloc
 	if !ok {
 		return nil, ErrLruDataNotFound
 	}
-	res, ok := data.(*watcher.Block)
+	res, ok := data.(*evmtypes.Block)
 	if !ok {
 		return nil, ErrLruDataWrongType
 	}
 	return res, nil
 }
-func (lc *LruCache) AddOrUpdateBlock(hash common.Hash, block *watcher.Block, fullTx bool) {
+func (lc *LruCache) AddOrUpdateBlock(hash common.Hash, block *evmtypes.Block, fullTx bool) {
 	if fullTx {
 		lc.lruBlockWithFullTx.PeekOrAdd(hash, block)
 	} else {

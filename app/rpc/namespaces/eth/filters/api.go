@@ -21,7 +21,6 @@ import (
 	coretypes "github.com/okx/okbchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	evmtypes "github.com/okx/okbchain/x/evm/types"
-	"github.com/okx/okbchain/x/evm/watcher"
 
 	"golang.org/x/time/rate"
 )
@@ -34,7 +33,7 @@ var (
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
-	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*evmtypes.Block, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(height int64) ([][]*ethtypes.Log, error)

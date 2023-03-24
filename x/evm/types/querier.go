@@ -30,6 +30,8 @@ const (
 	QueryContractBlockedList         = "contract-blocked-list"
 	QueryContractMethodBlockedList   = "contract-method-blocked-list"
 	QuerySysContractAddress          = "system-contract-address"
+	QueryEthBlockByHeight            = "ethBlockByHeight"
+	QueryEthBlockByHash              = "ethBlockByHash"
 )
 
 // QueryResBalance is response type for balance query

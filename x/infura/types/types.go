@@ -3,6 +3,8 @@ package types
 import (
 	"time"
 
+	evmtypes "github.com/okx/okbchain/x/evm/types"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	evm "github.com/okx/okbchain/x/evm/watcher"
 	"gorm.io/gorm"
@@ -16,7 +18,7 @@ type EngineData struct {
 
 type StreamData struct {
 	TransactionReceipts []evm.TransactionReceipt
-	Block               evm.Block
+	Block               evmtypes.Block
 	Transactions        []evm.Transaction
 	ContractCodes       map[string][]byte
 }
@@ -82,7 +84,7 @@ func convertTransactionReceipts(trs []evm.TransactionReceipt) []*TransactionRece
 	return transactionReceipts
 }
 
-func convertBlocks(evmBlock evm.Block, evmTransactions []evm.Transaction) *Block {
+func convertBlocks(evmBlock evmtypes.Block, evmTransactions []evm.Transaction) *Block {
 	block := &Block{
 		Number:           int64(evmBlock.Number),
 		Hash:             evmBlock.Hash.String(),

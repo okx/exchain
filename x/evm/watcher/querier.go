@@ -110,11 +110,11 @@ func (q Querier) GetTransactionResponse(hash common.Hash) (*TransactionResponse,
 	return &response, nil
 }
 
-func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
+func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*evmtypes.Block, error) {
 	if !q.enabled() {
 		return nil, errDisable
 	}
-	var block Block
+	var block evmtypes.Block
 	var err error
 	var blockHashKey []byte
 	if blockHashKey, err = getHashPrefixKey(prefixBlock, hash.Bytes()); err != nil {
@@ -176,7 +176,7 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	return common.HexToHash(string(hash)), e
 }
 
-func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
+func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*evmtypes.Block, error) {
 	if !q.enabled() {
 		return nil, errDisable
 	}
@@ -311,7 +311,7 @@ func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (
 	return q.getTransactionByBlockAndIndex(block, idx)
 }
 
-func (q Querier) getTransactionByBlockAndIndex(block *Block, idx uint) (*Transaction, error) {
+func (q Querier) getTransactionByBlockAndIndex(block *evmtypes.Block, idx uint) (*Transaction, error) {
 	if block.Transactions == nil {
 		return nil, errors.New("no such transaction in target block")
 	}
@@ -369,7 +369,7 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	blockHash := common.HexToHash(string(rawBlockHash))
 
 	// get block by hash
-	var block Block
+	var block evmtypes.Block
 	var blockHashKey []byte
 	if blockHashKey, err = getHashPrefixKey(prefixBlock, blockHash.Bytes()); err != nil {
 		blockHashKey = append(prefixBlock, blockHash.Bytes()...)

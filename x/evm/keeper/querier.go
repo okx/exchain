@@ -63,6 +63,10 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryContractMethodBlockedList(ctx, keeper)
 		case types.QuerySysContractAddress:
 			return querySysContractAddress(ctx, keeper)
+		case types.QueryEthBlockByHeight:
+			return queryEthBlockByHeight(ctx, path, keeper)
+		case types.QueryEthBlockByHash:
+			return queryEthBlockByHash(ctx, path, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -405,6 +409,41 @@ func querySection(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	res, err := json.Marshal(types.GetIndexer().StoredSection())
 	if err != nil {
 		return nil, err
+	}
+
+	return res, nil
+}
+
+func queryEthBlockByHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 2 parameters is required")
+	}
+
+	height, err := strconv.Atoi(path[1])
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, params[1] convert to int failed")
+	}
+
+	res, found := keeper.GetEthBlockBytesByHeight(ctx, uint64(height))
+	if !found {
+		return nil, fmt.Errorf("not found block by heith(%d)", height)
+	}
+
+	return res, nil
+}
+
+func queryEthBlockByHash(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 2 parameters is required")
+	}
+
+	blockHash := ethcmn.HexToHash(path[1])
+	res, found := keeper.GetEthBlockBytesByHash(ctx, blockHash.Bytes())
+	if !found {
+		return nil, fmt.Errorf("not found block by hash(%s)", blockHash.Hex())
 	}
 
 	return res, nil

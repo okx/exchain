@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/json"
 	"math/big"
 	"sync"
 
@@ -266,6 +267,42 @@ func (k Keeper) GetHeightHash(ctx sdk.Context, height uint64) ethcmn.Hash {
 // SetHeightHash sets the block header hash associated with a given height.
 func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash ethcmn.Hash) {
 	types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).SetHeightHash(height, hash)
+}
+
+func (k Keeper) SetEthBlockByHeight(ctx sdk.Context, height uint64, block types.Block) {
+	key := types.AppendBlockByHeightKey(height)
+	value, err := json.Marshal(block)
+	if err != nil {
+		panic(err)
+	}
+	k.db.TrieDB().DiskDB().Put(key, value)
+}
+
+func (k Keeper) GetEthBlockBytesByHeight(ctx sdk.Context, height uint64) ([]byte, bool) {
+	key := types.AppendBlockByHeightKey(height)
+	bz, err := k.db.TrieDB().DiskDB().Get(key)
+	if err != nil {
+		return nil, false
+	}
+	return bz, true
+}
+
+func (k Keeper) SetEthBlockByHash(ctx sdk.Context, hash []byte, block types.Block) {
+	key := types.AppendBlockByHashKey(hash)
+	value, err := json.Marshal(block)
+	if err != nil {
+		panic(err)
+	}
+	k.db.TrieDB().DiskDB().Put(key, value)
+}
+
+func (k Keeper) GetEthBlockBytesByHash(ctx sdk.Context, hash []byte) ([]byte, bool) {
+	key := types.AppendBlockByHashKey(hash)
+	bz, err := k.db.TrieDB().DiskDB().Get(key)
+	if err != nil {
+		return nil, false
+	}
+	return bz, true
 }
 
 // ----------------------------------------------------------------------------
