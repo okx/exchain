@@ -140,8 +140,6 @@ func CheckStart(ctx *server.Context) error {
 func rocksDBMisspelling(ctx *server.Context) {
 	//A copy of all the constant variables indicating rocksDB option parameters
 	//in exchain/libs/tm-db/rocksdb.go
-	const editDistanceThreshold = 2
-	var minIndex int
 	rocksDBConst := []string{
 		"block_size",
 		"block_cache",
@@ -152,6 +150,10 @@ func rocksDBMisspelling(ctx *server.Context) {
 		"unordered_write",
 		"pipelined_write",
 	}
+	// A map between misspelling option and correct option
+	misspellingMap := map[string]string{
+		"max_open_file": "max_open_files",
+	}
 	params := parseOptParams(viper.GetString(db.FlagRocksdbOpts))
 	if params == nil {
 		return
@@ -161,17 +163,8 @@ func rocksDBMisspelling(ctx *server.Context) {
 	}
 	if len(params) != 0 {
 		for inputOpt, _ := range params {
-			optEditDistance := make([]int, len(rocksDBConst))
-			minDistance := 20
-			for i, expectOpt := range rocksDBConst {
-				optEditDistance[i] = editDistance(inputOpt, expectOpt)
-				if optEditDistance[i] < minDistance {
-					minDistance = optEditDistance[i]
-					minIndex = i
-				}
-			}
-			if minDistance <= editDistanceThreshold {
-				ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, expect %s", db.FlagRocksdbOpts, inputOpt, rocksDBConst[minIndex]))
+			if expectOpt, ok := misspellingMap[inputOpt]; ok {
+				ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, expect %s", db.FlagRocksdbOpts, inputOpt, expectOpt))
 			} else {
 				ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, invalid parameter", db.FlagRocksdbOpts, inputOpt))
 			}
@@ -195,50 +188,4 @@ func parseOptParams(params string) map[string]struct{} {
 		opts[strings.TrimSpace(opt[0])] = struct{}{}
 	}
 	return opts
-}
-
-func editDistance(s, t string) int {
-	m := len(s)
-	n := len(t)
-
-	if m == 0 {
-		return n
-	}
-
-	if n == 0 {
-		return m
-	}
-
-	d := make([][]int, m+1)
-	for i := range d {
-		d[i] = make([]int, n+1)
-	}
-
-	for i := 0; i <= m; i++ {
-		d[i][0] = i
-	}
-	for j := 0; j <= n; j++ {
-		d[0][j] = j
-	}
-	
-	for j := 1; j <= n; j++ {
-		for i := 1; i <= m; i++ {
-			if s[i-1] == t[j-1] {
-				d[i][j] = d[i-1][j-1]
-			} else {
-				insert := d[i][j-1] + 1
-				delete := d[i-1][j] + 1
-				substitute := d[i-1][j-1] + 1
-				if insert <= delete && insert <= substitute {
-					d[i][j] = insert
-				} else if delete <= insert && delete <= substitute {
-					d[i][j] = delete
-				} else {
-					d[i][j] = substitute
-				}
-			}
-		}
-	}
-
-	return d[m][n]
 }
