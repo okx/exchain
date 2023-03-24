@@ -150,10 +150,6 @@ func rocksDBMisspelling(ctx *server.Context) {
 		"unordered_write",
 		"pipelined_write",
 	}
-	// A map between misspelling option and correct option
-	misspellingMap := map[string]string{
-		"max_open_file": "max_open_files",
-	}
 	params := parseOptParams(viper.GetString(db.FlagRocksdbOpts))
 	if params == nil {
 		return
@@ -163,11 +159,7 @@ func rocksDBMisspelling(ctx *server.Context) {
 	}
 	if len(params) != 0 {
 		for inputOpt, _ := range params {
-			if expectOpt, ok := misspellingMap[inputOpt]; ok {
-				ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, expect %s", db.FlagRocksdbOpts, inputOpt, expectOpt))
-			} else {
-				ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, invalid parameter", db.FlagRocksdbOpts, inputOpt))
-			}
+			ctx.Logger.Info(fmt.Sprintf("%s %s failed to set rocksDB parameters, please double-check the spelling", db.FlagRocksdbOpts, inputOpt))
 		}
 	}
 
