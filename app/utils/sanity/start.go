@@ -209,21 +209,18 @@ func editDistance(s, t string) int {
 		return m
 	}
 
-	// 创建二维切片
 	d := make([][]int, m+1)
 	for i := range d {
 		d[i] = make([]int, n+1)
 	}
 
-	// 初始化第一行和第一列
 	for i := 0; i <= m; i++ {
 		d[i][0] = i
 	}
 	for j := 0; j <= n; j++ {
 		d[0][j] = j
 	}
-
-	// 计算编辑距离
+	
 	for j := 1; j <= n; j++ {
 		for i := 1; i <= m; i++ {
 			if s[i-1] == t[j-1] {
