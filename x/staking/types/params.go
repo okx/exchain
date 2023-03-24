@@ -146,7 +146,7 @@ func DefaultParams() Params {
 		DefaultMinSelfDelegation,
 		DefaultHistoricalEntries,
 		DefaultConsensusType,
-		true,
+		false,
 	)
 }
 

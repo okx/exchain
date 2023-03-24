@@ -19,7 +19,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return nil, types.ErrCodeDisabledOperate()
 		}
 
-		if !k.ParamsEnableDposOp(ctx) {
+		if !k.ParamsEnableDposOp(ctx) && ctx.BlockHeight() != 0 {
 			switch msg.(type) {
 			case types.MsgCreateValidator, types.MsgEditValidatorCommissionRate,
 				types.MsgDeposit, types.MsgAddShares, types.MsgDepositMinSelfDelegation:
