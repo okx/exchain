@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okx/okbchain/libs/system/trace"
 	"sync/atomic"
 	"time"
@@ -123,6 +124,8 @@ func (dc *DeltaContext) init() {
 
 	// control if iavl produce delta or not
 	iavl.SetProduceDelta(dc.uploadDelta)
+	mpt.SetApplyDelta(dc.downloadDelta)
+	mpt.SetProduceDelta(dc.uploadDelta)
 
 	if dc.downloadDelta {
 		go dc.downloadRoutine()

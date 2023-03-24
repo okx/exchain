@@ -134,3 +134,8 @@ func (ak AccountKeeper) ModifyAccStateRoot(before []byte, rootHash ethcmn.Hash) 
 	}
 	return ak.encodeAccount(acc)
 }
+
+func (ak AccountKeeper) GetAccStateRoot(rootBytes []byte) ethcmn.Hash {
+	acc := ak.decodeAccount(rootBytes)
+	return acc.GetStateRoot()
+}

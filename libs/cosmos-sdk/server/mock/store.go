@@ -5,8 +5,8 @@ import (
 
 	store "github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
-	"github.com/okx/okbchain/libs/iavl"
 	"github.com/okx/okbchain/libs/tendermint/libs/log"
+	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
 	dbm "github.com/okx/okbchain/libs/tm-db"
 )
 
@@ -57,7 +57,7 @@ func (ms multiStore) SetTracer(w io.Writer) sdk.MultiStore {
 	panic("not implemented")
 }
 
-func (ms multiStore) CommitterCommit(*iavl.TreeDelta) (store.CommitID, *iavl.TreeDelta) {
+func (ms multiStore) CommitterCommit(interface{}) (store.CommitID, interface{}) {
 	panic("not implemented")
 }
 
@@ -232,6 +232,6 @@ func (ms multiStore) GetCommitVersion() (int64, error) {
 	panic("not implemented")
 }
 
-func (ms multiStore) CommitterCommitMap(inputDeltaMap iavl.TreeDeltaMap) (sdk.CommitID, iavl.TreeDeltaMap) {
+func (ms multiStore) CommitterCommitMap(*tmtypes.TreeDelta) (sdk.CommitID, *tmtypes.TreeDelta) {
 	panic("not implemented")
 }

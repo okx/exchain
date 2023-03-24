@@ -3,6 +3,8 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/okx/okbchain/libs/iavl"
 	"time"
 
 	"github.com/okx/okbchain/libs/tendermint/crypto/tmhash"
@@ -43,6 +45,46 @@ var (
 	DownloadDelta = false
 	UploadDelta   = false
 )
+
+type TreeDelta struct {
+	IavlTreeDelta iavl.TreeDeltaMap
+	MptTreeDelta  trie.MptDeltaMap
+}
+
+type TreeDeltaImp struct {
+	IavlBytes []byte
+	MptBytes  []byte
+}
+
+func NewTreeDelta() *TreeDelta {
+	return &TreeDelta{
+		IavlTreeDelta: map[string]*iavl.TreeDelta{},
+		MptTreeDelta:  map[string]*trie.MptDelta{},
+	}
+}
+
+func (td *TreeDelta) Marshal() []byte {
+	cdc := amino.NewCodec()
+	iavlBytes, _ := td.IavlTreeDelta.MarshalToAmino(cdc)
+	mptBytes := td.MptTreeDelta.Marshal()
+	tdi := &TreeDeltaImp{IavlBytes: iavlBytes, MptBytes: mptBytes}
+	return cdc.MustMarshalBinaryBare(tdi)
+}
+
+func (td *TreeDelta) Unmarshal(deltaBytes []byte) error {
+	cdc := amino.NewCodec()
+	tdi := &TreeDeltaImp{}
+	if err := cdc.UnmarshalBinaryBare(deltaBytes, &tdi); err != nil {
+		return err
+	}
+	if err := td.IavlTreeDelta.UnmarshalFromAmino(cdc, tdi.IavlBytes); err != nil {
+		return err
+	}
+	if err := td.MptTreeDelta.Unmarshal(tdi.MptBytes); err != nil {
+		return err
+	}
+	return nil
+}
 
 type DeltasMessage struct {
 	Metadata     []byte `json:"metadata"`

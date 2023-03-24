@@ -157,11 +157,15 @@ func (st *Store) GetEmptyImmutable() *Store {
 	return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}
 }
 
-func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
+func (st *Store) CommitterCommit(inputDelta interface{}) (types.CommitID, interface{}) { // CommitterCommit
 	flag := false
 	if inputDelta != nil {
 		flag = true
-		st.tree.SetDelta(inputDelta)
+		delta, ok := inputDelta.(*iavl.TreeDelta)
+		if !ok {
+			panic("wrong input delta of iavl")
+		}
+		st.tree.SetDelta(delta)
 	}
 	ver := st.GetUpgradeVersion()
 	if ver != -1 {

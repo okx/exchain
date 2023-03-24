@@ -61,3 +61,8 @@ func (a accountStateRootRetriever) ModifyAccStateRoot(before []byte, rootHash co
 	//TODO implement me
 	panic("implement me")
 }
+
+func (a accountStateRootRetriever) GetAccStateRoot(rootBytes []byte) common.Hash {
+	//TODO implement me
+	panic("implement me")
+}

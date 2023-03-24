@@ -20,7 +20,6 @@ import (
 	"github.com/okx/okbchain/libs/cosmos-sdk/types"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okx/okbchain/libs/cosmos-sdk/types/errors"
-	"github.com/okx/okbchain/libs/iavl"
 	"github.com/okx/okbchain/libs/system/trace"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okx/okbchain/libs/tendermint/types"
@@ -292,10 +291,10 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.deliverState.ms.Write()
 
-	var input iavl.TreeDeltaMap
+	var input *tmtypes.TreeDelta
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
 		var ok bool
-		input, ok = req.DeltaMap.(iavl.TreeDeltaMap)
+		input, ok = req.DeltaMap.(*tmtypes.TreeDelta)
 		if !ok {
 			panic("use TreeDeltaMap failed")
 		}

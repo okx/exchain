@@ -28,7 +28,7 @@ func (ts *Store) Commit(*iavl.TreeDelta, []byte) (id types.CommitID, _ iavl.Tree
 	return
 }
 
-func (ts *Store) CommitterCommit(*iavl.TreeDelta) (id types.CommitID, _ *iavl.TreeDelta) {
+func (ts *Store) CommitterCommit(interface{}) (id types.CommitID, _ interface{}) {
 	ts.Store = dbadapter.Store{DB: dbm.NewMemDB()}
 	return
 }

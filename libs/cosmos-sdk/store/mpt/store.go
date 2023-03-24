@@ -37,7 +37,18 @@ var (
 	TrieAccStoreCache uint = 32 // MB
 
 	AccountStateRootRetriever StateRootRetriever = EmptyStateRootRetriever{}
+
+	applyDelta   = false
+	produceDelta = false
 )
+
+func SetApplyDelta(val bool) {
+	applyDelta = val
+}
+
+func SetProduceDelta(val bool) {
+	produceDelta = val
+}
 
 var cdc = codec.New()
 
@@ -298,14 +309,31 @@ func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
 /*
 *  implement CommitStore, CommitKVStore
  */
-func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) {
-	ms.version++
+func (ms *MptStore) commitStorageWithDelta(storageDelta []*trie.StorageDelta, nodeSets *trie.MergedNodeSet) {
+	if storageDelta == nil || len(storageDelta) == 0 {
+		return
+	}
+	for _, storage := range storageDelta {
+		addr := storage.Addr
+		addrHash := mpttype.Keccak256HashWithSyncPool(addr[:])
+		stateRoot := ms.retriever.GetAccStateRoot(storage.PreAcc)
+		t, err := ms.db.OpenStorageTrie(addrHash, stateRoot)
+		if err != nil {
+			panic(err)
+		}
+		_, set, err := t.CommitWithDelta(storage.NodeDelta, false)
+		if set != nil {
+			if err := nodeSets.Merge(set); err != nil {
+				panic("fail to commit trie data(storage nodeSets merge): " + err.Error())
+			}
+		}
+	}
+}
 
-	// stop pre round prefetch
-	ms.StopPrefetcher()
-	nodeSets := trie.NewMergedNodeSet()
+func (ms *MptStore) commitStorageForDelta(nodeSets *trie.MergedNodeSet) []*trie.StorageDelta {
+	storageDelta := make([]*trie.StorageDelta, 0, len(ms.storageTrieForWrite))
 	for addr, v := range ms.storageTrieForWrite {
-		stateR, set, err := v.Commit(false)
+		stateR, set, outStorageDelta, err := v.CommitForDelta(false)
 		if err != nil {
 			panic(fmt.Errorf("unexcepted err:%v while commit storage tire ", err))
 		}
@@ -320,7 +348,33 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 		} else {
 			panic(fmt.Errorf("unexcepted err:%v while update get acc %s ", err, addr.String()))
 		}
+		if set != nil {
+			if err := nodeSets.Merge(set); err != nil {
+				panic("fail to commit trie data(storage nodeSets merge): " + err.Error())
+			}
+		}
+		storageDelta = append(storageDelta, &trie.StorageDelta{Addr: addr, PreAcc: preValue, NodeDelta: outStorageDelta})
+		delete(ms.storageTrieForWrite, addr)
+	}
+	return storageDelta
+}
 
+func (ms *MptStore) commitStorage(nodeSets *trie.MergedNodeSet) {
+	for addr, v := range ms.storageTrieForWrite {
+		stateR, set, err := v.Commit(false)
+		if err != nil {
+			panic(fmt.Errorf("unexcepted err:%v while commit storage tire ", err))
+		}
+		key := AddressStoreKey(addr.Bytes())
+		preValue, err := ms.trie.TryGet(key)
+		if err == nil { // maybe acc already been deleted
+			newValue := ms.retriever.ModifyAccStateRoot(preValue, stateR)
+			if err := ms.trie.TryUpdate(key, newValue); err != nil {
+				panic(fmt.Errorf("unexcepted err:%v while update acc %s ", err, addr.String()))
+			}
+		} else {
+			panic(fmt.Errorf("unexcepted err:%v while update get acc %s ", err, addr.String()))
+		}
 		if set != nil {
 			if err := nodeSets.Merge(set); err != nil {
 				panic("fail to commit trie data(storage nodeSets merge): " + err.Error())
@@ -328,8 +382,34 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 		}
 		delete(ms.storageTrieForWrite, addr)
 	}
+}
 
-	root, set, err := ms.trie.Commit(true)
+func (ms *MptStore) CommitterCommit(inputDelta interface{}) (rootHash types.CommitID, outputDelta interface{}) {
+	ms.version++
+
+	// stop pre round prefetch
+	ms.StopPrefetcher()
+	nodeSets := trie.NewMergedNodeSet()
+
+	var root ethcmn.Hash
+	var set *trie.NodeSet
+	var err error
+	if applyDelta && inputDelta != nil {
+		delta, ok := inputDelta.(*trie.MptDelta)
+		if !ok {
+			panic(fmt.Sprintf("wrong input delta of mpt. delta: %v", inputDelta))
+		}
+		ms.commitStorageWithDelta(delta.Storage, nodeSets)
+		root, set, err = ms.trie.CommitWithDelta(delta.NodeDelta, true)
+	} else if produceDelta {
+		var outputNodeDelta []*trie.NodeDelta
+		outStorage := ms.commitStorageForDelta(nodeSets)
+		root, set, outputNodeDelta, err = ms.trie.CommitForDelta(true)
+		outputDelta = &trie.MptDelta{NodeDelta: outputNodeDelta, Storage: outStorage}
+	} else {
+		ms.commitStorage(nodeSets)
+		root, set, err = ms.trie.Commit(true)
+	}
 	if err != nil {
 		panic("fail to commit trie data(acc_trie.Commit): " + err.Error())
 	}
@@ -358,7 +438,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	return types.CommitID{
 		Version: ms.version,
 		Hash:    root.Bytes(),
-	}, nil
+	}, outputDelta
 }
 
 func (ms *MptStore) LastCommitID() types.CommitID {

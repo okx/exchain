@@ -3,7 +3,6 @@ package state
 import (
 	"fmt"
 
-	"github.com/okx/okbchain/libs/iavl"
 	"github.com/okx/okbchain/libs/tendermint/types"
 )
 
@@ -11,17 +10,17 @@ func unmarshalTreeDeltaMap(input []byte) (interface{}, error) {
 	if len(input) == 0 {
 		return nil, fmt.Errorf("failed unmarshal TreeDeltaMap: empty data")
 	}
-	treeDeltaMap := iavl.TreeDeltaMap{}
-	err := treeDeltaMap.UnmarshalFromAmino(nil, input)
+	treeDeltaMap := types.NewTreeDelta()
+	err := treeDeltaMap.Unmarshal(input)
 	return treeDeltaMap, err
 }
 
 func marshalTreeDeltaMap(deltaMap interface{}) ([]byte, error) {
-	dm, ok := deltaMap.(iavl.TreeDeltaMap)
+	dm, ok := deltaMap.(*types.TreeDelta)
 	if !ok {
 		return nil, fmt.Errorf("failed marshal TreeDeltaMap")
 	}
-	return dm.MarshalToAmino(nil)
+	return dm.Marshal(), nil
 }
 
 type DeltaInfo struct {

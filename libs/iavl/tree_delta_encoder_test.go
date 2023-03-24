@@ -5,10 +5,11 @@ import (
 	"math"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
-
-	"github.com/okx/okbchain/libs/tendermint/types"
 )
+
+var Json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var testTreeDeltaMap = []TreeDeltaMap{
 	//empty
@@ -342,10 +343,10 @@ type jsonEncoder struct{}
 
 func (je *jsonEncoder) name() string { return "json" }
 func (je *jsonEncoder) encodeFunc(data TreeDeltaMap) ([]byte, error) {
-	return types.Json.Marshal(data)
+	return Json.Marshal(data)
 }
 func (je *jsonEncoder) decodeFunc(data []byte) (TreeDeltaMap, error) {
 	deltaList := TreeDeltaMap{}
-	err := types.Json.Unmarshal(data, &deltaList)
+	err := Json.Unmarshal(data, &deltaList)
 	return deltaList, err
 }
