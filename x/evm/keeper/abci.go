@@ -21,7 +21,7 @@ import (
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
-	if req.Header.LastBlockId.GetHash() == nil || req.Header.GetHeight() < 1 {
+	if req.Header.GetHeight() < 1 {
 		return
 	}
 

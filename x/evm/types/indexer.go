@@ -138,7 +138,7 @@ func (i *Indexer) ProcessSection(ctx sdk.Context, k Keeper, interval uint64, blo
 			} else {
 				hash = k.GetHeightHash(ctx, number)
 				if hash == (common.Hash{}) {
-					ctx.Logger().Error("canonical block #%d unknown", number)
+					ctx.Logger().Error("canonical block unknown", "height", number)
 					return
 				}
 				bloom = k.GetBlockBloom(ctx, int64(number))
