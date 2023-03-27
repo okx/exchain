@@ -239,11 +239,11 @@ func (w *Watcher) SaveBlock(block evmtypes.Block, ethBlockHash common.Hash) {
 	w.SaveLatestHeight(w.height)
 }
 
-func (w *Watcher) SaveBlockStdTxHash() {
+func (w *Watcher) SaveBlockStdTxHash(blockHash common.Hash) {
 	if !w.Enabled() || (len(w.blockStdTxs) == 0) {
 		return
 	}
-	wMsg := NewMsgBlockStdTxHash(w.blockStdTxs, w.blockHash)
+	wMsg := NewMsgBlockStdTxHash(w.blockStdTxs, blockHash)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
