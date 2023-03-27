@@ -231,7 +231,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !verifyBytes(pubKey, signBytes, sig)) {
+		if !simulate && (len(signBytes) == 0 || !verifyBytes(pubKey, signBytes, sig, types2.HigherThanEarth(ctx.BlockHeight()))) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
@@ -239,9 +239,13 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 	return next(ctx, tx, simulate)
 }
 
-func verifyBytes(pubKey crypto.PubKey, msg []byte, sig []byte) bool {
+func verifyBytes(pubKey crypto.PubKey, msg []byte, sig []byte, enableWasm bool) bool {
 	if pubKey.VerifyBytes(msg, sig) {
 		return true
+	}
+
+	if !enableWasm {
+		return false
 	}
 
 	switch pk := pubKey.(type) {
