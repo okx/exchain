@@ -347,28 +347,44 @@ func TestVerifySig(t *testing.T) {
 	}
 	testCases := []testCase{
 		{
-			"error priv", []crypto.PrivKey{priv2, priv2, priv3}, []uint64{0, 0, 0},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, false, false},
+			"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{0, 0, 0},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
 		},
 		{
-			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 0, 0},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, false, false},
+			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 2, 3},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
 		},
 		{
 			"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{0, 0, 0},
 			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{false, false, false},
 		},
 		{
-			"error priv", []crypto.PrivKey{priv2, priv2, priv3}, []uint64{0, 0, 0},
-			func(tx sdk.Tx) {}, []bool{true, false, false},
+			"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{0, 0, 0},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
 		},
 		{
-			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 0, 0},
-			func(tx sdk.Tx) {}, []bool{true, false, false},
+			"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{1, 1, 1},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
 		},
 		{
-			"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{0, 0, 0},
-			func(tx sdk.Tx) {}, []bool{false, false, false},
+			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{2, 2, 2},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
+		},
+		{
+			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{0, 0, 0},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
+		},
+		{
+			"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 1, 1},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{false, false, false},
+		},
+		{
+			"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{2, 2, 2},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{false, false, false},
+		},
+		{
+			"1 valid tx", []crypto.PrivKey{priv3, priv2, priv1}, []uint64{3, 3, 3},
+			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, false, true},
 		},
 	}
 	for i, tc := range testCases {
@@ -381,6 +397,9 @@ func TestVerifySig(t *testing.T) {
 				require.NotNil(t, err, "TestCase %d: %s did not error as expected", i, tc.name)
 			} else {
 				require.Nil(t, err, "TestCase %d: %s errored unexpectedly. Err: %v", i, tc.name, err)
+				acc := app.AccountKeeper.GetAccount(ctx, addrs[n])
+				acc.SetSequence(acc.GetSequence() + 1)
+				app.AccountKeeper.SetAccount(ctx, acc)
 			}
 		}
 	}
