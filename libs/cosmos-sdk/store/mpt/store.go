@@ -607,6 +607,13 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 		}
 	}
 
+	ts := time.Now()
+	if err := ms.flattenPersistSnapshot(); err != nil {
+		ms.logger.Error("Writing snapshot state to disk", "error", err)
+	} else {
+		ms.logger.Error("Writing snapshot successfully", "cost", time.Since(ts))
+	}
+
 	if gAsyncDB != nil {
 		ms.logger.Error("Closing async database")
 		err := gAsyncDB.Close()
@@ -615,12 +622,6 @@ func (ms *MptStore) StopWithVersion(targetVersion int64) error {
 		} else {
 			ms.logger.Error("Close async db OK.")
 		}
-	}
-	ts := time.Now()
-	if err := ms.flattenPersistSnapshot(); err != nil {
-		ms.logger.Error("Writing snapshot state to disk", "error", err)
-	} else {
-		ms.logger.Error("Writing snapshot successfully", "cost", time.Since(ts))
 	}
 
 	return nil
