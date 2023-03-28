@@ -231,7 +231,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !verifyWithCache(signBytes, sig, pubKey)) {
+		if !simulate && (len(signBytes) == 0 || !verifySig(signBytes, sig, pubKey)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
@@ -239,7 +239,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 	return next(ctx, tx, simulate)
 }
 
-func verifyWithCache(signBytes, sig []byte, pubKey crypto.PubKey) bool {
+func verifySig(signBytes, sig []byte, pubKey crypto.PubKey) bool {
 	cachePub, ok := types2.SignatureCache().GetWithByte(signBytes)
 	if ok {
 		return bytes.Equal(pubKey.Bytes(), cachePub)
