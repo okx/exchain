@@ -25,3 +25,7 @@ type AccountKeeper interface {
 	SetAccount(ctx sdk.Context, acc authexported.Account)
 	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
 }
+
+type BankKeeper interface {
+	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+}

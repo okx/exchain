@@ -33,6 +33,7 @@ run() {
       --enable-preruntx=1 \
       --iavl-enable-async-commit \
       --enable-gid \
+      --fast-query=false \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
       --commit-gap-height 3 \
@@ -66,7 +67,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install Venus1Height=1 Venus2Height=1 EarthHeight=1)
+(cd .. && make install DEBUG=true Venus1Height=1 Venus2Height=1 EarthHeight=1)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID

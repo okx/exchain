@@ -164,6 +164,11 @@ func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata str
 	if watcher.IsWatcherEnabled() {
 		ctx.SetWatcher(watcher.NewTxWatcher())
 	}
+
+	if err := k.sendCoinToModuleAccount(ctx, caller, value); err != nil {
+		return false, err
+	}
+
 	_, result, err := k.CallEvm(ctx, &conrtractAddr, value.BigInt(), input)
 	if err != nil {
 		return false, err
@@ -232,4 +237,15 @@ func (k Keeper) CallEvm(ctx sdk.Context, to *common.Address, value *big.Int, dat
 	k.accountKeeper.SetAccount(ctx, acc)
 
 	return executionResult, resultData, err
+}
+
+func (k Keeper) sendCoinToModuleAccount(ctx sdk.Context, sender string, value sdk.Int) error {
+	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
+	moduleAddr := erc20types.IbcEvmModuleETHAddr
+
+	senderAddr, err := sdk.AccAddressFromBech32(sender)
+	if err != nil {
+		return err
+	}
+	return k.bankKeeper.SendCoins(ctx, senderAddr, sdk.AccAddress(moduleAddr.Bytes()), coins)
 }

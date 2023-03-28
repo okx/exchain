@@ -1,4 +1,4 @@
-res=$(exchaincli tx wasm store ./wasm/erc20/artifacts/cw_erc20.wasm --fees 0.01okt --from captain --gas=20000000 -b block -y)
+res=$(exchaincli tx wasm store ./wasm/vmbridge-erc20/artifacts/cw_erc20.wasm --fees 0.01okt --from captain --gas=20000000 -b block -y)
 echo "store--------------"
 echo $res
 code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
