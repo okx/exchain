@@ -401,3 +401,32 @@ func NewTestTx(msgs []sdk.Msg, sigs []types.StdSignature, fee types.StdFee) sdk.
 	tx := types.NewStdTx(msgs, fee, sigs, "")
 	return tx
 }
+
+func BenchmarkVerifySig(b *testing.B) {
+	app, ctx := createTestApp(true)
+	// make block height non-zero to ensure account numbers part of signBytes
+	ctx.SetBlockHeight(1)
+	viper.SetDefault(tmtypes.FlagSigCacheSize, 30000)
+	tmtypes.InitSignatureCache()
+	priv, _, addr := types.KeyTestPubAddr()
+	msgs := []sdk.Msg{types.NewTestMsg(addr)}
+	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
+	require.NoError(b, acc.SetAccountNumber(uint64(0)))
+	app.AccountKeeper.SetAccount(ctx, acc)
+	fee := types.NewTestStdFee()
+	anteHandler := sdk.ChainAnteDecorators(ante.NewSetPubKeyDecorator(app.AccountKeeper), ante.NewSigVerificationDecorator(app.AccountKeeper))
+
+	type testCase struct {
+		name string
+		priv crypto.PrivKey
+		seq  uint64
+	}
+	tc := testCase{"valid tx", priv, 0}
+	b.ResetTimer()
+	for i := 0; i < 2; i++ {
+		sigs := NewSig(ctx, msgs, tc.priv, 0, tc.seq, fee)
+		tx := NewTestTx(msgs, sigs, fee)
+		_, err := anteHandler(ctx, tx, false)
+		require.Nil(b, err, "TestCase %s errored unexpectedly. Err: %v", tc.name, err)
+	}
+}
