@@ -17,26 +17,27 @@ import (
 
 func genSnapCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "genSnap",
+		Use:   "gen-snapshot",
 		Short: "generate mpt store's snapshot",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			stdlog.Println("--------- generate snapshot start ---------")
-			genSnapshot(ctx)
+			dataDir := filepath.Join(ctx.Config.RootDir, "data")
+			GenSnapshot(dataDir)
 			stdlog.Println("--------- generate snapshot end ---------")
 		},
 	}
 	return cmd
 }
 
-func genSnapshot(ctx *server.Context) {
-	dataDir := filepath.Join(ctx.Config.RootDir, "data")
+func GenSnapshot(dataDir string) {
 	db, err := sdk.NewDB(applicationDB, dataDir)
 	if err != nil {
 		panic("fail to open application db: " + err.Error())
 	}
+	defer db.Close()
 
 	mpt.SetSnapshotRebuild(true)
 	mpt.AccountStateRootRetriever = accountStateRootRetriever{}

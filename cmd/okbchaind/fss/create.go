@@ -2,6 +2,7 @@ package fss
 
 import (
 	"fmt"
+	"github.com/okx/okbchain/cmd/okbchaind/mpt"
 	"log"
 	"path/filepath"
 
@@ -17,15 +18,19 @@ import (
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create fast index for IAVL",
-	Long: `Create fast index for IAVL:
-This command is a tool to generate the IAVL fast index.
-It will take long based on the original database size.
-When the create lunched, it will show Upgrade to Fast IAVL...`,
+	Short: "Create fast index for Tree",
+	Long: `Create fast index for Tree:
+This command is a tool to generate the Tree fast index.
+It will take long based on the original database size.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		iavl.SetEnableFastStorage(true)
 		storeKeys := appstatus.GetAllStoreKeys()
 		outputModules(storeKeys)
+
+		log.Println("--------- generate snapshot start ---------")
+		dataDir := viper.GetString(flagDataDir)
+		mpt.GenSnapshot(dataDir)
+		log.Println("--------- generate snapshot end ---------")
 
 		return createIndex(storeKeys)
 	},

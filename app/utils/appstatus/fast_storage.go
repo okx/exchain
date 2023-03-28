@@ -8,7 +8,6 @@ import (
 	bam "github.com/okx/okbchain/libs/cosmos-sdk/baseapp"
 	"github.com/okx/okbchain/libs/cosmos-sdk/client/flags"
 	sdk "github.com/okx/okbchain/libs/cosmos-sdk/types"
-	"github.com/okx/okbchain/libs/cosmos-sdk/x/auth"
 	capabilitytypes "github.com/okx/okbchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/mint"
 	"github.com/okx/okbchain/libs/cosmos-sdk/x/params"
@@ -36,7 +35,7 @@ const (
 
 func GetAllStoreKeys() []string {
 	return []string{
-		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
+		bam.MainStoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
 		token.StoreKey, token.KeyLock,

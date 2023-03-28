@@ -19,9 +19,9 @@ func Command(ctx *server.Context) *cobra.Command {
 
 var fssCmd = &cobra.Command{
 	Use:   "fss",
-	Short: "FSS is an auxiliary fast storage system to IAVL",
-	Long: `IAVL fast storage related commands:
-This command include a set of command of the IAVL fast storage.
+	Short: "FSS is an auxiliary fast storage system to Tree",
+	Long: `tree fast storage related commands:
+This command include a set of command of the Tree fast storage.
 include create sub command`,
 }
 
