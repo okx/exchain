@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
@@ -95,7 +96,11 @@ func (h CallToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address,
 	value := sdk.NewIntFromBigInt(unpacked[1].(*big.Int))
 	calldata := unpacked[2].(string)
 
-	return h.Keeper.CallToWasm(ctx, caller, wasmAddr, value, calldata)
+	buff, err := hex.DecodeString(calldata)
+	if err != nil {
+		return err
+	}
+	return h.Keeper.CallToWasm(ctx, caller, wasmAddr, value, string(buff))
 }
 
 // wasm call evm for erc20 exchange cw20,

@@ -57,8 +57,8 @@ func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if !sdk.IsWasmAddress(contractAddr) {
 		return types.ErrIsNotWasmAddr
 	}
-
-	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, []byte(calldata), sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, value)})
+	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
+	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, []byte(calldata), coins)
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
 	}

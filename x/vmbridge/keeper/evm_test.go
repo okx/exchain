@@ -12,7 +12,6 @@ import (
 	keeper2 "github.com/okex/exchain/x/vmbridge/keeper"
 	"github.com/okex/exchain/x/vmbridge/types"
 	wasmtypes "github.com/okex/exchain/x/wasm/types"
-
 	"math/big"
 )
 

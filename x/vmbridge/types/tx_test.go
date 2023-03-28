@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/hex"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -162,4 +163,11 @@ func TestMsgSendToEvm_ValidateBasic(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHexEncodeToString(t *testing.T) {
+	str := "{\"transfer\":{\"amount\":\"100\",\"recipient\":\"ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq\"}}"
+	buff := []byte(str)
+	result := hex.EncodeToString(buff)
+	t.Log("result", result)
 }
