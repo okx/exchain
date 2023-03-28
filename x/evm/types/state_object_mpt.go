@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/mpt"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -68,6 +69,13 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 
 	so.originStorage[key] = value
 	return value
+}
+
+func (so *stateObject) GetCommittedStateMptForQuery(db ethstate.Database, key ethcmn.Hash) []byte {
+	ctx := &so.stateDB.ctx
+	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), mpt.AddressStoragePrefixMpt(so.address, so.account.StateRoot))
+	enc := store.Get(key.Bytes())
+	return enc
 }
 
 func (so *stateObject) CodeInRawDB(db ethstate.Database) []byte {

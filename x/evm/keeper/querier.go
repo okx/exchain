@@ -183,7 +183,7 @@ func queryStorageByKey(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 	addr := ethcmn.HexToAddress(path[1])
 	key := ethcmn.HexToHash(path[2])
 	val := keeper.GetStateByKey(ctx, addr, key)
-	res := types.QueryResStorage{Value: val.Bytes()}
+	res := types.QueryResStorage{Value: val}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

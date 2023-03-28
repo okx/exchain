@@ -490,17 +490,10 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 
 	var out evmtypes.QueryResStorage
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	realValue := out.Value
 	if useWatchBackend {
-		realValue = bytes.TrimLeftFunc(out.Value, func(r rune) bool {
-			if r == 0 {
-				return true
-			}
-			return false
-		})
-		api.watcherBackend.CommitStateToRpcDb(address, key, realValue)
+		api.watcherBackend.CommitStateToRpcDb(address, key, out.Value)
 	}
-	return realValue, nil
+	return out.Value, nil
 }
 
 // GetStorageAt returns the contract storage at the given address, block number, and key.

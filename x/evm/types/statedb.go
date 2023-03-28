@@ -786,6 +786,15 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 	return ethcmn.Hash{}
 }
 
+func (csdb *CommitStateDB) GetCommittedStateForQuery(addr ethcmn.Address, hash ethcmn.Hash) []byte {
+	so := csdb.getStateObject(addr)
+	if so != nil {
+		return so.GetCommittedStateMptForQuery(csdb.db, hash)
+	}
+
+	return nil
+}
+
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
 	return csdb.logs[hash], nil

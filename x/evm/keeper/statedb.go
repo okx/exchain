@@ -58,8 +58,8 @@ func (k *Keeper) GetStorageProof(ctx sdk.Context, addr ethcmn.Address, key ethcm
 }
 
 // GetStateByKey calls CommitStateDB.GetState using the passed in context
-func (k *Keeper) GetStateByKey(ctx sdk.Context, addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
-	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetCommittedState(addr, key)
+func (k *Keeper) GetStateByKey(ctx sdk.Context, addr ethcmn.Address, key ethcmn.Hash) []byte {
+	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetCommittedStateForQuery(addr, key)
 }
 
 // ----------------------------------------------------------------------------
