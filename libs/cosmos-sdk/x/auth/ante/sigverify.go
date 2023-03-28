@@ -3,6 +3,7 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -240,15 +241,16 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 }
 
 func verifySig(signBytes, sig []byte, pubKey crypto.PubKey) bool {
-	cachePub, ok := types2.SignatureCache().GetWithByte(signBytes)
+	hash := etherhash.Sum(append(signBytes, sig...))
+	cachePub, ok := types2.SignatureCache().Get(hash)
 	if ok {
-		return bytes.Equal(pubKey.Bytes(), cachePub)
+		return bytes.Equal(pubKey.Bytes(), []byte(cachePub))
 	}
 	if !pubKey.VerifyBytes(signBytes, sig) {
 		return false
 	}
 
-	types2.SignatureCache().AddWithByte(signBytes, pubKey.Bytes())
+	types2.SignatureCache().Add(hash, string(pubKey.Bytes()))
 
 	return true
 }

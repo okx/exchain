@@ -78,30 +78,6 @@ func (c *Cache) Remove(key []byte) {
 	c.data.Del(key)
 }
 
-func (c *Cache) GetWithByte(key []byte) ([]byte, bool) {
-	// validate
-	if !c.validate(key) {
-		return nil, false
-	}
-	atomic.AddInt64(&c.readCount, 1)
-	// get cache
-	value, ok := c.data.HasGet(nil, key)
-	if ok {
-		atomic.AddInt64(&c.hitCount, 1)
-		return value, true
-	}
-	return nil, false
-}
-
-func (c *Cache) AddWithByte(key []byte, value []byte) {
-	// validate
-	if !c.validate(key) {
-		return
-	}
-	// add cache
-	c.data.Set(key, value)
-}
-
 func (c *Cache) ReadCount() int64 {
 	return atomic.LoadInt64(&c.readCount)
 }
