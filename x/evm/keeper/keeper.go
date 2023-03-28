@@ -281,7 +281,7 @@ func (k Keeper) SetEthBlockByHeight(ctx sdk.Context, height uint64, block types.
 func (k Keeper) GetEthBlockBytesByHeight(ctx sdk.Context, height uint64) ([]byte, bool) {
 	key := types.AppendBlockByHeightKey(height)
 	bz, err := k.db.TrieDB().DiskDB().Get(key)
-	if err != nil {
+	if err != nil || len(bz) == 0 {
 		return nil, false
 	}
 	return bz, true
@@ -299,7 +299,7 @@ func (k Keeper) SetEthBlockByHash(ctx sdk.Context, hash []byte, block types.Bloc
 func (k Keeper) GetEthBlockBytesByHash(ctx sdk.Context, hash []byte) ([]byte, bool) {
 	key := types.AppendBlockByHashKey(hash)
 	bz, err := k.db.TrieDB().DiskDB().Get(key)
-	if err != nil {
+	if err != nil || len(bz) == 0 {
 		return nil, false
 	}
 	return bz, true
