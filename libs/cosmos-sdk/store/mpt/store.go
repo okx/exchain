@@ -372,6 +372,7 @@ func (ms *MptStore) commitStorage(nodeSets *trie.MergedNodeSet) {
 			if err := ms.trie.TryUpdate(key, newValue); err != nil {
 				panic(fmt.Errorf("unexcepted err:%v while update acc %s ", err, addr.String()))
 			}
+			ms.updateSnapAccounts(key, newValue)
 		} else {
 			panic(fmt.Errorf("unexcepted err:%v while update get acc %s ", err, addr.String()))
 		}
