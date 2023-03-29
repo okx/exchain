@@ -274,7 +274,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
-	persist.GetStatistics().Init(trace.PreChange, trace.FlushCache, trace.CommitStores, trace.FlushMeta)
+	persist.GetStatistics().Init(trace.FlushCache, trace.CommitStores, trace.FlushMeta)
 	defer func() {
 		trace.GetElapsedInfo().AddInfo(trace.PersistDetails, persist.GetStatistics().Format())
 	}()

@@ -3,13 +3,9 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"runtime"
 	"sync"
-	"time"
-
-	"github.com/okx/okbchain/libs/system/trace"
-	"github.com/okx/okbchain/libs/system/trace/persist"
-	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -29,7 +25,6 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	if tree.root == nil {
 		return
 	}
-	tsPreChange := time.Now()
 
 	maxNums := runtime.NumCPU()
 	keyCount := len(keys)
@@ -65,7 +60,6 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	wg.Wait()
 
 	tree.ndb.finishPreWriteCache()
-	persist.GetStatistics().Accumulate(trace.PreChange, tsPreChange)
 }
 
 func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte) (find bool) {

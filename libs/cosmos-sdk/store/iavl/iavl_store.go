@@ -3,20 +3,17 @@ package iavl
 import (
 	"errors"
 	"fmt"
-	"io"
-	"sync"
-	"time"
-
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okx/okbchain/libs/cosmos-sdk/store/types"
 	"github.com/okx/okbchain/libs/iavl"
 	iavlconfig "github.com/okx/okbchain/libs/iavl/config"
-	"github.com/okx/okbchain/libs/system/trace/persist"
 	abci "github.com/okx/okbchain/libs/tendermint/abci/types"
 	tmkv "github.com/okx/okbchain/libs/tendermint/libs/kv"
 	dbm "github.com/okx/okbchain/libs/tm-db"
+	"io"
+	"sync"
 )
 
 var (
@@ -38,8 +35,6 @@ type Store struct {
 	flatKVStore *flatkv.Store
 	//for upgrade
 	upgradeVersion int64
-	//for time statistics
-	beginTime time.Time
 }
 
 func (st *Store) CurrentVersion() int64 {
@@ -216,10 +211,7 @@ func (st *Store) GetStoreType() types.StoreType {
 
 // Implements Store.
 func (st *Store) CacheWrap() types.CacheWrap {
-	stores := cachekv.NewStoreWithPreChangeHandler(st, st.tree.PreChanges)
-	stores.StatisticsCell = st
-
-	return stores
+	return cachekv.NewStoreWithPreChangeHandler(st, st.tree.PreChanges)
 }
 
 // CacheWrapWithTrace implements the Store interface.
@@ -342,14 +334,6 @@ func (st *Store) GetNodeReadCount() int {
 func (st *Store) ResetCount() {
 	st.tree.ResetCount()
 	st.resetFlatKVCount()
-}
-
-func (st *Store) StartTiming() {
-	st.beginTime = time.Now()
-}
-
-func (st *Store) EndTiming(tag string) {
-	persist.GetStatistics().Accumulate(tag, st.beginTime)
 }
 
 //----------------------------------------

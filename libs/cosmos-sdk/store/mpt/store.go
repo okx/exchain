@@ -3,6 +3,7 @@ package mpt
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okx/okbchain/libs/system/trace/persist"
 	"io"
 	"sync"
 	"time"
@@ -84,6 +85,9 @@ type MptStore struct {
 	snapAccounts  map[ethcmn.Hash][]byte
 	snapStorage   map[ethcmn.Hash]map[ethcmn.Hash][]byte
 	snapRWLock    sync.RWMutex
+
+	// for time statistics
+	statisticsBeginTime time.Time
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -190,8 +194,9 @@ func (ms *MptStore) GetStoreType() types.StoreType {
 }
 
 func (ms *MptStore) CacheWrap() types.CacheWrap {
-	//TODO implement me
-	return cachekv.NewStore(ms)
+	stores := cachekv.NewStore(ms)
+	stores.StatisticsCell = ms
+	return stores
 }
 
 func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.CacheWrap {
@@ -480,6 +485,14 @@ func (ms *MptStore) ResetCount() {
 
 func (ms *MptStore) GetDBReadTime() int {
 	return gStatic.getDBReadTime()
+}
+
+func (ms *MptStore) StartTiming() {
+	ms.statisticsBeginTime = time.Now()
+}
+
+func (ms *MptStore) EndTiming(tag string) {
+	persist.GetStatistics().Accumulate(tag, ms.statisticsBeginTime)
 }
 
 // PushData2Database writes all associated state in cache to the database
