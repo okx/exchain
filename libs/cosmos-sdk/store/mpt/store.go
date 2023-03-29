@@ -130,22 +130,10 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 	return nil
 }
 
-func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
+func (ms *MptStore) GetImmutable(height int64) (*ImmutableMptStore, error) {
 	rootHash := ms.GetMptRootHash(uint64(height))
-	tr, err := ms.db.OpenTrie(rootHash)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to open root mpt: " + err.Error())
-	}
-	mptStore := &MptStore{
-		db:           ms.db,
-		trie:         tr,
-		originalRoot: rootHash,
-		exitSignal:   make(chan struct{}),
-		version:      height,
-		startVersion: height,
-	}
 
-	return mptStore, nil
+	return NewImmutableMptStore(ms.db, rootHash)
 }
 
 /*
@@ -166,8 +154,7 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-
-	value, err := ms.trie.TryGet(key)
+	value, err := ms.db.CopyTrie(ms.trie).TryGet(key)
 	if err != nil {
 		return nil
 	}
@@ -176,7 +163,6 @@ func (ms *MptStore) Get(key []byte) []byte {
 }
 
 func (ms *MptStore) Has(key []byte) bool {
-
 	return ms.Get(key) != nil
 }
 
@@ -205,11 +191,11 @@ func (ms *MptStore) Delete(key []byte) {
 }
 
 func (ms *MptStore) Iterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 func (ms *MptStore) ReverseIterator(start, end []byte) types.Iterator {
-	return newMptIterator(ms.trie, start, end)
+	return newMptIterator(ms.db.CopyTrie(ms.trie), start, end)
 }
 
 /*
