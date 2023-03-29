@@ -146,13 +146,13 @@ func (so *stateObject) updateTrie(db ethstate.Database) (updated bool) {
 		}
 		updated = true
 		so.originStorage[key] = value
-
-		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
+		copyKey := ethcmn.CopyBytes(key[:])
+		usedStorage = append(usedStorage) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
 			store.Delete(key[:])
 			if !so.stateDB.ctx.IsCheckTx() {
 				if so.stateDB.ctx.GetWatcher().Enabled() {
-					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), key[:], ethcmn.Hash{}.Bytes())
+					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), copyKey, ethcmn.Hash{}.Bytes())
 				}
 			}
 		} else {
@@ -161,7 +161,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) (updated bool) {
 			store.Set(key[:], v)
 			if !so.stateDB.ctx.IsCheckTx() {
 				if so.stateDB.ctx.GetWatcher().Enabled() {
-					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), key[:], v)
+					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), copyKey, v)
 				}
 			}
 		}
