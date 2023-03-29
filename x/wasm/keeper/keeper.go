@@ -416,7 +416,6 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
-
 	// instantiate wasm contract
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStoreAdapter, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)

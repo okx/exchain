@@ -2,9 +2,9 @@ package types
 
 import (
 	"fmt"
+	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
-	dbm "github.com/tendermint/tm-db"
 )
 
 type StoreAdapter struct {
@@ -30,7 +30,7 @@ func (sa StoreAdapter) Delete(key []byte) {
 // Start must be less than end, or the Iterator is invalid.
 // Iterator must be closed by caller.
 // To iterate over entire domain, use store.Iterator(nil, nil)
-func (sa StoreAdapter) Iterator(start, end []byte) dbm.Iterator {
+func (sa StoreAdapter) Iterator(start, end []byte) wasmvmtypes.Iterator {
 	iter := sa.parent.Iterator(start, end)
 	adapter := newIteratorAdapter(iter)
 	return adapter
@@ -39,7 +39,7 @@ func (sa StoreAdapter) Iterator(start, end []byte) dbm.Iterator {
 // Iterator over a domain of keys in descending order. End is exclusive.
 // Start must be less than end, or the Iterator is invalid.
 // Iterator must be closed by caller.
-func (sa StoreAdapter) ReverseIterator(start, end []byte) dbm.Iterator {
+func (sa StoreAdapter) ReverseIterator(start, end []byte) wasmvmtypes.Iterator {
 	iter := sa.parent.ReverseIterator(start, end)
 	adapter := newIteratorAdapter(iter)
 	return adapter

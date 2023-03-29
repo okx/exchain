@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/99designs/keyring v1.1.6
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
-	github.com/CosmWasm/wasmvm v1.0.0
+	github.com/CosmWasm/wasmvm v1.2.1
 	github.com/VictoriaMetrics/fastcache v1.8.0
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/alicebob/miniredis/v2 v2.17.0
@@ -72,7 +72,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.12.0
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
