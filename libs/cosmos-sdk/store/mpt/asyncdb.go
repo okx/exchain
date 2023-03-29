@@ -155,6 +155,7 @@ type AsyncKeyValueStore struct {
 	waitCommit int64
 
 	pruneNum int64
+	iterNum  int64
 }
 
 func NewAsyncKeyValueStoreWithOptions(db ethdb.KeyValueStore, options AsyncKeyValueStoreOptions) *AsyncKeyValueStore {
@@ -294,6 +295,19 @@ func (store *AsyncKeyValueStore) ActionAfterWriteDone(act func(), once bool) {
 	store.commitCh <- struct{}{}
 }
 
+func (store *AsyncKeyValueStore) WaitCurrentWriteDone() {
+	if store == nil || atomic.LoadInt64(&store.waitCommit) == 0 {
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	store.ActionAfterWriteDone(func() {
+		wg.Done()
+	}, true)
+	wg.Wait()
+}
+
 func (store *AsyncKeyValueStore) NewBatch() ethdb.Batch {
 	return newAsyncBatch(store)
 }
@@ -328,6 +342,7 @@ func (store *AsyncKeyValueStore) LogStats() {
 		"waitPruneOp", atomic.LoadInt64(&store.waitPrune),
 		"preCommitMapSize", store.preCommit.Len(),
 		"pruneInMap", atomic.LoadInt64(&store.pruneNum),
+		"iterNew", atomic.SwapInt64(&store.iterNum, 0),
 	)
 }
 

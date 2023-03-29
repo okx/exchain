@@ -4,47 +4,108 @@ import (
 	"bytes"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/tendermint/go-amino"
 )
 
+var iterMapPool = &sync.Pool{
+	New: func() interface{} {
+		return make(map[string]int)
+	},
+}
+
 func (store *AsyncKeyValueStore) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
+	atomic.AddInt64(&store.iterNum, 1)
+	if atomic.LoadInt64(&store.waitCommit) == 0 {
+		return store.KeyValueStore.NewIterator(prefix, start)
+	}
+
+	var (
+		pr    = string(prefix)
+		st    = string(append(prefix, start...))
+		count int
+	)
+
 	store.mtx.RLock()
 	defer store.mtx.RUnlock()
 
+	curPtr := store.getPreCommitPtr()
+	for curPtr.Next() != nil {
+		curPtr = curPtr.Next()
+		switch op := curPtr.Value.(*commitTask).op.(type) {
+		case *singleOp:
+			count++
+		case multiOp:
+			count += len(op)
+		}
+	}
+
 	var (
-		pr     = string(prefix)
-		st     = string(append(prefix, start...))
-		keys   = make([]string, 0, len(store.preCommit.data))
-		values = make([]preCommitValue, 0, len(store.preCommit.data))
+		ops = make([]singleOp, 0, count)
 	)
+
+	if atomic.LoadInt64(&store.waitCommit) == 0 {
+		return store.KeyValueStore.NewIterator(prefix, start)
+	}
+
+	var m = iterMapPool.Get().(map[string]int)
+	defer iterMapPool.Put(m)
+	for k := range m {
+		delete(m, k)
+	}
+
+	var singleOpHandler = func(op *singleOp, pr, st string, m map[string]int, ops *[]singleOp) {
+		strKey := amino.BytesToStr(op.key)
+		if !strings.HasPrefix(strKey, pr) {
+			return
+		}
+		if strKey >= st {
+			if index, ok := m[strKey]; ok {
+				(*ops)[index] = *op
+			} else {
+				*ops = append(*ops, *op)
+				m[strKey] = len(*ops) - 1
+			}
+		}
+	}
+
 	// Collect the keys from the memory database corresponding to the given prefix
 	// and start
-	for key := range store.preCommit.data {
-		if !strings.HasPrefix(key, pr) {
-			continue
+	curPtr = store.getPreCommitPtr()
+	for curPtr.Next() != nil {
+		curPtr = curPtr.Next()
+		switch op := curPtr.Value.(*commitTask).op.(type) {
+		case *singleOp:
+			singleOpHandler(op, pr, st, m, &ops)
+		case multiOp:
+			for _, o := range op {
+				singleOpHandler(&o, pr, st, m, &ops)
+				if atomic.LoadInt64(&store.waitCommit) == 0 {
+					return store.KeyValueStore.NewIterator(prefix, start)
+				}
+			}
 		}
-		if key >= st {
-			keys = append(keys, key)
+		if atomic.LoadInt64(&store.waitCommit) == 0 {
+			return store.KeyValueStore.NewIterator(prefix, start)
 		}
 	}
 
 	dbIter := store.KeyValueStore.NewIterator(prefix, start)
-	if len(keys) == 0 {
+	if len(ops) == 0 {
 		return dbIter
 	}
 
 	// Sort the items and retrieve the associated values
-	sort.Strings(keys)
-	for _, key := range keys {
-		values = append(values, store.preCommit.data[key])
-	}
+	sort.Slice(ops, func(i, j int) bool {
+		return bytes.Compare(ops[i].key, ops[j].key) == -1
+	})
 
 	return &asyncdbIterator{
 		dbIter: dbIter,
-		keys:   keys,
-		values: values,
+		ops:    ops,
 
 		memMoveNext: true,
 		dbMoveNext:  dbIter.Next(),
@@ -54,8 +115,7 @@ func (store *AsyncKeyValueStore) NewIterator(prefix []byte, start []byte) ethdb.
 
 type asyncdbIterator struct {
 	dbIter ethdb.Iterator
-	keys   []string
-	values []preCommitValue
+	ops    []singleOp
 
 	dbKey []byte
 	key   []byte
@@ -68,7 +128,7 @@ type asyncdbIterator struct {
 }
 
 func (a *asyncdbIterator) Next() bool {
-	if len(a.keys) == 0 {
+	if len(a.ops) == 0 {
 		return a.dbIter.Next()
 	}
 
@@ -95,11 +155,11 @@ func (a *asyncdbIterator) Next() bool {
 
 	if !a.dbMoveNext {
 		a.moveMemOrDb = 0
-		if a.values[0].deleted {
+		if a.ops[0].delete {
 			return a.Next()
 		}
-		a.key = amino.StrToBytes(a.keys[0])
-		a.value = a.values[0].value
+		a.key = a.ops[0].key
+		a.value = a.ops[0].value
 		return true
 	}
 
@@ -109,23 +169,23 @@ func (a *asyncdbIterator) Next() bool {
 		return true
 	}
 
-	memkey := amino.StrToBytes(a.keys[0])
+	memkey := a.ops[0].key
 	switch bytes.Compare(memkey, a.dbKey) {
 	case -1:
 		a.moveMemOrDb = 0
-		if a.values[0].deleted {
+		if a.ops[0].delete {
 			return a.Next()
 		}
 		a.key = memkey
-		a.value = a.values[0].value
+		a.value = a.ops[0].value
 		return true
 	case 0:
 		a.moveMemOrDb = 2
-		if a.values[0].deleted {
+		if a.ops[0].delete {
 			return a.Next()
 		}
 		a.key = memkey
-		a.value = a.values[0].value
+		a.value = a.ops[0].value
 		return true
 	case 1:
 		a.moveMemOrDb = 1
@@ -137,20 +197,19 @@ func (a *asyncdbIterator) Next() bool {
 }
 
 func (a *asyncdbIterator) memNext() bool {
-	a.keys = a.keys[1:]
-	a.values = a.values[1:]
-	return len(a.keys) > 0
+	a.ops = a.ops[1:]
+	return len(a.ops) > 0
 }
 
 func (a *asyncdbIterator) Key() []byte {
-	if len(a.keys) == 0 {
+	if len(a.ops) == 0 {
 		return a.dbIter.Key()
 	}
 	return a.key
 }
 
 func (a *asyncdbIterator) Value() []byte {
-	if len(a.keys) == 0 {
+	if len(a.ops) == 0 {
 		return a.dbIter.Value()
 	}
 	return a.value
