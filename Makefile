@@ -13,7 +13,7 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v0.1.0.0
+Version=v0.1.1
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
