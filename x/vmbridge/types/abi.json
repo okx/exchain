@@ -58,16 +58,16 @@
       },
       {
         "internalType": "string",
-        "name": "calldata",
+        "name": "data",
         "type": "string"
       }
     ],
     "name": "callByWasm",
     "outputs": [
       {
-        "internalType": "bool",
-        "name": "success",
-        "type": "bool"
+        "internalType": "string",
+        "name": "response",
+        "type": "string"
       }
     ],
     "stateMutability": "payable",

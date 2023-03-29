@@ -144,21 +144,21 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 }
 
 // wasm call evm
-func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata string, value sdk.Int) (success bool, err error) {
+func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata string, value sdk.Int) (response string, err error) {
 
 	if !sdk.IsETHAddress(contract) {
-		return false, types.ErrIsNotETHAddr
+		return types.ErrIsNotETHAddr.Error(), types.ErrIsNotETHAddr
 	}
 
 	contractAccAddr, err := sdk.AccAddressFromBech32(contract)
 	if err != nil {
-		return false, err
+		return err.Error(), err
 	}
 	conrtractAddr := common.BytesToAddress(contractAccAddr.Bytes())
 
 	input, err := types.GetCallByWasmInput(caller, calldata)
 	if err != nil {
-		return false, err
+		return err.Error(), err
 	}
 	// k.CallEvm will call evm, so we must enable evm watch db with follow code
 	if watcher.IsWatcherEnabled() {
@@ -166,18 +166,21 @@ func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata str
 	}
 
 	if err := k.sendCoinToModuleAccount(ctx, caller, value); err != nil {
-		return false, err
+		return err.Error(), err
 	}
 
 	_, result, err := k.CallEvm(ctx, &conrtractAddr, value.BigInt(), input)
 	if err != nil {
-		return false, err
+		return err.Error(), err
 	}
-	success, err = types.GetCallByWasmOutput(result.Ret)
+	response, err = types.GetCallByWasmOutput(result.Ret)
+	if err != nil {
+		return err.Error(), err
+	}
 	if watcher.IsWatcherEnabled() && err == nil {
 		ctx.GetWatcher().Finalize()
 	}
-	return success, err
+	return response, nil
 }
 
 // callEvm execute an evm message from native module

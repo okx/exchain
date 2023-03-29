@@ -86,15 +86,16 @@ func GetCallByWasmInput(callerAddr, calldata string) ([]byte, error) {
 	return data, nil
 }
 
-func GetCallByWasmOutput(data []byte) (bool, error) {
+func GetCallByWasmOutput(data []byte) (string, error) {
 	result, err := EvmABI.Unpack(CallByWasmMethodName, data)
 	if err != nil {
-		return false, err
+		return err.Error(), err
 	}
 	if len(result) != 1 {
-		return false, fmt.Errorf("%s method outputs must be one output", CallByWasmMethodName)
+		err := fmt.Errorf("%s method outputs must be one output", CallByWasmMethodName)
+		return err.Error(), err
 	}
-	return result[0].(bool), nil
+	return result[0].(string), nil
 }
 
 func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event, abi.Event) {

@@ -122,17 +122,17 @@ func (k msgServer) CallToEvmEvent(goCtx context.Context, msg *types.MsgCallToEvm
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	if !tmtypes.HigherThanEarth(ctx.BlockHeight()) {
 		errMsg := fmt.Sprintf("vmbridger not supprt at height %d", ctx.BlockHeight())
-		return &types.MsgCallToEvmResponse{Success: false}, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		return &types.MsgCallToEvmResponse{Response: errMsg}, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 	}
 	params := k.wasmKeeper.GetParams(ctx)
 	if !params.VmbridgeEnable {
-		return &types.MsgCallToEvmResponse{Success: false}, types.ErrVMBridgeEnable
+		return &types.MsgCallToEvmResponse{Response: types.ErrVMBridgeEnable.Error()}, types.ErrVMBridgeEnable
 	}
 
-	success, err := k.Keeper.CallToEvm(ctx, msg.Sender, msg.Evmaddr, msg.Calldata, msg.Value)
+	result, err := k.Keeper.CallToEvm(ctx, msg.Sender, msg.Evmaddr, msg.Calldata, msg.Value)
 	if err != nil {
-		return &types.MsgCallToEvmResponse{Success: false}, sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error())
+		return &types.MsgCallToEvmResponse{Response: sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error()).Error()}, sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error())
 	}
-	response := types.MsgCallToEvmResponse{Success: success}
+	response := types.MsgCallToEvmResponse{Response: result}
 	return &response, nil
 }

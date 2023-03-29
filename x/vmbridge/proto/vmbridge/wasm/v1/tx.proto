@@ -41,5 +41,5 @@ message MsgCallToEvm {
 // MsgStoreCodeResponse returns store result data.
 message MsgCallToEvmResponse {
   // CodeID is the reference to the stored WASM code
-  bool success = 1;
+  string response = 1 [(gogoproto.jsontag) = "response"];
 }
