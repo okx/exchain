@@ -81,23 +81,10 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		}
 
 		// Only make check if simulate=false
-		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-			switch ppk := pk.(type) {
-			case *secp256k1.PubKeySecp256k1:
-				// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
-				// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
-				// Let it pass after Earth height.
-				if types2.HigherThanEarth(ctx.BlockHeight()) && bytes.Equal(ethsecp256k1.PubKey(ppk[:]).Address(), signers[i]) {
-					break
-				}
-				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-					"pubKey does not match signer address %s derived by eth pubKey, with signer index: %d", signers[i], i)
+		if !simulate && !checkSigner(pk, signers[i], ctx.BlockHeight()) {
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 
-			default:
-				//old logic
-				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
-			}
 		}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
@@ -116,6 +103,24 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func checkSigner(pk crypto.PubKey, signer sdk.AccAddress, height int64) bool {
+	if bytes.Equal(pk.Address(), signer) {
+		return true
+	}
+	// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
+	// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
+	// Let it pass after Earth height.
+	if types2.HigherThanEarth(height) {
+		switch v := pk.(type) {
+		case secp256k1.PubKeySecp256k1:
+			return bytes.Equal(ethsecp256k1.PubKey(v[:]).Address(), signer)
+		case *secp256k1.PubKeySecp256k1:
+			return bytes.Equal(ethsecp256k1.PubKey(v[:]).Address(), signer)
+		}
+	}
+	return false
 }
 
 // Consume parameter-defined amount of gas for each signature according to the passed-in SignatureVerificationGasConsumer function
@@ -231,12 +236,31 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
+		if !simulate && (len(signBytes) == 0 || !verifyBytes(pubKey, signBytes, sig, ctx.BlockHeight())) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func verifyBytes(pubKey crypto.PubKey, msg []byte, sig []byte, height int64) bool {
+	if pubKey.VerifyBytes(msg, sig) {
+		return true
+	}
+
+	if types2.HigherThanEarth(height) {
+		switch v := pubKey.(type) {
+		case secp256k1.PubKeySecp256k1:
+			newPubKey := ethsecp256k1.PubKey(v[:])
+			return newPubKey.VerifyBytes(msg, sig)
+		case *secp256k1.PubKeySecp256k1:
+			newPubKey := ethsecp256k1.PubKey(v[:])
+			return newPubKey.VerifyBytes(msg, sig)
+		}
+	}
+
+	return false
 }
 
 // IncrementSequenceDecorator handles incrementing sequences of all signers.
