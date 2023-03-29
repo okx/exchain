@@ -207,7 +207,7 @@ fn try_call_to_evm(
         value: value,
     };
 
-     let sub_msg: SubMsg = SubMsg::reply_always(submsg.into(), REPLY_ID_SUCCESS);
+    let sub_msg = SubMsg::reply_always(CosmosMsg::Custom(submsg), REPLY_ID_SUCCESS);
 
     Ok(Response::new()
             .add_submessage(sub_msg)
