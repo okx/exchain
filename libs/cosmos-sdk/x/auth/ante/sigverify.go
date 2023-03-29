@@ -3,6 +3,7 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+	"reflect"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -81,10 +82,12 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		}
 
 		// Only make check if simulate=false
-		if !simulate && !checkSigner(pk, signers[i], ctx.BlockHeight()) {
-			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
-
+		var valid bool
+		if !simulate {
+			if pk, valid = checkSigner(pk, signers[i], ctx.BlockHeight()); !valid {
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+			}
 		}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
@@ -92,7 +95,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			return ctx, err
 		}
 		// account already has pubkey set,no need to reset
-		if acc.GetPubKey() != nil {
+		if !isPubKeyNeedChange(acc.GetPubKey(), pk, ctx.BlockHeight()) {
 			continue
 		}
 		err = acc.SetPubKey(pk)
@@ -105,9 +108,9 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	return next(ctx, tx, simulate)
 }
 
-func checkSigner(pk crypto.PubKey, signer sdk.AccAddress, height int64) bool {
+func checkSigner(pk crypto.PubKey, signer sdk.AccAddress, height int64) (crypto.PubKey, bool) {
 	if bytes.Equal(pk.Address(), signer) {
-		return true
+		return pk, true
 	}
 	// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
 	// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
@@ -115,12 +118,28 @@ func checkSigner(pk crypto.PubKey, signer sdk.AccAddress, height int64) bool {
 	if types2.HigherThanEarth(height) {
 		switch v := pk.(type) {
 		case secp256k1.PubKeySecp256k1:
-			return bytes.Equal(ethsecp256k1.PubKey(v[:]).Address(), signer)
+			ethPub := ethsecp256k1.PubKey(v[:])
+			return ethPub, bytes.Equal(ethPub.Address(), signer)
 		case *secp256k1.PubKeySecp256k1:
-			return bytes.Equal(ethsecp256k1.PubKey(v[:]).Address(), signer)
+			ethPub := ethsecp256k1.PubKey(v[:])
+			return ethPub, bytes.Equal(ethsecp256k1.PubKey(v[:]).Address(), signer)
 		}
 	}
-	return false
+	return pk, false
+}
+
+func isPubKeyNeedChange(pk1, pk2 crypto.PubKey, height int64) bool {
+	if pk1 == nil {
+		return true
+	}
+	if !types2.HigherThanEarth(height) {
+		return false
+	}
+
+	// check if two interfaces are equal
+	return reflect.TypeOf(pk1).Kind() != reflect.TypeOf(pk2).Kind() ||
+		reflect.TypeOf(pk1).PkgPath() != reflect.TypeOf(pk2).PkgPath() ||
+		reflect.TypeOf(pk1).Name() != reflect.TypeOf(pk2).Name()
 }
 
 // Consume parameter-defined amount of gas for each signature according to the passed-in SignatureVerificationGasConsumer function
@@ -236,31 +255,12 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !verifyBytes(pubKey, signBytes, sig, ctx.BlockHeight())) {
+		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 
 	return next(ctx, tx, simulate)
-}
-
-func verifyBytes(pubKey crypto.PubKey, msg []byte, sig []byte, height int64) bool {
-	if pubKey.VerifyBytes(msg, sig) {
-		return true
-	}
-
-	if types2.HigherThanEarth(height) {
-		switch v := pubKey.(type) {
-		case secp256k1.PubKeySecp256k1:
-			newPubKey := ethsecp256k1.PubKey(v[:])
-			return newPubKey.VerifyBytes(msg, sig)
-		case *secp256k1.PubKeySecp256k1:
-			newPubKey := ethsecp256k1.PubKey(v[:])
-			return newPubKey.VerifyBytes(msg, sig)
-		}
-	}
-
-	return false
 }
 
 // IncrementSequenceDecorator handles incrementing sequences of all signers.
