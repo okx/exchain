@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/hex"
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
@@ -31,10 +32,16 @@ func TestGetEVMABIConfig(t *testing.T) {
 			isErr: false,
 		},
 		{
-			name:      "normal abi json have less event",
+			name:      "normal abi json have less send to evm event",
 			data:      []byte("[\n  {\n    \"anonymous\": false,\n    \"inputs\": [\n      {\n        \"indexed\": false,\n        \"internalType\": \"string\",\n        \"name\": \"wasmAddr\",\n        \"type\": \"string\"\n      },\n      {\n        \"indexed\": false,\n        \"internalType\": \"uint256\",\n        \"name\": \"value\",\n        \"type\": \"uint256\"\n      },\n      {\n        \"indexed\": false,\n        \"internalType\": \"string\",\n        \"name\": \"calldata\",\n        \"type\": \"string\"\n      }\n    ],\n    \"name\": \"__OKCCallToWasm\",\n    \"type\": \"event\"\n  },\n  {\n    \"inputs\": [\n      {\n        \"internalType\": \"string\",\n        \"name\": \"callerWasmAddr\",\n        \"type\": \"string\"\n      },\n      {\n        \"internalType\": \"string\",\n        \"name\": \"data\",\n        \"type\": \"string\"\n      }\n    ],\n    \"name\": \"callByWasm\",\n    \"outputs\": [\n      {\n        \"internalType\": \"string\",\n        \"name\": \"response\",\n        \"type\": \"string\"\n      }\n    ],\n    \"stateMutability\": \"payable\",\n    \"type\": \"function\"\n  },{\n    \"inputs\": [\n      {\n        \"internalType\": \"string\",\n        \"name\": \"caller\",\n        \"type\": \"string\"\n      },\n      {\n        \"internalType\": \"address\",\n        \"name\": \"recipient\",\n        \"type\": \"address\"\n      },\n      {\n        \"internalType\": \"uint256\",\n        \"name\": \"amount\",\n        \"type\": \"uint256\"\n      }\n    ],\n    \"name\": \"mintERC20\",\n    \"outputs\": [\n      {\n        \"internalType\": \"bool\",\n        \"name\": \"success\",\n        \"type\": \"bool\"\n      }\n    ],\n    \"stateMutability\": \"nonpayable\",\n    \"type\": \"function\"\n  }\n]\n"),
 			isErr:     true,
-			expectErr: "abi must have event event",
+			expectErr: "abi must have event event __OKCSendToWasm",
+		},
+		{
+			name:      "normal abi json have less call to evm event",
+			data:      []byte("\t\t\t[\n    \n    {\n        \"inputs\":[\n            {\n                \"internalType\":\"string\",\n                \"name\":\"callerWasmAddr\",\n                \"type\":\"string\"\n            },\n            {\n                \"internalType\":\"string\",\n                \"name\":\"data\",\n                \"type\":\"string\"\n            }\n        ],\n        \"name\":\"callByWasm\",\n        \"outputs\":[\n            {\n                \"internalType\":\"string\",\n                \"name\":\"response\",\n                \"type\":\"string\"\n            }\n        ],\n        \"stateMutability\":\"payable\",\n        \"type\":\"function\"\n    },\n    {\n        \"anonymous\":false,\n        \"inputs\":[\n            {\n                \"indexed\":false,\n                \"internalType\":\"string\",\n                \"name\":\"wasmAddr\",\n                \"type\":\"string\"\n            },\n            {\n                \"indexed\":false,\n                \"internalType\":\"string\",\n                \"name\":\"recipient\",\n                \"type\":\"string\"\n            },\n            {\n                \"indexed\":false,\n                \"internalType\":\"uint256\",\n                \"name\":\"amount\",\n                \"type\":\"uint256\"\n            }\n        ],\n        \"name\":\"__OKCSendToWasm\",\n        \"type\":\"event\"\n    },\n    {\n        \"inputs\":[\n            {\n                \"internalType\":\"string\",\n                \"name\":\"caller\",\n                \"type\":\"string\"\n            },\n            {\n                \"internalType\":\"address\",\n                \"name\":\"recipient\",\n                \"type\":\"address\"\n            },\n            {\n                \"internalType\":\"uint256\",\n                \"name\":\"amount\",\n                \"type\":\"uint256\"\n            }\n        ],\n        \"name\":\"mintERC20\",\n        \"outputs\":[\n            {\n                \"internalType\":\"bool\",\n                \"name\":\"success\",\n                \"type\":\"bool\"\n            }\n        ],\n        \"stateMutability\":\"nonpayable\",\n        \"type\":\"function\"\n    }\n]\n"),
+			isErr:     true,
+			expectErr: "abi must have event event __OKCCallToWasm",
 		},
 		{
 			name:  "normal abi json have less func",
@@ -201,4 +208,126 @@ func TestGetMintCW20Input(t *testing.T) {
 			require.Equal(tt, tc.expect, string(result))
 		})
 	}
+}
+
+func TestGetCallByWasmInput(t *testing.T) {
+	ethAddress := common.Address{0x1}
+	addrStr := ethAddress.String()
+	testCases := []struct {
+		name      string
+		caller    string
+		data      string
+		amount    *big.Int
+		isErr     bool
+		expectErr string
+	}{
+		{
+			name:   "normal",
+			caller: addrStr,
+			data:   "call data",
+			amount: sdk.NewInt(1).BigInt(),
+		},
+		{
+			name:   "normal",
+			caller: addrStr,
+			data:   "call data",
+			amount: sdk.NewInt(1).BigInt(),
+			isErr:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+
+		if tc.isErr {
+			_, err := getCallByWasmInputForTest(tc.caller, tc.data)
+			require.Error(t, err)
+		} else {
+			_, err := GetCallByWasmInput(tc.caller, tc.data)
+			require.NoError(t, err)
+		}
+	}
+}
+
+func TestGetCallByWasmOutput(t *testing.T) {
+	str := "0000000000000000000000000000000000000000000000000000000000000020" +
+		"0000000000000000000000000000000000000000000000000000000000000006"
+	testCases := []struct {
+		name      string
+		data      []byte
+		isErr     bool
+		expectErr string
+		expect    string
+	}{
+		{
+			name: "normal foobar",
+			data: func() []byte {
+				temp := str + "666f6f6261720000000000000000000000000000000000000000000000000000"
+				buffer, err := hex.DecodeString(temp)
+				require.NoError(t, err)
+				return buffer
+			}(),
+			expect: "foobar",
+		},
+		{
+			name: "normal empty",
+			data: func() []byte {
+				buffer := make([]byte, 64, 96)
+				temp := "666f6f6261720000000000000000000000000000000000000000000000000000"
+				buff, err := hex.DecodeString(temp)
+				require.NoError(t, err)
+				buffer = append(buffer, buff...)
+				return buffer
+			}(),
+			expect: "",
+		},
+		{
+			name: "normal empty",
+			data: func() []byte {
+				buffer := make([]byte, 96)
+				return buffer
+			}(),
+			expect: "",
+		},
+		{
+			name: "err data input no enough ",
+			data: func() []byte {
+				buffer := make([]byte, 95)
+				return buffer
+			}(),
+			isErr:  true,
+			expect: "abi: improperly formatted output",
+		},
+		{
+			name: "err data input more ",
+			data: func() []byte {
+				buffer := make([]byte, 97)
+				return buffer
+			}(),
+			isErr:  true,
+			expect: "abi: improperly formatted output",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(tt *testing.T) {
+			result, err := GetCallByWasmOutput(tc.data)
+
+			if tc.isErr {
+				require.Error(t, err)
+				require.Contains(tt, err.Error(), tc.expect)
+			} else {
+				require.NoError(t, err)
+				t.Log("tc.name", result)
+				require.Equal(tt, tc.expect, result)
+			}
+		})
+	}
+}
+
+func getCallByWasmInputForTest(callerAddr, calldata string) ([]byte, error) {
+	data, err := EvmABI.Pack("callByWasmForTest", callerAddr, calldata)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }

@@ -128,7 +128,8 @@ pub fn reply(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response<CallToEv
             ContractResult::Ok(_) => reply_success(reply),
             ContractResult::Err(err) => {
                             Ok(Response::new()
-                                .add_attribute("reply_success but failed", reply.id.to_string()))
+                                .add_attribute("reply_success but failed", reply.id.to_string())
+                                .add_attribute("err", err))
                         }
         },
         _ => Err(ContractError::UnknownReplyId { id: reply.id }),
