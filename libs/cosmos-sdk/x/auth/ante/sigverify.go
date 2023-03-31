@@ -244,6 +244,7 @@ func verifySig(signBytes, sig []byte, pubKey crypto.PubKey) bool {
 	hash := etherhash.Sum(append(signBytes, sig...))
 	cachePub, ok := types2.SignatureCache().Get(hash)
 	if ok {
+		types2.SignatureCache().Remove(hash)
 		return bytes.Equal(pubKey.Bytes(), []byte(cachePub))
 	}
 	if !pubKey.VerifyBytes(signBytes, sig) {
