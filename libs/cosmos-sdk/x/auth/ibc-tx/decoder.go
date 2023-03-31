@@ -17,6 +17,8 @@ import (
 
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func CM40TxDecoder(cdc codec.ProtoCodecMarshaler) func(txBytes []byte) (ibctx.Tx, error) {
@@ -302,6 +304,14 @@ func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {
 					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
 				})
 			} else {
+				if types2.HigherThanEarth(global.GetGlobalHeight()) {
+					if denom == sdk.DefaultBondDenom {
+						decCoins = append(decCoins, sdk.DecCoin{
+							Denom:  sdk.DefaultBondDenom,
+							Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), 0),
+						})
+					}
+				}
 				// not suport other denom fee
 				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder only support wei fee")
 			}
