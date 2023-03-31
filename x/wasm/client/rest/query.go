@@ -213,25 +213,29 @@ func listContractsByCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc 
 
 func queryContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		addr, err := sdk.AccAddressFromBech32(mux.Vars(r)["contractAddr"])
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		route := fmt.Sprintf("custom/%s/%s/%s", types.QuerierRoute, keeper.QueryGetContract, addr.String())
-		res, height, err := cliCtx.Query(route)
+		queryClient := types.NewQueryClient(cliCtx)
+		res, err := queryClient.ContractInfo(
+			context.Background(),
+			&types.QueryContractInfoRequest{
+				Address: mux.Vars(r)["contractAddr"],
+			},
+		)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(res))
+		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
 	}
 }
 
