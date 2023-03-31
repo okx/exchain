@@ -131,30 +131,38 @@ func listCodesHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 
 func queryCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		codeID, err := strconv.ParseUint(mux.Vars(r)["codeID"], 10, 64)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
+		codeId, err := strconv.ParseUint(mux.Vars(r)["codeID"], 10, 64)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, "codeId should be a number")
+			return
+		}
+		queryClient := types.NewQueryClient(cliCtx)
+		res, err := queryClient.Code(
+			context.Background(),
+			&types.QueryCodeRequest{
+				CodeId: codeId,
+			},
+		)
 
-		route := fmt.Sprintf("custom/%s/%s/%d", types.QuerierRoute, keeper.QueryGetCode, codeID)
-		res, height, err := cliCtx.Query(route)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		if len(res) == 0 {
+		if res == nil {
 			rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
 			return
 		}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(res))
+		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
 	}
 }
 
