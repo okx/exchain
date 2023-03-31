@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
@@ -80,7 +81,8 @@ func BenchmarkWasmQuery(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := keepers.WasmKeeper.QuerySmart(ctx, example.Contract, []byte(`{"verifier":{}}`))
+		result, err := keepers.WasmKeeper.QuerySmart(ctx, example.Contract, []byte(`{"verifier":{}}`))
 		require.NoError(b, err)
+		require.Equal(b, fmt.Sprintf("{\"verifier\":\"%s\"}", example.VerifierAddr.String()), string(result))
 	}
 }
