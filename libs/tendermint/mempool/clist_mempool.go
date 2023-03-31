@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-
 	"math/big"
 	"strconv"
 	"sync"
@@ -310,6 +309,23 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
 
+	var nonce uint64
+	if txInfo.wrapCMTx != nil { // from p2p
+		if mem.pendingPool != nil { // when enable pendingPool should read the WrapCMTx nonce (v node is not enable pendingpool)
+			nonce = txInfo.wrapCMTx.GetNonce()
+		}
+	} else { // from rpc should check if the tx is WrapCMTx
+		wtx := &types.WrapCMTx{}
+		err := cdc.UnmarshalJSON(tx, &wtx)
+		if err == nil {
+			txInfo.wrapCMTx = wtx
+			tx = wtx.GetTx()
+			if mem.pendingPool != nil { // when enable pendingPool should read the WrapCMTx nonce
+				nonce = wtx.GetNonce()
+			}
+		}
+	}
+
 	txkey := txKey(tx)
 
 	// CACHE
@@ -362,7 +378,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if txInfo.from != "" {
 		types.SignatureCache().Add(txkey[:], txInfo.from)
 	}
-	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
+	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom(), Nonce: nonce})
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
@@ -689,6 +705,11 @@ func (mem *CListMempool) resCbFirstTime(
 				signature:   txInfo.wtx.GetSignature(),
 				from:        r.CheckTx.Tx.GetFrom(),
 				senderNonce: r.CheckTx.SenderNonce,
+			}
+
+			if txInfo.wrapCMTx != nil {
+				memTx.isWrapCMTx = true
+				memTx.wrapCMNonce = txInfo.wrapCMTx.GetNonce()
 			}
 
 			memTx.senders = make(map[uint16]struct{})
@@ -1231,6 +1252,9 @@ type mempoolTx struct {
 
 	isOutdated uint32
 	isSim      uint32
+
+	isWrapCMTx  bool
+	wrapCMNonce uint64
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool

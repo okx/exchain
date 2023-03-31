@@ -3,7 +3,6 @@ package mempool
 import (
 	"crypto/sha256"
 	"fmt"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -119,6 +118,8 @@ type TxInfo struct {
 	from      string
 	wtx       *WrappedTx
 	checkType abci.CheckTxType
+
+	wrapCMTx *types.WrapCMTx
 }
 
 //--------------------------------------------------------------------------------

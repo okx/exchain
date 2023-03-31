@@ -29,6 +29,11 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	case req.Type == abci.CheckTxType_New:
 		mode = runTxModeCheck
 		atomic.AddInt64(&app.checkTxNum, 1)
+
+		if app.updateCMTxNonceHandler != nil {
+			app.updateCMTxNonceHandler(tx, req.Nonce)
+		}
+
 	case req.Type == abci.CheckTxType_Recheck:
 		mode = runTxModeReCheck
 
