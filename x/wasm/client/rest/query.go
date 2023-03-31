@@ -41,6 +41,7 @@ func queryParamsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 		if !ok {
 			return
 		}
+
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryParams)
 
 		res, height, err := cliCtx.Query(route)
@@ -324,11 +325,6 @@ func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 func queryContractStateRawHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		decoder := newArgDecoder(hex.DecodeString)
-		addr, err := sdk.AccAddressFromBech32(mux.Vars(r)["contractAddr"])
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
 		decoder.encoding = mux.Vars(r)["encoding"]
 		queryData, err := decoder.DecodeString(mux.Vars(r)["key"])
 		if err != nil {
@@ -339,55 +335,63 @@ func queryContractStateRawHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 		if !ok {
 			return
 		}
+		queryClient := types.NewQueryClient(cliCtx)
+		res, err := queryClient.RawContractState(
+			context.Background(),
+			&types.QueryRawContractStateRequest{
+				Address:   mux.Vars(r)["contractAddr"],
+				QueryData: queryData,
+			},
+		)
 
-		route := fmt.Sprintf("custom/%s/%s/%s/%s", types.QuerierRoute, keeper.QueryGetContractState, addr.String(), keeper.QueryMethodContractStateRaw)
-		res, height, err := cliCtx.QueryWithData(route, queryData)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		cliCtx = cliCtx.WithHeight(height)
-		// ensure this is base64 encoded
-		encoded := base64.StdEncoding.EncodeToString(res)
-		rest.PostProcessResponse(w, cliCtx, encoded)
+		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
 	}
-}
-
-type smartResponse struct {
-	Smart []byte `json:"smart"`
 }
 
 func queryContractStateSmartHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		decoder := newArgDecoder(hex.DecodeString)
-		addr, err := sdk.AccAddressFromBech32(mux.Vars(r)["contractAddr"])
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		decoder.encoding = mux.Vars(r)["encoding"]
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		route := fmt.Sprintf("custom/%s/%s/%s/%s", types.QuerierRoute, keeper.QueryGetContractState, addr.String(), keeper.QueryMethodContractStateSmart)
-
+		decoder := newArgDecoder(hex.DecodeString)
+		decoder.encoding = mux.Vars(r)["encoding"]
 		queryData, err := decoder.DecodeString(mux.Vars(r)["query"])
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		res, height, err := cliCtx.QueryWithData(route, queryData)
+
+		queryClient := types.NewQueryClient(cliCtx)
+		res, err := queryClient.SmartContractState(
+			context.Background(),
+			&types.QuerySmartContractStateRequest{
+				Address:   mux.Vars(r)["contractAddr"],
+				QueryData: queryData,
+			},
+		)
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		// return as raw bytes (to be base64-encoded)
-		responseData := smartResponse{Smart: res}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, responseData)
+		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
 	}
 }
 
