@@ -17,7 +17,6 @@ import (
 
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -82,9 +81,9 @@ func CM40TxDecoder(cdc codec.ProtoCodecMarshaler) func(txBytes []byte) (ibctx.Tx
 }
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
-//func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
+// func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
 func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
-	return func(txBytes []byte) (*authtypes.IbcTx, error) {
+	return func(txBytes []byte, height int64) (*authtypes.IbcTx, error) {
 		// Make sure txBytes follow ADR-027.
 		err := rejectNonADR027TxRaw(txBytes)
 		if err != nil {
@@ -134,7 +133,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			AuthInfo:   &authInfo,
 			Signatures: raw.Signatures,
 		}
-		fee, signFee, payer, err := convertFee(authInfo)
+		fee, signFee, payer, err := convertFee(authInfo, height)
 		if err != nil {
 			return nil, err
 		}
@@ -263,7 +262,7 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	return ret
 }
 
-func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, string, error) {
+func convertFee(authInfo tx.AuthInfo, height int64) (authtypes.StdFee, authtypes.IbcFee, string, error) {
 
 	gaslimit := uint64(0)
 	var decCoins sdk.DecCoins
@@ -272,7 +271,7 @@ func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, strin
 	// for verify signature
 	var signFee authtypes.IbcFee
 	if authInfo.Fee != nil {
-		decCoins, err = feeDenomFilter(authInfo.Fee.Amount)
+		decCoins, err = feeDenomFilter(authInfo.Fee.Amount, height)
 		if err != nil {
 			return authtypes.StdFee{}, authtypes.IbcFee{}, payer, err
 		}
@@ -290,7 +289,7 @@ func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, strin
 	}, signFee, payer, nil
 }
 
-func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {
+func feeDenomFilter(coins sdk.CoinAdapters, height int64) (sdk.DecCoins, error) {
 	decCoins := sdk.DecCoins{}
 
 	if coins != nil {
@@ -304,12 +303,14 @@ func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {
 					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
 				})
 			} else {
-				if types2.HigherThanEarth(global.GetGlobalHeight()) {
+				//three case, checkTx,deliverTx, query
+				if types2.HigherThanEarth(height) || height < 0 {
 					if denom == sdk.DefaultBondDenom {
 						decCoins = append(decCoins, sdk.DecCoin{
 							Denom:  sdk.DefaultBondDenom,
 							Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), 0),
 						})
+						return decCoins, nil
 					}
 				}
 				// not suport other denom fee
