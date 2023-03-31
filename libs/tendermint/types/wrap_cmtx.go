@@ -2,7 +2,7 @@ package types
 
 type WrapCMTx struct {
 	Tx    Tx     `json:"tx" yaml:"tx"`
-	Nonce uint64 `json:"nonce" yaml:"tx"`
+	Nonce uint64 `json:"nonce" yaml:"nonce"`
 }
 
 func (wtx *WrapCMTx) GetTx() Tx {
