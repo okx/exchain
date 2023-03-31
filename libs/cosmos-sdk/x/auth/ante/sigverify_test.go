@@ -17,6 +17,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func TestSetPubKey(t *testing.T) {
@@ -339,67 +343,56 @@ func TestVerifySig(t *testing.T) {
 	antehandler := sdk.ChainAnteDecorators(spkd, svd)
 
 	type testCase struct {
-		name         string
-		privs        []crypto.PrivKey
-		seqs         []uint64
-		cacheHandler func(tx sdk.Tx)
-		shouldErr    []bool
+		name      string
+		privs     []crypto.PrivKey
+		seqs      []uint64
+		shouldErr []bool
 	}
 	testCases := []testCase{
-		{
-			"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{0, 0, 0},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
-		},
-		{
-			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 2, 3},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
-		},
-		{
-			"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{0, 0, 0},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{false, false, false},
-		},
-		{
-			"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{0, 0, 0},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
-		},
-		{
-			"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{1, 1, 1},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
-		},
-		{
-			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{2, 2, 2},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
-		},
-		{
-			"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{0, 0, 0},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, true, true},
-		},
-		{
-			"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 1, 1},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{false, false, false},
-		},
-		{
-			"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{2, 2, 2},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{false, false, false},
-		},
-		{
-			"1 valid tx", []crypto.PrivKey{priv3, priv2, priv1}, []uint64{3, 3, 3},
-			func(tx sdk.Tx) { antehandler(ctx, tx, false) }, []bool{true, false, true},
-		},
+		{"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{0, 0, 0}, []bool{true, true, true}},
+		{"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 2, 3}, []bool{true, true, true}},
+		{"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{0, 0, 0}, []bool{false, false, false}},
+		{"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{0, 0, 0}, []bool{true, true, true}},
+		{"error priv", []crypto.PrivKey{priv3, priv1, priv2}, []uint64{1, 1, 1}, []bool{true, true, true}},
+		{"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{2, 2, 2}, []bool{true, true, true}},
+		{"error seq", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{0, 0, 0}, []bool{true, true, true}},
+		{"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{1, 1, 1}, []bool{false, false, false}},
+		{"valid tx", []crypto.PrivKey{priv1, priv2, priv3}, []uint64{2, 2, 2}, []bool{false, false, false}},
+		{"1 valid tx", []crypto.PrivKey{priv3, priv2, priv1}, []uint64{3, 3, 3}, []bool{true, false, true}},
 	}
-	for i, tc := range testCases {
+
+	for caseI, tc := range testCases {
 		for n := range addrs {
 			sigs := NewSig(ctx, msgList[n], tc.privs[n], uint64(n), tc.seqs[n], fee)
 			tx := NewTestTx(msgList[n], sigs, fee)
-			tc.cacheHandler(tx)
+			sigTx, _ := tx.(ante.SigVerifiableTx)
+			signerAddrs := sigTx.GetSigners()
+			signerAccs := make([]exported.Account, len(signerAddrs))
+
+			//first check
 			_, err := antehandler(ctx, tx, false)
+			for i, sig := range sigs {
+				signerAccs[i], _ = ante.GetSignerAcc(ctx, app.AccountKeeper, signerAddrs[i])
+				signBytes := sigTx.GetSignBytes(ctx, i, signerAccs[i])
+				_, ok := types2.SignatureCache().Get(etherhash.Sum(append(signBytes, sig.Signature...)))
+				require.Equal(t, !tc.shouldErr[n], ok)
+			}
+
+			//second check
+			_, err = antehandler(ctx, tx, false)
 			if tc.shouldErr[n] {
-				require.NotNil(t, err, "TestCase %d: %s did not error as expected", i, tc.name)
+				require.NotNil(t, err, "TestCase %d: %s did not error as expected", caseI, tc.name)
 			} else {
-				require.Nil(t, err, "TestCase %d: %s errored unexpectedly. Err: %v", i, tc.name, err)
+				require.Nil(t, err, "TestCase %d: %s errored unexpectedly. Err: %v", caseI, tc.name, err)
 				acc := app.AccountKeeper.GetAccount(ctx, addrs[n])
 				acc.SetSequence(acc.GetSequence() + 1)
 				app.AccountKeeper.SetAccount(ctx, acc)
+			}
+			for i, sig := range sigs {
+				signerAccs[i], _ = ante.GetSignerAcc(ctx, app.AccountKeeper, signerAddrs[i])
+				signBytes := sigTx.GetSignBytes(ctx, i, signerAccs[i])
+				_, ok := types2.SignatureCache().Get(etherhash.Sum(append(signBytes, sig.Signature...)))
+				require.Equal(t, false, ok)
 			}
 		}
 	}
