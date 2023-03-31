@@ -303,13 +303,15 @@ func feeDenomFilter(coins sdk.CoinAdapters, height int64) (sdk.DecCoins, error) 
 					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
 				})
 			} else {
-				//three case, checkTx,deliverTx, query
+				//three case, checkTx, queryTx
+				fmt.Println(fmt.Sprintf("-------height:%d", height))
 				if types2.HigherThanEarth(height) || height < 0 {
 					if denom == sdk.DefaultBondDenom {
 						decCoins = append(decCoins, sdk.DecCoin{
 							Denom:  sdk.DefaultBondDenom,
 							Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), 0),
 						})
+						fmt.Println(fmt.Sprintf("------decCoins:%d", decCoins.String()))
 						return decCoins, nil
 					}
 				}
