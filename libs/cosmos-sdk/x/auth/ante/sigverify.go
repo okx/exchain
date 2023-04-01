@@ -317,7 +317,7 @@ func (isd IncrementSequenceDecorator) judgeIncontinuousNonce(ctx sdk.Context, tx
 	}
 	if len(addrs) == 1 && txNonce != 0 {
 		acc := isd.ak.GetAccount(ctx, addrs[0])
-		if acc.GetSequence() != txNonce {
+		if acc.GetSequence() != txNonce { // incontinuous nonce no need increment sequence
 			if ctx.IsCheckTx() { // context with the nonce of fee payer
 				ctx.SetAccountNonce(acc.GetSequence())
 			}

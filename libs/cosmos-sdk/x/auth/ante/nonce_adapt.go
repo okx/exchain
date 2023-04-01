@@ -16,7 +16,7 @@ func GetCheckTxNonceFromMempool(addr string) uint64 {
 		// will also reset checkState), so we will need to add pending txs len to get the right nonce
 		gPool := baseapp.GetGlobalMempool()
 		if gPool != nil {
-			if pendingNonce, ok := gPool.GetPendingNonce(addr); ok {
+			if pendingNonce, ok := gPool.GetPendingNonce(addr); ok && pendingNonce > 0 {
 				return pendingNonce + 1
 			}
 		}
@@ -57,7 +57,7 @@ func nonceVerificationInCheckTx(seq uint64, txNonce uint64, addr string) error {
 			// will also reset checkState), so we will need to add pending txs len to get the right nonce
 			gPool := baseapp.GetGlobalMempool()
 			if gPool != nil {
-				if pendingNonce, ok := gPool.GetPendingNonce(addr); ok {
+				if pendingNonce, ok := gPool.GetPendingNonce(addr); ok && pendingNonce > 0 {
 					checkTxModeNonce = pendingNonce + 1
 				}
 			}
