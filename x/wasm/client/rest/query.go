@@ -238,13 +238,20 @@ func queryContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		result := fromGrpcContractInfo(res)
 
-		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		if result == nil {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
 			return
 		}
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
+
+		out, err := json.Marshal(result)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, fmt.Sprintf("json marshal error %v", err))
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, out)
 	}
 }
 
