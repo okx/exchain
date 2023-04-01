@@ -10,15 +10,16 @@ type contractInfo struct {
 	Label   string `json:"label,omitempty"`
 }
 
-func fromGrpcContractInfo(resp *types.QueryContractInfoResponse) (info *contractInfo) {
+func fromGrpcContractInfo(resp *types.QueryContractInfoResponse) *contractInfo {
 	if resp == nil {
-		return
+		return nil
 	}
+	var info contractInfo
 	info.Address = resp.Address
 	info.CodeId = resp.CodeID
 	info.Creator = resp.Creator
 	info.Admin = resp.Admin
 	info.Label = resp.Label
 
-	return
+	return &info
 }
