@@ -26,6 +26,7 @@ func TestKeeperTestSuite(t *testing.T) {
 
 //go:embed testdata/erc20abi.json
 var erc20abiBytes []byte
+var initCoin = sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000))
 
 type KeeperTestSuite struct {
 	suite.Suite
@@ -40,6 +41,10 @@ type KeeperTestSuite struct {
 	codeId       uint64
 
 	evmContract common.Address
+
+	freeCallWasmContract sdk.AccAddress
+	freeCallWasmCodeId   uint64
+	freeCallEvmContract  common.Address
 
 	evmABI abi.ABI
 }
@@ -58,7 +63,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 
 	suite.addr = sdk.AccAddress{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x20}
 	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, suite.addr)
-	err := acc.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))
+	err := acc.SetCoins(initCoin)
 	suite.Require().NoError(err)
 
 	suite.app.WasmKeeper.SetParams(suite.ctx, wasmtypes.TestParams())
@@ -70,8 +75,14 @@ func (suite *KeeperTestSuite) SetupTest() {
 	if err != nil {
 		panic(err)
 	}
+	freeCallWasmCode, err := ioutil.ReadFile("./testdata/freecall.wasm")
+	if err != nil {
+		panic(err)
+	}
 
 	suite.codeId, err = suite.app.WasmPermissionKeeper.Create(suite.ctx, suite.addr, wasmcode, nil)
+	suite.Require().NoError(err)
+	suite.freeCallWasmCodeId, err = suite.app.WasmPermissionKeeper.Create(suite.ctx, suite.addr, freeCallWasmCode, nil)
 	suite.Require().NoError(err)
 
 	initMsg := []byte(fmt.Sprintf("{\"decimals\":10,\"initial_balances\":[{\"address\":\"%s\",\"amount\":\"100000000\"}],\"name\":\"my test token\", \"symbol\":\"MTT\"}", suite.addr.String()))
@@ -83,6 +94,16 @@ func (suite *KeeperTestSuite) SetupTest() {
 	_, r2, err := suite.app.VMBridgeKeeper.CallEvm(suite.ctx, nil, big.NewInt(0), bytescode)
 	suite.Require().NoError(err)
 	suite.evmContract = r2.ContractAddress
+
+	freeCallPalyload := "608060405234801561001057600080fd5b506106c2806100206000396000f3fe6080604052600436106100295760003560e01c806335b2bd2d1461002e5780635d78dad014610059575b600080fd5b34801561003a57600080fd5b50610043610089565b604051610050919061031a565b60405180910390f35b610073600480360381019061006e919061048f565b6100a1565b6040516100809190610586565b60405180910390f35b731033796b018b2bf0fc9cb88c0793b2f275edb62481565b606060006100e46040518060400160405280601381526020017f63616c6c42795761736d2072657475726e3a200000000000000000000000000081525085610143565b90506000610127826040518060400160405280600a81526020017f202d2d2d646174613a2000000000000000000000000000000000000000000000815250610143565b905060006101358286610143565b905080935050505092915050565b60606000839050600083905060008151835161015f91906105e1565b67ffffffffffffffff81111561017857610177610364565b5b6040519080825280601f01601f1916602001820160405280156101aa5781602001600182028036833780820191505090505b50905060008190506000805b855181101561023e578581815181106101d2576101d1610615565b5b602001015160f81c60f81b8383806101e990610644565b9450815181106101fc576101fb610615565b5b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a905350808061023690610644565b9150506101b6565b5060005b84518110156102ca5784818151811061025e5761025d610615565b5b602001015160f81c60f81b83838061027590610644565b94508151811061028857610287610615565b5b60200101907effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff1916908160001a90535080806102c290610644565b915050610242565b50829550505050505092915050565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000610304826102d9565b9050919050565b610314816102f9565b82525050565b600060208201905061032f600083018461030b565b92915050565b6000604051905090565b600080fd5b600080fd5b600080fd5b600080fd5b6000601f19601f8301169050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b61039c82610353565b810181811067ffffffffffffffff821117156103bb576103ba610364565b5b80604052505050565b60006103ce610335565b90506103da8282610393565b919050565b600067ffffffffffffffff8211156103fa576103f9610364565b5b61040382610353565b9050602081019050919050565b82818337600083830152505050565b600061043261042d846103df565b6103c4565b90508281526020810184848401111561044e5761044d61034e565b5b610459848285610410565b509392505050565b600082601f83011261047657610475610349565b5b813561048684826020860161041f565b91505092915050565b600080604083850312156104a6576104a561033f565b5b600083013567ffffffffffffffff8111156104c4576104c3610344565b5b6104d085828601610461565b925050602083013567ffffffffffffffff8111156104f1576104f0610344565b5b6104fd85828601610461565b9150509250929050565b600081519050919050565b600082825260208201905092915050565b60005b83811015610541578082015181840152602081019050610526565b60008484015250505050565b600061055882610507565b6105628185610512565b9350610572818560208601610523565b61057b81610353565b840191505092915050565b600060208201905081810360008301526105a0818461054d565b905092915050565b6000819050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60006105ec826105a8565b91506105f7836105a8565b925082820190508082111561060f5761060e6105b2565b5b92915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b600061064f826105a8565b91507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8203610681576106806105b2565b5b60018201905091905056fea2646970667358221220b60203e861c6d59dd3271b52097429333632b00e5c7941d1aa8fd70ab2cc343b64736f6c63430008120033"
+	freeCallBytescode := common.Hex2Bytes(freeCallPalyload)
+	_, freeCallR2, err := suite.app.VMBridgeKeeper.CallEvm(suite.ctx, nil, big.NewInt(0), freeCallBytescode)
+	suite.Require().NoError(err)
+	suite.freeCallEvmContract = freeCallR2.ContractAddress
+
+	initFreeCallMsg := []byte(fmt.Sprintf("{\"decimals\":10,\"initial_balances\":[{\"address\":\"%s\",\"amount\":\"100000000\"},{\"address\":\"%s\",\"amount\":\"100000000\"}],\"name\":\"my test token\", \"symbol\":\"MTT\"}", suite.addr.String(), sdk.AccAddress(suite.freeCallEvmContract.Bytes()).String()))
+	suite.freeCallWasmContract, _, err = suite.app.WasmPermissionKeeper.Instantiate(suite.ctx, suite.freeCallWasmCodeId, suite.addr, suite.addr, initFreeCallMsg, "label", sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)})
+	suite.Require().NoError(err)
 
 	suite.evmABI, err = abi.JSON(bytes.NewReader(erc20abiBytes))
 	suite.Require().NoError(err)
@@ -105,4 +126,21 @@ func (suite *KeeperTestSuite) queryBalance(addr common.Address) *big.Int {
 	_, result, err := suite.app.VMBridgeKeeper.CallEvm(suite.ctx, &suite.evmContract, big.NewInt(0), update)
 	r, err := suite.evmABI.Unpack("balanceOf", result.Ret)
 	return r[0].(*big.Int)
+}
+
+func (suite *KeeperTestSuite) queryCoins(addr sdk.AccAddress) sdk.Coins {
+	acc := suite.app.AccountKeeper.GetAccount(suite.ctx, addr)
+	if acc == nil {
+		return sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0))
+	}
+	return acc.GetCoins()
+}
+
+func (suite *KeeperTestSuite) SetAccountCoins(addr sdk.AccAddress, value sdk.Int) {
+	acc := suite.app.AccountKeeper.GetAccount(suite.ctx, addr)
+	suite.Require().NotNil(acc)
+
+	err := acc.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, value.Int64())))
+	suite.Require().NoError(err)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 }
