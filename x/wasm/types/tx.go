@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	ethcmm "github.com/ethereum/go-ethereum/common"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -305,4 +306,28 @@ func (msg MsgIBCCloseChannel) GetSignBytes() []byte {
 
 func (msg MsgIBCCloseChannel) GetSigners() []sdk.AccAddress {
 	return nil
+}
+
+func (m *MsgStoreCode) CalFromAndToForPara() (string, string) {
+	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), ""
+}
+
+func (m *MsgInstantiateContract) CalFromAndToForPara() (string, string) {
+	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), ""
+}
+
+func (m *MsgExecuteContract) CalFromAndToForPara() (string, string) {
+	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
+}
+
+func (m *MsgMigrateContract) CalFromAndToForPara() (string, string) {
+	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
+}
+
+func (m *MsgUpdateAdmin) CalFromAndToForPara() (string, string) {
+	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
+}
+
+func (m *MsgClearAdmin) CalFromAndToForPara() (string, string) {
+	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
 }

@@ -274,8 +274,12 @@ func NewEnv(ctx sdk.Context, contractAddr sdk.AccAddress) wasmvmtypes.Env {
 			Address: contractAddr.String(),
 		},
 	}
-	if txCounter, ok := TXCounter(ctx); ok {
-		env.Transaction = &wasmvmtypes.TransactionInfo{Index: txCounter}
+	if ctx.ParaMsg() != nil {
+		env.Transaction = &wasmvmtypes.TransactionInfo{Index: uint32(ctx.ParaMsg().CosmosIndexInBlock)}
+	} else {
+		if txCounter, ok := TXCounter(ctx); ok {
+			env.Transaction = &wasmvmtypes.TransactionInfo{Index: txCounter}
+		}
 	}
 	return env
 }

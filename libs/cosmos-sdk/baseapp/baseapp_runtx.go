@@ -417,7 +417,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) *executeResult {
 		return asyncExe
 	}
 
-	if !txStatus.isEvm {
+	if !txStatus.supportPara {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil,
 			blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage, nil)
 		return asyncExe
