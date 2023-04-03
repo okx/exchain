@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -128,6 +129,18 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 		if err != nil {
 			return err
 		}
+	}
+	if cliCtx.WrapCMTx {
+		wtx := &types.WrapCMTx{
+			Tx:    txBytes,
+			Nonce: txBldr.Sequence(),
+		}
+		data, err := cliCtx.Codec.MarshalJSON(wtx)
+		if err != nil {
+			panic(fmt.Sprintln("MarshalJSON fail", err))
+		}
+		fmt.Println("nonce is", txBldr.Sequence(), len(txBytes), len(data), string(data))
+		txBytes = data
 	}
 	// broadcast to a Tendermint node
 	res, err := cliCtx.BroadcastTx(txBytes)

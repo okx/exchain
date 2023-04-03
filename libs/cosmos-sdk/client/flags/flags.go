@@ -71,6 +71,8 @@ const (
 	FlagUnsafeCORS         = "unsafe-cors"
 	FlagNodeIndex          = "node-index"
 
+	// for wrapcmtx
+	FlagWrapCMTx = "wrapcmtx"
 
 	TrustNodeUsage = `Using true doesn't verify results, quickly(300~400ms). True is recommended to connect familiar or self-built nodes. 
 Using false verifies the proof of results, safely but slowly(2~3s). False is recommended to connect to unfamiliar nodes.`
@@ -129,7 +131,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Bool(FlagGenerateOnly, false, "Build an unsigned transaction and write it to STDOUT (when enabled, the local Keybase is not accessible and the node operates offline)")
 		c.Flags().BoolP(FlagSkipConfirmation, "y", false, "Skip tx broadcasting prompt confirmation")
 		c.Flags().String(FlagKeyringBackend, DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
-
+		c.Flags().Bool(FlagWrapCMTx, false, "wrap cm tx broadcast it")
 		// --gas can accept integers and "simulate"
 		c.Flags().Var(&GasFlagVar, "gas", fmt.Sprintf(
 			"gas limit to set per-transaction; set to %q to calculate required gas automatically (default %d)",
