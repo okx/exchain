@@ -17,6 +17,12 @@ contract FreeCall {
     }
 
 
+    function callToWasm(string memory wasmAddr, uint256 value, string memory data) public returns (bool success){
+        emit __OKCCallToWasm(wasmAddr,value,data);
+        return true;
+    }
+
+
     function strConcat(string memory _a, string  memory _b) internal returns (string memory){
         bytes memory _ba = bytes(_a);
         bytes memory _bb = bytes(_b);
