@@ -387,6 +387,9 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 	}
 
 	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
+		if req.Height == 0 {
+			req.Height = app.LastBlockHeight()
+		}
 		return app.handleQueryGRPC(grpcHandler, req)
 	}
 
