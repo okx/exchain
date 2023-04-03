@@ -682,7 +682,7 @@ func (suite *KeeperTestSuite) TestMsgServer_CallToEvmEvent() {
 				balance := suite.queryCoins(aimAddr)
 				suite.Require().Equal(sdk.Coins{}.String(), balance.String())
 			},
-			types.ErrIsNotETHAddr,
+			errors.New("the evm execute: the address prefix must be 0x"),
 			"",
 		},
 		{
@@ -736,7 +736,7 @@ func (suite *KeeperTestSuite) TestMsgServer_CallToEvmEvent() {
 				balance = suite.queryCoins(aimAddr)
 				suite.Require().Equal(sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)}.String(), balance.String())
 			},
-			errors.New("insufficient funds: insufficient account funds; 1.000000000000000000okt < 2.000000000000000000okt"),
+			errors.New("the evm execute: insufficient funds: insufficient account funds; 1.000000000000000000okt < 2.000000000000000000okt"),
 			"",
 		},
 	}
