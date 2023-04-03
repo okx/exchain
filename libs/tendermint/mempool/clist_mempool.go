@@ -310,19 +310,12 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	var nonce uint64
-	if txInfo.wrapCMTx != nil { // from p2p
-		if mem.pendingPool != nil { // when enable pendingPool should read the WrapCMTx nonce (v node is not enable pendingpool)
-			nonce = txInfo.wrapCMTx.GetNonce()
-		}
-	} else { // from rpc should check if the tx is WrapCMTx
-		wtx := &types.WrapCMTx{}
-		err := cdc.UnmarshalJSON(tx, &wtx)
-		if err == nil {
-			txInfo.wrapCMTx = wtx
-			tx = wtx.GetTx()
-			if mem.pendingPool != nil { // when enable pendingPool should read the WrapCMTx nonce
-				nonce = wtx.GetNonce()
-			}
+	wCMTx := mem.CheckAndGetWrapCMTx(tx, txInfo)
+	if wCMTx != nil {
+		txInfo.wrapCMTx = wCMTx
+		tx = wCMTx.GetTx()
+		if mem.pendingPool != nil { // when enable pendingPool should read the WrapCMTx nonce
+			nonce = wCMTx.GetNonce()
 		}
 	}
 
@@ -405,6 +398,19 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	return nil
+}
+
+func (mem *CListMempool) CheckAndGetWrapCMTx(tx types.Tx, txInfo TxInfo) *types.WrapCMTx {
+	if txInfo.wrapCMTx != nil { // from p2p
+		return txInfo.wrapCMTx
+	}
+	// from rpc should check if the tx is WrapCMTx
+	wtx := &types.WrapCMTx{}
+	err := cdc.UnmarshalJSON(tx, &wtx)
+	if err != nil {
+		return nil
+	}
+	return wtx
 }
 
 // Global callback that will be called after every ABCI response.

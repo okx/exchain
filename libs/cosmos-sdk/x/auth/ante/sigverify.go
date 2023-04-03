@@ -226,7 +226,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 			}
 			signerAccs[i].SetSequence(txNonce)
 		} else if ctx.IsCheckTx() && !ctx.IsReCheckTx() { // for adaptive pending tx in mempool just in checkTx but not deliverTx
-			pendingNonce := GetCheckTxNonceFromMempool(signerAddrs[i].String())
+			pendingNonce := getCheckTxNonceFromMempool(signerAddrs[i].String())
 			if pendingNonce != 0 {
 				signerAccs[i].SetSequence(pendingNonce)
 			}
@@ -248,7 +248,6 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
-		// todo if the txNonce or pendingNonce Verify fail should recheck from the account nonce
 	}
 
 	return next(ctx, tx, simulate)
@@ -279,7 +278,7 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
 	}
 
-	if isd.judgeIncontinuousNonce(ctx, tx, sigTx.GetSigners(), simulate) { // it's the same as handle evm tx
+	if isd.JudgeIncontinuousNonce(ctx, tx, sigTx.GetSigners(), simulate) { // it's the same as handle evm tx
 		return next(ctx, tx, simulate)
 	}
 
@@ -288,7 +287,7 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		acc := isd.ak.GetAccount(ctx, addr)
 		// for adaptive pending tx in mempool just in checkTx but not deliverTx
 		if ctx.IsCheckTx() && !ctx.IsReCheckTx() {
-			pendingNonce := GetCheckTxNonceFromMempool(addr.String())
+			pendingNonce := getCheckTxNonceFromMempool(addr.String())
 			if pendingNonce != 0 {
 				acc.SetSequence(pendingNonce)
 			}
@@ -306,8 +305,8 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	return next(ctx, tx, simulate)
 }
 
-// judge the incontinuous nonce
-func (isd IncrementSequenceDecorator) judgeIncontinuousNonce(ctx sdk.Context, tx sdk.Tx, addrs []sdk.AccAddress, simulate bool) bool {
+// judge the incontinuous nonce, incontinuous nonce no need increment sequence
+func (isd IncrementSequenceDecorator) JudgeIncontinuousNonce(ctx sdk.Context, tx sdk.Tx, addrs []sdk.AccAddress, simulate bool) bool {
 	txNonce := tx.GetNonce()
 	if simulate ||
 		(txNonce == 0) || // no wrapCMtx no need verify

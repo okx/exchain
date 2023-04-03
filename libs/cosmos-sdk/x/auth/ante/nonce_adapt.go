@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func GetCheckTxNonceFromMempool(addr string) uint64 {
+func getCheckTxNonceFromMempool(addr string) uint64 {
 	if !baseapp.IsMempoolEnableRecheck() {
 		// if is enable recheck, the sequence of checkState will increase after commit(), so we do not need
 		// to add pending txs len in the mempool.

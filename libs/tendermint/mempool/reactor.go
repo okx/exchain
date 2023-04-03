@@ -667,25 +667,6 @@ func (memR *Reactor) wrapTx(tx types.Tx, from string) (*WrappedTx, error) {
 	return wtx, nil
 }
 
-//type WrapCMTx struct {
-//	Tx    types.Tx `json:"tx"`
-//	Nonce uint64   `json:"nonce"`
-//}
-//
-//func (wtx *WrapCMTx) GetTx() types.Tx {
-//	if wtx != nil {
-//		return wtx.Tx
-//	}
-//	return nil
-//}
-//
-//func (wtx *WrapCMTx) GetNonce() uint64 {
-//	if wtx != nil {
-//		return wtx.Nonce
-//	}
-//	return 0
-//}
-
 func GetRealTxFromWrapCMTx(data types.Tx) types.Tx {
 	wtx := &types.WrapCMTx{}
 	err := cdc.UnmarshalJSON(data, &wtx)
