@@ -94,7 +94,7 @@ func ParamKeyTable() paramtypes.KeyTable {
 // DefaultParams returns default wasm parameters
 func DefaultParams() Params {
 	return Params{
-		CodeUploadAccess:             AllowEverybody,
+		CodeUploadAccess:             AllowNobody,
 		InstantiateDefaultPermission: AccessTypeEverybody,
 		UseContractBlockedList:       true,
 		VmbridgeEnable:               false,
