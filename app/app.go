@@ -1017,7 +1017,10 @@ func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
 	return func(tx sdk.Tx, nonce uint64) {
 		stdtx, ok := tx.(*authtypes.StdTx)
 		if ok && nonce != 0 {
+			fmt.Println("****NewUpdateCMTxNonceHandler", nonce, tx.TxHash())
 			stdtx.Nonce = nonce
+		} else {
+			fmt.Println("****NewUpdateCMTxNonceHandler", nonce, stdtx)
 		}
 	}
 }

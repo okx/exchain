@@ -286,6 +286,7 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	fmt.Println("******enter mempool****", len(tx))
 	timeStart := int64(0)
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		timeStart = time.Now().UnixMicro()
@@ -313,6 +314,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	wCMTx := mem.CheckAndGetWrapCMTx(tx, txInfo)
 	if wCMTx != nil {
 		txInfo.wrapCMTx = wCMTx
+		fmt.Println("****CheckTx wCMTx.GetNonce", wCMTx.GetNonce(), "yuan", len(tx), len(wCMTx.GetTx()))
 		tx = wCMTx.GetTx()
 		if mem.pendingPool != nil { // when enable pendingPool should read the WrapCMTx nonce
 			nonce = wCMTx.GetNonce()

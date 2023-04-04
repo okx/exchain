@@ -46,6 +46,7 @@ type CLIContext struct {
 	GenerateOnly  bool
 	Indent        bool
 	SkipConfirm   bool
+	WrapCMTx      bool
 
 	InterfaceRegistry types.InterfaceRegistry
 	CodecProy         *codec.CodecProxy
@@ -108,6 +109,7 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 		FromName:      fromName,
 		Indent:        viper.GetBool(flags.FlagIndentResponse),
 		SkipConfirm:   viper.GetBool(flags.FlagSkipConfirmation),
+		WrapCMTx:      viper.GetBool(flags.FlagWrapCMTx),
 	}
 
 	// create a verifier for the specific chain ID and RPC client
