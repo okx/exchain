@@ -285,8 +285,6 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	pm.stop <- struct{}{}
 
 	// fix logs
-	//app.feeChanged = true
-	//app.feeCollector = app.parallelTxManage.currTxFee
 	receiptsLogs := app.endParallelTxs(pm.txSize)
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result
@@ -315,7 +313,7 @@ func (app *BaseApp) endParallelTxs(txSize int) [][]byte {
 	resp := make([]abci.ResponseDeliverTx, txSize)
 	watchers := make([]sdk.IWatcher, txSize)
 	txs := make([]sdk.Tx, txSize)
-	//app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
+
 	for index := 0; index < txSize; index++ {
 		txRes := app.parallelTxManage.finalResult[index]
 		logIndex[index] = txRes.paraMsg.LogIndex
@@ -324,9 +322,6 @@ func (app *BaseApp) endParallelTxs(txSize int) [][]byte {
 		resp[index] = txRes.resp
 		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
-		//if txRes.FeeSpiltInfo.HasFee {
-		//	app.FeeSplitCollector = append(app.FeeSplitCollector, txRes.FeeSpiltInfo)
-		//}
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
@@ -381,7 +376,6 @@ type executeResult struct {
 	blockHeight int64
 	watcher     sdk.IWatcher
 	msgs        []sdk.Msg
-	//FeeSpiltInfo *sdk.FeeSplitInfo
 
 	rwSet types.MsRWSet
 }
@@ -395,9 +389,6 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 	}
 	para.blockMpCache.PutRwSet(rwSet)
 
-	//if feeSpiltInfo == nil {
-	//	feeSpiltInfo = &sdk.FeeSplitInfo{}
-	//}
 	ans := &executeResult{
 		resp:        r,
 		ms:          ms,
@@ -408,7 +399,6 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 		watcher:     watcher,
 		msgs:        msgs,
 		rwSet:       rwSet,
-		//FeeSpiltInfo: feeSpiltInfo,
 	}
 
 	if paraMsg == nil {

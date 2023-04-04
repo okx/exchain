@@ -4,16 +4,14 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/refund"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/refund"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
@@ -74,10 +72,8 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := calculateRefundFees(gasUsed, gas, fees)
-	//newCoins := feePayerAcc.GetCoins().Add(gasFees...)
 
 	// set coins and record innertx
-	//err = feePayerAcc.SetCoins(newCoins)
 	err = refund.RefundFees(sk, ctx, feePayerAcc.GetAddress(), gasFees)
 	if !ctx.IsCheckTx() {
 		fromAddr := sk.GetModuleAddress(types.FeeCollectorName)
@@ -86,7 +82,6 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	if err != nil {
 		return nil, err
 	}
-	//ak.SetAccount(ctx, feePayerAcc)
 
 	return gasFees, nil
 }

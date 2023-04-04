@@ -177,7 +177,6 @@ func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Con
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		//err = deductFees(ik, ak, sk, *ctx, acc, feeAmt)
 		err = auth.DeductFees(sk, *ctx, acc, feeAmt)
 		if !ctx.IsCheckTx() {
 			toAcc := sk.GetModuleAddress(types.FeeCollectorName)
@@ -192,43 +191,6 @@ func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Con
 	auth.SetGasMeter(simulate, ctx, gasLimit)
 	return nil
 }
-
-//func deductFees(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
-//	blockTime := ctx.BlockTime()
-//	coins := acc.GetCoins()
-//
-//	if !fees.IsValid() {
-//		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", fees)
-//	}
-//
-//	// verify the account has enough funds to pay for fees
-//	balance, hasNeg := coins.SafeSub(fees)
-//	if hasNeg {
-//		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
-//			"insufficient funds to pay for fees; %s < %s", coins, fees)
-//	}
-//
-//	// Validate the account has enough "spendable" coins as this will cover cases
-//	// such as vesting accounts.
-//	spendableCoins := acc.SpendableCoins(blockTime)
-//	if _, hasNeg := spendableCoins.SafeSub(fees); hasNeg {
-//		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
-//			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
-//	}
-//
-//	// set coins and record innertx
-//	err := acc.SetCoins(balance)
-//	if !ctx.IsCheckTx() {
-//		toAcc := sk.GetModuleAddress(types.FeeCollectorName)
-//		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, fees, err)
-//	}
-//	if err != nil {
-//		return err
-//	}
-//	ak.SetAccount(ctx, acc)
-//
-//	return nil
-//}
 
 func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress sdk.AccAddress, ak auth.AccountKeeper, acc exported.Account) {
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
