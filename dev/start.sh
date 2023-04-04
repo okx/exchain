@@ -24,7 +24,7 @@ run() {
     LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info
 #--mempool.enable_delete_min_gp_tx false \
 #    exchaind start --pruning=nothing --rpc.unsafe \
-    exchaind start --rpc.unsafe \
+    nohup exchaind start --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
@@ -51,7 +51,6 @@ run() {
 #      --iavl-max-committed-height-num int                Max committed version to cache in memory (default 8)
 #      --iavl-min-commit-item-count int                   Min nodes num to triggle node cache commit (default 500000)
 #      --iavl-output-modules
-    exit
 }
 
 
@@ -126,5 +125,10 @@ exchaind validate-genesis --home $HOME_SERVER
 exchaincli config keyring-backend test
 
 run
-
+echo "enable wasm..."
+sleep 3
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "all" --deposit 100okt --title "test title" --description "test description" --from captain --fees 0.01okt --gas 3000000 --chain-id=$CHAINID -b block -y)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+res=$(exchaincli tx gov vote $proposal_id yes --from captain --fees 0.01okt --gas 3000000 --chain-id=$CHAINID -b block -y)
+echo $res
 # exchaincli tx send captain 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 1okt --fees 1okt -b block -y
