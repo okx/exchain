@@ -169,55 +169,55 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
-	app.feeCollector = sdk.Coins{}
-	app.feeChanged = false
+	//app.feeCollector = sdk.Coins{}
+	//app.feeChanged = false
 	// clean FeeSplitCollector
 	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 
 	return res
 }
 
-func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
-	if fee.IsZero() {
-		return
-	}
-	app.feeChanged = true
-	if add {
-		app.feeCollector = app.feeCollector.Add(fee...)
-	} else {
-		app.feeCollector = app.feeCollector.Sub(fee)
-	}
-}
-
-func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
-	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
-		return
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			err := fmt.Errorf("panic: %v", r)
-			app.logger.Error("update fee collector account failed", "err", err)
-		}
-	}()
-
-	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-	if isEndBlock {
-		// The feesplit is only processed at the endblock
-		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
-			panic(err)
-		}
-	} else {
-		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, nil); err != nil {
-			panic(err)
-		}
-	}
-	cache.Write()
-}
+//func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
+//	if fee.IsZero() {
+//		return
+//	}
+//	app.feeChanged = true
+//	if add {
+//		app.feeCollector = app.feeCollector.Add(fee...)
+//	} else {
+//		app.feeCollector = app.feeCollector.Sub(fee)
+//	}
+//}
+//
+//func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
+//	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
+//		return
+//	}
+//
+//	defer func() {
+//		if r := recover(); r != nil {
+//			err := fmt.Errorf("panic: %v", r)
+//			app.logger.Error("update fee collector account failed", "err", err)
+//		}
+//	}()
+//
+//	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+//	if isEndBlock {
+//		// The feesplit is only processed at the endblock
+//		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
+//			panic(err)
+//		}
+//	} else {
+//		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, nil); err != nil {
+//			panic(err)
+//		}
+//	}
+//	cache.Write()
+//}
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	app.updateFeeCollectorAccount(true)
+	//app.updateFeeCollectorAccount(true)
 
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)

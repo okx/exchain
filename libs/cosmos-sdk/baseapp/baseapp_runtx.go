@@ -86,11 +86,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	handler := info.handler
 	app.pin(trace.ValTxMsgs, true, mode)
 
-	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
-		// should update the balance of FeeCollector's account when run non-evm tx
-		// which uses non-infiniteGasMeter during AnteHandleChain
-		app.updateFeeCollectorAccount(false)
-	}
+	//if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
+	//	// should update the balance of FeeCollector's account when run non-evm tx
+	//	// which uses non-infiniteGasMeter during AnteHandleChain
+	//	app.updateFeeCollectorAccount(false)
+	//}
 
 	//init info context
 	err = handler.handleStartHeight(info, height)
@@ -174,10 +174,10 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(trace.RunAnte, false, mode)
 
-	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
-		fee := app.getTxFeeHandler(tx)
-		app.UpdateFeeCollector(fee, true)
-	}
+	//if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
+	//	fee := app.getTxFeeHandler(tx)
+	//	app.UpdateFeeCollector(fee, true)
+	//}
 
 	isAnteSucceed = true
 	app.pin(trace.RunMsg, true, mode)

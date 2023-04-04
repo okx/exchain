@@ -285,8 +285,8 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	pm.stop <- struct{}{}
 
 	// fix logs
-	app.feeChanged = true
-	app.feeCollector = app.parallelTxManage.currTxFee
+	//app.feeChanged = true
+	//app.feeCollector = app.parallelTxManage.currTxFee
 	receiptsLogs := app.endParallelTxs(pm.txSize)
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result
@@ -334,8 +334,8 @@ func (app *BaseApp) endParallelTxs(txSize int) [][]byte {
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
-//we reuse the nonce that changed by the last async call
-//if last ante handler has been failed, we need rerun it ? or not?
+// we reuse the nonce that changed by the last async call
+// if last ante handler has been failed, we need rerun it ? or not?
 func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	app.parallelTxManage.currentRerunIndex = txIndex
 	defer func() {
