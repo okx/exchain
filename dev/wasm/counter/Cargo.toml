@@ -1,5 +1,5 @@
 [package]
-name = "wasm-counter"
+name = "counter"
 version = "0.1.0"
 authors = ["OKC <okc@okg.com>"]
 edition = "2018"
