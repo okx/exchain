@@ -31,7 +31,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		atomic.AddInt64(&app.checkTxNum, 1)
 
 		if app.updateCMTxNonceHandler != nil {
-			fmt.Println("base app CheckTx", "req.Nonce", req.Nonce, tx)
+			app.Logger().Info("******base app CheckTx********", "req.Nonce", req.Nonce, "tx", tx)
 			app.updateCMTxNonceHandler(tx, req.Nonce)
 		}
 
