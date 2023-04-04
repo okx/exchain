@@ -413,13 +413,13 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) *executeResult {
 
 	if txStatus.stdTx == nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
-			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage, nil)
+			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage)
 		return asyncExe
 	}
 
 	if !txStatus.isEvm {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil,
-			blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage, nil)
+			blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage)
 		return asyncExe
 	}
 
@@ -438,7 +438,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) *executeResult {
 	}
 
 	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
-		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs(), app.parallelTxManage, info.ctx.GetFeeSplitInfo())
+		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs(), app.parallelTxManage)
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }

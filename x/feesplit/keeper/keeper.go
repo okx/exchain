@@ -16,9 +16,10 @@ import (
 // Keeper of this module maintains collections of fee splits for contracts
 // registered to receive transaction fees.
 type Keeper struct {
-	storeKey   sdk.StoreKey
-	cdc        *codec.Codec
-	paramSpace types.Subspace
+	storeKey         sdk.StoreKey
+	cdc              *codec.Codec
+	paramSpace       types.Subspace
+	feeCollectorName string
 
 	evmKeeper             types.EvmKeeper
 	govKeeper             types.GovKeeper
@@ -32,6 +33,7 @@ func NewKeeper(
 	storeKey sdk.StoreKey,
 	cdc *codec.Codec,
 	ps params.Subspace,
+	feeCollectorName string,
 	ek types.EvmKeeper,
 	sk types.SupplyKeeper,
 	ak types.AccountKeeper,
@@ -42,12 +44,13 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		storeKey:      storeKey,
-		cdc:           cdc,
-		paramSpace:    ps,
-		evmKeeper:     ek,
-		supplyKeeper:  sk,
-		accountKeeper: ak,
+		storeKey:         storeKey,
+		cdc:              cdc,
+		paramSpace:       ps,
+		feeCollectorName: feeCollectorName,
+		evmKeeper:        ek,
+		supplyKeeper:     sk,
+		accountKeeper:    ak,
 	}
 }
 

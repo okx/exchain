@@ -51,7 +51,7 @@ type Context struct {
 	//	txCount            uint32
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 	watcher        *TxWatcher
-	feesplitInfo   *FeeSplitInfo
+	//feesplitInfo   *FeeSplitInfo
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -105,12 +105,12 @@ func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
 
-func (c Context) GetFeeSplitInfo() *FeeSplitInfo {
-	if c.feesplitInfo == nil {
-		c.feesplitInfo = &FeeSplitInfo{}
-	}
-	return c.feesplitInfo
-}
+//func (c Context) GetFeeSplitInfo() *FeeSplitInfo {
+//	if c.feesplitInfo == nil {
+//		c.feesplitInfo = &FeeSplitInfo{}
+//	}
+//	return c.feesplitInfo
+//}
 
 func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
 func (c *Context) DisableAccountCache() { c.accountCache = nil }
@@ -369,10 +369,10 @@ func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 	return c
 }
 
-func (c *Context) SetFeeSplitInfo(f *FeeSplitInfo) *Context {
-	c.feesplitInfo = f
-	return c
-}
+//func (c *Context) SetFeeSplitInfo(f *FeeSplitInfo) *Context {
+//	c.feesplitInfo = f
+//	return c
+//}
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
