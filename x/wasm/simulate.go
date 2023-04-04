@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/proxy"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
 )
 
 type Simulator struct {
@@ -50,6 +51,13 @@ func (w *Simulator) Simulate(msgs []sdk.Msg) (*sdk.Result, error) {
 
 func (w *Simulator) Context() *sdk.Context {
 	return &w.ctx
+}
+
+func (w *Simulator) Release() {
+	if !watcher.Enable() {
+		return
+	}
+	proxy.PutBackStorePool(w.ctx.MultiStore().(sdk.CacheMultiStore))
 }
 
 func NewProxyKeeper() keeper.Keeper {
