@@ -245,9 +245,6 @@ func getStorageByAddressKey(addr common.Address, key []byte) common.Hash {
 func accountType(account authexported.Account) token.AccType {
 	switch account.(type) {
 	case *ethermint.EthAccount:
-		if sdk.IsWasmAddress(account.GetAddress()) {
-			return token.WasmAccount
-		}
 		ethAcc, _ := account.(*ethermint.EthAccount)
 		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
 			return token.ContractAccount

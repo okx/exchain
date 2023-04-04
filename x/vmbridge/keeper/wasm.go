@@ -34,9 +34,6 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if err != nil {
 		return err
 	}
-	if !sdk.IsWasmAddress(contractAddr) {
-		return types.ErrIsNotWasmAddr
-	}
 
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, input, sdk.Coins{})
 	if err != nil {

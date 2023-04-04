@@ -40,7 +40,7 @@ func TestGetContractCodeHistoryElementPrefix(t *testing.T) {
 	}
 	assert.Equal(t, exp, got)
 
-	addr = bytes.Repeat([]byte{4}, ContractAddrLen)
+	addr = bytes.Repeat([]byte{4}, SDKAddrLen)
 	got = GetContractCodeHistoryElementPrefix(addr)
 	exp = []byte{
 		5,                            // prefix
@@ -71,7 +71,7 @@ func TestGetContractByCreatedSecondaryIndexKey(t *testing.T) {
 	}
 	assert.Equal(t, exp, got)
 
-	addr = bytes.Repeat([]byte{4}, ContractAddrLen)
+	addr = bytes.Repeat([]byte{4}, SDKAddrLen)
 	got = GetContractByCreatedSecondaryIndexKey(addr, e)
 	exp = []byte{
 		6,                      // prefix

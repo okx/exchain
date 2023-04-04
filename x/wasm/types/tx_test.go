@@ -18,7 +18,7 @@ func TestStoreCodeValidation(t *testing.T) {
 	require.NoError(t, err)
 	badAddress := bad.String()
 	// proper address size
-	goodAddress := sdk.AccAddress(make([]byte, ContractAddrLen)).String()
+	goodAddress := sdk.AccAddress(make([]byte, SDKAddrLen)).String()
 	sdk.GetConfig().SetAddressVerifier(VerifyAddressLen())
 	cases := map[string]struct {
 		msg   MsgStoreCode

@@ -289,7 +289,7 @@ func TestNewEnv(t *testing.T) {
 	myTime := time.Unix(0, 1619700924259075000)
 	ctx := (&sdk.Context{}).SetChainID("testing").SetContext(context.Background())
 	t.Logf("++ unix: %d", myTime.UnixNano())
-	var myContractAddr sdk.AccAddress = randBytes(ContractAddrLen)
+	var myContractAddr sdk.AccAddress = randBytes(SDKAddrLen)
 	specs := map[string]struct {
 		srcCtx sdk.Context
 		exp    wasmvmtypes.Env

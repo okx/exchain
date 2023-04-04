@@ -1119,7 +1119,7 @@ func BuildContractAddress(codeID, instanceID uint64) sdk.AccAddress {
 	contractID := make([]byte, 16)
 	binary.BigEndian.PutUint64(contractID[:8], codeID)
 	binary.BigEndian.PutUint64(contractID[8:], instanceID)
-	return types.Module(types.ModuleName, contractID)[:types.ContractAddrLen]
+	return types.Module(types.ModuleName, contractID)[types.ContractIndex:]
 }
 
 func (k Keeper) autoIncrementID(ctx sdk.Context, lastIDKey []byte) uint64 {
