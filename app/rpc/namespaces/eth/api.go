@@ -974,6 +974,9 @@ func (api *PublicEthereumAPI) doCall(
 	//only worked when fast-query has been enabled
 	if sim != nil && useWatch {
 		simRes, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
+		if err != nil {
+			return simRes, err
+		}
 		data, err := evmtypes.DecodeResultData(simRes.Result.Data)
 		if err != nil {
 			return simRes, err
