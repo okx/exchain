@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"reflect"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -82,20 +84,9 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		}
 
 		// Only make check if simulate=false
-		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-			switch ppk := pk.(type) {
-			case *secp256k1.PubKeySecp256k1:
-				// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
-				// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
-				// Let it pass after Earth height.
-				if types2.HigherThanEarth(ctx.BlockHeight()) && bytes.Equal(ethsecp256k1.PubKey(ppk[:]).Address(), signers[i]) {
-					break
-				}
-				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-					"pubKey does not match signer address %s derived by eth pubKey, with signer index: %d", signers[i], i)
-
-			default:
-				//old logic
+		var valid bool
+		if !simulate {
+			if pk, valid = checkSigner(pk, signers[i], ctx.BlockHeight()); !valid {
 				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
 					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 			}
@@ -106,7 +97,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			return ctx, err
 		}
 		// account already has pubkey set,no need to reset
-		if acc.GetPubKey() != nil {
+		if !isPubKeyNeedChange(acc.GetPubKey(), pk, ctx.BlockHeight()) {
 			continue
 		}
 		err = acc.SetPubKey(pk)
@@ -117,6 +108,40 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func checkSigner(pk crypto.PubKey, signer sdk.AccAddress, height int64) (crypto.PubKey, bool) {
+	if bytes.Equal(pk.Address(), signer) {
+		return pk, true
+	}
+	// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
+	// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
+	// Let it pass after Earth height.
+	if types2.HigherThanEarth(height) {
+		switch v := pk.(type) {
+		case secp256k1.PubKeySecp256k1:
+			ethPub := ethsecp256k1.PubKey(v[:])
+			return ethPub, bytes.Equal(ethPub.Address(), signer)
+		case *secp256k1.PubKeySecp256k1:
+			ethPub := ethsecp256k1.PubKey(v[:])
+			return ethPub, bytes.Equal(ethsecp256k1.PubKey(v[:]).Address(), signer)
+		}
+	}
+	return pk, false
+}
+
+func isPubKeyNeedChange(pk1, pk2 crypto.PubKey, height int64) bool {
+	if pk1 == nil {
+		return true
+	}
+	if !types2.HigherThanEarth(height) {
+		return false
+	}
+
+	// check if two interfaces are equal
+	return reflect.TypeOf(pk1).Kind() != reflect.TypeOf(pk2).Kind() ||
+		reflect.TypeOf(pk1).PkgPath() != reflect.TypeOf(pk2).PkgPath() ||
+		reflect.TypeOf(pk1).Name() != reflect.TypeOf(pk2).Name()
 }
 
 // Consume parameter-defined amount of gas for each signature according to the passed-in SignatureVerificationGasConsumer function
