@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"sync"
 	"time"
 
@@ -27,22 +28,9 @@ func SetCliContext(ctx clientcontext.CLIContext) {
 }
 
 func MakeContext(storeKey sdk.StoreKey) sdk.Context {
-	db := dbm.NewMemDB()
-	cms := store.NewCommitMultiStore(db)
-	authKey := sdk.NewKVStoreKey(auth.StoreKey)
-	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
-	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
-	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
-
-	err := cms.LoadLatestVersion()
-	if err != nil {
-		panic(err)
-	}
-
+	initCommitMultiStore(storeKey)
 	header := getHeader()
+	cms := getCommitMultiStore()
 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
 	ctx.SetGasMeter(sdk.NewGasMeter(simulationGasLimit))
@@ -78,4 +66,49 @@ func getHeader() abci.Header {
 		Time:   timestamp,
 	}
 	return header
+}
+
+var (
+	cmsOnce           sync.Once
+	gCommitMultiStore types.CommitMultiStore
+)
+
+func initCommitMultiStore(storeKey sdk.StoreKey) sdk.CommitMultiStore {
+	cmsOnce.Do(func() {
+		db := dbm.NewMemDB()
+		cms := store.NewCommitMultiStore(db)
+		authKey := sdk.NewKVStoreKey(auth.StoreKey)
+		paramsKey := sdk.NewKVStoreKey(params.StoreKey)
+		paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
+		cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
+		cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
+		cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
+		cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
+
+		err := cms.LoadLatestVersion()
+		if err != nil {
+			panic(err)
+		}
+		gCommitMultiStore = cms
+	})
+
+	return gCommitMultiStore
+}
+
+var storePool = &sync.Pool{
+	New: func() interface{} {
+		return gCommitMultiStore.CacheMultiStore()
+	},
+}
+
+func getCommitMultiStore() sdk.CacheMultiStore {
+	multiStore := storePool.Get().(sdk.CacheMultiStore)
+	multiStore.Clear()
+
+	return multiStore
+}
+
+func PutBackStorePool(cms sdk.CacheMultiStore) {
+	cms.Clear()
+	storePool.Put(cms)
 }
