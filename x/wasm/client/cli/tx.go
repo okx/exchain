@@ -29,7 +29,6 @@ const (
 	flagNoAdmin                = "no-admin"
 	flagRunAs                  = "run-as"
 	flagInstantiateByEverybody = "instantiate-everybody"
-	flagInstantiateNobody      = "instantiate-nobody"
 	flagInstantiateByAddress   = "instantiate-only-address"
 	flagProposalType           = "type"
 )
@@ -77,7 +76,6 @@ func NewStoreCodeCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 	}
 
 	cmd.Flags().String(flagInstantiateByEverybody, "", "Everybody can instantiate a contract from the code, optional")
-	cmd.Flags().String(flagInstantiateNobody, "", "Nobody except the governance process can instantiate a contract from the code, optional")
 	cmd.Flags().String(flagInstantiateByAddress, "", "Only this address can instantiate a contract instance from the code, optional")
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -258,21 +256,6 @@ func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet)
 				perm = &types.AllowEverybody
 			}
 		}
-
-		nobodyStr, err := flags.GetString(flagInstantiateNobody)
-		if err != nil {
-			return types.MsgStoreCode{}, fmt.Errorf("instantiate by nobody: %s", err)
-		}
-		if nobodyStr != "" {
-			ok, err := strconv.ParseBool(nobodyStr)
-			if err != nil {
-				return types.MsgStoreCode{}, fmt.Errorf("boolean value expected for instantiate by nobody: %s", err)
-			}
-			if ok {
-				perm = &types.AllowNobody
-			}
-		}
-
 	}
 
 	msg := types.MsgStoreCode{

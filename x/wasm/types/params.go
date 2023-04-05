@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -93,8 +94,12 @@ func ParamKeyTable() paramtypes.KeyTable {
 
 // DefaultParams returns default wasm parameters
 func DefaultParams() Params {
+	uploadAccess := AllowNobody
+	if types.IsPrivateNet() {
+		uploadAccess = AllowEverybody
+	}
 	return Params{
-		CodeUploadAccess:             AllowNobody,
+		CodeUploadAccess:             uploadAccess,
 		InstantiateDefaultPermission: AccessTypeEverybody,
 		UseContractBlockedList:       true,
 		VmbridgeEnable:               false,

@@ -105,3 +105,13 @@ func (m *ErrNoSuchContract) ABCICode() uint32 {
 func (m *ErrNoSuchContract) Codespace() string {
 	return DefaultCodespace
 }
+
+func GenerateUnauthorizeError(act AccessType) string{
+	switch act {
+	case AccessTypeNobody:
+		return "Failed to create code, Nobody allowed to upload contract"
+	case AccessTypeOnlyAddress:
+		return "Failed to create code, you are not allowed to upload contract as you are not on the authorized list"
+	}
+	return "Failed to create code, unexpected error"
+}
