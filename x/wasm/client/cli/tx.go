@@ -105,7 +105,7 @@ func NewInstantiateContractCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 	}
 
 	cmd.Flags().String(flagAmount, "", "Coins to send to the contract during instantiation")
-	cmd.Flags().String(flagLabel, "test", "A human-readable name for this contract in lists")
+	cmd.Flags().String(flagLabel, "default", "A human-readable name for this contract in lists")
 	cmd.Flags().String(flagAdmin, "", "Address of an admin")
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
