@@ -167,8 +167,8 @@ func TestCodeInfoValidateBasic(t *testing.T) {
 //}
 //
 //func TestContractInfoMarshalUnmarshal(t *testing.T) {
-//	var myAddr sdk.AccAddress = rand.Bytes(ContractAddrLen)
-//	var myOtherAddr sdk.AccAddress = rand.Bytes(ContractAddrLen)
+//	var myAddr sdk.WasmAddress = rand.Bytes(ContractAddrLen)
+//	var myOtherAddr sdk.WasmAddress = rand.Bytes(ContractAddrLen)
 //	anyPos := AbsoluteTxPosition{BlockHeight: 1, TxIndex: 2}
 //
 //	anyTime := time.Now().UTC()
@@ -289,7 +289,7 @@ func TestNewEnv(t *testing.T) {
 	myTime := time.Unix(0, 1619700924259075000)
 	ctx := (&sdk.Context{}).SetChainID("testing").SetContext(context.Background())
 	t.Logf("++ unix: %d", myTime.UnixNano())
-	var myContractAddr sdk.AccAddress = randBytes(SDKAddrLen)
+	var myContractAddr sdk.WasmAddress = randBytes(SDKAddrLen)
 	specs := map[string]struct {
 		srcCtx sdk.Context
 		exp    wasmvmtypes.Env

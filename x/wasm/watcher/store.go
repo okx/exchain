@@ -67,7 +67,7 @@ func InitDB() {
 func AccountKey(addr []byte) []byte {
 	return append(accountKeyPrefix, addr...)
 }
-func GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+func GetAccount(addr sdk.WasmAddress) (*types.EthAccount, error) {
 	if !Enable() {
 		return nil, nil
 	}
@@ -96,7 +96,7 @@ func SetAccount(acc *types.EthAccount) error {
 	return db.Set(AccountKey(acc.Address.Bytes()), b)
 }
 
-func DeleteAccount(addr sdk.AccAddress) {
+func DeleteAccount(addr sdk.WasmAddress) {
 	if !Enable() {
 		return
 	}

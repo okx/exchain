@@ -193,11 +193,11 @@ func StoreCodeProposalFixture(mutators ...func(*StoreCodeProposal)) *StoreCodePr
 
 func InstantiateContractProposalFixture(mutators ...func(p *InstantiateContractProposal)) *InstantiateContractProposal {
 	var (
-		anyValidAddress sdk.AccAddress = bytes.Repeat([]byte{0x1}, SDKAddrLen)
+		anyValidAddress sdk.WasmAddress = bytes.Repeat([]byte{0x1}, SDKAddrLen)
 
 		initMsg = struct {
-			Verifier    sdk.AccAddress `json:"verifier"`
-			Beneficiary sdk.AccAddress `json:"beneficiary"`
+			Verifier    sdk.WasmAddress `json:"verifier"`
+			Beneficiary sdk.WasmAddress `json:"beneficiary"`
 		}{
 			Verifier:    anyValidAddress,
 			Beneficiary: anyValidAddress,
@@ -228,10 +228,10 @@ func InstantiateContractProposalFixture(mutators ...func(p *InstantiateContractP
 
 func MigrateContractProposalFixture(mutators ...func(p *MigrateContractProposal)) *MigrateContractProposal {
 	var (
-		anyValidAddress sdk.AccAddress = bytes.Repeat([]byte{0x1}, SDKAddrLen)
+		anyValidAddress sdk.WasmAddress = bytes.Repeat([]byte{0x1}, SDKAddrLen)
 
 		migMsg = struct {
-			Verifier sdk.AccAddress `json:"verifier"`
+			Verifier sdk.WasmAddress `json:"verifier"`
 		}{Verifier: anyValidAddress}
 	)
 

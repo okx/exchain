@@ -29,11 +29,11 @@ func humanAddress(canon []byte) (string, uint64, error) {
 	if err := sdk.VerifyAddressFormat(canon); err != nil {
 		return "", costHumanize, err
 	}
-	return sdk.AccAddress(canon).String(), costHumanize, nil
+	return sdk.WasmAddress(canon).String(), costHumanize, nil
 }
 
 func canonicalAddress(human string) ([]byte, uint64, error) {
-	bz, err := sdk.AccAddressFromBech32(human)
+	bz, err := sdk.WasmAddressFromBech32(human)
 	return bz, costCanonical, err
 }
 

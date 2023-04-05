@@ -47,7 +47,7 @@ func TestEncoding(t *testing.T) {
 	require.NoError(t, err)
 
 	cases := map[string]struct {
-		sender             sdk.AccAddress
+		sender             sdk.WasmAddress
 		srcMsg             wasmvmtypes.CosmosMsg
 		srcContractIBCPort string
 		transferPortSource types.ICS20TransferPortSource

@@ -35,7 +35,7 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 		return err
 	}
 
-	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, input, sdk.Coins{})
+	ret, err := k.wasmKeeper.Execute(ctx, sdk.AccToAWasmddress(contractAddr), sdk.AccToAWasmddress(caller), input, sdk.Coins{})
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
 	}
@@ -50,7 +50,7 @@ func RegisterSendToEvmEncoder(cdc *codec.ProtoCodec) *wasm.MessageEncoders {
 }
 
 func sendToEvmEncoder(cdc *codec.ProtoCodec) wasm.CustomEncoder {
-	return func(sender sdk.AccAddress, data json.RawMessage) ([]ibcadapter.Msg, error) {
+	return func(sender sdk.WasmAddress, data json.RawMessage) ([]ibcadapter.Msg, error) {
 		var msg types.MsgSendToEvm
 
 		if err := cdc.UnmarshalJSON(data, &msg); err != nil {

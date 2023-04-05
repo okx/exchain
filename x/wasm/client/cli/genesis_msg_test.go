@@ -687,7 +687,7 @@ func setupGenesis(t *testing.T, wasmGenesis types.GenesisState) string {
 	i, ok := sdk.NewIntFromString("10000000000")
 	require.True(t, ok)
 	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
-	my, err := sdk.AccAddressFromBech32(myWellFundedAccount)
+	my, err := sdk.WasmAddressFromBech32(myWellFundedAccount)
 	require.NoError(t, err)
 	genesisAcc := auth.NewBaseAccount(my.Bytes(), balance, keeper.PubKeyCache[myWellFundedAccount], 0, 0)
 	authState := authtypes.NewGenesisState(authtypes.DefaultParams(), []authexported.GenesisAccount{genesisAcc})

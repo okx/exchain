@@ -505,12 +505,12 @@ type wasmProposalData interface {
 }
 
 func toStdTxResponse(cliCtx clientCtx.CLIContext, w http.ResponseWriter, data wasmProposalData) {
-	proposerAddr, err := sdk.AccAddressFromBech32(data.GetProposer())
+	proposerAddr, err := sdk.WasmAddressFromBech32(data.GetProposer())
 	if err != nil {
 		rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	msg := govtypes.NewMsgSubmitProposal(data.Content(), data.GetDeposit(), proposerAddr)
+	msg := govtypes.NewMsgSubmitProposal(data.Content(), data.GetDeposit(), sdk.WasmToAccAddress(proposerAddr))
 	//if err != nil {
 	//	rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 	//	return

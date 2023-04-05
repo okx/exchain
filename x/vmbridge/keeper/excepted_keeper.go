@@ -15,7 +15,7 @@ type EVMKeeper interface {
 
 type WASMKeeper interface {
 	// Execute executes the contract instance
-	Execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress, msg []byte, coins sdk.Coins) ([]byte, error)
+	Execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, msg []byte, coins sdk.Coins) ([]byte, error)
 	GetParams(ctx sdk.Context) wasmtypes.Params
 }
 
