@@ -146,7 +146,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 1,
 		},
@@ -181,7 +180,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 2,
 		},
@@ -192,7 +190,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 			},
 			expError: true,
 		},
@@ -210,7 +207,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 			},
 			expError: true,
 		},
@@ -261,7 +257,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 				flagSet.Set("admin", myWellFundedAccount)
 			},
 			expError: true,
@@ -288,7 +283,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", keeper.RandomBech32AccountAddress(t))
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 1,
 		},
@@ -315,7 +309,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
 				flagSet.Set("amount", "100stake")
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 1,
 		},
@@ -342,7 +335,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", keeper.RandomBech32AccountAddress(t))
 				flagSet.Set("amount", "10stake")
-				flagSet.Set("no-admin", "true")
 			},
 			expError: true,
 		},
