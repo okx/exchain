@@ -267,6 +267,16 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 	} else {
 		sort.Strings(p.DistributorAddrs)
 		config.Permission = types.AccessTypeOnlyAddress
+
+		whiteAdresses := make([]string, len(p.DistributorAddrs))
+		length := len(p.DistributorAddrs)
+		for i := 0; i < length; i++ {
+			addr, err := sdk.AccAddressFromBech32(p.DistributorAddrs[i])
+			if err != nil {
+				return err
+			}
+			whiteAdresses[i] = addr.String()
+		}
 		config.Address = strings.Join(p.DistributorAddrs, ",")
 	}
 
@@ -285,5 +295,6 @@ func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.
 	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
 		return err
 	}
+	p.BlockedMethods.ContractAddr = contractAddr.String()
 	return k.UpdateContractMethodBlockedList(ctx, p.BlockedMethods, p.IsDelete)
 }
