@@ -109,7 +109,7 @@ func (m *ErrNoSuchContract) Codespace() string {
 func GenerateUnauthorizeError(act AccessType) string{
 	switch act {
 	case AccessTypeNobody:
-		return "Failed to create code, Nobody allowed to upload contract"
+		return "Failed to create code, nobody allowed to upload contract"
 	case AccessTypeOnlyAddress:
 		return "Failed to create code, you are not allowed to upload contract as you are not on the authorized list"
 	}
