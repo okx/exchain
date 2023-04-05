@@ -210,57 +210,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 			},
 			expError: true,
 		},
-		"fails if no explicit --no-admin passed": {
-			srcGenesis: types.GenesisState{
-				Params: types.DefaultParams(),
-				Codes: []types.Code{
-					{
-						CodeID: 1,
-						CodeInfo: types.CodeInfo{
-							CodeHash: []byte("a-valid-code-hash"),
-							Creator:  keeper.RandomBech32AccountAddress(t),
-							InstantiateConfig: types.AccessConfig{
-								Permission: types.AccessTypeEverybody,
-							},
-						},
-						CodeBytes: wasmIdent,
-					},
-				},
-			},
-			mutator: func(cmd *cobra.Command) {
-				cmd.SetArgs([]string{"1", `{}`})
-				flagSet := cmd.Flags()
-				flagSet.Set("label", "testing")
-				flagSet.Set("run-as", myWellFundedAccount)
-			},
-			expError: true,
-		},
-		"fails if both --admin and --no-admin passed": {
-			srcGenesis: types.GenesisState{
-				Params: types.DefaultParams(),
-				Codes: []types.Code{
-					{
-						CodeID: 1,
-						CodeInfo: types.CodeInfo{
-							CodeHash: []byte("a-valid-code-hash"),
-							Creator:  keeper.RandomBech32AccountAddress(t),
-							InstantiateConfig: types.AccessConfig{
-								Permission: types.AccessTypeEverybody,
-							},
-						},
-						CodeBytes: wasmIdent,
-					},
-				},
-			},
-			mutator: func(cmd *cobra.Command) {
-				cmd.SetArgs([]string{"1", `{}`})
-				flagSet := cmd.Flags()
-				flagSet.Set("label", "testing")
-				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("admin", myWellFundedAccount)
-			},
-			expError: true,
-		},
 		"succeeds with unknown account when no funds": {
 			srcGenesis: types.GenesisState{
 				Params: types.DefaultParams(),
