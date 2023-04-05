@@ -108,7 +108,7 @@ func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx
 	}
 	marshaler := cdc.GetProtocMarshal()
 	decode := ibctxdecoder.IbcTxDecoder(marshaler)
-	tx, err = decode(txBytes, height)
+	tx, err = decode(txBytes)
 	if err != nil {
 		return nil, fmt.Errorf("IbcTxDecoder decode tx err %v", err)
 	}

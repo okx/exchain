@@ -55,7 +55,7 @@ run() {
 #      --iavl-max-committed-height-num int                Max committed version to cache in memory (default 8)
 #      --iavl-min-commit-item-count int                   Min nodes num to triggle node cache commit (default 500000)
 #      --iavl-output-modules
-    # exit
+    exit
 }
 
 
@@ -130,19 +130,3 @@ exchaind validate-genesis --home $HOME_SERVER
 exchaincli config keyring-backend test
 
 run
-
-
-
-sleep 2
-
-exchaincli tx send ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v ex1kyh26rw89f8a4ym4p49g5z59mcj0xs4j9xcvw3 10okt --from captain --gas auto  --gas-prices 0.0000000001okt --gas-adjustment 1.3 -y -b block
-
-exchaincli tx send ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v ex12xm9l27yhuqv9saha7fvjjkxkgfqk8la0tuj7r 10okt --from captain --gas auto  --gas-prices 0.0000000001okt --gas-adjustment 1.3 -y -b block
-
-exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain --fees 0.01okt --gas 3000000 --chain-id=exchain-67 --node http://localhost:26657 -b block -y
-
-exchaincli tx wasm instantiate 1 '{"decimals":10,"initial_balances":[{"address":"ex1kyh26rw89f8a4ym4p49g5z59mcj0xs4j9xcvw3","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label erc20 --admin ex1kyh26rw89f8a4ym4p49g5z59mcj0xs4j9xcvw3 --from captain --fees 0.01okt --gas 3000000 --chain-id=exchain-67 --node http://localhost:26657 -b block -y
-
-killall exchaind
-
-exchaind start --rpc.unsafe --local-rpc-port 26657 --log_level main:debug,iavl:info,*:error,state:info,provider:info --log_file json --dynamic-gp-mode=2 --consensus.timeout_commit 3000ms --enable-preruntx=false --fast-query=true --deliver-txs-mode=2 --iavl-enable-async-commit --enable-gid --append-pid=true --iavl-commit-interval-height 10 --iavl-output-modules evm=0,acc=0 --trace --home ./_cache_evm --chain-id exchain-67 --elapsed Round=1,CommitRound=1,Produce=1 --rpc.laddr=tcp://0.0.0.0:26657 --rpc.external_laddr=0.0.0.0:26657 --p2p.laddr=tcp://0.0.0.0:26656 --rest.laddr tcp://localhost:8545

@@ -296,9 +296,9 @@ func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte,
 		return 0, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "cannot be nil")
 	}
 
-	//if !authZ.CanCreateCode(k.getUploadAccessConfig(ctx), creator) {
-	//	return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not create code")
-	//}
+	if !authZ.CanCreateCode(k.getUploadAccessConfig(ctx), creator) {
+		return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not create code")
+	}
 	// figure out proper instantiate access
 	defaultAccessConfig := k.getInstantiateAccessConfig(ctx).With(creator)
 	if instantiateAccess == nil {

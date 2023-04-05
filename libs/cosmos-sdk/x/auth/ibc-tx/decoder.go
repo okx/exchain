@@ -80,9 +80,9 @@ func CM40TxDecoder(cdc codec.ProtoCodecMarshaler) func(txBytes []byte) (ibctx.Tx
 }
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
-// func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
+//func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
 func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
-	return func(txBytes []byte, height int64) (*authtypes.IbcTx, error) {
+	return func(txBytes []byte) (*authtypes.IbcTx, error) {
 		// Make sure txBytes follow ADR-027.
 		err := rejectNonADR027TxRaw(txBytes)
 		if err != nil {
@@ -118,6 +118,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		// reject all unknown proto fields in AuthInfo
 		err = unknownproto.RejectUnknownFieldsStrict(raw.AuthInfoBytes, &authInfo, cdc.InterfaceRegistry())
+		//fmt.Println(string(raw.AuthInfoBytes))
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
@@ -132,7 +133,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			AuthInfo:   &authInfo,
 			Signatures: raw.Signatures,
 		}
-		fee, signFee, payer, err := convertFee(authInfo, height)
+		fee, signFee, payer, err := convertFee(authInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -261,7 +262,7 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	return ret
 }
 
-func convertFee(authInfo tx.AuthInfo, height int64) (authtypes.StdFee, authtypes.IbcFee, string, error) {
+func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, string, error) {
 
 	gaslimit := uint64(0)
 	var decCoins sdk.DecCoins
@@ -270,7 +271,7 @@ func convertFee(authInfo tx.AuthInfo, height int64) (authtypes.StdFee, authtypes
 	// for verify signature
 	var signFee authtypes.IbcFee
 	if authInfo.Fee != nil {
-		decCoins, err = feeDenomFilter(authInfo.Fee.Amount, height)
+		decCoins, err = feeDenomFilter(authInfo.Fee.Amount)
 		if err != nil {
 			return authtypes.StdFee{}, authtypes.IbcFee{}, payer, err
 		}
@@ -288,7 +289,7 @@ func convertFee(authInfo tx.AuthInfo, height int64) (authtypes.StdFee, authtypes
 	}, signFee, payer, nil
 }
 
-func feeDenomFilter(coins sdk.CoinAdapters, height int64) (sdk.DecCoins, error) {
+func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {
 	decCoins := sdk.DecCoins{}
 
 	if coins != nil {
@@ -302,18 +303,6 @@ func feeDenomFilter(coins sdk.CoinAdapters, height int64) (sdk.DecCoins, error) 
 					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
 				})
 			} else {
-				//three case, checkTx, queryTx
-				fmt.Println(fmt.Sprintf("-------height:%d", height))
-				//if types2.HigherThanEarth(height) || height < 0 {
-				//	if denom == sdk.DefaultBondDenom {
-				//		decCoins = append(decCoins, sdk.DecCoin{
-				//			Denom:  sdk.DefaultBondDenom,
-				//			Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), 0),
-				//		})
-				//		fmt.Println(fmt.Sprintf("------decCoins:%d", decCoins.String()))
-				//		return decCoins, nil
-				//	}
-				//}
 				// not suport other denom fee
 				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder only support wei fee")
 			}
