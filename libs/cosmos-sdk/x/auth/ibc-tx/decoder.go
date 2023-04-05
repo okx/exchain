@@ -80,7 +80,7 @@ func CM40TxDecoder(cdc codec.ProtoCodecMarshaler) func(txBytes []byte) (ibctx.Tx
 }
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
-//func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
+// func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
 func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 	return func(txBytes []byte) (*authtypes.IbcTx, error) {
 		// Make sure txBytes follow ADR-027.
@@ -118,7 +118,6 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		// reject all unknown proto fields in AuthInfo
 		err = unknownproto.RejectUnknownFieldsStrict(raw.AuthInfoBytes, &authInfo, cdc.InterfaceRegistry())
-		//fmt.Println(string(raw.AuthInfoBytes))
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
