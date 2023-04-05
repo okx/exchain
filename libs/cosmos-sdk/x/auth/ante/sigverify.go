@@ -3,7 +3,8 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-
+	"fmt"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -230,6 +231,9 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "pubkey on account is not set")
 		}
 
+		fmt.Println(fmt.Sprintf("signBytes:%x", signBytes))
+		fmt.Println(fmt.Sprintf("hash:%x", ethcrypto.Keccak256Hash(signBytes).Bytes()))
+		fmt.Println(fmt.Sprintf("pubKey:%x", pubKey.Bytes()))
 		// verify signature
 		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
