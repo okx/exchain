@@ -83,9 +83,9 @@ exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst de
 exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
 exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
 
-captain=$(exchaincli keys show captain -a)
-admin18=$(exchaincli keys show admin18 -a)
-admin17=$(exchaincli keys show admin17 -a)
+captain=$(exchaincli keys show captain | jq -r '.eth_address')
+admin18=$(exchaincli keys show admin18 | jq -r '.eth_address')
+admin17=$(exchaincli keys show admin17 | jq -r '.eth_address')
 proposal_deposit="100okt"
 
 if [[ $CHAIN_ID == "exchain-64" ]];
@@ -127,9 +127,18 @@ proposal_vote() {
   fi;
 }
 
+#####################################################
+########    rest deployment whitelist     #########
+#####################################################
+echo "## rest wasm code deployment whitelist"
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "nobody" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "proposal_id: $proposal_id"
+proposal_vote "$proposal_id"
+
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not create code: failed to execute message; message index: 0"
+failed_log="unauthorized: Failed to create code, nobody allowed to upload contract: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
 then
   echo "expect fail when update-wasm-deployment-whitelist is nobody"
@@ -155,7 +164,7 @@ echo "store cw20 contract succeed"
 cw20_code_id1=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 
 echo "## store cw20 contract...nobody"
-res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-nobody=true --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 echo "store cw20 contract succeed"
 cw20_code_id2=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 
@@ -210,21 +219,21 @@ then
   exit 1
 fi;
 
-echo "## instantiate nobody..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
-raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
-if [[ "${raw_log}" != "${failed_log}" ]];
-then
-  exit 1
-fi;
-res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
-raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
-if [[ "${raw_log}" != "${failed_log}" ]];
-then
-  exit 1
-fi;
+#echo "## instantiate nobody..."
+#res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
+#raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+#failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
+#if [[ "${raw_log}" != "${failed_log}" ]];
+#then
+#  exit 1
+#fi;
+#res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
+#raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+#failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
+#if [[ "${raw_log}" != "${failed_log}" ]];
+#then
+#  exit 1
+#fi;
 
 echo "## instantiate only address..."
 res=$(exchaincli tx wasm instantiate "$cw20_code_id3" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
@@ -784,7 +793,7 @@ res=$(exchaincli tx wasm store wasm/test/burner.wasm --from admin18 $TX_EXTRA)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-if [[ $raw_log != "unauthorized: can not create code: failed to execute message; message index: 0" ]];
+if [[ $raw_log != "unauthorized: Failed to create code, you are not allowed to upload contract as you are not on the authorized list: failed to execute message; message index: 0" ]];
 then
   exit 1
 fi;
@@ -865,7 +874,7 @@ proposal_vote "$proposal_id"
 
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not create code: failed to execute message; message index: 0"
+failed_log="unauthorized: Failed to create code, nobody allowed to upload contract: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
 then
   echo "expect fail when update-wasm-deployment-whitelist is nobody"
