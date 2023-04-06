@@ -210,7 +210,6 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "invalid number of signer;  expected: %d, got %d", len(signerAddrs), len(sigs))
 	}
 	var txNonce uint64
-	ctx.Logger().Info("******SigVerificationDecorator********", "sigs", len(sigs), "txnonce", tx.GetNonce())
 	if len(sigs) == 1 && tx.GetNonce() != 0 {
 		txNonce = tx.GetNonce()
 	}
@@ -228,7 +227,6 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		} else if ctx.IsCheckTx() && !ctx.IsReCheckTx() { // for adaptive pending tx in mempool just in checkTx but not deliverTx
 			pendingNonce := getCheckTxNonceFromMempool(signerAddrs[i].String())
 			if pendingNonce != 0 {
-				ctx.Logger().Info("******getCheckTxNonceFromMempool********", "pendingNonce", pendingNonce)
 				signerAccs[i].SetSequence(pendingNonce)
 			}
 		}

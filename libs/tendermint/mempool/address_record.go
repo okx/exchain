@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
@@ -74,7 +73,6 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 				return nil
 			}
 
-			fmt.Println("*****lyh****** replace", txPriceBump, expectedGasPrice.Int64(), e.GasPrice.Int64())
 			// delete the old element and reorganize the elements whose nonce is greater the the new element
 			ar.removeElement(e)
 			items := []*clist.CElement{newElement}
