@@ -316,9 +316,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		txInfo.wrapCMTx = wCMTx
 		mem.logger.Info(fmt.Sprintln("****CheckTx wCMTx.GetNonce", wCMTx.GetNonce(), "yuan", len(tx), len(wCMTx.GetTx())))
 		tx = wCMTx.GetTx()
-		if mem.pendingPool != nil { // when enable pendingPool should read the WrapCMTx nonce
-			nonce = wCMTx.GetNonce()
-		}
+		nonce = wCMTx.GetNonce()
 	}
 
 	txkey := txKey(tx)

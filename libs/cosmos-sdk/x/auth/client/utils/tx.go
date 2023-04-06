@@ -139,9 +139,12 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 		if err != nil {
 			panic(fmt.Sprintln("MarshalJSON fail", err))
 		}
-		fmt.Println("nonce is", txBldr.Sequence())
+		fmt.Println("nonce is", txBldr.Sequence(), types.Bytes2Hash(txBytes, 100), types.Bytes2Hash(data, 100))
 		txBytes = data
+	} else {
+		fmt.Println("nonce is", txBldr.Sequence(), types.Bytes2Hash(txBytes, 100))
 	}
+
 	// broadcast to a Tendermint node
 	res, err := cliCtx.BroadcastTx(txBytes)
 	if err != nil {
