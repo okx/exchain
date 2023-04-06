@@ -128,6 +128,10 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	isAnteSucceed := false
 	recoverd := false
 	defer func() {
+		if r := recover(); r != nil {
+			err = app.runTx_defer_recover(r, info)
+			recoverd = true
+		}
 		if recoverd {
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
