@@ -26,7 +26,6 @@ const (
 	flagAmount                 = "amount"
 	flagLabel                  = "label"
 	flagAdmin                  = "admin"
-	flagNoAdmin                = "no-admin"
 	flagRunAs                  = "run-as"
 	flagInstantiateByEverybody = "instantiate-everybody"
 	flagInstantiateNobody      = "instantiate-nobody"
@@ -106,9 +105,8 @@ func NewInstantiateContractCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 	}
 
 	cmd.Flags().String(flagAmount, "", "Coins to send to the contract during instantiation")
-	cmd.Flags().String(flagLabel, "", "A human-readable name for this contract in lists")
+	cmd.Flags().String(flagLabel, "default", "A human-readable name for this contract in lists")
 	cmd.Flags().String(flagAdmin, "", "Address of an admin")
-	cmd.Flags().Bool(flagNoAdmin, false, "You must set this explicitly if you don't want an admin")
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
@@ -308,18 +306,6 @@ func parseInstantiateArgs(rawCodeID, initMsg string, sender sdk.AccAddress, flag
 	adminStr, err := flags.GetString(flagAdmin)
 	if err != nil {
 		return types.MsgInstantiateContract{}, fmt.Errorf("admin: %s", err)
-	}
-	noAdmin, err := flags.GetBool(flagNoAdmin)
-	if err != nil {
-		return types.MsgInstantiateContract{}, fmt.Errorf("no-admin: %s", err)
-	}
-
-	// ensure sensible admin is set (or explicitly immutable)
-	if adminStr == "" && !noAdmin {
-		return types.MsgInstantiateContract{}, fmt.Errorf("you must set an admin or explicitly pass --no-admin to make it immutible (wasmd issue #719)")
-	}
-	if adminStr != "" && noAdmin {
-		return types.MsgInstantiateContract{}, fmt.Errorf("you set an admin and passed --no-admin, those cannot both be true")
 	}
 
 	// build and sign the transaction, then broadcast to Tendermint

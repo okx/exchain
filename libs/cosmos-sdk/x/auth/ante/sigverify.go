@@ -3,8 +3,6 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-	"reflect"
-
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -14,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
@@ -136,10 +135,8 @@ func isPubKeyNeedChange(pk1, pk2 crypto.PubKey, height int64) bool {
 		return false
 	}
 
-	// check if two interfaces are equal
-	return reflect.TypeOf(pk1).Kind() != reflect.TypeOf(pk2).Kind() ||
-		reflect.TypeOf(pk1).PkgPath() != reflect.TypeOf(pk2).PkgPath() ||
-		reflect.TypeOf(pk1).Name() != reflect.TypeOf(pk2).Name()
+	// check if two public keys are equal
+	return pk1.Equals(pk2)
 }
 
 // Consume parameter-defined amount of gas for each signature according to the passed-in SignatureVerificationGasConsumer function
@@ -255,12 +252,28 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
+		if !simulate && (len(signBytes) == 0 || !verifySig(signBytes, sig, pubKey)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func verifySig(signBytes, sig []byte, pubKey crypto.PubKey) bool {
+	hash := etherhash.Sum(append(signBytes, sig...))
+	cachePub, ok := types2.SignatureCache().Get(hash)
+	if ok {
+		types2.SignatureCache().Remove(hash)
+		return bytes.Equal(pubKey.Bytes(), []byte(cachePub))
+	}
+	if !pubKey.VerifyBytes(signBytes, sig) {
+		return false
+	}
+
+	types2.SignatureCache().Add(hash, string(pubKey.Bytes()))
+
+	return true
 }
 
 // IncrementSequenceDecorator handles incrementing sequences of all signers.
