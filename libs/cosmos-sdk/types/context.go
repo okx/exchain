@@ -52,6 +52,8 @@ type Context struct {
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 	watcher        *TxWatcher
 	feesplitInfo   *FeeSplitInfo
+
+	outOfGas bool
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -515,6 +517,14 @@ func (c Context) WithValue(key, value interface{}) Context {
 //	ctx.Value(key)
 func (c Context) Value(key interface{}) interface{} {
 	return c.ctx.Value(key)
+}
+
+func (c Context) SetOutOfGas(v bool) {
+	c.outOfGas = v
+}
+
+func (c Context) GetOutOfGas() bool {
+	return c.outOfGas
 }
 
 type AccountCache struct {

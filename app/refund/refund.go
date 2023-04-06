@@ -23,7 +23,7 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper, ik innert
 	) (refundFee sdk.Coins, err error) {
 		var gasRefundHandler sdk.GasRefundHandler
 
-		if tx.GetType() == sdk.EvmTxType {
+		if tx.GetType() == sdk.EvmTxType || tx.GetType() == sdk.StdTxType {
 			gasRefundHandler = evmGasRefundHandler
 		} else {
 			return nil, nil
@@ -55,6 +55,10 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	gasUsed := currentGasMeter.GasConsumed()
 
 	if gasUsed >= gasLimit {
+		return nil, nil
+	}
+
+	if tx.GetType() == sdk.StdTxType && ctx.GetOutOfGas() {
 		return nil, nil
 	}
 
