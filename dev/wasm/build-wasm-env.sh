@@ -1,25 +1,61 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
 
+check_cmd() {
+    command -v "$1" > /dev/null 2>&1
+}
+
 echo "0-----------------------"
-echo "* Install Rust"
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+echo "* Install jq and curl"
+if check_cmd jq; then
+  echo "jq has been already installed"
+elif check_cmd brew; then
+      echo "* Install jq in Darwin"
+      brew install jq
+elif check_cmd apt; then
+      echo "* Install jq in Ubuntu"
+      apt install jq -y
+elif check_cmd yum; then
+      echo "* Install jq in CentOS"
+      yum install jq
+fi
+
+if check_cmd curl; then
+  echo "curl has been already installed"
+elif check_cmd apt; then
+  echo "* Install curl in Ubuntu"
+  apt install curl
+elif check_cmd yum; then
+  echo "* Install curl in CentOS"
+  yum install curl
+fi
 
 echo "1-----------------------"
+echo "* Install Rust"
+if check_cmd rustup; then
+  echo "Rust has been already installed"
+else
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+fi
+
+source "$HOME/.cargo/env"
+
+echo "2-----------------------"
 echo "* Set Rust default toolchain"
 rustup default stable
 
-echo "2-----------------------"
+echo "3-----------------------"
 echo "* Check cargo version"
 cargo version
 # If this is lower than 1.55.0+, update
-echo "3-----------------------"
+echo "4-----------------------"
 echo "* Update Rust default toolchain"
 rustup update stable
 
-echo "4-----------------------"
+echo "5-----------------------"
 echo "* Add wasm32 target"
 rustup target add wasm32-unknown-unknown
 
 echo "------------------------"
 echo "Build wasm environment successfully!"
+
