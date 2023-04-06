@@ -95,14 +95,16 @@ func ParamKeyTable() paramtypes.KeyTable {
 // DefaultParams returns default wasm parameters
 func DefaultParams() Params {
 	uploadAccess := AllowNobody
+	vmBridge := false
 	if types.IsPrivateNet() {
 		uploadAccess = AllowEverybody
+		vmBridge = true
 	}
 	return Params{
 		CodeUploadAccess:             uploadAccess,
 		InstantiateDefaultPermission: AccessTypeEverybody,
 		UseContractBlockedList:       true,
-		VmbridgeEnable:               false,
+		VmbridgeEnable:               vmBridge,
 	}
 }
 
