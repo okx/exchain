@@ -26,7 +26,7 @@ func TestNonceVerificationInCheckTx(t *testing.T) {
 			},
 			err: sdkerrors.Wrapf(
 				sdkerrors.ErrInvalidSequence,
-				"cmtx invalid nonce; got %d, expected %d", 1, 2,
+				"cmtx enable pending pool invalid nonce; got %d, expected %d", 1, 2,
 			),
 		},
 		{
