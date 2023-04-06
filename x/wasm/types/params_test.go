@@ -149,7 +149,7 @@ func TestParamsUnmarshalJson(t *testing.T) {
 		exp Params
 	}{
 		"defaults": {
-			src: `{"code_upload_access": {"permission": "Nobody"},
+			src: `{"code_upload_access": {"permission": "Everybody"},
 				"instantiate_default_permission": "Everybody",
 				"use_contract_blocked_list":true,
 				"vmbridge_enable":false}`,
