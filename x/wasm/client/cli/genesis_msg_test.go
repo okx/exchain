@@ -146,7 +146,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 1,
 		},
@@ -181,7 +180,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 2,
 		},
@@ -192,7 +190,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
 			},
 			expError: true,
 		},
@@ -210,59 +207,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
-			},
-			expError: true,
-		},
-		"fails if no explicit --no-admin passed": {
-			srcGenesis: types.GenesisState{
-				Params: types.DefaultParams(),
-				Codes: []types.Code{
-					{
-						CodeID: 1,
-						CodeInfo: types.CodeInfo{
-							CodeHash: []byte("a-valid-code-hash"),
-							Creator:  keeper.RandomBech32AccountAddress(t),
-							InstantiateConfig: types.AccessConfig{
-								Permission: types.AccessTypeEverybody,
-							},
-						},
-						CodeBytes: wasmIdent,
-					},
-				},
-			},
-			mutator: func(cmd *cobra.Command) {
-				cmd.SetArgs([]string{"1", `{}`})
-				flagSet := cmd.Flags()
-				flagSet.Set("label", "testing")
-				flagSet.Set("run-as", myWellFundedAccount)
-			},
-			expError: true,
-		},
-		"fails if both --admin and --no-admin passed": {
-			srcGenesis: types.GenesisState{
-				Params: types.DefaultParams(),
-				Codes: []types.Code{
-					{
-						CodeID: 1,
-						CodeInfo: types.CodeInfo{
-							CodeHash: []byte("a-valid-code-hash"),
-							Creator:  keeper.RandomBech32AccountAddress(t),
-							InstantiateConfig: types.AccessConfig{
-								Permission: types.AccessTypeEverybody,
-							},
-						},
-						CodeBytes: wasmIdent,
-					},
-				},
-			},
-			mutator: func(cmd *cobra.Command) {
-				cmd.SetArgs([]string{"1", `{}`})
-				flagSet := cmd.Flags()
-				flagSet.Set("label", "testing")
-				flagSet.Set("run-as", myWellFundedAccount)
-				flagSet.Set("no-admin", "true")
-				flagSet.Set("admin", myWellFundedAccount)
 			},
 			expError: true,
 		},
@@ -288,7 +232,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet := cmd.Flags()
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", keeper.RandomBech32AccountAddress(t))
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 1,
 		},
@@ -315,7 +258,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", myWellFundedAccount)
 				flagSet.Set("amount", "100stake")
-				flagSet.Set("no-admin", "true")
 			},
 			expMsgCount: 1,
 		},
@@ -342,7 +284,6 @@ func TestInstantiateContractCmd(t *testing.T) {
 				flagSet.Set("label", "testing")
 				flagSet.Set("run-as", keeper.RandomBech32AccountAddress(t))
 				flagSet.Set("amount", "10stake")
-				flagSet.Set("no-admin", "true")
 			},
 			expError: true,
 		},

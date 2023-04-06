@@ -3,6 +3,7 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -245,12 +246,28 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
+		if !simulate && (len(signBytes) == 0 || !verifySig(signBytes, sig, pubKey)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func verifySig(signBytes, sig []byte, pubKey crypto.PubKey) bool {
+	hash := etherhash.Sum(append(signBytes, sig...))
+	cachePub, ok := types2.SignatureCache().Get(hash)
+	if ok {
+		types2.SignatureCache().Remove(hash)
+		return bytes.Equal(pubKey.Bytes(), []byte(cachePub))
+	}
+	if !pubKey.VerifyBytes(signBytes, sig) {
+		return false
+	}
+
+	types2.SignatureCache().Add(hash, string(pubKey.Bytes()))
+
+	return true
 }
 
 // IncrementSequenceDecorator handles incrementing sequences of all signers.

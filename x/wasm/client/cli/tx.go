@@ -26,10 +26,8 @@ const (
 	flagAmount                 = "amount"
 	flagLabel                  = "label"
 	flagAdmin                  = "admin"
-	flagNoAdmin                = "no-admin"
 	flagRunAs                  = "run-as"
 	flagInstantiateByEverybody = "instantiate-everybody"
-	flagInstantiateNobody      = "instantiate-nobody"
 	flagInstantiateByAddress   = "instantiate-only-address"
 	flagProposalType           = "type"
 )
@@ -77,7 +75,6 @@ func NewStoreCodeCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 	}
 
 	cmd.Flags().String(flagInstantiateByEverybody, "", "Everybody can instantiate a contract from the code, optional")
-	cmd.Flags().String(flagInstantiateNobody, "", "Nobody except the governance process can instantiate a contract from the code, optional")
 	cmd.Flags().String(flagInstantiateByAddress, "", "Only this address can instantiate a contract instance from the code, optional")
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -106,9 +103,8 @@ func NewInstantiateContractCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 	}
 
 	cmd.Flags().String(flagAmount, "", "Coins to send to the contract during instantiation")
-	cmd.Flags().String(flagLabel, "", "A human-readable name for this contract in lists")
+	cmd.Flags().String(flagLabel, "default", "A human-readable name for this contract in lists")
 	cmd.Flags().String(flagAdmin, "", "Address of an admin")
-	cmd.Flags().Bool(flagNoAdmin, false, "You must set this explicitly if you don't want an admin")
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
@@ -258,21 +254,6 @@ func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet)
 				perm = &types.AllowEverybody
 			}
 		}
-
-		nobodyStr, err := flags.GetString(flagInstantiateNobody)
-		if err != nil {
-			return types.MsgStoreCode{}, fmt.Errorf("instantiate by nobody: %s", err)
-		}
-		if nobodyStr != "" {
-			ok, err := strconv.ParseBool(nobodyStr)
-			if err != nil {
-				return types.MsgStoreCode{}, fmt.Errorf("boolean value expected for instantiate by nobody: %s", err)
-			}
-			if ok {
-				perm = &types.AllowNobody
-			}
-		}
-
 	}
 
 	msg := types.MsgStoreCode{
@@ -308,18 +289,6 @@ func parseInstantiateArgs(rawCodeID, initMsg string, sender sdk.AccAddress, flag
 	adminStr, err := flags.GetString(flagAdmin)
 	if err != nil {
 		return types.MsgInstantiateContract{}, fmt.Errorf("admin: %s", err)
-	}
-	noAdmin, err := flags.GetBool(flagNoAdmin)
-	if err != nil {
-		return types.MsgInstantiateContract{}, fmt.Errorf("no-admin: %s", err)
-	}
-
-	// ensure sensible admin is set (or explicitly immutable)
-	if adminStr == "" && !noAdmin {
-		return types.MsgInstantiateContract{}, fmt.Errorf("you must set an admin or explicitly pass --no-admin to make it immutible (wasmd issue #719)")
-	}
-	if adminStr != "" && noAdmin {
-		return types.MsgInstantiateContract{}, fmt.Errorf("you set an admin and passed --no-admin, those cannot both be true")
 	}
 
 	// build and sign the transaction, then broadcast to Tendermint

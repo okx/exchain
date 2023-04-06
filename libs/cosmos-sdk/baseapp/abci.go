@@ -443,6 +443,8 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 		}
 		if isPureWasm {
 			wasmSimulator := simulator.NewWasmSimulator()
+			defer wasmSimulator.Release()
+
 			wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
 			wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
 			res, err := wasmSimulator.Simulate(msgs)
