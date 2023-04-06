@@ -344,16 +344,16 @@ func TestEncoding(t *testing.T) {
 		//		},
 		//	},
 		//},
-		"stargate encoded bank msg": {
-			sender: addr2,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Stargate: &wasmvmtypes.StargateMsg{
-					TypeURL: "/cosmos.bank.v1beta1.MsgSend",
-					Value:   bankMsgBin,
-				},
-			},
-			output: []ibcadapter.Msg{bankMsg},
-		},
+		//"stargate encoded bank msg": {
+		//	sender: addr2,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Stargate: &wasmvmtypes.StargateMsg{
+		//			TypeURL: "/cosmos.bank.v1beta1.MsgSend",
+		//			Value:   bankMsgBin,
+		//		},
+		//	},
+		//	output: []ibcadapter.Msg{bankMsg},
+		//},
 		"stargate encoded invalid typeUrl": {
 			sender: addr2,
 			srcMsg: wasmvmtypes.CosmosMsg{

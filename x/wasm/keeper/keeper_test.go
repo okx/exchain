@@ -394,11 +394,11 @@ func TestInstantiate(t *testing.T) {
 	ctx.SetEventManager(em)
 	gotContractAddr, _, err := keepers.ContractKeeper.Instantiate(ctx, codeID, creator, nil, initMsgBz, "demo contract 1", nil)
 	require.NoError(t, err)
-	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", gotContractAddr.String())
+	require.Equal(t, "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b", gotContractAddr.String())
 
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x16d87), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x169f7), gasAfter-gasBefore)
 	}
 
 	// ensure it is stored properly
@@ -595,7 +595,7 @@ func TestExecute(t *testing.T) {
 
 	addr, _, err := keepers.ContractKeeper.Instantiate(ctx, contractID, creator, nil, initMsgBz, "demo contract 3", deposit)
 	require.NoError(t, err)
-	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", addr.String())
+	require.Equal(t, "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b", addr.String())
 
 	// ensure bob doesn't exist
 	bobAcct := accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(bob))
@@ -634,7 +634,7 @@ func TestExecute(t *testing.T) {
 	// make sure gas is properly deducted from ctx
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x19c71), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x198b6), gasAfter-gasBefore)
 	}
 	// ensure bob now exists and got both payments released
 	bobAcct = accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(bob))
@@ -1258,7 +1258,7 @@ func TestSudo(t *testing.T) {
 	require.NoError(t, err)
 	addr, _, err := keepers.ContractKeeper.Instantiate(ctx, contractID, creator, nil, initMsgBz, "demo contract 3", deposit)
 	require.NoError(t, err)
-	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", addr.String())
+	require.Equal(t, "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b", addr.String())
 
 	// the community is broke
 	_, _, community := keyPubAddr()
@@ -1792,12 +1792,12 @@ func TestBuildContractAddress(t *testing.T) {
 		"initial contract": {
 			srcCodeID:     1,
 			srcInstanceID: 1,
-			expectedAddr:  "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr",
+			expectedAddr:  "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b",
 		},
 		"demo value": {
 			srcCodeID:     1,
 			srcInstanceID: 100,
-			expectedAddr:  "cosmos1mujpjkwhut9yjw4xueyugc02evfv46y0dtmnz4lh8xxkkdapym9stu5qm8",
+			expectedAddr:  "0xc461Eacb12cae88f6Af73157f7398d6B37A126cb",
 		},
 		"both below max": {
 			srcCodeID:     math.MaxUint32 - 1,
@@ -1810,12 +1810,12 @@ func TestBuildContractAddress(t *testing.T) {
 		"codeID > max u32": {
 			srcCodeID:     math.MaxUint32 + 1,
 			srcInstanceID: 17,
-			expectedAddr:  "cosmos1673hrexz4h6s0ft04l96ygq667djzh2nsr335kstjp49x5dk6rpsf5t0le",
+			expectedAddr:  "0xA2201ad79B215d5380e31a5A0b906a5351B6d0c3",
 		},
 		"instanceID > max u32": {
 			srcCodeID:     22,
 			srcInstanceID: math.MaxUint32 + 1,
-			expectedAddr:  "cosmos10q3pgfvmeyy0veekgtqhxujxkhz0vm9zmalqgc7evrhj68q3l62qrdfg4m",
+			expectedAddr:  "0x737246b5C4F66Ca2DF7E0463d960eF2D1c11fE94",
 		},
 	}
 	for name, spec := range specs {

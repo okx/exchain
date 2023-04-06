@@ -469,7 +469,7 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
   ],
   "contracts": [
     {
-      "contract_address": "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr",
+      "contract_address": "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b",
       "contract_info": {
         "code_id": "1",
         "creator": "cosmos13x849jzd03vne42ynpj25hn8npjecxqrjghd8x",
@@ -525,7 +525,7 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	assert.Equal(t, expCodeInfo, *gotCodeInfo)
 
 	// verify contract
-	contractAddr, _ := sdk.WasmAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+	contractAddr, _ := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 	gotContractInfo := keeper.GetContractInfo(ctx, contractAddr)
 	require.NotNil(t, gotContractInfo)
 	contractCreatorAddr := "cosmos13x849jzd03vne42ynpj25hn8npjecxqrjghd8x"

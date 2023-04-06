@@ -175,7 +175,7 @@ func GenesisExecuteContractCmd(defaultNodeHome string, genesisMutator GenesisMut
 
 				// - does contract address exists?
 				if !hasContract(state, msg.Contract) {
-					return fmt.Errorf("unknown contract: %state", msg.Contract)
+					return fmt.Errorf("unknown contract: %s", msg.Contract)
 				}
 				state.GenMsgs = append(state.GenMsgs, types.GenesisState_GenMsgs{
 					Sum: &types.GenesisState_GenMsgs_ExecuteContract{ExecuteContract: &msg},

@@ -338,7 +338,7 @@ func TestVerifyAddressLen(t *testing.T) {
 		expErr bool
 	}{
 		"valid contract address": {
-			src: bytes.Repeat([]byte{1}, 32),
+			src: bytes.Repeat([]byte{1}, 20),
 		},
 		"valid legacy address": {
 			src: bytes.Repeat([]byte{1}, 20),
@@ -348,7 +348,7 @@ func TestVerifyAddressLen(t *testing.T) {
 			expErr: true,
 		},
 		"address too short for contract": {
-			src:    bytes.Repeat([]byte{1}, 31),
+			src:    bytes.Repeat([]byte{1}, 19),
 			expErr: true,
 		},
 		"address too long for legacy": {
@@ -356,7 +356,7 @@ func TestVerifyAddressLen(t *testing.T) {
 			expErr: true,
 		},
 		"address too long for contract": {
-			src:    bytes.Repeat([]byte{1}, 33),
+			src:    bytes.Repeat([]byte{1}, 21),
 			expErr: true,
 		},
 	}

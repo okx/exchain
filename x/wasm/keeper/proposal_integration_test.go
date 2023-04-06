@@ -98,7 +98,7 @@ package keeper
 //	require.NoError(t, err)
 //
 //	// then
-//	contractAddr, err := sdk.WasmAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+//	contractAddr, err := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 //	require.NoError(t, err)
 //
 //	cInfo := wasmKeeper.GetContractInfo(ctx, contractAddr)
@@ -170,7 +170,7 @@ package keeper
 //	require.NoError(t, err)
 //
 //	// then
-//	contractAddr, err := sdk.WasmAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+//	contractAddr, err := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 //	require.NoError(t, err)
 //
 //	cInfo := wasmKeeper.GetContractInfo(ctx, contractAddr)

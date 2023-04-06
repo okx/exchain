@@ -31,8 +31,8 @@ type MessageEncoders struct {
 	//Distribution func(sender sdk.WasmAddress, msg *wasmvmtypes.DistributionMsg) ([]sdk.Msg, error)
 	//IBC          func(ctx sdk.Context, sender sdk.WasmAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]sdk.Msg, error)
 	//Staking      func(sender sdk.WasmAddress, msg *wasmvmtypes.StakingMsg) ([]sdk.Msg, error)
-	Stargate func(sender sdk.WasmAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error)
-	Wasm     func(sender sdk.WasmAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error)
+	//Stargate func(sender sdk.WasmAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error)
+	Wasm func(sender sdk.WasmAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error)
 	//Gov          func(sender sdk.WasmAddress, msg *wasmvmtypes.GovMsg) ([]sdk.Msg, error)
 }
 
@@ -43,8 +43,8 @@ func DefaultEncoders(unpacker codectypes.AnyUnpacker, portSource types.ICS20Tran
 		//Distribution: EncodeDistributionMsg,
 		//IBC:          EncodeIBCMsg(portSource),
 		//Staking:      EncodeStakingMsg,
-		Stargate: EncodeStargateMsg(unpacker),
-		Wasm:     EncodeWasmMsg,
+		//Stargate: EncodeStargateMsg(unpacker), // TODO we have not test this so disable it.
+		Wasm: EncodeWasmMsg,
 		//Gov:          EncodeGovMsg,
 	}
 }
@@ -68,9 +68,9 @@ func (e MessageEncoders) Merge(o *MessageEncoders) MessageEncoders {
 	//if o.Staking != nil {
 	//	e.Staking = o.Staking
 	//}
-	if o.Stargate != nil {
-		e.Stargate = o.Stargate
-	}
+	//if o.Stargate != nil {
+	//	e.Stargate = o.Stargate
+	//}
 	if o.Wasm != nil {
 		e.Wasm = o.Wasm
 	}
@@ -92,8 +92,8 @@ func (e MessageEncoders) Encode(ctx sdk.Context, contractAddr sdk.WasmAddress, c
 	//	return e.IBC(ctx, contractAddr, contractIBCPortID, msg.IBC)
 	//case msg.Staking != nil:
 	//	return e.Staking(contractAddr, msg.Staking)
-	case msg.Stargate != nil:
-		return e.Stargate(contractAddr, msg.Stargate)
+	//case msg.Stargate != nil:
+	//	return e.Stargate(contractAddr, msg.Stargate)
 	case msg.Wasm != nil:
 		return e.Wasm(contractAddr, msg.Wasm)
 		//case msg.Gov != nil:

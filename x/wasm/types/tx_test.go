@@ -14,9 +14,7 @@ import (
 const firstCodeID = 1
 
 func TestStoreCodeValidation(t *testing.T) {
-	bad, err := sdk.WasmAddressFromHex("012345")
-	require.NoError(t, err)
-	badAddress := bad.String()
+	badAddress := "0x12345"
 	// proper address size
 	goodAddress := sdk.WasmAddress(make([]byte, SDKAddrLen)).String()
 	sdk.GetConfig().SetAddressVerifier(VerifyAddressLen())
@@ -78,9 +76,7 @@ func TestStoreCodeValidation(t *testing.T) {
 }
 
 func TestInstantiateContractValidation(t *testing.T) {
-	bad, err := sdk.WasmAddressFromHex("012345")
-	require.NoError(t, err)
-	badAddress := bad.String()
+	badAddress := "0x12345"
 	// proper address size
 	goodAddress := sdk.WasmAddress(make([]byte, 20)).String()
 
@@ -185,9 +181,7 @@ func TestInstantiateContractValidation(t *testing.T) {
 }
 
 func TestExecuteContractValidation(t *testing.T) {
-	bad, err := sdk.WasmAddressFromHex("012345")
-	require.NoError(t, err)
-	badAddress := bad.String()
+	badAddress := "0x12345"
 	// proper address size
 	goodAddress := sdk.WasmAddress(make([]byte, 20)).String()
 	fmt.Println(badAddress, goodAddress)
@@ -295,9 +289,7 @@ func TestExecuteContractValidation(t *testing.T) {
 }
 
 func TestMsgUpdateAdministrator(t *testing.T) {
-	bad, err := sdk.WasmAddressFromHex("012345")
-	require.NoError(t, err)
-	badAddress := bad.String()
+	badAddress := "0x12345"
 	// proper address size
 	goodAddress := sdk.WasmAddress(make([]byte, 20)).String()
 	otherGoodAddress := sdk.WasmAddress(bytes.Repeat([]byte{0x1}, 20)).String()
@@ -367,9 +359,7 @@ func TestMsgUpdateAdministrator(t *testing.T) {
 }
 
 func TestMsgClearAdministrator(t *testing.T) {
-	bad, err := sdk.WasmAddressFromHex("012345")
-	require.NoError(t, err)
-	badAddress := bad.String()
+	badAddress := "0x12345"
 	// proper address size
 	goodAddress := sdk.WasmAddress(make([]byte, 20)).String()
 	anotherGoodAddress := sdk.WasmAddress(bytes.Repeat([]byte{0x2}, 20)).String()
@@ -418,9 +408,7 @@ func TestMsgClearAdministrator(t *testing.T) {
 }
 
 func TestMsgMigrateContract(t *testing.T) {
-	bad, err := sdk.WasmAddressFromHex("012345")
-	require.NoError(t, err)
-	badAddress := bad.String()
+	badAddress := "0x12345"
 	// proper address size
 	goodAddress := sdk.WasmAddress(make([]byte, 20)).String()
 	anotherGoodAddress := sdk.WasmAddress(bytes.Repeat([]byte{0x2}, 20)).String()
