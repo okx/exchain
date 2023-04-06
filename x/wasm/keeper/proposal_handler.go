@@ -277,7 +277,7 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 			}
 			whiteAdresses[i] = addr.String()
 		}
-		config.Address = strings.Join(p.DistributorAddrs, ",")
+		config.Address = strings.Join(whiteAdresses, ",")
 	}
 
 	k.UpdateUploadAccessConfig(ctx, config)

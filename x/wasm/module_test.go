@@ -256,18 +256,18 @@ func TestHandleExecute(t *testing.T) {
 	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[2].Attributes[0])
 
 	// ensure bob doesn't exist
-	bobAcct := data.acctKeeper.GetAccount(data.ctx, bob)
+	bobAcct := data.acctKeeper.GetAccount(data.ctx, sdk.WasmToAccAddress(bob))
 	require.Nil(t, bobAcct)
 
 	// ensure funder has reduced balance
-	creatorAcct := data.acctKeeper.GetAccount(data.ctx, creator)
+	creatorAcct := data.acctKeeper.GetAccount(data.ctx, sdk.WasmToAccAddress(creator))
 	require.NotNil(t, creatorAcct)
 	// we started at 2*deposit, should have spent one above
 	assert.Equal(t, deposit, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, creatorAcct.GetAddress()))
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.WasmAddressFromBech32(contractBech32Addr)
-	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
+	contractAcct := data.acctKeeper.GetAccount(data.ctx, sdk.WasmToAccAddress(contractAddr))
 	require.NotNil(t, contractAcct)
 	assert.Equal(t, deposit, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
@@ -306,14 +306,14 @@ func TestHandleExecute(t *testing.T) {
 	// finally, standard x/wasm tag
 
 	// ensure bob now exists and got both payments released
-	bobAcct = data.acctKeeper.GetAccount(data.ctx, bob)
+	bobAcct = data.acctKeeper.GetAccount(data.ctx, sdk.WasmToAccAddress(bob))
 	require.NotNil(t, bobAcct)
 	balance := bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 
-	contractAcct = data.acctKeeper.GetAccount(data.ctx, contractAddr)
+	contractAcct = data.acctKeeper.GetAccount(data.ctx, sdk.WasmToAccAddress(contractAddr))
 	require.NotNil(t, contractAcct)
 	assert.Equal(t, zeroCoins, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
@@ -385,14 +385,14 @@ func TestHandleExecuteEscrow(t *testing.T) {
 	assertExecuteResponse(t, res.Data, []byte{0xf0, 0x0b, 0xaa})
 
 	// ensure bob now exists and got both payments released
-	bobAcct := data.acctKeeper.GetAccount(data.ctx, bob)
+	bobAcct := data.acctKeeper.GetAccount(data.ctx, sdk.WasmToAccAddress(bob))
 	require.NotNil(t, bobAcct)
 	balance := bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.WasmAddressFromBech32(contractBech32Addr)
-	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
+	contractAcct := data.acctKeeper.GetAccount(data.ctx, sdk.WasmToAccAddress(contractAddr))
 	require.NotNil(t, contractAcct)
 	assert.Equal(t, zeroCoins, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 }
