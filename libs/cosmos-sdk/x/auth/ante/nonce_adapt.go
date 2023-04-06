@@ -44,7 +44,7 @@ func nonceVerificationInCheckTx(seq uint64, txNonce uint64, addr string) error {
 		if txNonce < seq {
 			return sdkerrors.Wrapf(
 				sdkerrors.ErrInvalidSequence,
-				"cmtx invalid nonce; got %d, expected %d", txNonce, seq,
+				"cmtx enable pending pool invalid nonce; got %d, expected %d", txNonce, seq,
 			)
 		}
 	} else {
