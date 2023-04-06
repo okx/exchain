@@ -21,19 +21,9 @@ import (
 	"github.com/okex/exchain/x/wasm/types"
 )
 
-func registerQueryRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
-	r.HandleFunc("/wasm/code", listCodesHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/code/{codeID}", queryCodeHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/code/{codeID}/contracts", listContractsByCodeHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/contract/{contractAddr}", queryContractHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/contract/{contractAddr}/state", queryContractStateAllHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/contract/{contractAddr}/history", queryContractHistoryFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/contract/{contractAddr}/smart/{query}", queryContractStateSmartHandlerFn(cliCtx)).Queries("encoding", "{encoding}").Methods("GET")
-	r.HandleFunc("/wasm/contract/{contractAddr}/raw/{key}", queryContractStateRawHandlerFn(cliCtx)).Queries("encoding", "{encoding}").Methods("GET")
-	r.HandleFunc("/wasm/contract/{contractAddr}/blocked_methods", queryContractBlockedMethodsHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/params", queryParamsHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/whitelist", queryContractWhitelistHandlerFn(cliCtx)).Methods("GET")
-}
+var (
+	errBadRequestHeight = fmt.Errorf("bad request height")
+)
 
 func queryParamsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +120,36 @@ func listCodesHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	}
 }
 
+func queryCodeHandler(cliCtx clientCtx.CLIContext, w http.ResponseWriter, r *http.Request) (*types.QueryCodeResponse, error) {
+	cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+	if !ok {
+		return nil, fmt.Errorf("bad request")
+	}
+	codeId, err := strconv.ParseUint(mux.Vars(r)["codeID"], 10, 64)
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusBadRequest, "codeId should be a number")
+		return nil, err
+	}
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.Code(
+		context.Background(),
+		&types.QueryCodeRequest{
+			CodeId: codeId,
+		},
+	)
+
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return nil, err
+	}
+	if res == nil {
+		rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
+		return nil, fmt.Errorf("contract not found")
+	}
+
+	return res, nil
+}
+
 func queryCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
@@ -220,31 +240,25 @@ func listContractsByCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc 
 	}
 }
 
-func queryContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		queryClient := types.NewQueryClient(cliCtx)
-		res, err := queryClient.ContractInfo(
-			context.Background(),
-			&types.QueryContractInfoRequest{
-				Address: mux.Vars(r)["contractAddr"],
-			},
-		)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
+func queryContractHandler(cliCtx clientCtx.CLIContext, w http.ResponseWriter, r *http.Request) (*types.QueryContractInfoResponse, error) {
+	cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+	if !ok {
+		return nil, errBadRequestHeight
 	}
+
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.ContractInfo(
+		context.Background(),
+		&types.QueryContractInfoRequest{
+			Address: mux.Vars(r)["contractAddr"],
+		},
+	)
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func queryContractBlockedMethodsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
@@ -321,77 +335,64 @@ func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 	}
 }
 
-func queryContractStateRawHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		decoder := newArgDecoder(hex.DecodeString)
-		decoder.encoding = mux.Vars(r)["encoding"]
-		queryData, err := decoder.DecodeString(mux.Vars(r)["key"])
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-		queryClient := types.NewQueryClient(cliCtx)
-		res, err := queryClient.RawContractState(
-			context.Background(),
-			&types.QueryRawContractStateRequest{
-				Address:   mux.Vars(r)["contractAddr"],
-				QueryData: queryData,
-			},
-		)
-
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
+func queryContractStateRawHandler(cliCtx clientCtx.CLIContext, w http.ResponseWriter, r *http.Request) (*types.QueryRawContractStateResponse, error) {
+	decoder := newArgDecoder(hex.DecodeString)
+	decoder.encoding = mux.Vars(r)["encoding"]
+	queryData, err := decoder.DecodeString(mux.Vars(r)["key"])
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return nil, err
 	}
+	cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+	if !ok {
+		return nil, errBadRequestHeight
+	}
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.RawContractState(
+		context.Background(),
+		&types.QueryRawContractStateRequest{
+			Address:   mux.Vars(r)["contractAddr"],
+			QueryData: queryData,
+		},
+	)
+
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return nil, err
+	}
+
+	return res, nil
 }
 
-func queryContractStateSmartHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		decoder := newArgDecoder(hex.DecodeString)
-		decoder.encoding = mux.Vars(r)["encoding"]
-		queryData, err := decoder.DecodeString(mux.Vars(r)["query"])
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		queryClient := types.NewQueryClient(cliCtx)
-		res, err := queryClient.SmartContractState(
-			context.Background(),
-			&types.QuerySmartContractStateRequest{
-				Address:   mux.Vars(r)["contractAddr"],
-				QueryData: queryData,
-			},
-		)
-
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
+func queryContractStateSmartHandler(cliCtx clientCtx.CLIContext, w http.ResponseWriter, r *http.Request) (*types.QuerySmartContractStateResponse, error) {
+	cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+	if !ok {
+		return nil, errBadRequestHeight
 	}
+
+	decoder := newArgDecoder(hex.DecodeString)
+	decoder.encoding = mux.Vars(r)["encoding"]
+	queryData, err := decoder.DecodeString(mux.Vars(r)["query"])
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return nil, err
+	}
+
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.SmartContractState(
+		context.Background(),
+		&types.QuerySmartContractStateRequest{
+			Address:   mux.Vars(r)["contractAddr"],
+			QueryData: queryData,
+		},
+	)
+
+	if err != nil {
+		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return nil, err
+	}
+
+	return res, err
 }
 
 func queryContractHistoryFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
