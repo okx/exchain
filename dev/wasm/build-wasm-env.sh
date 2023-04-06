@@ -10,23 +10,18 @@ echo "* Install jq and curl"
 if check_cmd jq; then
   echo "jq has been already installed"
 elif check_cmd brew; then
-      echo "* Install jq in Darwin"
       brew install jq
 elif check_cmd apt; then
-      echo "* Install jq in Ubuntu"
       apt install jq -y
 elif check_cmd yum; then
-      echo "* Install jq in CentOS"
       yum install jq
 fi
 
 if check_cmd curl; then
   echo "curl has been already installed"
 elif check_cmd apt; then
-  echo "* Install curl in Ubuntu"
   apt install curl
 elif check_cmd yum; then
-  echo "* Install curl in CentOS"
   yum install curl
 fi
 
