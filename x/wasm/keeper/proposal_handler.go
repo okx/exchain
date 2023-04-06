@@ -76,7 +76,11 @@ func handleStoreCodeProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
-	codeID, err := k.Create(ctx, runAsAddr, p.WASMByteCode, p.InstantiatePermission)
+	result, err := types.ConvertAccessConfig(*p.InstantiatePermission)
+	if err != nil {
+		return err
+	}
+	codeID, err := k.Create(ctx, runAsAddr, p.WASMByteCode, &result)
 	if err != nil {
 		return err
 	}
@@ -247,7 +251,12 @@ func handleUpdateInstantiateConfigProposal(ctx sdk.Context, k types.ContractOpsK
 	}
 
 	for _, accessConfigUpdate := range p.AccessConfigUpdates {
-		if err := k.SetAccessConfig(ctx, accessConfigUpdate.CodeID, accessConfigUpdate.InstantiatePermission); err != nil {
+		result, err := types.ConvertAccessConfig(accessConfigUpdate.InstantiatePermission)
+		if err != nil {
+			return err
+		}
+
+		if err := k.SetAccessConfig(ctx, accessConfigUpdate.CodeID, result); err != nil {
 			return sdkerrors.Wrapf(err, "code id: %d", accessConfigUpdate.CodeID)
 		}
 	}
@@ -267,20 +276,13 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 	} else {
 		sort.Strings(p.DistributorAddrs)
 		config.Permission = types.AccessTypeOnlyAddress
-
-		whiteAdresses := make([]string, len(p.DistributorAddrs))
-		length := len(p.DistributorAddrs)
-		for i := 0; i < length; i++ {
-			addr, err := sdk.WasmAddressFromBech32(p.DistributorAddrs[i])
-			if err != nil {
-				return err
-			}
-			whiteAdresses[i] = addr.String()
-		}
-		config.Address = strings.Join(whiteAdresses, ",")
+		config.Address = strings.Join(p.DistributorAddrs, ",")
 	}
-
-	k.UpdateUploadAccessConfig(ctx, config)
+	result, err := types.ConvertAccessConfig(config)
+	if err != nil {
+		return err
+	}
+	k.UpdateUploadAccessConfig(ctx, result)
 	return nil
 }
 

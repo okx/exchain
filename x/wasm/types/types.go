@@ -364,3 +364,20 @@ func (a AccessConfig) IsSubset(superSet AccessConfig) bool {
 		return false
 	}
 }
+
+func ConvertAccessConfig(config AccessConfig) (AccessConfig, error) {
+	if config.Permission == AccessTypeOnlyAddress {
+		addrs := strings.Split(config.Address, ",")
+		whiteAdresses := make([]string, len(addrs))
+		length := len(addrs)
+		for i := 0; i < length; i++ {
+			addr, err := sdk.WasmAddressFromBech32(addrs[i])
+			if err != nil {
+				return config, err
+			}
+			whiteAdresses[i] = addr.String()
+		}
+		config.Address = strings.Join(whiteAdresses, ",")
+	}
+	return config, nil
+}
