@@ -386,10 +386,10 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
 	}
 
+	if req.Height == 0 {
+		req.Height = app.LastBlockHeight()
+	}
 	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
-		if req.Height == 0 {
-			req.Height = app.LastBlockHeight()
-		}
 		return app.handleQueryGRPC(grpcHandler, req)
 	}
 
