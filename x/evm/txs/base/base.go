@@ -1,6 +1,7 @@
 package base
 
 import (
+	"fmt"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -61,6 +62,7 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 		return
 	}
 
+	fmt.Println("=======", result.ResultData.TxHash.String())
 	// call evm hooks
 	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
 		receipt := &ethtypes.Receipt{
