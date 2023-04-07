@@ -21,6 +21,6 @@ type QueryTokenMappingResponse struct {
 }
 
 type TokenMappingByChannelRequest struct {
-	Channel   string `json:"channel"`
+	Channels  string `json:"channels"`
 	BaseDenom string `json:"base_denom"`
 }

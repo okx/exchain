@@ -18,7 +18,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/erc20/token_mapping", tokenMappingHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/erc20/contract/{denom_hash}", contractByDenomHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/erc20/denom/{contract}", denomByContractHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/erc20/token_mapping_channel/{channel}/{denom}", tokenMappingChannelHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/erc20/token_mapping_channel/{channels}/{denom}", tokenMappingChannelHandlerFn(cliCtx)).Methods("GET")
 }
 
 func tokenMappingHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
@@ -48,7 +48,7 @@ func tokenMappingHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 func tokenMappingChannelHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		channel := mux.Vars(r)["channel"]
+		channels := mux.Vars(r)["channels"]
 		denom := mux.Vars(r)["denom"]
 
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
@@ -56,7 +56,7 @@ func tokenMappingChannelHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		params := cliCtx.Codec.MustMarshalJSON(types.TokenMappingByChannelRequest{Channel: channel, BaseDenom: denom})
+		params := cliCtx.Codec.MustMarshalJSON(types.TokenMappingByChannelRequest{Channels: channels, BaseDenom: denom})
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.RouterKey, types.QueryTokenMappingChannel), params)
 		if err != nil {
 			sdkErr := comm.ParseSDKError(err.Error())

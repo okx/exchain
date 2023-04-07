@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	ethcmm "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -58,21 +59,22 @@ func queryTokenMappingChannel(ctx sdk.Context, req abci.RequestQuery, keeper Kee
 		return nil, common.ErrUnMarshalJSONFailed(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
 	}
 
+	path := transfertypes.PortID + "/" + strings.ReplaceAll(params.Channels, ",", "/"+transfertypes.PortID+"/")
 	trace := transfertypes.DenomTrace{
-		Path:      transfertypes.PortID + "/" + params.Channel,
+		Path:      path,
 		BaseDenom: params.BaseDenom,
 	}
 	hash := trace.Hash()
 	_, found := keeper.transferKeeper.GetDenomTrace(ctx, hash)
 	if !found {
-		return nil, fmt.Errorf("the denom trace for the channel %s and denom %s is not found", params.Channel, params.BaseDenom)
+		return nil, fmt.Errorf("the denom trace for the channel %s and denom %s is not found", params.Channels, params.BaseDenom)
 	}
 
 	hexHash := hex.EncodeToString(hash)
 	denom := transfertypes.DenomPrefix + "/" + hexHash
 	contract, found := keeper.GetContractByDenom(ctx, denom)
 	if !found {
-		return nil, fmt.Errorf("the erc20 contract for the channel %s and denom %s is not found", params.Channel, params.BaseDenom)
+		return nil, fmt.Errorf("the erc20 contract for the channel %s and denom %s is not found", params.Channels, params.BaseDenom)
 	}
 	mapping := types.QueryTokenMappingResponse{
 		Denom:     denom,
