@@ -19,6 +19,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/erc20/contract/{denom_hash}", contractByDenomHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/erc20/denom/{contract}", denomByContractHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/erc20/token_mapping_channel/{channel}/{denom}", tokenMappingChannelHandlerFn(cliCtx)).Methods("GET")
+	r.UseEncodedPath()
 }
 
 func tokenMappingHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
