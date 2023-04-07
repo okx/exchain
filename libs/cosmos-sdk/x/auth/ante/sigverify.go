@@ -121,7 +121,7 @@ func checkSigner(pk crypto.PubKey, signer sdk.AccAddress, height int64) (crypto.
 			return ethPub, bytes.Equal(ethPub.Address(), signer)
 		case *secp256k1.PubKeySecp256k1:
 			ethPub := ethsecp256k1.PubKey(v[:])
-			return ethPub, bytes.Equal(ethsecp256k1.PubKey(v[:]).Address(), signer)
+			return ethPub, bytes.Equal(ethPub.Address(), signer)
 		}
 	}
 	return pk, false
