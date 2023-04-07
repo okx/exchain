@@ -41,16 +41,16 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 			return handleStoreCodeProposal(ctx, k, *c)
 		case *types.InstantiateContractProposal:
 			return handleInstantiateProposal(ctx, k, *c)
-		case *types.MigrateContractProposal:
-			return handleMigrateProposal(ctx, k, *c)
+		//case *types.MigrateContractProposal:
+		//	return handleMigrateProposal(ctx, k, *c)
 		case *types.SudoContractProposal:
 			return handleSudoProposal(ctx, k, *c)
 		case *types.ExecuteContractProposal:
 			return handleExecuteProposal(ctx, k, *c)
 		case *types.UpdateAdminProposal:
 			return handleUpdateAdminProposal(ctx, k, *c)
-		case *types.ClearAdminProposal:
-			return handleClearAdminProposal(ctx, k, *c)
+		//case *types.ClearAdminProposal:
+		//	return handleClearAdminProposal(ctx, k, *c)
 		case *types.PinCodesProposal:
 			return handlePinCodesProposal(ctx, k, *c)
 		case *types.UnpinCodesProposal:
@@ -59,8 +59,8 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 			return handleUpdateInstantiateConfigProposal(ctx, k, *c)
 		case *types.UpdateDeploymentWhitelistProposal:
 			return handleUpdateDeploymentWhitelistProposal(ctx, k, *c)
-		case *types.UpdateWASMContractMethodBlockedListProposal:
-			return handleUpdateWASMContractMethodBlockedListProposal(ctx, k, *c)
+		//case *types.UpdateWASMContractMethodBlockedListProposal:
+		//	return handleUpdateWASMContractMethodBlockedListProposal(ctx, k, *c)
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized wasm proposal content type: %T", c)
 		}
@@ -110,35 +110,35 @@ func handleInstantiateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p typ
 	return nil
 }
 
-func handleMigrateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.MigrateContractProposal) error {
-	if err := p.ValidateBasic(); err != nil {
-		return err
-	}
-
-	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
-	if err != nil {
-		return sdkerrors.Wrap(err, "contract")
-	}
-	if err != nil {
-		return sdkerrors.Wrap(err, "run as address")
-	}
-
-	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
-		return err
-	}
-
-	// runAs is not used if this is permissioned, so just put any valid address there (second contractAddr)
-	data, err := k.Migrate(ctx, contractAddr, contractAddr, p.CodeID, p.Msg)
-	if err != nil {
-		return err
-	}
-
-	ctx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeGovContractResult,
-		sdk.NewAttribute(types.AttributeKeyResultDataHex, hex.EncodeToString(data)),
-	))
-	return nil
-}
+//func handleMigrateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.MigrateContractProposal) error {
+//	if err := p.ValidateBasic(); err != nil {
+//		return err
+//	}
+//
+//	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
+//	if err != nil {
+//		return sdkerrors.Wrap(err, "contract")
+//	}
+//	if err != nil {
+//		return sdkerrors.Wrap(err, "run as address")
+//	}
+//
+//	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
+//		return err
+//	}
+//
+//	// runAs is not used if this is permissioned, so just put any valid address there (second contractAddr)
+//	data, err := k.Migrate(ctx, contractAddr, contractAddr, p.CodeID, p.Msg)
+//	if err != nil {
+//		return err
+//	}
+//
+//	ctx.EventManager().EmitEvent(sdk.NewEvent(
+//		types.EventTypeGovContractResult,
+//		sdk.NewAttribute(types.AttributeKeyResultDataHex, hex.EncodeToString(data)),
+//	))
+//	return nil
+//}
 
 func handleSudoProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.SudoContractProposal) error {
 	if err := p.ValidateBasic(); err != nil {
@@ -202,20 +202,20 @@ func handleUpdateAdminProposal(ctx sdk.Context, k types.ContractOpsKeeper, p typ
 	return k.UpdateContractAdmin(ctx, contractAddr, nil, newAdminAddr)
 }
 
-func handleClearAdminProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.ClearAdminProposal) error {
-	if err := p.ValidateBasic(); err != nil {
-		return err
-	}
-
-	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
-	if err != nil {
-		return sdkerrors.Wrap(err, "contract")
-	}
-	if err := k.ClearContractAdmin(ctx, contractAddr, nil); err != nil {
-		return err
-	}
-	return nil
-}
+//func handleClearAdminProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.ClearAdminProposal) error {
+//	if err := p.ValidateBasic(); err != nil {
+//		return err
+//	}
+//
+//	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
+//	if err != nil {
+//		return sdkerrors.Wrap(err, "contract")
+//	}
+//	if err := k.ClearContractAdmin(ctx, contractAddr, nil); err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func handlePinCodesProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.PinCodesProposal) error {
 	if err := p.ValidateBasic(); err != nil {
@@ -274,16 +274,16 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 	return nil
 }
 
-func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateWASMContractMethodBlockedListProposal) error {
-	if err := p.ValidateBasic(); err != nil {
-		return err
-	}
-	contractAddr, err := sdk.AccAddressFromBech32(p.BlockedMethods.ContractAddr)
-	if err != nil {
-		return sdkerrors.Wrap(err, "contract")
-	}
-	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
-		return err
-	}
-	return k.UpdateContractMethodBlockedList(ctx, p.BlockedMethods, p.IsDelete)
-}
+//func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateWASMContractMethodBlockedListProposal) error {
+//	if err := p.ValidateBasic(); err != nil {
+//		return err
+//	}
+//	contractAddr, err := sdk.AccAddressFromBech32(p.BlockedMethods.ContractAddr)
+//	if err != nil {
+//		return sdkerrors.Wrap(err, "contract")
+//	}
+//	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
+//		return err
+//	}
+//	return k.UpdateContractMethodBlockedList(ctx, p.BlockedMethods, p.IsDelete)
+//}

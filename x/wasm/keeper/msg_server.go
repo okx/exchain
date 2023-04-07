@@ -155,26 +155,26 @@ func (m msgServer) UpdateAdmin(goCtx context.Context, msg *types.MsgUpdateAdmin)
 	return &types.MsgUpdateAdminResponse{}, nil
 }
 
-func (m msgServer) ClearAdmin(goCtx context.Context, msg *types.MsgClearAdmin) (*types.MsgClearAdminResponse, error) {
-	ctx := sdk.UnwrapSDKContext(goCtx)
-	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
-	if err != nil {
-		return nil, sdkerrors.Wrap(err, "sender")
-	}
-	contractAddr, err := sdk.AccAddressFromBech32(msg.Contract)
-	if err != nil {
-		return nil, sdkerrors.Wrap(err, "contract")
-	}
-
-	ctx.EventManager().EmitEvent(sdk.NewEvent(
-		sdk.EventTypeMessage,
-		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-		sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender),
-	))
-
-	if err := m.keeper.ClearContractAdmin(ctx, contractAddr, senderAddr); err != nil {
-		return nil, err
-	}
-
-	return &types.MsgClearAdminResponse{}, nil
-}
+//func (m msgServer) ClearAdmin(goCtx context.Context, msg *types.MsgClearAdmin) (*types.MsgClearAdminResponse, error) {
+//	ctx := sdk.UnwrapSDKContext(goCtx)
+//	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+//	if err != nil {
+//		return nil, sdkerrors.Wrap(err, "sender")
+//	}
+//	contractAddr, err := sdk.AccAddressFromBech32(msg.Contract)
+//	if err != nil {
+//		return nil, sdkerrors.Wrap(err, "contract")
+//	}
+//
+//	ctx.EventManager().EmitEvent(sdk.NewEvent(
+//		sdk.EventTypeMessage,
+//		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+//		sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender),
+//	))
+//
+//	if err := m.keeper.ClearContractAdmin(ctx, contractAddr, senderAddr); err != nil {
+//		return nil, err
+//	}
+//
+//	return &types.MsgClearAdminResponse{}, nil
+//}

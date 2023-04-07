@@ -4,22 +4,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"io/ioutil"
 	"math"
 	"testing"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
 	"github.com/okex/exchain/x/wasm/types"
@@ -1391,68 +1393,68 @@ func TestUpdateContractAdmin(t *testing.T) {
 	}
 }
 
-func TestClearContractAdmin(t *testing.T) {
-	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
-	keeper := keepers.ContractKeeper
-
-	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
-	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
-	creator := keepers.Faucet.NewFundedAccount(ctx, deposit.Add(deposit...)...)
-	fred := keepers.Faucet.NewFundedAccount(ctx, topUp...)
-
-	originalContractID, err := keeper.Create(ctx, creator, hackatomWasm, nil)
-	require.NoError(t, err)
-
-	_, _, anyAddr := keyPubAddr()
-	initMsg := HackatomExampleInitMsg{
-		Verifier:    fred,
-		Beneficiary: anyAddr,
-	}
-	initMsgBz, err := json.Marshal(initMsg)
-	require.NoError(t, err)
-	specs := map[string]struct {
-		instAdmin            sdk.AccAddress
-		overrideContractAddr sdk.AccAddress
-		caller               sdk.AccAddress
-		expErr               *sdkerrors.Error
-	}{
-		"all good when called by proper admin": {
-			instAdmin: fred,
-			caller:    fred,
-		},
-		"prevent update when admin was not set on instantiate": {
-			caller: creator,
-			expErr: sdkerrors.ErrUnauthorized,
-		},
-		"prevent updates from non admin address": {
-			instAdmin: creator,
-			caller:    fred,
-			expErr:    sdkerrors.ErrUnauthorized,
-		},
-		"fail with non existing contract addr": {
-			instAdmin:            creator,
-			caller:               creator,
-			overrideContractAddr: anyAddr,
-			expErr:               sdkerrors.ErrInvalidRequest,
-		},
-	}
-	for msg, spec := range specs {
-		t.Run(msg, func(t *testing.T) {
-			addr, _, err := keepers.ContractKeeper.Instantiate(ctx, originalContractID, creator, spec.instAdmin, initMsgBz, "demo contract", nil)
-			require.NoError(t, err)
-			if spec.overrideContractAddr != nil {
-				addr = spec.overrideContractAddr
-			}
-			err = keeper.ClearContractAdmin(ctx, addr, spec.caller)
-			require.True(t, spec.expErr.Is(err), "expected %v but got %+v", spec.expErr, err)
-			if spec.expErr != nil {
-				return
-			}
-			cInfo := keepers.WasmKeeper.GetContractInfo(ctx, addr)
-			assert.Empty(t, cInfo.Admin)
-		})
-	}
-}
+//func TestClearContractAdmin(t *testing.T) {
+//	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
+//	keeper := keepers.ContractKeeper
+//
+//	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
+//	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
+//	creator := keepers.Faucet.NewFundedAccount(ctx, deposit.Add(deposit...)...)
+//	fred := keepers.Faucet.NewFundedAccount(ctx, topUp...)
+//
+//	originalContractID, err := keeper.Create(ctx, creator, hackatomWasm, nil)
+//	require.NoError(t, err)
+//
+//	_, _, anyAddr := keyPubAddr()
+//	initMsg := HackatomExampleInitMsg{
+//		Verifier:    fred,
+//		Beneficiary: anyAddr,
+//	}
+//	initMsgBz, err := json.Marshal(initMsg)
+//	require.NoError(t, err)
+//	specs := map[string]struct {
+//		instAdmin            sdk.AccAddress
+//		overrideContractAddr sdk.AccAddress
+//		caller               sdk.AccAddress
+//		expErr               *sdkerrors.Error
+//	}{
+//		"all good when called by proper admin": {
+//			instAdmin: fred,
+//			caller:    fred,
+//		},
+//		"prevent update when admin was not set on instantiate": {
+//			caller: creator,
+//			expErr: sdkerrors.ErrUnauthorized,
+//		},
+//		"prevent updates from non admin address": {
+//			instAdmin: creator,
+//			caller:    fred,
+//			expErr:    sdkerrors.ErrUnauthorized,
+//		},
+//		"fail with non existing contract addr": {
+//			instAdmin:            creator,
+//			caller:               creator,
+//			overrideContractAddr: anyAddr,
+//			expErr:               sdkerrors.ErrInvalidRequest,
+//		},
+//	}
+//	for msg, spec := range specs {
+//		t.Run(msg, func(t *testing.T) {
+//			addr, _, err := keepers.ContractKeeper.Instantiate(ctx, originalContractID, creator, spec.instAdmin, initMsgBz, "demo contract", nil)
+//			require.NoError(t, err)
+//			if spec.overrideContractAddr != nil {
+//				addr = spec.overrideContractAddr
+//			}
+//			err = keeper.ClearContractAdmin(ctx, addr, spec.caller)
+//			require.True(t, spec.expErr.Is(err), "expected %v but got %+v", spec.expErr, err)
+//			if spec.expErr != nil {
+//				return
+//			}
+//			cInfo := keepers.WasmKeeper.GetContractInfo(ctx, addr)
+//			assert.Empty(t, cInfo.Admin)
+//		})
+//	}
+//}
 
 func TestPinCode(t *testing.T) {
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)

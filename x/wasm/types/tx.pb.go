@@ -762,8 +762,8 @@ type MsgServer interface {
 	MigrateContract(context.Context, *MsgMigrateContract) (*MsgMigrateContractResponse, error)
 	// UpdateAdmin sets a new   admin for a smart contract
 	UpdateAdmin(context.Context, *MsgUpdateAdmin) (*MsgUpdateAdminResponse, error)
-	// ClearAdmin removes any admin stored for a smart contract
-	ClearAdmin(context.Context, *MsgClearAdmin) (*MsgClearAdminResponse, error)
+	//// ClearAdmin removes any admin stored for a smart contract
+	//ClearAdmin(context.Context, *MsgClearAdmin) (*MsgClearAdminResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
@@ -887,23 +887,23 @@ func _Msg_UpdateAdmin_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Msg_ClearAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MsgClearAdmin)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MsgServer).ClearAdmin(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cosmwasm.wasm.v1.Msg/ClearAdmin",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MsgServer).ClearAdmin(ctx, req.(*MsgClearAdmin))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+//func _Msg_ClearAdmin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+//	in := new(MsgClearAdmin)
+//	if err := dec(in); err != nil {
+//		return nil, err
+//	}
+//	if interceptor == nil {
+//		return srv.(MsgServer).ClearAdmin(ctx, in)
+//	}
+//	info := &grpc.UnaryServerInfo{
+//		Server:     srv,
+//		FullMethod: "/cosmwasm.wasm.v1.Msg/ClearAdmin",
+//	}
+//	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+//		return srv.(MsgServer).ClearAdmin(ctx, req.(*MsgClearAdmin))
+//	}
+//	return interceptor(ctx, in, info, handler)
+//}
 
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cosmwasm.wasm.v1.Msg",
@@ -929,10 +929,10 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 			MethodName: "UpdateAdmin",
 			Handler:    _Msg_UpdateAdmin_Handler,
 		},
-		{
-			MethodName: "ClearAdmin",
-			Handler:    _Msg_ClearAdmin_Handler,
-		},
+		//{
+		//	MethodName: "ClearAdmin",
+		//	Handler:    _Msg_ClearAdmin_Handler,
+		//},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "cosmwasm/wasm/v1/tx.proto",

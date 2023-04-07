@@ -66,9 +66,9 @@ func (p PermissionedKeeper) UpdateContractAdmin(ctx sdk.Context, contractAddress
 	return p.nested.setContractAdmin(ctx, contractAddress, caller, newAdmin, p.authZPolicy)
 }
 
-func (p PermissionedKeeper) ClearContractAdmin(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress) error {
-	return p.nested.setContractAdmin(ctx, contractAddress, caller, nil, p.authZPolicy)
-}
+//func (p PermissionedKeeper) ClearContractAdmin(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress) error {
+//	return p.nested.setContractAdmin(ctx, contractAddress, caller, nil, p.authZPolicy)
+//}
 
 func (p PermissionedKeeper) PinCode(ctx sdk.Context, codeID uint64) error {
 	return p.nested.pinCode(ctx, codeID)
