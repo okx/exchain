@@ -1,4 +1,4 @@
-# OKC
+# OKTChain
 The Infrastructure of Decentralized Exchange
 
 ![banner](docs/images/okc.png)
