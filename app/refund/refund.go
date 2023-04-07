@@ -1,6 +1,7 @@
 package refund
 
 import (
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"sync"
 
@@ -23,10 +24,18 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper, ik innert
 	) (refundFee sdk.Coins, err error) {
 		var gasRefundHandler sdk.GasRefundHandler
 
-		if tx.GetType() == sdk.EvmTxType || tx.GetType() == sdk.StdTxType {
-			gasRefundHandler = evmGasRefundHandler
+		if tmtypes.HigherThanEarth(19778095) {
+			if tx.GetType() == sdk.EvmTxType || tx.GetType() == sdk.StdTxType {
+				gasRefundHandler = evmGasRefundHandler
+			} else {
+				return nil, nil
+			}
 		} else {
-			return nil, nil
+			if tx.GetType() == sdk.EvmTxType {
+				gasRefundHandler = evmGasRefundHandler
+			} else {
+				return nil, nil
+			}
 		}
 		return gasRefundHandler(ctx, tx)
 	}
