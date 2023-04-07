@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -25,6 +26,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		switch path[0] {
 		case types.QueryParameters:
 			return queryParams(ctx, keeper)
+		case types.QueryTokenMappingChannel:
+			return queryTokenMappingChannel(ctx, req, keeper)
 		case types.QueryTokenMapping:
 			return queryTokenMapping(ctx, keeper)
 		case types.QueryDenomByContract:
@@ -42,6 +45,42 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 func queryParams(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
 	params := keeper.GetParams(ctx)
 	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, params)
+	if errUnmarshal != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
+	}
+	return res, nil
+}
+
+func queryTokenMappingChannel(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+	var params types.TokenMappingByChannelRequest
+	err := keeper.cdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(sdk.AppendMsgToErr("incorrectly formatted request data", err.Error()))
+	}
+
+	trace := transfertypes.DenomTrace{
+		Path:      transfertypes.PortID + "/" + params.Channel,
+		BaseDenom: params.BaseDenom,
+	}
+	hash := trace.Hash()
+	_, found := keeper.transferKeeper.GetDenomTrace(ctx, hash)
+	if !found {
+		return nil, fmt.Errorf("the denom trace for the channel %s and denom %s is not found", params.Channel, params.BaseDenom)
+	}
+
+	hexHash := hex.EncodeToString(hash)
+	denom := transfertypes.DenomPrefix + "/" + hexHash
+	contract, found := keeper.GetContractByDenom(ctx, denom)
+	if !found {
+		return nil, fmt.Errorf("the erc20 contract for the channel %s and denom %s is not found", params.Channel, params.BaseDenom)
+	}
+	mapping := types.QueryTokenMappingResponse{
+		Denom:     denom,
+		Contract:  contract.String(),
+		Path:      trace.Path,
+		BaseDenom: trace.BaseDenom,
+	}
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, mapping)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
 	}
