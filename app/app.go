@@ -164,7 +164,6 @@ var (
 			fsclient.FeeSplitSharesProposalHandler,
 			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateContractAdminProposalHandler,
-			//wasmclient.ClearContractAdminProposalHandler,
 			wasmclient.PinCodesProposalHandler,
 			wasmclient.UnpinCodesProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,

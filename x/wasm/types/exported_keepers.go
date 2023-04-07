@@ -45,9 +45,6 @@ type ContractOpsKeeper interface {
 	// UpdateContractAdmin sets the admin value on the ContractInfo. It must be a valid address (use ClearContractAdmin to remove it)
 	UpdateContractAdmin(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress, newAdmin sdk.AccAddress) error
 
-	//// ClearContractAdmin sets the admin value on the ContractInfo to nil, to disable further migrations/ updates.
-	//ClearContractAdmin(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress) error
-
 	// PinCode pins the wasm contract in wasmvm cache
 	PinCode(ctx sdk.Context, codeID uint64) error
 
