@@ -65,7 +65,7 @@ func registerGrpc(rs *lcd.RestServer) {
 }
 
 func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
-	v1Router := rs.Mux.PathPrefix(fmt.Sprintf("/%s/v1", pathPrefix)).Name("v1").Subrouter()
+	v1Router := rs.Mux.PathPrefix(fmt.Sprintf("/%s/v1", pathPrefix)).Name("v1").Subrouter().UseEncodedPath()
 	client.RegisterRoutes(rs.CliCtx, v1Router)
 	authrest.RegisterRoutes(rs.CliCtx, v1Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v1Router)
