@@ -151,6 +151,10 @@ func IsTestNet() bool {
 	return MILESTONE_GENESIS_HEIGHT == "1121818"
 }
 
+func IsPrivateNet() bool {
+	return !IsMainNet() && !IsTestNet()
+}
+
 func GetStartBlockHeight() int64 {
 	return genesisHeight
 }
