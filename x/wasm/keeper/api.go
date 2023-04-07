@@ -26,7 +26,7 @@ var (
 )
 
 func humanAddress(canon []byte) (string, uint64, error) {
-	if err := sdk.VerifyAddressFormat(canon); err != nil {
+	if err := sdk.WasmVerifyAddress(canon); err != nil {
 		return "", costHumanize, err
 	}
 	return sdk.WasmAddress(canon).String(), costHumanize, nil

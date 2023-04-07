@@ -120,9 +120,8 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			nil,
-			//errors.New("[\"execution reverted\",\"execution reverted:ERC20: mint to the zero address\",\"HexData\",\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001f45524332303a206d696e7420746f20746865207a65726f206164647265737300\"]"),
-			true,
+			errors.New("incorrect address length"),
+			false,
 		},
 		{
 			"caller(ex wasm),contract(0x wasm),recipient(0x),amount(1)",
@@ -133,7 +132,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 			},
 			func() {
 			},
-			errors.New("abi: attempting to unmarshall an empty string while arguments are expected"),
+			errors.New("incorrect address length"),
 			true,
 		},
 		{
@@ -217,7 +216,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 			},
 			func() {
 				queryAddr := sdk.AccAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
@@ -233,8 +232,8 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 				data = input
 			},
 			func() {
-				queryAddr := sdk.AccAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
@@ -250,8 +249,8 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 				data = input
 			},
 			func() {
-				queryAddr := sdk.AccAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"0\"}", string(result))
 			},
@@ -267,21 +266,9 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 			nil,
 		},
 		{
-			"wasmAddStr is not wasm",
-			func() {
-				wasmAddrStr := sdk.AccAddress(make([]byte, 20)).String()
-				input, err := getSendToWasmEventData(wasmAddrStr, sdk.AccAddress(ethAddr.Bytes()).String(), big.NewInt(1))
-				suite.Require().NoError(err)
-				data = input
-			},
-			func() {
-			},
-			types.ErrIsNotWasmAddr,
-		},
-		{
 			"wasmAddStr is not exist",
 			func() {
-				wasmAddrStr := sdk.AccAddress(make([]byte, 32)).String()
+				wasmAddrStr := sdk.AccAddress(make([]byte, 20)).String()
 				input, err := getSendToWasmEventData(wasmAddrStr, sdk.AccAddress(ethAddr.Bytes()).String(), big.NewInt(1))
 				suite.Require().NoError(err)
 				data = input

@@ -67,7 +67,7 @@ func WasmAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (
 		if err != nil {
 			return addr, err
 		}
-		return addr, VerifyAddressFormat(addr)
+		return addr, WasmVerifyAddress(addr)
 	}
 
 	//decodes a bytestring from a Bech32 encoded string
@@ -76,12 +76,19 @@ func WasmAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (
 		return nil, err
 	}
 
-	err = VerifyAddressFormat(bz)
+	err = WasmVerifyAddress(bz)
 	if err != nil {
 		return nil, err
 	}
 
 	return WasmAddress(bz), nil
+}
+
+func WasmVerifyAddress(bz []byte) error {
+	if len(bz) != AddrLen {
+		return errors.New("incorrect address length")
+	}
+	return nil
 }
 
 // Returns boolean for whether two WasmAddresses are Equal

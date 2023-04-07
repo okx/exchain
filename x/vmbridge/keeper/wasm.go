@@ -26,7 +26,7 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if amount.IsNegative() {
 		return types.ErrAmountNegative
 	}
-	input, err := types.GetMintCW20Input(amount.String(), to.String())
+	input, err := types.GetMintCW20Input(amount.String(), sdk.AccToAWasmddress(to).String())
 	if err != nil {
 		return err
 	}

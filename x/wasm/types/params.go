@@ -32,7 +32,7 @@ func (a AccessType) With(addr sdk.WasmAddress) AccessConfig {
 	case AccessTypeNobody:
 		return AllowNobody
 	case AccessTypeOnlyAddress:
-		if err := sdk.VerifyAddressFormat(addr); err != nil {
+		if err := sdk.WasmVerifyAddress(addr); err != nil {
 			panic(err)
 		}
 		return AccessConfig{Permission: AccessTypeOnlyAddress, Address: addr.String()}

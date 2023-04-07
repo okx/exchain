@@ -1822,7 +1822,7 @@ func TestBuildContractAddress(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			gotAddr := BuildContractAddress(spec.srcCodeID, spec.srcInstanceID)
 			require.NotNil(t, gotAddr)
-			assert.Nil(t, sdk.VerifyAddressFormat(gotAddr))
+			assert.Nil(t, sdk.WasmVerifyAddress(gotAddr))
 			if len(spec.expectedAddr) > 0 {
 				require.Equal(t, spec.expectedAddr, gotAddr.String())
 			}

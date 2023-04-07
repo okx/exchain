@@ -33,6 +33,8 @@ const (
 	// Bech32MainPrefix defines the main SDK Bech32 prefix of an account's address
 	Bech32MainPrefix = "cosmos"
 
+	// LongAddrLen defines a valid wasm contract address length
+	LongAddrLen = 32
 	// CoinType is the ATOM coin type as defined in SLIP44 (https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
 	CoinType = 118
 
@@ -126,7 +128,7 @@ func VerifyAddressFormat(bz []byte) error {
 	if verifier != nil {
 		return verifier(bz)
 	}
-	if len(bz) != AddrLen {
+	if len(bz) != AddrLen && len(bz) != LongAddrLen {
 		return errors.New("incorrect address length")
 	}
 	return nil
