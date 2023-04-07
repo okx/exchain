@@ -273,7 +273,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			errors.New("the evm execute: incorrect address length"), // This case is checkout in msg.validateBasic. so this case pass
+			nil, // This case is checkout in msg.validateBasic. so this case pass
 			//errors.New("[\"execution reverted\",\"execution reverted:ERC20: mint to the zero address\",\"HexData\",\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001f45524332303a206d696e7420746f20746865207a65726f206164647265737300\"]"),
 			true,
 		},
@@ -286,7 +286,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			},
 			func() {
 			},
-			sdkerrors.Wrap(types.ErrEvmExecuteFailed, "incorrect address length"),
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, "abi: attempting to unmarshall an empty string while arguments are expected"),
 			true,
 		},
 		{

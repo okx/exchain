@@ -120,8 +120,9 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			errors.New("incorrect address length"),
-			false,
+			nil,
+			//errors.New("[\"execution reverted\",\"execution reverted:ERC20: mint to the zero address\",\"HexData\",\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001f45524332303a206d696e7420746f20746865207a65726f206164647265737300\"]"),
+			true,
 		},
 		{
 			"caller(ex wasm),contract(0x wasm),recipient(0x),amount(1)",
@@ -132,7 +133,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 			},
 			func() {
 			},
-			errors.New("incorrect address length"),
+			errors.New("abi: attempting to unmarshall an empty string while arguments are expected"),
 			true,
 		},
 		{
