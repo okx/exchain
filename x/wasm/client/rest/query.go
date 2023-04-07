@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"net/http"
 	"strconv"
 	"strings"
@@ -107,12 +108,16 @@ func listCodesHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			}
 		}
 
-		res, err := queryClient.Codes(
-			context.Background(),
-			&types.QueryCodesRequest{
-				Pagination: pageReq,
-			},
-		)
+		request := &types.QueryCodesRequest{
+			Pagination: pageReq,
+		}
+		result, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.Codes(
+				context.Background(),
+				request,
+			)
+		})
+		res := result.(*types.QueryCodesResponse)
 
 		if reverse {
 			for i, j := 0, len(res.CodeInfos)-1; i < j; i, j = i+1, j-1 {
@@ -141,13 +146,15 @@ func queryCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "codeId should be a number")
 			return
 		}
+
 		queryClient := types.NewQueryClient(cliCtx)
-		res, err := queryClient.Code(
-			context.Background(),
-			&types.QueryCodeRequest{
-				CodeId: codeId,
-			},
-		)
+		request := &types.QueryCodeRequest{
+			CodeId: codeId,
+		}
+
+		res, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.Code(context.Background(), request)
+		})
 
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -197,13 +204,18 @@ func listContractsByCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc 
 			}
 		}
 
-		res, err := queryClient.ContractsByCode(
-			context.Background(),
-			&types.QueryContractsByCodeRequest{
-				CodeId:     codeID,
-				Pagination: pageReq,
-			},
-		)
+		request := &types.QueryContractsByCodeRequest{
+			CodeId:     codeID,
+			Pagination: pageReq,
+		}
+		result, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.ContractsByCode(
+				context.Background(),
+				request,
+			)
+		})
+
+		res := result.(*types.QueryContractsByCodeResponse)
 
 		if reverse {
 			for i, j := 0, len(res.Contracts)-1; i < j; i, j = i+1, j-1 {
@@ -228,12 +240,16 @@ func queryContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 		}
 
 		queryClient := types.NewQueryClient(cliCtx)
-		res, err := queryClient.ContractInfo(
-			context.Background(),
-			&types.QueryContractInfoRequest{
-				Address: mux.Vars(r)["contractAddr"],
-			},
-		)
+
+		request := &types.QueryContractInfoRequest{
+			Address: mux.Vars(r)["contractAddr"],
+		}
+		res, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.ContractInfo(
+				context.Background(),
+				request,
+			)
+		})
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -298,13 +314,17 @@ func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 			}
 		}
 
-		res, err := queryClient.AllContractState(
-			context.Background(),
-			&types.QueryAllContractStateRequest{
-				Address:    addr,
-				Pagination: pageReq,
-			},
-		)
+		request := &types.QueryAllContractStateRequest{
+			Address:    addr,
+			Pagination: pageReq,
+		}
+		result, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.AllContractState(
+				context.Background(),
+				request,
+			)
+		})
+		res := result.(*types.QueryAllContractStateResponse)
 
 		if reverse {
 			for i, j := 0, len(res.Models)-1; i < j; i, j = i+1, j-1 {
@@ -335,13 +355,17 @@ func queryContractStateRawHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 			return
 		}
 		queryClient := types.NewQueryClient(cliCtx)
-		res, err := queryClient.RawContractState(
-			context.Background(),
-			&types.QueryRawContractStateRequest{
-				Address:   mux.Vars(r)["contractAddr"],
-				QueryData: queryData,
-			},
-		)
+
+		request := &types.QueryRawContractStateRequest{
+			Address:   mux.Vars(r)["contractAddr"],
+			QueryData: queryData,
+		}
+		res, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.RawContractState(
+				context.Background(),
+				request,
+			)
+		})
 
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -372,13 +396,16 @@ func queryContractStateSmartHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerF
 		}
 
 		queryClient := types.NewQueryClient(cliCtx)
-		res, err := queryClient.SmartContractState(
-			context.Background(),
-			&types.QuerySmartContractStateRequest{
-				Address:   mux.Vars(r)["contractAddr"],
-				QueryData: queryData,
-			},
-		)
+		request := &types.QuerySmartContractStateRequest{
+			Address:   mux.Vars(r)["contractAddr"],
+			QueryData: queryData,
+		}
+		res, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.SmartContractState(
+				context.Background(),
+				request,
+			)
+		})
 
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -421,13 +448,18 @@ func queryContractHistoryFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			}
 		}
 
-		res, err := queryClient.ContractHistory(
-			context.Background(),
-			&types.QueryContractHistoryRequest{
-				Address:    addr,
-				Pagination: pageReq,
-			},
-		)
+		request := &types.QueryContractHistoryRequest{
+			Address:    addr,
+			Pagination: pageReq,
+		}
+
+		result, err := queryWithCache(request, func() (proto.Message, error) {
+			return queryClient.ContractHistory(
+				context.Background(),
+				request,
+			)
+		})
+		res := result.(*types.QueryContractHistoryResponse)
 
 		if reverse {
 			for i, j := 0, len(res.Entries)-1; i < j; i, j = i+1, j-1 {
