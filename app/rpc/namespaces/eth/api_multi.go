@@ -56,9 +56,13 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []string, blockNrOrHash 
 		if err != nil {
 			return nil, fmt.Errorf("addr:%s,err:%s", addr, err)
 		}
+		wasmAddr, err := sdk.WasmAddressFromBech32(addr)
+		if err != nil {
+			return nil, fmt.Errorf("addr:%s,err:%s", addr, err)
+		}
 		if acc, err := api.wrappedBackend.MustGetAccount(address); err == nil {
 			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
-			accType := accountType(acc, clientCtx)
+			accType := accountType(acc, clientCtx, wasmAddr)
 			if balance == nil {
 				balances[addr] = accBalance{accType, (*hexutil.Big)(sdk.ZeroInt().BigInt())}
 			} else {
@@ -82,7 +86,7 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []string, blockNrOrHash 
 		}
 
 		val := account.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
-		accType := accountType(account, clientCtx)
+		accType := accountType(account, clientCtx, wasmAddr)
 		if accType == token.UserAccount || accType == token.ContractAccount {
 			api.watcherBackend.CommitAccountToRpcDb(account)
 			if blockNum != rpctypes.PendingBlockNumber {

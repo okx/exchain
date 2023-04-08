@@ -245,7 +245,7 @@ func getStorageByAddressKey(addr common.Address, key []byte) common.Hash {
 	return ethcrypto.Keccak256Hash(compositeKey)
 }
 
-func accountType(account authexported.Account, cliCtx clientCtx.CLIContext) token.AccType {
+func accountType(account authexported.Account, cliCtx clientCtx.CLIContext, wasmAddr sdk.WasmAddress) token.AccType {
 	switch account.(type) {
 	case *ethermint.EthAccount:
 		ethAcc, _ := account.(*ethermint.EthAccount)
@@ -253,7 +253,7 @@ func accountType(account authexported.Account, cliCtx clientCtx.CLIContext) toke
 			return token.ContractAccount
 		}
 		// Determine whether it is a wasm contract
-		route := fmt.Sprintf("custom/%s/%s/%s", wasmtypes.QuerierRoute, wasmkeeper.QueryGetContract, ethAcc.String())
+		route := fmt.Sprintf("custom/%s/%s/%s", wasmtypes.QuerierRoute, wasmkeeper.QueryGetContract, wasmAddr.String())
 		_, _, err := cliCtx.Query(route)
 		// Here, the address format must be valid, and only wasmtypes.ErrNotFound error may occur.
 		if err == nil {
