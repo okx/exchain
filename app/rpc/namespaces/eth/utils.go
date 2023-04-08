@@ -257,7 +257,7 @@ func accountType(account authexported.Account, cliCtx clientCtx.CLIContext, wasm
 		_, _, err := cliCtx.Query(route)
 		// Here, the address format must be valid, and only wasmtypes.ErrNotFound error may occur.
 		if err == nil {
-			return token.ContractAccount
+			return token.WasmAccount
 		}
 		return token.UserAccount
 	case *supply.ModuleAccount:
