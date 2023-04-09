@@ -490,18 +490,21 @@ func getSendToWasmEventData(wasmAddr, recipient string, amount *big.Int) ([]byte
 func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 
 	caller := suite.freeCallWasmContract.String()
-	callerhex := common.BytesToAddress(suite.freeCallWasmContract.Bytes()).String()
 	contract := suite.freeCallEvmContract.String()
 	contractEx := sdk.AccAddress(suite.freeCallEvmContract.Bytes()).String()
 	callDataFormat := "{\"call_to_evm\":{\"value\":\"0\",\"evmaddr\":\"%s\",\"calldata\":\"%s\"}}"
 	callData := fmt.Sprintf(callDataFormat, contract, "init-to-call-evm")
 	value := sdk.NewInt(0)
 	evmReturnPrefix := "callByWasm return: %s ---data: "
+	evmInput, err := getCallByWasmInput(suite.evmABI, caller, callData)
+	suite.Require().NoError(err)
 	reset := func() {
 		caller = suite.freeCallWasmContract.String()
 		contract = suite.freeCallEvmContract.String()
 		callData = fmt.Sprintf(callDataFormat, contract, "init-to-call-evm")
 		value = sdk.NewInt(0)
+		evmInput, err = getCallByWasmInput(suite.evmABI, caller, callData)
+		suite.Require().NoError(err)
 	}
 	testCases := []struct {
 		msg       string
@@ -511,7 +514,7 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 		expect    string
 	}{
 		{
-			"caller(ex 32),contract(0x 20),calldata(normal),amount(0)",
+			"caller(0x),contract(0x),calldata(normal),amount(0)",
 			func() {
 
 			},
@@ -525,25 +528,13 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 			fmt.Sprintf(evmReturnPrefix, caller) + fmt.Sprintf(callDataFormat, contract, "init-to-call-evm"),
 		},
 		{
-			"caller(0x 32),contract(0x 20),calldata(normal),amount(0)",
-			func() {
-				caller = callerhex
-			},
-			func() {
-				aimAddr, err := sdk.AccAddressFromBech32(caller)
-				suite.Require().NoError(err)
-				balance := suite.queryCoins(aimAddr)
-				suite.Require().Equal(sdk.Coins{}.String(), balance.String())
-			},
-			nil,
-			fmt.Sprintf(evmReturnPrefix, callerhex) + fmt.Sprintf(callDataFormat, contract, "init-to-call-evm"),
-		},
-		{
-			"caller(ex 20),contract(0x 20),calldata(normal),amount(0)",
+			"caller(ex),contract(0x),calldata(normal),amount(0)",
 			func() {
 				buffer := make([]byte, 20)
 				buffer[19] = 0x1
 				caller = sdk.AccAddress(buffer).String()
+				evmInput, err = getCallByWasmInput(suite.evmABI, caller, callData)
+				suite.Require().NoError(err)
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(caller)
@@ -555,41 +546,11 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 			fmt.Sprintf(evmReturnPrefix, "ex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpxuz0nc") + fmt.Sprintf(callDataFormat, contract, "init-to-call-evm"),
 		},
 		{
-			"caller(0x 20),contract(0x 20),calldata(normal),amount(0)",
-			func() {
-				buffer := make([]byte, 20)
-				buffer[19] = 0x1
-				caller = common.BytesToAddress(buffer).String()
-			},
-			func() {
-				aimAddr, err := sdk.AccAddressFromBech32(caller)
-				suite.Require().NoError(err)
-				balance := suite.queryCoins(aimAddr)
-				suite.Require().Equal(sdk.Coins{}.String(), balance.String())
-			},
-			nil,
-			fmt.Sprintf(evmReturnPrefix, "0x0000000000000000000000000000000000000001") + fmt.Sprintf(callDataFormat, contract, "init-to-call-evm"),
-		},
-		{
-			"caller(ex 32),contract(0x 32),calldata(normal),amount(0)",
-			func() {
-				buffer := make([]byte, 32)
-				buffer[19] = 0x1
-				contract = common.BytesToAddress(buffer).String()
-			},
-			func() {
-				aimAddr, err := sdk.AccAddressFromBech32(caller)
-				suite.Require().NoError(err)
-				balance := suite.queryCoins(aimAddr)
-				suite.Require().Equal(sdk.Coins{}.String(), balance.String())
-			},
-			errors.New("abi: attempting to unmarshall an empty string while arguments are expected"),
-			"",
-		},
-		{
-			"caller(ex 32),contract(ex),calldata(normal),amount(0)",
+			"caller(0x),contract(ex),calldata(normal),amount(0)",
 			func() {
 				contract = contractEx
+				evmInput, err = getCallByWasmInput(suite.evmABI, caller, callData)
+				suite.Require().NoError(err)
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(caller)
@@ -601,9 +562,11 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 			"",
 		},
 		{
-			"caller(ex 32),contract(0x 20),calldata(emppty),amount(0)",
+			"caller(0x),contract(0x),calldata(emppty),amount(0)",
 			func() {
 				callData = fmt.Sprintf(callDataFormat, contract, "")
+				evmInput, err = getCallByWasmInput(suite.evmABI, caller, callData)
+				suite.Require().NoError(err)
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(caller)
@@ -615,10 +578,20 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 			fmt.Sprintf(evmReturnPrefix, caller) + fmt.Sprintf(callDataFormat, contract, ""),
 		},
 		{
-			"caller(ex 32),contract(0x 20),calldata(normal),amount(1)",
+			"caller(0x),contract(0x),calldata(normal),amount(1)",
 			func() {
 				value = sdk.NewIntFromBigInt(sdk.NewDec(1).BigInt())
-				suite.SetAccountCoins(suite.freeCallWasmContract, sdk.NewInt(1))
+				suite.SetAccountCoins(sdk.WasmToAccAddress(suite.freeCallWasmContract), sdk.NewInt(1))
+
+				aimAddr, err := sdk.AccAddressFromBech32(caller)
+				suite.Require().NoError(err)
+				balance := suite.queryCoins(aimAddr)
+				suite.Require().Equal(sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)}.String(), balance.String())
+
+				aimAddr, err = sdk.AccAddressFromBech32(contract)
+				suite.Require().NoError(err)
+				balance = suite.queryCoins(aimAddr)
+				suite.Require().Equal(sdk.Coins{}.String(), balance.String())
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(caller)
@@ -635,10 +608,10 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 			fmt.Sprintf(evmReturnPrefix, caller) + fmt.Sprintf(callDataFormat, contract, "init-to-call-evm"),
 		},
 		{
-			"caller(ex 32),contract(0x 20),calldata(normal),amount(2)",
+			"caller(ex),contract(0x),calldata(normal),amount(2)",
 			func() {
 				value = sdk.NewIntFromBigInt(sdk.NewDec(2).BigInt())
-				suite.SetAccountCoins(suite.freeCallWasmContract, sdk.NewInt(1))
+				suite.SetAccountCoins(sdk.WasmToAccAddress(suite.freeCallWasmContract), sdk.NewInt(1))
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(caller)
@@ -651,7 +624,7 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 				balance = suite.queryCoins(aimAddr)
 				suite.Require().Equal(sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)}.String(), balance.String())
 			},
-			errors.New("insufficient funds: insufficient account funds; 1.000000000000000000okt < 2.000000000000000000okt"),
+			errors.New("insufficient balance for transfer"),
 			"",
 		},
 	}
@@ -661,10 +634,12 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 			reset()
 			tc.malleate()
 
-			response, err := suite.app.VMBridgeKeeper.CallToEvm(suite.ctx, caller, contract, callData, value)
+			result, err := suite.app.VMBridgeKeeper.CallToEvm(suite.ctx, caller, contract, string(evmInput), value)
 			if tc.error != nil {
 				suite.Require().EqualError(err, tc.error.Error())
 			} else {
+				suite.Require().NoError(err)
+				response, err := getCallByWasmOutput(suite.evmABI, []byte(result))
 				suite.Require().NoError(err)
 				suite.Require().Equal(tc.expect, response)
 				tc.postcheck()
@@ -680,7 +655,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 	caller := suite.freeCallEvmContract
 
 	wasmContractAddr := suite.freeCallWasmContract.String()
-	calldata := "{\"transfer\":{\"amount\":\"100\",\"recipient\":\"ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq\"}}"
+	calldata := "{\"transfer\":{\"amount\":\"100\",\"recipient\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}"
 	value := sdk.NewInt(0)
 	data, err := getCallToWasmEventData(wasmContractAddr, value.BigInt(), hex.EncodeToString([]byte(calldata)))
 	require.NoError(suite.T(), err)
@@ -688,7 +663,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 	reset := func() {
 		caller = suite.freeCallEvmContract
 		wasmContractAddr = suite.freeCallWasmContract.String()
-		calldata = "{\"transfer\":{\"amount\":\"100\",\"recipient\":\"ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq\"}}"
+		calldata = "{\"transfer\":{\"amount\":\"100\",\"recipient\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}"
 		value = sdk.NewInt(0)
 		data, err = getCallToWasmEventData(wasmContractAddr, value.BigInt(), hex.EncodeToString([]byte(calldata)))
 		require.NoError(suite.T(), err)
@@ -700,16 +675,16 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 		error     error
 	}{
 		{
-			"caller(exist),wasmContract(ex 32),value(0),data(normal)",
+			"caller(exist),wasmContract(0x 20),value(0),data(normal)",
 			func() {
 			},
 			func() {
-				queryAddr := sdk.AccAddress(caller.Bytes())
+				queryAddr := sdk.WasmAddress(caller.Bytes())
 				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.freeCallWasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"99999900\"}", string(result))
 
-				queryAddr = tempAddr
+				queryAddr = sdk.AccToAWasmddress(tempAddr)
 				result, err = suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.freeCallWasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"100\"}", string(result))
@@ -717,7 +692,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			nil,
 		},
 		{
-			"caller(no exist),wasmContract(ex 32),value(0),data(normal)",
+			"caller(no exist),wasmContract(0x 20),value(0),data(normal)",
 			func() {
 				caller = common.BytesToAddress(make([]byte, 20))
 			},
@@ -728,24 +703,24 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 		{
 			"caller(exist),wasmContract(0x 32),value(0),data(normal)",
 			func() {
-				data, err = getCallToWasmEventData(hex.EncodeToString(suite.freeCallWasmContract), value.BigInt(), hex.EncodeToString([]byte(calldata)))
+				data, err = getCallToWasmEventData(hex.EncodeToString(make([]byte, 32)), value.BigInt(), hex.EncodeToString([]byte(calldata)))
 				require.NoError(suite.T(), err)
 			},
 			func() {
-				queryAddr := sdk.AccAddress(caller.Bytes())
+				queryAddr := sdk.WasmAddress(caller.Bytes())
 				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.freeCallWasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"99999900\"}", string(result))
 
-				queryAddr = tempAddr
+				queryAddr = sdk.AccToAWasmddress(tempAddr)
 				result, err = suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.freeCallWasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"100\"}", string(result))
 			},
-			nil,
+			errors.New("incorrect address length"),
 		},
 		{
-			"caller(exist),wasmContract(ex not found),value(0),data(normal)",
+			"caller(exist),wasmContract(ex 32),value(0),data(normal)",
 			func() {
 				data, err = getCallToWasmEventData(sdk.AccAddress(make([]byte, 32)).String(), value.BigInt(), hex.EncodeToString([]byte(calldata)))
 				require.NoError(suite.T(), err)
@@ -753,10 +728,10 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			func() {
 
 			},
-			errors.New("not found: contract"),
+			errors.New("incorrect address length"),
 		},
 		{
-			"caller(exist),wasmContract(ex 20),value(0),data(normal)",
+			"caller(exist),wasmContract(ex no found),value(0),data(normal)",
 			func() {
 
 				data, err = getCallToWasmEventData(sdk.AccAddress(make([]byte, 20)).String(), value.BigInt(), hex.EncodeToString([]byte(calldata)))
@@ -765,22 +740,10 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			func() {
 
 			},
-			types.ErrIsNotWasmAddr,
+			errors.New("not found: contract"),
 		},
 		{
-			"caller(exist),wasmContract(0x 20),value(0),data(normal)",
-			func() {
-
-				data, err = getCallToWasmEventData(hex.EncodeToString(make([]byte, 20)), value.BigInt(), hex.EncodeToString([]byte(calldata)))
-				require.NoError(suite.T(), err)
-			},
-			func() {
-
-			},
-			types.ErrIsNotWasmAddr,
-		},
-		{
-			"caller(exist),wasmContract(ex 32),value(1),data(normal)",
+			"caller(exist),wasmContract(0x 20),value(1),data(normal)",
 			func() {
 				value = sdk.NewIntFromBigInt(sdk.NewDec(1).BigInt())
 				suite.SetAccountCoins(sdk.AccAddress(caller.Bytes()), sdk.NewInt(1))
@@ -788,12 +751,12 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 				require.NoError(suite.T(), err)
 			},
 			func() {
-				queryAddr := sdk.AccAddress(caller.Bytes())
+				queryAddr := sdk.WasmAddress(caller.Bytes())
 				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.freeCallWasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"99999900\"}", string(result))
 
-				queryAddr = tempAddr
+				queryAddr = sdk.AccToAWasmddress(tempAddr)
 				result, err = suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.freeCallWasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"100\"}", string(result))
@@ -801,13 +764,13 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 				balance := suite.queryCoins(caller.Bytes())
 				suite.Require().Equal(sdk.Coins{}.String(), balance.String())
 
-				balance = suite.queryCoins(suite.freeCallWasmContract)
+				balance = suite.queryCoins(sdk.WasmToAccAddress(suite.freeCallWasmContract))
 				suite.Require().Equal(sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)}.String(), balance.String())
 			},
 			nil,
 		},
 		{
-			"caller(exist),wasmContract(ex 32),value(2),data(normal)",
+			"caller(exist),wasmContract(0x 20),value(2),data(normal)",
 			func() {
 				value = sdk.NewIntFromBigInt(sdk.NewDec(2).BigInt())
 				suite.SetAccountCoins(sdk.AccAddress(caller.Bytes()), sdk.NewInt(1))
@@ -819,7 +782,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			errors.New("insufficient funds: insufficient account funds; 1.000000000000000000okt < 2.000000000000000000okt"),
 		},
 		{
-			"caller(exist),wasmContract(ex 32),value(-1),data(normal)",
+			"caller(exist),wasmContract(0x 20),value(-1),data(normal)",
 			func() {
 				value = sdk.NewIntFromBigInt(sdk.NewDec(-1).BigInt())
 				data, err = getCallToWasmEventData(wasmContractAddr, value.BigInt(), hex.EncodeToString([]byte(calldata)))
@@ -830,7 +793,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			nil, //because it has been recover check err
 		},
 		{
-			"caller(exist),wasmContract(ex 32),value(1),data(error msg)",
+			"caller(exist),wasmContract(0x 20),value(1),data(error msg)",
 			func() {
 				calldata := "11111111122222222"
 				value := sdk.NewInt(0)
@@ -842,7 +805,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			errors.New("json: cannot unmarshal number into Go value of type map[string]interface {}"),
 		},
 		{
-			"caller(exist),wasmContract(ex 32),value(-1),data(empty msg)",
+			"caller(exist),wasmContract(0x 20),value(-1),data(empty msg)",
 			func() {
 				calldata := ""
 				value := sdk.NewInt(0)
@@ -855,7 +818,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			errors.New("unexpected end of JSON input"),
 		},
 		{
-			"caller(exist),wasmContract(ex 32),value(-1),data(nofound method msg)",
+			"caller(exist),wasmContract(0x 20),value(-1),data(nofound method msg)",
 			func() {
 				calldata := "{\"transfer1\":{\"amount\":\"100\",\"recipient\":\"ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq\"}}"
 				value := sdk.NewInt(0)
@@ -867,7 +830,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			errors.New("execute wasm contract failed: Error parsing into type cw_erc20::msg::ExecuteMsg: unknown variant `transfer1`, expected one of `approve`, `transfer`, `transfer_from`, `burn`, `mint_c_w20`, `call_to_evm`"),
 		},
 		{
-			"caller(exist),wasmContract(ex 32),value(-1),data(multi method msg)",
+			"caller(exist),wasmContract(0x 20),value(-1),data(multi method msg)",
 			func() {
 				calldata := "{\"transfer\":{\"amount\":\"100\",\"recipient\":\"ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq\"},\"transfer\":{\"amount\":\"100\",\"recipient\":\"ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq\"}}"
 				value := sdk.NewInt(0)
@@ -879,7 +842,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			errors.New("execute wasm contract failed: Error parsing into type cw_erc20::msg::ExecuteMsg: Expected this character to start a JSON value."),
 		},
 		{
-			"caller(exist),wasmContract(ex 32),value(-1),data(other method msg)",
+			"caller(exist),wasmContract(0x 20),value(-1),data(other method msg)",
 			func() {
 				calldata := "{\"transfer_from\":{\"amount\":\"100\",\"recipient\":\"ex1eutyuqqase3eyvwe92caw8dcx5ly8s544q3hmq\"}}"
 				value := sdk.NewInt(0)
@@ -898,7 +861,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEventHandler_Handle() {
 			handler := keeper2.NewCallToWasmEventHandler(*suite.keeper)
 			tc.malleate()
 
-			if tc.msg == "caller(exist),wasmContract(ex 32),value(-1),data(normal)" {
+			if tc.msg == "caller(exist),wasmContract(0x 20),value(-1),data(normal)" {
 				defer func() {
 					r := recover()
 					suite.Require().NotNil(r)
@@ -994,7 +957,7 @@ func (suite *KeeperTestSuite) TestCallToWasmEvent_Unpack() {
 			},
 			func(wasmAddr string, value sdk.Int, calldata string, err error) {
 			},
-			errors.New("abi: length larger than int64: 6901746346790563787434755862277025452451108972170386555162524223799389"),
+			errors.New("abi: length larger than int64: 1208925819614629174706250"),
 		},
 		{
 			"event __OKCCallToWasm(string,uint256,string,string) ",
@@ -1085,4 +1048,24 @@ func getCallToWasmUnpack(unpacked []interface{}) (wasmAddr string, value sdk.Int
 	}
 	calldata = string(buff)
 	return
+}
+
+func getCallByWasmInput(abi abi.ABI, callerAddr, calldata string) ([]byte, error) {
+	data, err := abi.Pack("callByWasm", callerAddr, calldata)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func getCallByWasmOutput(abi abi.ABI, data []byte) (string, error) {
+	result, err := abi.Unpack("callByWasm", data)
+	if err != nil {
+		return err.Error(), err
+	}
+	if len(result) != 1 {
+		err := fmt.Errorf("%s method outputs must be one output", "callByWasm")
+		return err.Error(), err
+	}
+	return result[0].(string), nil
 }

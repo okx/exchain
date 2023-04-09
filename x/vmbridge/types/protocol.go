@@ -20,7 +20,6 @@ const (
 	CallToWasmEventName = "__OKCCallToWasm"
 
 	WasmEvent2EvmMsgName = "call-to-wasm"
-	CallByWasmMethodName = "callByWasm"
 )
 
 var (
@@ -76,26 +75,6 @@ func GetMintERC20Output(data []byte) (bool, error) {
 		return false, fmt.Errorf("%s method outputs must be one output", EvmCalledMethodName)
 	}
 	return result[0].(bool), nil
-}
-
-func GetCallByWasmInput(callerAddr, calldata string) ([]byte, error) {
-	data, err := EvmABI.Pack(CallByWasmMethodName, callerAddr, calldata)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
-func GetCallByWasmOutput(data []byte) (string, error) {
-	result, err := EvmABI.Unpack(CallByWasmMethodName, data)
-	if err != nil {
-		return err.Error(), err
-	}
-	if len(result) != 1 {
-		err := fmt.Errorf("%s method outputs must be one output", CallByWasmMethodName)
-		return err.Error(), err
-	}
-	return result[0].(string), nil
 }
 
 func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event, abi.Event) {

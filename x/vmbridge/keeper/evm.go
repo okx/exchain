@@ -132,7 +132,7 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 	if watcher.IsWatcherEnabled() {
 		ctx.SetWatcher(watcher.NewTxWatcher())
 	}
-	_, result, err := k.CallEvm(ctx, &conrtractAddr, big.NewInt(0), input)
+	_, result, err := k.CallEvm(ctx, erc20types.IbcEvmModuleETHAddr, &conrtractAddr, big.NewInt(0), input)
 	if err != nil {
 		return false, err
 	}
@@ -155,8 +155,7 @@ func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata str
 		return err.Error(), err
 	}
 	conrtractAddr := common.BytesToAddress(contractAccAddr.Bytes())
-
-	input, err := types.GetCallByWasmInput(caller, calldata)
+	callerAddr, err := sdk.WasmAddressFromBech32(caller)
 	if err != nil {
 		return err.Error(), err
 	}
@@ -165,27 +164,18 @@ func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata str
 		ctx.SetWatcher(watcher.NewTxWatcher())
 	}
 
-	if err := k.sendCoinToModuleAccount(ctx, caller, value); err != nil {
-		return err.Error(), err
-	}
-
-	_, result, err := k.CallEvm(ctx, &conrtractAddr, value.BigInt(), input)
-	if err != nil {
-		return err.Error(), err
-	}
-	response, err = types.GetCallByWasmOutput(result.Ret)
+	_, result, err := k.CallEvm(ctx, common.BytesToAddress(callerAddr.Bytes()), &conrtractAddr, value.BigInt(), []byte(calldata))
 	if err != nil {
 		return err.Error(), err
 	}
 	if watcher.IsWatcherEnabled() && err == nil {
 		ctx.GetWatcher().Finalize()
 	}
-	return response, nil
+	return string(result.Ret), nil
 }
 
 // callEvm execute an evm message from native module
-func (k Keeper) CallEvm(ctx sdk.Context, to *common.Address, value *big.Int, data []byte) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
-	callerAddr := erc20types.IbcEvmModuleETHAddr
+func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.Address, value *big.Int, data []byte) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
 
 	config, found := k.evmKeeper.GetChainConfig(ctx)
 	if !found {
@@ -236,19 +226,18 @@ func (k Keeper) CallEvm(ctx sdk.Context, to *common.Address, value *big.Int, dat
 	}
 
 	st.Csdb.Commit(false) // write code to db
-	acc.SetSequence(nonce + 1)
-	k.accountKeeper.SetAccount(ctx, acc)
+
+	temp := k.accountKeeper.GetAccount(ctx, callerAddr.Bytes())
+	if temp == nil {
+		if err := acc.SetCoins(sdk.Coins{}); err != nil {
+			return nil, nil, err
+		}
+		temp = acc
+	}
+	if err := temp.SetSequence(nonce + 1); err != nil {
+		return nil, nil, err
+	}
+	k.accountKeeper.SetAccount(ctx, temp)
 
 	return executionResult, resultData, err
-}
-
-func (k Keeper) sendCoinToModuleAccount(ctx sdk.Context, sender string, value sdk.Int) error {
-	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
-	moduleAddr := erc20types.IbcEvmModuleETHAddr
-
-	senderAddr, err := sdk.AccAddressFromBech32(sender)
-	if err != nil {
-		return err
-	}
-	return k.bankKeeper.SendCoins(ctx, senderAddr, sdk.AccAddress(moduleAddr.Bytes()), coins)
 }

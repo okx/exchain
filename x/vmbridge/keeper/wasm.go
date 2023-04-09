@@ -30,12 +30,12 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if err != nil {
 		return err
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(wasmContractAddr)
+	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
 	if err != nil {
 		return err
 	}
 
-	ret, err := k.wasmKeeper.Execute(ctx, sdk.AccToAWasmddress(contractAddr), sdk.AccToAWasmddress(caller), input, sdk.Coins{})
+	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), input, sdk.Coins{})
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
 	}
@@ -47,15 +47,12 @@ func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 		return types.ErrAmountNegative
 	}
 
-	contractAddr, err := sdk.AccAddressFromBech32(wasmContractAddr)
+	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
 	if err != nil {
 		return err
 	}
-	if !sdk.IsWasmAddress(contractAddr) {
-		return types.ErrIsNotWasmAddr
-	}
 	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
-	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, []byte(calldata), coins)
+	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), []byte(calldata), coins)
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
 	}
