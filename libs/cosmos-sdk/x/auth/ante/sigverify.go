@@ -3,7 +3,6 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -13,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
@@ -81,20 +81,9 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		}
 
 		// Only make check if simulate=false
-		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-			switch ppk := pk.(type) {
-			case *secp256k1.PubKeySecp256k1:
-				// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
-				// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
-				// Let it pass after Earth height.
-				if types2.HigherThanEarth(ctx.BlockHeight()) && bytes.Equal(ethsecp256k1.PubKey(ppk[:]).Address(), signers[i]) {
-					break
-				}
-				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-					"pubKey does not match signer address %s derived by eth pubKey, with signer index: %d", signers[i], i)
-
-			default:
-				//old logic
+		var valid bool
+		if !simulate {
+			if pk, valid = checkSigner(pk, signers[i], ctx.BlockHeight()); !valid {
 				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
 					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 			}
@@ -105,7 +94,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			return ctx, err
 		}
 		// account already has pubkey set,no need to reset
-		if acc.GetPubKey() != nil {
+		if !isPubKeyNeedChange(acc.GetPubKey(), pk, ctx.BlockHeight()) {
 			continue
 		}
 		err = acc.SetPubKey(pk)
@@ -116,6 +105,38 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func checkSigner(pk crypto.PubKey, signer sdk.AccAddress, height int64) (crypto.PubKey, bool) {
+	if bytes.Equal(pk.Address(), signer) {
+		return pk, true
+	}
+	// In case that tx is created by CosmWasmJS with pubKey type of `secp256k1`
+	// 	and the signer address is derived by the pubKey of `ethsecp256k1` type.
+	// Let it pass after Earth height.
+	if types2.HigherThanEarth(height) {
+		switch v := pk.(type) {
+		case secp256k1.PubKeySecp256k1:
+			ethPub := ethsecp256k1.PubKey(v[:])
+			return ethPub, bytes.Equal(ethPub.Address(), signer)
+		case *secp256k1.PubKeySecp256k1:
+			ethPub := ethsecp256k1.PubKey(v[:])
+			return ethPub, bytes.Equal(ethPub.Address(), signer)
+		}
+	}
+	return pk, false
+}
+
+func isPubKeyNeedChange(pk1, pk2 crypto.PubKey, height int64) bool {
+	if pk1 == nil {
+		return true
+	}
+	if !types2.HigherThanEarth(height) {
+		return false
+	}
+
+	// check if two public keys are equal
+	return pk1.Equals(pk2)
 }
 
 // Consume parameter-defined amount of gas for each signature according to the passed-in SignatureVerificationGasConsumer function
@@ -231,12 +252,28 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		if !simulate && (len(signBytes) == 0 || !pubKey.VerifyBytes(signBytes, sig)) {
+		if !simulate && (len(signBytes) == 0 || !verifySig(signBytes, sig, pubKey)) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+func verifySig(signBytes, sig []byte, pubKey crypto.PubKey) bool {
+	hash := etherhash.Sum(append(signBytes, sig...))
+	cachePub, ok := types2.SignatureCache().Get(hash)
+	if ok {
+		types2.SignatureCache().Remove(hash)
+		return bytes.Equal(pubKey.Bytes(), []byte(cachePub))
+	}
+	if !pubKey.VerifyBytes(signBytes, sig) {
+		return false
+	}
+
+	types2.SignatureCache().Add(hash, string(pubKey.Bytes()))
+
+	return true
 }
 
 // IncrementSequenceDecorator handles incrementing sequences of all signers.

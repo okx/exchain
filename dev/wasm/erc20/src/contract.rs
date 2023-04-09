@@ -266,10 +266,12 @@ fn try_transfer(
     recipient: String,
     amount: &Uint128,
 ) -> Result<Response<SendToEvmMsg>, ContractError> {
+    let result = deps.api.addr_canonicalize(recipient.as_str())?;
+
     perform_transfer(
         deps.storage,
         &info.sender,
-        &deps.api.addr_validate(recipient.as_str())?,
+        &deps.api.addr_humanize(&result).unwrap(),
         amount.u128(),
     )?;
     Ok(Response::new()

@@ -137,7 +137,7 @@ func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
 }
 
 func (b BankKeeperProxy) GetAllBalances(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
-	acc, err := watcher.GetAccount(addr)
+	acc, err := watcher.GetAccount(sdk.AccToAWasmddress(addr))
 	if err == nil {
 		return acc.GetCoins()
 	}

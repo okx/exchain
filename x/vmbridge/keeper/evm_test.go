@@ -217,7 +217,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 			},
 			func() {
 				queryAddr := sdk.AccAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
@@ -233,8 +233,8 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 				data = input
 			},
 			func() {
-				queryAddr := sdk.AccAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
@@ -250,8 +250,8 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 				data = input
 			},
 			func() {
-				queryAddr := sdk.AccAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"0\"}", string(result))
 			},
@@ -267,21 +267,9 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 			nil,
 		},
 		{
-			"wasmAddStr is not wasm",
-			func() {
-				wasmAddrStr := sdk.AccAddress(make([]byte, 20)).String()
-				input, err := getSendToWasmEventData(wasmAddrStr, sdk.AccAddress(ethAddr.Bytes()).String(), big.NewInt(1))
-				suite.Require().NoError(err)
-				data = input
-			},
-			func() {
-			},
-			types.ErrIsNotWasmAddr,
-		},
-		{
 			"wasmAddStr is not exist",
 			func() {
-				wasmAddrStr := sdk.AccAddress(make([]byte, 32)).String()
+				wasmAddrStr := sdk.AccAddress(make([]byte, 20)).String()
 				input, err := getSendToWasmEventData(wasmAddrStr, sdk.AccAddress(ethAddr.Bytes()).String(), big.NewInt(1))
 				suite.Require().NoError(err)
 				data = input
