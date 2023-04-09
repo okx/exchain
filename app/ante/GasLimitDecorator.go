@@ -28,7 +28,7 @@ type WasmGasLimitDecorator struct {
 
 func (g WasmGasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	// do another ante check for simulation
-	if !types2.HigherThanEarth(ctx.BlockHeight()) || simulate {
+	if !types2.HigherThanEarth(ctx.BlockHeight()) {
 		return next(ctx, tx, simulate)
 	}
 	return g.GasLimitDecorator.AnteHandle(ctx, tx, simulate, next)
