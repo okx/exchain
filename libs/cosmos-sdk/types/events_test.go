@@ -69,3 +69,74 @@ func TestStringifyEvents(t *testing.T) {
 	expectedJSONStr := "[{\"type\":\"message\",\"attributes\":[{\"key\":\"sender\",\"value\":\"foo\"},{\"key\":\"module\",\"value\":\"bank\"}]}]"
 	require.Equal(t, expectedJSONStr, string(bz))
 }
+
+func TestEvents_PopEvent(t *testing.T) {
+	e1 := NewEvent("message", NewAttribute("sender", "foo"))
+	e2 := NewEvent("message", NewAttribute("module", "bank"))
+	events := Events{
+		e1,
+		e2,
+	}
+	new, last := events.PopEvent()
+	require.Equal(t, 1, len(new))
+	require.Equal(t, StringifyEvents(Events{e1}), StringifyEvents(new))
+	require.Equal(t, StringifyEvent(e2), StringifyEvent(*last))
+
+	new, last = events.PopEvent()
+	require.Equal(t, 1, len(new))
+	require.Equal(t, StringifyEvents(Events{e1}), StringifyEvents(new))
+	require.Equal(t, StringifyEvent(e2), StringifyEvent(*last))
+
+	events = Events{
+		e1,
+		e2,
+	}
+	new, last = events.PopEvent()
+	require.Equal(t, 1, len(new))
+	require.Equal(t, StringifyEvents(Events{e1}), StringifyEvents(new))
+	require.Equal(t, StringifyEvent(e2), StringifyEvent(*last))
+	new, last = new.PopEvent()
+	require.Equal(t, 0, len(new))
+	require.Equal(t, StringifyEvent(e1), StringifyEvent(*last))
+
+	new, last = new.PopEvent()
+	require.Equal(t, 0, len(new))
+	require.Nil(t, last)
+}
+
+func TestEventManager_PopEvent(t *testing.T) {
+	e1 := NewEvent("message", NewAttribute("sender", "foo"))
+	e2 := NewEvent("message", NewAttribute("module", "bank"))
+	e3 := NewEvent("message1", NewAttribute("module", "test"))
+	manager := NewEventManager()
+	manager.EmitEvents(Events{e1, e2, e3})
+
+	result := manager.PopEvent()
+	require.Equal(t, 2, len(manager.Events()))
+	require.Equal(t, StringifyEvents(Events{e1, e2}), StringifyEvents(manager.Events()))
+	require.Equal(t, StringifyEvent(e3), StringifyEvent(*result))
+
+	result = manager.PopEvent()
+	require.Equal(t, 1, len(manager.Events()))
+	require.Equal(t, StringifyEvents(Events{e1}), StringifyEvents(manager.Events()))
+	require.Equal(t, StringifyEvent(e2), StringifyEvent(*result))
+
+	result = manager.PopEvent()
+	require.Equal(t, 0, len(manager.Events()))
+	require.Equal(t, StringifyEvents(Events{}), StringifyEvents(manager.Events()))
+	require.Equal(t, StringifyEvent(e1), StringifyEvent(*result))
+
+	result = manager.PopEvent()
+	require.Equal(t, 0, len(manager.Events()))
+	require.Equal(t, StringifyEvents(Events{}), StringifyEvents(manager.Events()))
+	require.Nil(t, result)
+
+	manager = NewEventManager()
+	manager.EmitEvents(Events{e1, e2})
+	last2 := manager.PopEvent()
+	last1 := manager.PopEvent()
+	require.Equal(t, 0, len(manager.Events()))
+	require.Equal(t, StringifyEvents(Events{}), StringifyEvents(manager.Events()))
+	require.Equal(t, StringifyEvent(e2), StringifyEvent(*last2))
+	require.Equal(t, StringifyEvent(e1), StringifyEvent(*last1))
+}

@@ -83,9 +83,13 @@ exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst de
 exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
 exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
 
-captain=$(exchaincli keys show captain | jq -r '.eth_address')
-admin18=$(exchaincli keys show admin18 | jq -r '.eth_address')
-admin17=$(exchaincli keys show admin17 | jq -r '.eth_address')
+captain=$(exchaincli keys show captain | jq -r '.address')
+admin18=$(exchaincli keys show admin18 | jq -r '.address')
+admin17=$(exchaincli keys show admin17 | jq -r '.address')
+captain0x=$(exchaincli keys show captain | jq -r '.eth_address')
+admin180x=$(exchaincli keys show admin18 | jq -r '.eth_address')
+admin170x=$(exchaincli keys show admin17 | jq -r '.eth_address')
+
 proposal_deposit="100okt"
 
 if [[ $CHAIN_ID == "exchain-64" ]];
@@ -127,42 +131,49 @@ proposal_vote() {
   fi;
 }
 
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist nobody --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "proposal_id: $proposal_id"
+proposal_vote "$proposal_id"
+
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not create code: failed to execute message; message index: 0"
+failed_log="unauthorized: Failed to create code, nobody allowed to upload contract: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
 then
   echo "expect fail when update-wasm-deployment-whitelist is nobody"
   exit 1
 fi;
 
-#####################################################
-########    update deployment whitelist     #########
-#####################################################
+echo "#####################################################"
+echo "########  update deployment whitelist ex  ###########"
+echo "#####################################################"
 echo "## update wasm code deployment whitelist"
 res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "$captain,$admin18" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
 
-#####################################################
-#############       store code       ################
-#####################################################
+echo "#####################################################"
+echo "#############       store code       ################"
+echo "#####################################################"
 
 echo "## store cw20 contract...everybody"
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
-echo "store cw20 contract succeed"
 cw20_code_id1=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
+echo "store cw20 contract succeed. codeid :",$cw20_code_id1
 
-echo "## store cw20 contract...nobody"
-res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-nobody=true --from captain $TX_EXTRA)
-echo "store cw20 contract succeed"
+echo "## store cw20 contract...only-address"
+res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-only-address="${captain0x}" --from captain $TX_EXTRA)
 cw20_code_id2=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
+echo "store cw20 contract succeed. codeid :",$cw20_code_id2
+echo $res
 
 echo "## store cw20 contract...only-address"
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-only-address="${captain}" --from captain $TX_EXTRA)
-echo "store cw20 contract succeed"
 cw20_code_id3=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
+echo "store cw20 contract succeed. codeid :",$cw20_code_id3
+echo $res
 
 echo "## store cw20 contract...null access"
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --from captain $TX_EXTRA)
@@ -191,18 +202,12 @@ then
   exit 1
 fi;
 
-#####################################################
-#########    instantiate contract      ##############
-#####################################################
-echo "## instantiate everybody..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id1" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
-echo "instantiate cw20 succeed"
-if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
-then
-  echo "unexpected result of instantiate"
-  exit 1
-fi;
-res=$(exchaincli tx wasm instantiate "$cw20_code_id1" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
+echo "#####################################################"
+echo "#########    instantiate contract      ##############"
+echo "#####################################################"
+
+echo "## instantiate only address..."
+res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
 echo "instantiate cw20 succeed"
 if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
 then
@@ -210,15 +215,7 @@ then
   exit 1
 fi;
 
-echo "## instantiate nobody..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
-raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
-if [[ "${raw_log}" != "${failed_log}" ]];
-then
-  exit 1
-fi;
-res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
 failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
@@ -227,14 +224,22 @@ then
 fi;
 
 echo "## instantiate only address..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id3" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
 echo "instantiate cw20 succeed"
 if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
 then
   echo "unexpected result of instantiate"
   exit 1
 fi;
-res=$(exchaincli tx wasm instantiate "$cw20_code_id3" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
+contractTempAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
+res=$(exchaincli query wasm contract "$contractTempAddr" $QUERY_EXTRA | jq -r '.contract_info.admin')
+if [[ $res != $captain0x ]];
+then
+  echo "unexpected cw20 admin: $res,$captain0x"
+  exit 1
+fi
+
+res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
 failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
@@ -242,39 +247,31 @@ then
   exit 1
 fi;
 
-echo "## instantiate nonexistent contract..."
-res=$(exchaincli tx wasm instantiate 9999 '{"decimals":10,"initial_balances":[{"address":"","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
+echo "## instantiate only address..."
+res=$(exchaincli tx wasm instantiate "$cw20_code_id3" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
+echo "instantiate cw20 succeed"
+if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
+then
+  echo "unexpected result of instantiate"
+  exit 1
+fi;
+contractTempAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
+res=$(exchaincli query wasm contract "$contractTempAddr" $QUERY_EXTRA | jq -r '.contract_info.admin')
+if [[ $res != $captain0x ]];
+then
+  echo "unexpected cw20 admin: $res,$captain0x"
+  exit 1
+fi
+
+res=$(exchaincli tx wasm instantiate "$cw20_code_id3" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="not found: code: failed to execute message; message index: 0"
+failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
 then
-  echo $res | jq
-  echo "expect fail when instantiate nonexistent contract"
   exit 1
 fi;
 
-echo "## instantiate cw20 contract with invalid input..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
-raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="instantiate wasm contract failed: Generic error: addr_validate errored: Input is empty: failed to execute message; message index: 0"
-if [[ "${raw_log}" != "${failed_log}" ]];
-then
-  echo "expect fail when instantiate contract with invalid parameters"
-  exit 1
-fi;
-
-echo "## instantiate cw20 contract with invalid amount..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=1000000000000okt --from captain $TX_EXTRA)
-raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log_prefix="insufficient funds"
-if [[ "${raw_log:0:18}" != "${failed_log_prefix}" ]];
-then
-  echo "expect fail when instantiate contract with invalid amount"
-  exit 1
-fi;
-
-echo "## instantiate cw20 contract..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain0x" --from captain $TX_EXTRA)
 echo "instantiate cw20 succeed"
 if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
 then
@@ -282,11 +279,20 @@ then
   exit 1
 fi;
 
+contractTempAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
+res=$(exchaincli query wasm contract "$contractTempAddr" $QUERY_EXTRA | jq -r '.contract_info.admin')
+if [[ $res != $captain0x ]];
+then
+  echo "unexpected cw20 admin: $res,$captain0x"
+  exit 1
+fi
+
+
 echo "## instantiate cw20 contract with deposit..."
 totalAmount="100000000"
 depositAmount="20"
 depositDenom="okt"
-res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"'${totalAmount}'"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=${depositAmount}${depositDenom} --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"'${totalAmount}'"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=${depositAmount}${depositDenom} --from captain $TX_EXTRA)
 echo "instantiate cw20 succeed"
 if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
 then
@@ -310,7 +316,7 @@ then
   echo "invalid balance denom"
   exit 1
 fi;
-cw20_balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}' $QUERY_EXTRA | jq '.data.balance' | sed 's/\"//g')
+cw20_balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain0x'"}}' $QUERY_EXTRA | jq '.data.balance' | sed 's/\"//g')
 if [[ ${cw20_balance} != ${totalAmount} ]];
 then
   echo "invalid cw20 balance"
@@ -367,7 +373,7 @@ then
   exit 1
 fi;
 
-res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"'${totalAmount}'"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=${depositAmount}${depositDenom} --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw20_code_id5" '{"decimals":10,"initial_balances":[{"address":"'$captain0x'","amount":"'${totalAmount}'"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --amount=${depositAmount}${depositDenom} --from captain $TX_EXTRA)
 instantiate_gas_used2=$(echo "$res" | jq '.gas_used' | sed 's/\"//g')
 if [[ "$instantiate_gas_used" -le "$instantiate_gas_used2" ]];
 then
@@ -382,12 +388,13 @@ res=$(exchaincli tx wasm instantiate "$cw4_code_id" '{"denom":{"cw20":"'$cw20con
 echo "instantiate cw4-stake succeed"
 cw4contractAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 echo "cw4-stake contractAddr: $cw4contractAddr"
-addr=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain'"}}' $QUERY_EXTRA | jq '.data.denom.cw20' | sed 's/\"//g')
+addr=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain0x'"}}' $QUERY_EXTRA | jq '.data.denom.cw20' | sed 's/\"//g')
 if [[ $addr != $cw20contractAddr ]];
 then
   echo "unexpected addr"
   exit 1
 fi;
+
 
 sendAmount="100"
 res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"send":{"amount":"'$sendAmount'","contract":"'$cw4contractAddr'","msg":"eyJib25kIjp7fX0="}}' --from captain $TX_EXTRA)
@@ -397,7 +404,7 @@ then
   echo "unexpected cw4 contract balance: $cw4balance"
   exit 1
 fi;
-cw4stake=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain'"}}' $QUERY_EXTRA | jq '.data.stake' | sed 's/\"//g')
+cw4stake=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain0x'"}}' $QUERY_EXTRA | jq '.data.stake' | sed 's/\"//g')
 if [[ $cw4stake -ne $sendAmount ]];
 then
   echo "unexpected cw4 contract stake"
@@ -438,6 +445,16 @@ then
   exit 1
 fi;
 
+echo "## update admin..."
+res=$(exchaincli tx wasm set-contract-admin "$cw4contractAddr" "$admin180x" --from admin17 $TX_EXTRA)
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+failed_log="unauthorized: can not modify contract: failed to execute message; message index: 0"
+if [[ "${raw_log}" != "${failed_log}" ]];
+then
+  echo "expect fail when update admin by other address"
+  exit 1
+fi;
+
 res=$(exchaincli tx wasm set-contract-admin "$cw4contractAddr" "$admin17" --from captain $TX_EXTRA)
 actionName=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 if [[ "${actionName}" != "update-contract-admin" ]];
@@ -446,7 +463,14 @@ then
   exit 1
 fi;
 
-res=$(exchaincli tx wasm set-contract-admin "$cw4contractAddr" "$admin18" --from admin17 $TX_EXTRA)
+res=$(exchaincli query wasm contract "$cw4contractAddr" $QUERY_EXTRA | jq -r '.contract_info.admin')
+if [[ $res != $admin170x ]];
+then
+  echo "unexpected cw20 admin: $res,$admin170x"
+  exit 1
+fi
+
+res=$(exchaincli tx wasm set-contract-admin "$cw4contractAddr" "$admin180x" --from admin17 $TX_EXTRA)
 actionName=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 if [[ "${actionName}" != "update-contract-admin" ]];
 then
@@ -454,8 +478,31 @@ then
   exit 1
 fi;
 
+res=$(exchaincli query wasm contract "$cw4contractAddr" $QUERY_EXTRA | jq -r '.contract_info.admin')
+if [[ $res != $admin180x ]];
+then
+  echo "unexpected cw20 admin: $res,$admin180x"
+  exit 1
+fi
+
+
+res=$(exchaincli tx wasm set-contract-admin "$cw4contractAddr" "$admin17" --from admin18 $TX_EXTRA)
+actionName=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
+if [[ "${actionName}" != "update-contract-admin" ]];
+then
+  echo "invalid action name"
+  exit 1
+fi;
+
+res=$(exchaincli query wasm contract "$cw4contractAddr" $QUERY_EXTRA | jq -r '.contract_info.admin')
+if [[ $res != $admin170x ]];
+then
+  echo "unexpected cw20 admin: $res,$admin170x"
+  exit 1
+fi
+
 echo "## clear admin..."
-res=$(exchaincli tx wasm clear-contract-admin "$cw4contractAddr" --from admin18 $TX_EXTRA)
+res=$(exchaincli tx wasm clear-contract-admin "$cw4contractAddr" --from admin17 $TX_EXTRA)
 actionName=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 if [[ "${actionName}" != "clear-contract-admin" ]];
 then
@@ -471,6 +518,7 @@ then
   echo "expect fail when update admin after clear admin"
   exit 1
 fi;
+
 
 #####################################################
 #############    migrate contract     ###############
@@ -569,7 +617,7 @@ fi;
 echo "store cw20 contract succeed"
 cw20_code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 echo "## instantiate cw20 contract..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id" '{"decimals":10,"initial_balances":[{"address":"'"$captain"'","amount":"'$totalAmount'"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm instantiate "$cw20_code_id" '{"decimals":10,"initial_balances":[{"address":"'"$captain0x"'","amount":"'$totalAmount'"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
 event_type=$(echo $res | jq '.logs[0].events[0].type' | sed 's/\"//g')
 if [[ $event_type != "instantiate" ]];
 then
@@ -580,21 +628,21 @@ fi;
 echo "instantiate cw20 succeed"
 cw20contractAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 echo "cw20 contract address: $cw20contractAddr"
-balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
+balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain0x'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
 if [[ $balance != $totalAmount ]];
 then
   echo "unexpected initial balance"
   exit 1
 fi;
 echo "transfer cw20..."
-res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"'$transferAmount'","recipient":"'$admin18'"}}' --from captain $TX_EXTRA)
-balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"'$transferAmount'","recipient":"'$admin180x'"}}' --from captain $TX_EXTRA)
+balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain0x'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
 if [[ $balance != $(($totalAmount-$transferAmount)) ]];
 then
   echo "unexpected balance after transfer"
   exit 1
 fi;
-balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$admin18'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
+balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$admin180x'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
 if [[ $balance != $transferAmount ]];
 then
   echo "unexpected balance after transfer"
@@ -636,7 +684,7 @@ then
   exit 1
 fi;
 echo "send cw20 to cw4-stake succeed"
-balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
+balance=$(exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain0x'"}}' "$QUERY_EXTRA" | jq '.data.balance' | sed 's/\"//g')
 if [[ $balance != $(($totalAmount-$transferAmount-$transferAmount)) ]];
 then
   echo "unexpected balance after send"
@@ -648,13 +696,13 @@ then
   echo "unexpected balance after send"
   exit 1
 fi;
-stake=$(exchaincli query wasm contract-state smart "$contractAddr" '{"staked":{"address":"'$captain'"}}' "$QUERY_EXTRA" | jq '.data.stake' | sed 's/\"//g')
+stake=$(exchaincli query wasm contract-state smart "$contractAddr" '{"staked":{"address":"'$captain0x'"}}' "$QUERY_EXTRA" | jq '.data.stake' | sed 's/\"//g')
 if [[ $stake != $(($transferAmount)) ]];
 then
   echo "unexpected stake after send"
   exit 1
 fi;
-weight=$(exchaincli query wasm contract-state smart "$contractAddr" '{"member":{"addr":"'$captain'"}}' "$QUERY_EXTRA" | jq '.data.weight' | sed 's/\"//g')
+weight=$(exchaincli query wasm contract-state smart "$contractAddr" '{"member":{"addr":"'$captain0x'"}}' "$QUERY_EXTRA" | jq '.data.weight' | sed 's/\"//g')
 if [[ $weight != $(($transferAmount/10)) ]];
 then
   echo "unexpected weight after send"
@@ -662,9 +710,9 @@ then
 fi;
 
 cw20admin=$(exchaincli query wasm contract "$cw20contractAddr" "$QUERY_EXTRA" | jq '.contract_info.admin' | sed 's/\"//g')
-if [[ $cw20admin != $captain ]];
+if [[ $cw20admin != $captain0x ]];
 then
-  echo "unexpected cw20 admin: $cw20admin"
+  echo "unexpected cw20 admin: $cw20admin,$captain0x"
   exit 1
 fi
 
@@ -702,7 +750,7 @@ proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's
 echo "unblock <transfer> proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
 
-res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}' --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin180x'"}}' --from captain $TX_EXTRA)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
 event_type=$(echo $res | jq '.logs[0].events[0].type' | sed 's/\"//g')
@@ -720,13 +768,71 @@ then
   exit 1
 fi;
 
+
+#####
+echo "###################update-wasm-contract-method-blocked-list ex test ###########################"
+cw20contractAddrex=$(exchaincli addr convert ${cw20contractAddr} | grep Hex | awk '{print$6}')
+echo "## block cw20 contract methods <transfer> and <send>"
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "${cw20contractAddrex}" "transfer,send" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "block <transfer> and <send> proposal_id: $proposal_id"
+proposal_vote "$proposal_id"
+cw20admin=$(exchaincli query wasm contract "$cw20contractAddr" "$QUERY_EXTRA" | jq '.contract_info.admin' | sed 's/\"//g')
+if [[ $cw20admin != "" ]];
+then
+  exit 1
+fi
+
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}' --from captain $TX_EXTRA)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+if [[ $raw_log != "execute wasm contract failed: $cw20contractAddr method of contract transfer is not allowed: failed to execute message; message index: 0" ]];
+then
+  exit 1
+fi;
+
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"send":{"amount":"100","contract":"'$contractAddr'","msg":"eyJib25kIjp7fX0="}}' --from captain $TX_EXTRA)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+if [[ $raw_log != "execute wasm contract failed: $cw20contractAddr method of contract send is not allowed: failed to execute message; message index: 0" ]];
+then
+  exit 1
+fi;
+
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "$cw20contractAddrex" "transfer" --delete=true --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
+echo $res
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "unblock <transfer> proposal_id: $proposal_id"
+proposal_vote "$proposal_id"
+
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin180x'"}}' --from captain $TX_EXTRA)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+event_type=$(echo $res | jq '.logs[0].events[0].type' | sed 's/\"//g')
+if [[ $event_type != "execute" ]];
+then
+  echo "transfer cw20 failed"
+  exit 1
+fi;
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"send":{"amount":"100","contract":"'$contractAddr'","msg":"eyJib25kIjp7fX0="}}' --from captain $TX_EXTRA)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+if [[ $raw_log != "execute wasm contract failed: $cw20contractAddr method of contract send is not allowed: failed to execute message; message index: 0" ]];
+then
+  exit 1
+fi;
+######
+
 res=$(exchaincli tx wasm store wasm/test/burner.wasm --from captain $TX_EXTRA)
 burner_code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 echo "burner_code_id: $burner_code_id"
 
 # block contract to execute
 echo "## migrate cw20 contract to a new wasm code"
-res=$(exchaincli tx gov submit-proposal migrate-contract "$cw20contractAddr" "$burner_code_id" '{"payout": "'$captain'"}' --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal migrate-contract "$cw20contractAddr" "$burner_code_id" '{"payout": "'$captain0x'"}' --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
@@ -738,7 +844,7 @@ then
 fi;
 
 echo "## call transfer method of cw20 contract after migrating which is expected to fail"
-res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}' --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin180x'"}}' --from captain $TX_EXTRA)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
@@ -754,7 +860,7 @@ echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
 
 cw20admin=$(exchaincli query wasm contract "$cw20contractAddr" "$QUERY_EXTRA" | jq '.contract_info.admin' | sed 's/\"//g')
-if [[ $cw20admin != $captain ]];
+if [[ $cw20admin != $captain0x ]];
 then
   echo "unexpected cw20 admin: $cw20admin"
   exit 1
@@ -784,10 +890,11 @@ res=$(exchaincli tx wasm store wasm/test/burner.wasm --from admin18 $TX_EXTRA)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-if [[ $raw_log != "unauthorized: can not create code: failed to execute message; message index: 0" ]];
+if [[ $raw_log != "unauthorized: Failed to create code, you are not allowed to upload contract as you are not on the authorized list: failed to execute message; message index: 0" ]];
 then
   exit 1
 fi;
+
 res=$(exchaincli tx wasm store wasm/test/burner.wasm --from captain $TX_EXTRA)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
@@ -815,7 +922,7 @@ res=$(exchaincli tx wasm instantiate "$cw4_code_id" '{"denom":{"native":"okt"},"
 echo "instantiate cw4-stake succeed"
 cw4contractAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 echo "cw4-stake contractAddr: $cw4contractAddr"
-denom=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain'"}}' $QUERY_EXTRA | jq '.data.denom.native' | sed 's/\"//g')
+denom=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain0x'"}}' $QUERY_EXTRA | jq '.data.denom.native' | sed 's/\"//g')
 if [[ $denom != "okt" ]];
 then
   echo "unexpected native denom: $denom"
@@ -830,7 +937,7 @@ then
   exit 1
 fi;
 
-stake=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain'"}}' $QUERY_EXTRA | jq '.data.stake' | sed 's/\"//g')
+stake=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain0x'"}}' $QUERY_EXTRA | jq '.data.stake' | sed 's/\"//g')
 if [[ $stake != $amount ]];
 then
   echo "unexpected stake amount: $stake"
@@ -839,7 +946,7 @@ fi
 
 res=$(exchaincli tx wasm execute "$cw4contractAddr" '{"unbond":{"tokens":"'$stake'"}}' --from captain $TX_EXTRA)
 
-stake=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain'"}}' $QUERY_EXTRA | jq '.data.stake' | sed 's/\"//g')
+stake=$(exchaincli query wasm contract-state smart "$cw4contractAddr" '{"staked":{"address":"'$captain0x'"}}' $QUERY_EXTRA | jq '.data.stake' | sed 's/\"//g')
 if [[ $stake != "0" ]];
 then
   echo "unexpected stake amount after unbond: $stake"
@@ -865,7 +972,7 @@ proposal_vote "$proposal_id"
 
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not create code: failed to execute message; message index: 0"
+failed_log="unauthorized: Failed to create code, nobody allowed to upload contract: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
 then
   echo "expect fail when update-wasm-deployment-whitelist is nobody"
@@ -892,12 +999,6 @@ then
   exit
 fi;
 
-res=$(exchaincli query wasm list-contract-by-code "$cw20_code_id1" "$QUERY_EXTRA")
-if [[ $(echo $res | jq '.contracts|length') -ne 2 ]];
-then
-  echo "invalid contracts length"
-  exit
-fi;
 
 res=$(exchaincli query wasm contract-history $cw20contractAddr "$QUERY_EXTRA")
 if [[ $(echo $res | jq '.entries|length') -ne 2 ]];
