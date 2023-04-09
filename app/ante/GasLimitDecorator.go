@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -12,6 +13,25 @@ type EVMKeeper interface {
 	innertx.InnerTxKeeper
 	GetParams(ctx sdk.Context) evmtypes.Params
 	IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool
+}
+
+// NewWasmGasLimitDecorator creates a new WasmGasLimitDecorator.
+func NewWasmGasLimitDecorator(evm EVMKeeper) WasmGasLimitDecorator {
+	return WasmGasLimitDecorator{
+		GasLimitDecorator: NewGasLimitDecorator(evm),
+	}
+}
+
+type WasmGasLimitDecorator struct {
+	GasLimitDecorator
+}
+
+func (g WasmGasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	// do another ante check for simulation
+	if !types2.HigherThanEarth(ctx.BlockHeight()) {
+		return next(ctx, tx, simulate)
+	}
+	return g.GasLimitDecorator.AnteHandle(ctx, tx, simulate, next)
 }
 
 // NewGasLimitDecorator creates a new GasLimitDecorator.

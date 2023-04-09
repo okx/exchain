@@ -51,7 +51,7 @@ func validateDistributorAddrs(addrs []string) error {
 		return nil
 	}
 	for _, addr := range addrs {
-		if _, err := sdk.AccAddressFromBech32(addr); err != nil {
+		if _, err := sdk.WasmAddressFromBech32(addr); err != nil {
 			return err
 		}
 	}
@@ -90,7 +90,7 @@ func validateContractMethods(methods *ContractMethods) error {
 	if l == 0 || l > maxMethodListLength {
 		return fmt.Errorf("invalid contract methods len: %d", l)
 	}
-	if _, err := sdk.AccAddressFromBech32(methods.ContractAddr); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(methods.ContractAddr); err != nil {
 		return err
 	}
 	return nil

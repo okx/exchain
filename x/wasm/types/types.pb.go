@@ -191,7 +191,7 @@ type Params struct {
 	CodeUploadAccess             AccessConfig `protobuf:"bytes,1,opt,name=code_upload_access,json=codeUploadAccess,proto3" json:"code_upload_access" yaml:"code_upload_access"`
 	InstantiateDefaultPermission AccessType   `protobuf:"varint,2,opt,name=instantiate_default_permission,json=instantiateDefaultPermission,proto3,enum=cosmwasm.wasm.v1.AccessType" json:"instantiate_default_permission,omitempty" yaml:"instantiate_default_permission"`
 	UseContractBlockedList       bool         `protobuf:"varint,3,opt,name=use_contract_blocked_list,json=useContractBlockedList,proto3" json:"use_contract_blocked_list,omitempty" yaml:"use_contract_blocked_list"`
-	VmbridgeEnable               bool         `protobuf:"varint,4,opt,name=vmbridge_enable,json=vmbridgeEnable,proto3" json:"vmbridge_enable,omitempty" yaml:"use_contract_blocked_list"`
+	VmbridgeEnable               bool         `protobuf:"varint,4,opt,name=vmbridge_enable,json=vmbridgeEnable,proto3" json:"vmbridge_enable,omitempty" yaml:"vmbridge_enable"`
 }
 
 func (m *Params) Reset()      { *m = Params{} }

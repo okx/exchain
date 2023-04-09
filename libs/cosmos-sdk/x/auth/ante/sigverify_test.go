@@ -2,6 +2,7 @@ package ante_test
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/spf13/viper"
 	"testing"
 
@@ -275,6 +276,37 @@ func runSigDecorators(t *testing.T, params types.Params, multisig bool, privs ..
 	after := ctx.GasMeter().GasConsumed()
 
 	return after - before, err
+}
+
+func TestJudgeIncontinuousNonce(t *testing.T) {
+	app, ctx := createTestApp(true)
+	_, _, addr := types.KeyTestPubAddr()
+	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
+	require.NoError(t, acc.SetSequence(uint64(50)))
+	app.AccountKeeper.SetAccount(ctx, acc)
+
+	isd := ante.NewIncrementSequenceDecorator(app.AccountKeeper)
+
+	testCases := []struct {
+		ctx      sdk.Context
+		simulate bool
+		txNonce  uint64
+
+		result bool
+	}{
+		{ctx.WithIsReCheckTx(true), true, 1, false},
+		{ctx.WithIsCheckTx(true).WithIsReCheckTx(false), false, 2, true},
+		{ctx.WithIsCheckTx(true).WithIsReCheckTx(false), false, 50, false},
+		{ctx.WithIsCheckTx(true), true, 4, false},
+		{ctx.WithIsCheckTx(true), false, 0, false},
+	}
+
+	for _, tc := range testCases {
+		tx := &types.StdTx{}
+		tx.Nonce = tc.txNonce
+		re := isd.JudgeIncontinuousNonce(ctx, tx, []sdk.AccAddress{acc.GetAddress()}, tc.simulate)
+		assert.Equal(t, tc.result, re)
+	}
 }
 
 func TestIncrementSequenceDecorator(t *testing.T) {
