@@ -296,13 +296,12 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 	case !alias.Address.Empty() && alias.EthAddress != "":
 		// Both addresses provided. Verify correctness
 		ethAddress := ethcmn.HexToAddress(alias.EthAddress)
-		ethAddressFromAccAddress := ethcmn.BytesToAddress(alias.Address.Bytes())
 
 		if !bytes.Equal(ethAddress.Bytes(), alias.Address.Bytes()) {
 			err = sdkerrors.Wrapf(
 				sdkerrors.ErrInvalidAddress,
-				"expected %s, got %s",
-				ethAddressFromAccAddress.String(), ethAddress.String(),
+				"expected 0x%x, got 0x%x",
+				alias.Address.Bytes(), ethAddress.Bytes(),
 			)
 		}
 
