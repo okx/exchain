@@ -2,6 +2,7 @@ package ante
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -177,6 +178,7 @@ func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
+		fmt.Println("ethGasConsume", "feeAmt=", feeAmt, "accGetGas=", accGetGas)
 		err = deductFees(ik, ak, sk, *ctx, acc, feeAmt)
 		if err != nil {
 			return err

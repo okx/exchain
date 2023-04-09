@@ -1,6 +1,7 @@
 package refund
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -74,6 +75,7 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	gasFees := calculateRefundFees(gasUsed, gas, fees)
 	newCoins := feePayerAcc.GetCoins().Add(gasFees...)
 
+	fmt.Println("gasRefund", "gasFees=", gasFees, "newCoins=", newCoins)
 	// set coins and record innertx
 	err = feePayerAcc.SetCoins(newCoins)
 	if !ctx.IsCheckTx() {

@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -20,6 +21,7 @@ import (
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
+		fmt.Println("updateFeeCollectorHandler", balance, txFeesplit)
 		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 		if err != nil {
 			return err
