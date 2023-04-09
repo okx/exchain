@@ -519,11 +519,11 @@ func (c Context) Value(key interface{}) interface{} {
 	return c.ctx.Value(key)
 }
 
-func (c Context) SetOutOfGas(v bool) {
+func (c *Context) SetOutOfGas(v bool) {
 	c.outOfGas = v
 }
 
-func (c Context) GetOutOfGas() bool {
+func (c *Context) GetOutOfGas() bool {
 	return c.outOfGas
 }
 
