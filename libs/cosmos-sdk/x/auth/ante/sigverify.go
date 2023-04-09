@@ -240,18 +240,21 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		if err != nil {
 			return ctx, err
 		}
-		if txNonce != 0 { // txNonce first
-			err := nonceVerification(ctx, signerAccs[i].GetSequence(), txNonce, signerAddrs[i].String(), simulate)
-			if err != nil {
-				return ctx, err
-			}
-			signerAccs[i].SetSequence(txNonce)
-		} else if ctx.IsCheckTx() && !ctx.IsReCheckTx() { // for adaptive pending tx in mempool just in checkTx but not deliverTx
-			pendingNonce := getCheckTxNonceFromMempool(signerAddrs[i].String())
-			if pendingNonce != 0 {
-				signerAccs[i].SetSequence(pendingNonce)
+		if ctx.IsCheckTx() {
+			if txNonce != 0 { // txNonce first
+				err := nonceVerification(ctx, signerAccs[i].GetSequence(), txNonce, signerAddrs[i].String(), simulate)
+				if err != nil {
+					return ctx, err
+				}
+				signerAccs[i].SetSequence(txNonce)
+			} else { // for adaptive pending tx in mempool just in checkTx but not deliverTx
+				pendingNonce := getCheckTxNonceFromMempool(signerAddrs[i].String())
+				if pendingNonce != 0 {
+					signerAccs[i].SetSequence(pendingNonce)
+				}
 			}
 		}
+
 		// retrieve signBytes of tx
 		signBytes := sigTx.GetSignBytes(ctx, i, signerAccs[i])
 		err = sigTx.VerifySequence(i, signerAccs[i])
