@@ -3,6 +3,8 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -12,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
