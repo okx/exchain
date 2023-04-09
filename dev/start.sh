@@ -71,7 +71,7 @@ rm -rf $HOME_SERVER
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
-exchaincli config output json
+exchaincli config output text
 exchaincli config indent true
 exchaincli config trust-node true
 exchaincli config keyring-backend test
