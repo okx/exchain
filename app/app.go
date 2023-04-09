@@ -609,7 +609,7 @@ func NewOKExChainApp(
 
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
-	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
+	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
@@ -618,6 +618,7 @@ func NewOKExChainApp(
 				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
 				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+				vmbridge.NewCallToWasmEventHandler(*app.VMBridgeKeeper),
 			),
 			app.FeeSplitKeeper.Hooks(),
 		),

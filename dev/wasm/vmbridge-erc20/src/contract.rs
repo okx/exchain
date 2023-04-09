@@ -1,12 +1,13 @@
+#[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     entry_point, to_binary, to_vec, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, Storage, Uint128,SubMsg,CosmosMsg
+    StdResult, Storage, Uint128,SubMsg,CosmosMsg,Event,SubMsgExecutionResponse,Reply,ContractResult
 };
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 use std::convert::TryInto;
 
 use crate::error::ContractError;
-use crate::msg::{AllowanceResponse, BalanceResponse, ExecuteMsg, InstantiateMsg, QueryMsg,SendToEvmMsg};
+use crate::msg::{AllowanceResponse, BalanceResponse, ExecuteMsg, InstantiateMsg, QueryMsg,CallToEvmMsg};
 use crate::state::Constants;
 
 pub const PREFIX_CONFIG: &[u8] = b"config";
@@ -16,8 +17,11 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
 pub const KEY_CONSTANTS: &[u8] = b"constants";
 pub const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
 const EVM_CONTRACT_ADDR: &str = "ex19yaqyv090mjenkenw3d7lxlucvstg00p2r45pk";
+pub const REPLY_ID_ERROR: u64 = 0;
+pub const REPLY_ID_SUCCESS: u64 = 1;
 
-#[entry_point]
+
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
@@ -58,13 +62,13 @@ pub fn instantiate(
     Ok(Response::default())
 }
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
+) -> Result<Response<CallToEvmMsg>, ContractError> {
     match msg {
         ExecuteMsg::Approve { spender, amount } => try_approve(deps, env, info, spender, &amount),
         ExecuteMsg::Transfer { recipient, amount } => {
@@ -81,13 +85,8 @@ pub fn execute(
             amount,
         } => try_mint_cw20(deps, env,info,recipient,amount),
 
-        ExecuteMsg::SendToEvm {
-            evmContract,
-            recipient,
-            amount,
-        } => try_send_to_erc20(deps, env,evmContract,recipient,amount,info),
-
-         ExecuteMsg::CallToEvmMsg {
+      
+         ExecuteMsg::CallToEvm {
             evmaddr,
             calldata,
             value,
@@ -95,7 +94,7 @@ pub fn execute(
     }
 }
 
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
     match msg {
         QueryMsg::Balance { address } => {
@@ -118,13 +117,46 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractErr
     }
 }
 
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response<CallToEvmMsg>, ContractError> {
+
+    match reply.id {
+        REPLY_ID_ERROR => Err(ContractError::ContractERC20Err {
+                        addr: reply.id.to_string(),
+        }),
+        REPLY_ID_SUCCESS => match reply.result {
+            ContractResult::Ok(_) => reply_success(reply),
+            ContractResult::Err(err) => {
+                            Ok(Response::new()
+                                .add_attribute("reply_success but failed", reply.id.to_string())
+                                .add_attribute("err", err))
+                        }
+        },
+        _ => Err(ContractError::UnknownReplyId { id: reply.id }),
+    }
+}
+fn reply_success(reply:Reply) -> Result<Response<CallToEvmMsg>, ContractError> {
+
+    let result: SubMsgExecutionResponse = reply.result.unwrap();
+    let mut events : Vec<Event> = vec![];
+    events.extend(result.events.into_iter());
+    match result.data {
+        Some(data) => { Ok(Response::new()
+            .add_attribute("reply_success", reply.id.to_string())
+            .add_attribute("data",data.to_string()))},
+        _ =>{Ok(Response::new()
+            .add_attribute("reply_success_default", reply.id.to_string()))},
+    }
+
+}
+
 fn try_mint_cw20(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     recipient: String,
     amount: Uint128,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
+) -> Result<Response<CallToEvmMsg>, ContractError> {
     if info.sender.to_string() != EVM_CONTRACT_ADDR.to_string() {
         return Err(ContractError::ContractERC20Err {
            addr:info.sender.to_string()
@@ -167,111 +199,35 @@ fn try_call_to_evm(
     calldata: String,
     value: Uint128,
     info: MessageInfo,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
+) -> Result<Response<CallToEvmMsg>, ContractError> {
 
-    let submsg = SendToEvmMsg {
+    let submsg = CallToEvmMsg {
         sender: _env.contract.address.to_string(),
         evmaddr: evmaddr.to_string(),
         calldata: calldata,
         value: value,
     };
 
-    Ok(Response::new()
-           .add_attribute("action", "call to evm")
-           .add_attribute("evmaddr", evmaddr.to_string())
-           .add_attribute("value", value.to_string())
-           .add_message(submsg)
-           .set_data(b"the result data"))
-}
-
-fn try_send_to_erc20(
-    deps: DepsMut,
-    _env: Env,
-    erc20: String,
-    recipient: String,
-    amount: Uint128,
-    info: MessageInfo,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
-    let amount_raw = amount.u128();
-    let to = info.sender;
-
-    let mut account_balance = read_balance(deps.storage, &to)?;
-
-    if account_balance < amount_raw {
-        return Err(ContractError::InsufficientFunds {
-            balance: account_balance,
-            required: amount_raw,
-        });
-    }
-    account_balance -= amount_raw;
-
-    let mut balances_store = PrefixedStorage::new(deps.storage, PREFIX_BALANCES);
-    balances_store.set(
-        to.as_str().as_bytes(),
-        &account_balance.to_be_bytes(),
-    );
-
-    let mut config_store = PrefixedStorage::new(deps.storage, PREFIX_CONFIG);
-    let data = config_store
-        .get(KEY_TOTAL_SUPPLY)
-        .expect("no total supply data stored");
-    let mut total_supply = bytes_to_u128(&data).unwrap();
-
-    total_supply -= amount_raw;
-
-    config_store.set(KEY_TOTAL_SUPPLY, &total_supply.to_be_bytes());
-
-    // callevm(_env,erc20,recipient,amount);
-    // Ok(Response::new()
-    //     .add_attribute("action", "try_send_to_erc20")
-    //     .add_attribute("account", to.to_string())
-    //     .add_attribute("amount", amount.to_string()))
-
-    let hehe = SendToEvmMsg {
-        sender: _env.contract.address.to_string(),
-        contract: erc20.to_string(),
-        recipient: recipient,
-        amount: amount,
-    };
+    let sub_msg = SubMsg::reply_always(CosmosMsg::Custom(submsg), REPLY_ID_SUCCESS);
 
     Ok(Response::new()
-           .add_attribute("action", "call evm")
-           .add_attribute("amount", amount.to_string())
-           .add_message(hehe)
-           .set_data(b"the result data"))
+            .add_submessage(sub_msg)
+            .add_attribute("action", "call to evm")
+            .add_attribute("evmaddr", evmaddr.to_string())
+            .add_attribute("value", value.to_string()))
 }
 
-// fn callevm(
-//     _env: Env,
-//     erc20: String,
-//     recipient: String,
-//     amount: Uint128,
-// ) -> Result<Response<crate::msg::SendToEvmMsg>, ContractError> {
-//     let message = crate::msg::SendToEvmMsg::SendToEvm {
-//         sender: _env.contract.address.to_string(),
-//         contract: erc20.to_string(),
-//         recipient: recipient,
-//         amount: amount,
-//     };
-//
-//     Ok(Response::new()
-//         .add_attribute("action", "call evm")
-//         .add_attribute("amount", amount.to_string())
-//         .add_message(message))
-// }
 fn try_transfer(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     recipient: String,
     amount: &Uint128,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
-    let result = deps.api.addr_canonicalize(recipient.as_str())?;
-
+) -> Result<Response<CallToEvmMsg>, ContractError> {
     perform_transfer(
         deps.storage,
         &info.sender,
-        &deps.api.addr_humanize(&result).unwrap(),
+        &deps.api.addr_validate(recipient.as_str())?,
         amount.u128(),
     )?;
     Ok(Response::new()
@@ -287,7 +243,7 @@ fn try_transfer_from(
     owner: String,
     recipient: String,
     amount: &Uint128,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
+) -> Result<Response<CallToEvmMsg>, ContractError> {
     let owner_address = deps.api.addr_validate(owner.as_str())?;
     let recipient_address = deps.api.addr_validate(recipient.as_str())?;
     let amount_raw = amount.u128();
@@ -316,7 +272,7 @@ fn try_approve(
     info: MessageInfo,
     spender: String,
     amount: &Uint128,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
+) -> Result<Response<CallToEvmMsg>, ContractError> {
     let spender_address = deps.api.addr_validate(spender.as_str())?;
     write_allowance(deps.storage, &info.sender, &spender_address, amount.u128())?;
     Ok(Response::new()
@@ -335,7 +291,7 @@ fn try_burn(
     _env: Env,
     info: MessageInfo,
     amount: &Uint128,
-) -> Result<Response<SendToEvmMsg>, ContractError> {
+) -> Result<Response<CallToEvmMsg>, ContractError> {
     let amount_raw = amount.u128();
 
     let mut account_balance = read_balance(deps.storage, &info.sender)?;
