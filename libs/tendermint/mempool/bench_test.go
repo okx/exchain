@@ -2,10 +2,9 @@ package mempool
 
 import (
 	"encoding/binary"
-	"testing"
-
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
 	"github.com/okex/exchain/libs/tendermint/proxy"
+	"testing"
 )
 
 func BenchmarkReap(b *testing.B) {

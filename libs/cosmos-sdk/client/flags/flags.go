@@ -71,7 +71,6 @@ const (
 	FlagUnsafeCORS         = "unsafe-cors"
 	FlagNodeIndex          = "node-index"
 
-
 	TrustNodeUsage = `Using true doesn't verify results, quickly(300~400ms). True is recommended to connect familiar or self-built nodes. 
 Using false verifies the proof of results, safely but slowly(2~3s). False is recommended to connect to unfamiliar nodes.`
 )
@@ -265,7 +264,8 @@ func AddTxFlagsToCmd(cmd *cobra.Command) {
 	// --gas can accept integers and "auto"
 
 	cmd.MarkFlagRequired(FlagChainID)
-	cmd.Flags().Uint64Var(&GasFlagVar.Gas, "gas", DefaultGasLimit, fmt.Sprintf(
+
+	cmd.Flags().Var(&GasFlagVar, "gas", fmt.Sprintf(
 		"gas limit to set per-transaction; set to %q to calculate required gas automatically (default %d)",
 		GasFlagAuto, DefaultGasLimit,
 	))

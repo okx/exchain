@@ -62,7 +62,7 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	// call evm hooks
-	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
+	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) {
 		receipt := &ethtypes.Receipt{
 			Status:           ethtypes.ReceiptStatusSuccessful,
 			Bloom:            result.ResultData.Bloom,
@@ -133,7 +133,9 @@ func (tx *Tx) AnalyzeStop(tag string) {
 }
 
 // SaveTx check Tx do not transition state db
-func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {}
+func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
+	tx.StateTransition.Csdb.SetTransactionHash(*tx.StateTransition.TxHash)
+}
 
 // GetSenderAccount check Tx do not need this
 func (tx *Tx) GetSenderAccount() authexported.Account { return nil }

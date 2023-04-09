@@ -14,6 +14,7 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 		return
 	}
 	var gasRefundCtx sdk.Context
+	gasRefundCtx.SetOutOfGas(info.outOfGas)
 	gasRefundCtx = info.runMsgCtx
 	if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg
 		info.msCache = app.parallelTxManage.chainMultiStores.GetStoreWithParent(info.msCacheAnte)

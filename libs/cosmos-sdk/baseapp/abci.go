@@ -386,6 +386,9 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
 	}
 
+	if req.Height == 0 {
+		req.Height = app.LastBlockHeight()
+	}
 	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
 		return app.handleQueryGRPC(grpcHandler, req)
 	}
@@ -443,6 +446,8 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 		}
 		if isPureWasm {
 			wasmSimulator := simulator.NewWasmSimulator()
+			defer wasmSimulator.Release()
+
 			wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
 			wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
 			res, err := wasmSimulator.Simulate(msgs)

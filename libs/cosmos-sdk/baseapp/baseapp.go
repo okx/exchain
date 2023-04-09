@@ -152,6 +152,7 @@ type BaseApp struct { // nolint: maligned
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
+	updateCMTxNonceHandler sdk.UpdateCMTxNonceHandler
 
 	// volatile states:
 	//

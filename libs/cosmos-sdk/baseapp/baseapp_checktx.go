@@ -29,6 +29,11 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	case req.Type == abci.CheckTxType_New:
 		mode = runTxModeCheck
 		atomic.AddInt64(&app.checkTxNum, 1)
+
+		if app.updateCMTxNonceHandler != nil {
+			app.updateCMTxNonceHandler(tx, req.Nonce)
+		}
+
 	case req.Type == abci.CheckTxType_Recheck:
 		mode = runTxModeReCheck
 
@@ -45,6 +50,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		ctx = app.getContextForTx(mode, req.Tx)
 		exTxInfo := app.GetTxInfo(ctx, tx)
 		data, _ := json.Marshal(exTxInfo)
+		app.updateCheckTxResponseNonce(tx, mode, exTxInfo.SenderNonce)
 
 		return abci.ResponseCheckTx{
 			Tx:          tx,
@@ -57,6 +63,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
+	app.updateCheckTxResponseNonce(tx, mode, info.accountNonce)
 
 	return abci.ResponseCheckTx{
 		Tx:          tx,
@@ -66,5 +73,15 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		Log:         info.result.Log,
 		Data:        info.result.Data,
 		Events:      info.result.Events.ToABCIEvents(),
+	}
+}
+
+// for adaptive the same sender multi-tx in mempool can add to TxQueue
+func (app *BaseApp) updateCheckTxResponseNonce(tx sdk.Tx, mode runTxMode, senderNonce uint64) {
+	if tx.GetNonce() == 0 &&
+		app.updateCMTxNonceHandler != nil &&
+		mode == runTxModeCheck &&
+		senderNonce != 0 {
+		app.updateCMTxNonceHandler(tx, senderNonce)
 	}
 }
