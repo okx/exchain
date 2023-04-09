@@ -101,7 +101,7 @@ func (k Keeper) PostTxProcessing(
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("feeCollectorName=", k.accountKeeper.GetAccount(ctx, k.supplyKeeper.GetModuleAddress(k.feeCollectorName)).GetCoins())
 	// add innertx
 	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
 

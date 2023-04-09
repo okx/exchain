@@ -15,6 +15,7 @@ type AccountKeeper interface {
 // SupplyKeeper defines the expected interface needed to retrieve account balances.
 type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+	GetModuleAddress(moduleName string) sdk.AccAddress
 }
 
 type Subspace interface {

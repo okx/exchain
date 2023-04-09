@@ -183,6 +183,7 @@ func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Con
 			toAcc := sk.GetModuleAddress(types.FeeCollectorName)
 			ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, feeAmt, err)
 		}
+		fmt.Println("扣费后", sk.GetModuleAccount(*ctx, types.FeeCollectorName).GetCoins())
 		if err != nil {
 			return err
 		}
