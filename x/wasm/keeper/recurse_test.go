@@ -15,9 +15,9 @@ import (
 )
 
 type Recurse struct {
-	Depth    uint32         `json:"depth"`
-	Work     uint32         `json:"work"`
-	Contract sdk.AccAddress `json:"contract"`
+	Depth    uint32          `json:"depth"`
+	Work     uint32          `json:"work"`
+	Contract sdk.WasmAddress `json:"contract"`
 }
 
 type recurseWrapper struct {
@@ -38,9 +38,9 @@ type recurseResponse struct {
 // number os wasm queries called from a contract
 var totalWasmQueryCounter int
 
-func initRecurseContract(t *testing.T) (contract sdk.AccAddress, creator sdk.AccAddress, ctx sdk.Context, keeper *Keeper) {
+func initRecurseContract(t *testing.T) (contract sdk.WasmAddress, creator sdk.WasmAddress, ctx sdk.Context, keeper *Keeper) {
 	countingQuerierDec := func(realWasmQuerier WasmVMQueryHandler) WasmVMQueryHandler {
-		return WasmVMQueryHandlerFn(func(ctx sdk.Context, caller sdk.AccAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
+		return WasmVMQueryHandlerFn(func(ctx sdk.Context, caller sdk.WasmAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
 			totalWasmQueryCounter++
 			return realWasmQuerier.HandleQuery(ctx, caller, request)
 		})
@@ -53,11 +53,11 @@ func initRecurseContract(t *testing.T) (contract sdk.AccAddress, creator sdk.Acc
 
 func TestGasCostOnQuery(t *testing.T) {
 	const (
-		GasNoWork uint64 = 63_832
+		GasNoWork uint64 = 63_751
 		// Note: about 100 SDK gas (10k wasmer gas) for each round of sha256
-		GasWork50 uint64 = 64_275 // this is a little shy of 50k gas - to keep an eye on the limit
+		GasWork50 uint64 = 64_240 // this is a little shy of 50k gas - to keep an eye on the limit
 
-		GasReturnUnhashed uint64 = 33
+		GasReturnUnhashed uint64 = 26
 		GasReturnHashed   uint64 = 25
 	)
 
@@ -99,7 +99,7 @@ func TestGasCostOnQuery(t *testing.T) {
 				Depth: 4,
 				Work:  50,
 			},
-			expectedGas: 5*GasWork50 + 4*GasReturnHashed,
+			expectedGas: 5*GasWork50 + 4*GasReturnHashed - 3,
 		},
 	}
 
@@ -216,7 +216,7 @@ func TestLimitRecursiveQueryGas(t *testing.T) {
 
 	const (
 		// Note: about 100 SDK gas (10k wasmer gas) for each round of sha256
-		GasWork2k uint64 = 84_110 // = NewContractInstanceCosts + x // we have 6x gas used in cpu than in the instance
+		GasWork2k uint64 = 84_075 // = NewContractInstanceCosts + x // we have 6x gas used in cpu than in the instance
 		// This is overhead for calling into a sub-contract
 		GasReturnHashed uint64 = 26
 	)
@@ -246,7 +246,7 @@ func TestLimitRecursiveQueryGas(t *testing.T) {
 			},
 			expectQueriesFromContract: 5,
 			// FIXME: why -1 ... confused a bit by calculations, seems like rounding issues
-			expectedGas: GasWork2k + 5*(GasWork2k+GasReturnHashed) - 1,
+			expectedGas: GasWork2k + 5*(GasWork2k+GasReturnHashed) - 5,
 		},
 		// this is where we expect an error...
 		// it has enough gas to run 4 times and die on the 5th (4th time dispatching to sub-contract)
@@ -269,7 +269,7 @@ func TestLimitRecursiveQueryGas(t *testing.T) {
 			expectQueriesFromContract: 10,
 			expectOutOfGas:            false,
 			expectError:               "query wasm contract failed", // Error we get from the contract instance doing the failing query, not wasmd
-			expectedGas:               10*(GasWork2k+GasReturnHashed) - 264,
+			expectedGas:               10*(GasWork2k+GasReturnHashed) - 275,
 		},
 	}
 

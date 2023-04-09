@@ -77,8 +77,8 @@ package keeper
 //	)
 //
 //	var (
-//		oneAddress   sdk.AccAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
-//		otherAddress sdk.AccAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
+//		oneAddress   sdk.WasmAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
+//		otherAddress sdk.WasmAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
 //	)
 //	src := types.InstantiateContractProposalFixture(func(p *types.InstantiateContractProposal) {
 //		p.CodeID = firstCodeID
@@ -98,7 +98,7 @@ package keeper
 //	require.NoError(t, err)
 //
 //	// then
-//	contractAddr, err := sdk.AccAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+//	contractAddr, err := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 //	require.NoError(t, err)
 //
 //	cInfo := wasmKeeper.GetContractInfo(ctx, contractAddr)
@@ -139,7 +139,7 @@ package keeper
 //		wasmCode),
 //	)
 //
-//	var oneAddress sdk.AccAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
+//	var oneAddress sdk.WasmAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
 //
 //	// test invalid admin address
 //	src := types.InstantiateContractProposalFixture(func(p *types.InstantiateContractProposal) {
@@ -170,7 +170,7 @@ package keeper
 //	require.NoError(t, err)
 //
 //	// then
-//	contractAddr, err := sdk.AccAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+//	contractAddr, err := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 //	require.NoError(t, err)
 //
 //	cInfo := wasmKeeper.GetContractInfo(ctx, contractAddr)
@@ -211,8 +211,8 @@ package keeper
 //	require.NoError(t, wasmKeeper.importCode(ctx, 2, codeInfoFixture, wasmCode))
 //
 //	var (
-//		anyAddress   sdk.AccAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
-//		otherAddress sdk.AccAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
+//		anyAddress   sdk.WasmAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
+//		otherAddress sdk.WasmAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
 //		contractAddr                = BuildContractAddress(1, 1)
 //	)
 //
@@ -226,7 +226,7 @@ package keeper
 //	require.NoError(t, wasmKeeper.importContract(ctx, contractAddr, &contractInfoFixture, []types.Model{m}))
 //
 //	migMsg := struct {
-//		Verifier sdk.AccAddress `json:"verifier"`
+//		Verifier sdk.WasmAddress `json:"verifier"`
 //	}{Verifier: otherAddress}
 //	migMsgBz, err := json.Marshal(migMsg)
 //	require.NoError(t, err)
@@ -391,7 +391,7 @@ package keeper
 //
 //func TestAdminProposals(t *testing.T) {
 //	var (
-//		otherAddress sdk.AccAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
+//		otherAddress sdk.WasmAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
 //		contractAddr                = BuildContractAddress(1, 1)
 //	)
 //	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
@@ -400,7 +400,7 @@ package keeper
 //	specs := map[string]struct {
 //		state       types.ContractInfo
 //		srcProposal govtypes.Content
-//		expAdmin    sdk.AccAddress
+//		expAdmin    sdk.WasmAddress
 //	}{
 //		"update with different admin": {
 //			state: types.ContractInfoFixture(),
@@ -481,7 +481,7 @@ package keeper
 //
 //	var (
 //		legacyAmino                           = keepers.EncodingConfig.Amino
-//		myAddress              sdk.AccAddress = make([]byte, types.ContractAddrLen)
+//		myAddress              sdk.WasmAddress = make([]byte, types.ContractAddrLen)
 //		oneAddressAccessConfig                = types.AccessTypeOnlyAddress.With(myAddress)
 //	)
 //
@@ -756,7 +756,7 @@ package keeper
 //		CreateFn:      wasmtesting.NoOpCreateFn,
 //		AnalyzeCodeFn: wasmtesting.WithoutIBCAnalyzeFn,
 //	}
-//	anyAddress, err := sdk.AccAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
+//	anyAddress, err := sdk.WasmAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
 //	require.NoError(t, err)
 //
 //	withAddressAccessConfig := types.AccessTypeOnlyAddress.With(anyAddress)

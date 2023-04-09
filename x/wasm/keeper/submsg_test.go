@@ -355,7 +355,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 // This occurs with the IBC encoder. Test this.
 func TestDispatchSubMsgEncodeToNoSdkMsg(t *testing.T) {
 	// fake out the bank handle to return success with no data
-	nilEncoder := func(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error) {
+	nilEncoder := func(sender sdk.WasmAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error) {
 		return nil, nil
 	}
 	customEncoders := &MessageEncoders{
