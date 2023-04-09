@@ -231,11 +231,28 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 	if len(sigs) != len(signerAddrs) {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "invalid number of signer;  expected: %d, got %d", len(signerAddrs), len(sigs))
 	}
-
+	var txNonce uint64
+	if len(sigs) == 1 && tx.GetNonce() != 0 {
+		txNonce = tx.GetNonce()
+	}
 	for i, sig := range sigs {
 		signerAccs[i], err = GetSignerAcc(ctx, svd.ak, signerAddrs[i])
 		if err != nil {
 			return ctx, err
+		}
+		if ctx.IsCheckTx() {
+			if txNonce != 0 { // txNonce first
+				err := nonceVerification(ctx, signerAccs[i].GetSequence(), txNonce, signerAddrs[i].String(), simulate)
+				if err != nil {
+					return ctx, err
+				}
+				signerAccs[i].SetSequence(txNonce)
+			} else { // for adaptive pending tx in mempool just in checkTx but not deliverTx
+				pendingNonce := getCheckTxNonceFromMempool(signerAddrs[i].String())
+				if pendingNonce != 0 {
+					signerAccs[i].SetSequence(pendingNonce)
+				}
+			}
 		}
 
 		// retrieve signBytes of tx
@@ -301,9 +318,20 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
 	}
 
+	if isd.JudgeIncontinuousNonce(ctx, tx, sigTx.GetSigners(), simulate) { // it's the same as handle evm tx
+		return next(ctx, tx, simulate)
+	}
+
 	// increment sequence of all signers
 	for index, addr := range sigTx.GetSigners() {
 		acc := isd.ak.GetAccount(ctx, addr)
+		// for adaptive pending tx in mempool just in checkTx but not deliverTx
+		if ctx.IsCheckTx() && !ctx.IsReCheckTx() {
+			pendingNonce := getCheckTxNonceFromMempool(addr.String())
+			if pendingNonce != 0 {
+				acc.SetSequence(pendingNonce)
+			}
+		}
 		if ctx.IsCheckTx() && index == 0 { // context with the nonce of fee payer
 			ctx.SetAccountNonce(acc.GetSequence())
 		}
@@ -315,6 +343,27 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	return next(ctx, tx, simulate)
+}
+
+// judge the incontinuous nonce, incontinuous nonce no need increment sequence
+func (isd IncrementSequenceDecorator) JudgeIncontinuousNonce(ctx sdk.Context, tx sdk.Tx, addrs []sdk.AccAddress, simulate bool) bool {
+	txNonce := tx.GetNonce()
+	if simulate ||
+		(txNonce == 0) || // no wrapCMtx no need verify
+		!ctx.IsCheckTx() || // deliverTx mode no need judge
+		ctx.IsReCheckTx() {
+		return false
+	}
+	if len(addrs) == 1 && txNonce != 0 {
+		acc := isd.ak.GetAccount(ctx, addrs[0])
+		if acc.GetSequence() != txNonce { // incontinuous nonce no need increment sequence
+			if ctx.IsCheckTx() { // context with the nonce of fee payer
+				ctx.SetAccountNonce(acc.GetSequence())
+			}
+			return true
+		}
+	}
+	return false
 }
 
 // ValidateSigCountDecorator takes in Params and returns errors if there are too many signatures in the tx for the given params
