@@ -74,7 +74,7 @@ func (h CallToWasmEventHandler) EventID() common.Hash {
 // Handle Process the log
 func (h CallToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
 	if !tmtypes.HigherThanEarth(ctx.BlockHeight()) {
-		errMsg := fmt.Sprintf("vmbridger not supprt at height %d", ctx.BlockHeight())
+		errMsg := fmt.Sprintf("vmbridge not supprt at height %d", ctx.BlockHeight())
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 	}
 
