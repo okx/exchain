@@ -634,7 +634,7 @@ func (suite *KeeperTestSuite) TestKeeper_CallToEvm() {
 			reset()
 			tc.malleate()
 
-			result, err := suite.app.VMBridgeKeeper.CallToEvm(suite.ctx, caller, contract, string(evmInput), value)
+			result, err := suite.app.VMBridgeKeeper.CallToEvm(suite.ctx, caller, contract, hex.EncodeToString(evmInput), value)
 			if tc.error != nil {
 				suite.Require().EqualError(err, tc.error.Error())
 			} else {

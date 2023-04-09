@@ -164,7 +164,11 @@ func (k Keeper) CallToEvm(ctx sdk.Context, caller, contract string, calldata str
 		ctx.SetWatcher(watcher.NewTxWatcher())
 	}
 
-	_, result, err := k.CallEvm(ctx, common.BytesToAddress(callerAddr.Bytes()), &conrtractAddr, value.BigInt(), []byte(calldata))
+	realCall, err := hex.DecodeString(calldata)
+	if err != nil {
+		return err.Error(), err
+	}
+	_, result, err := k.CallEvm(ctx, common.BytesToAddress(callerAddr.Bytes()), &conrtractAddr, value.BigInt(), realCall)
 	if err != nil {
 		return err.Error(), err
 	}

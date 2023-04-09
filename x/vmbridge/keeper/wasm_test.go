@@ -729,7 +729,7 @@ func (suite *KeeperTestSuite) TestMsgServer_CallToEvmEvent() {
 			tc.malleate()
 			msgServer := keeper.NewMsgServerImpl(*suite.app.VMBridgeKeeper)
 
-			msg := types.MsgCallToEvm{Sender: caller, Evmaddr: contract, Calldata: string(evmInput), Value: value}
+			msg := types.MsgCallToEvm{Sender: caller, Evmaddr: contract, Calldata: hex.EncodeToString(evmInput), Value: value}
 			result, err := msgServer.CallToEvmEvent(sdk.WrapSDKContext(suite.ctx), &msg)
 			if tc.error != nil {
 				suite.Require().EqualError(err, tc.error.Error())
