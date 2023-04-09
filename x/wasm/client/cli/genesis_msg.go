@@ -175,7 +175,7 @@ func GenesisExecuteContractCmd(defaultNodeHome string, genesisMutator GenesisMut
 
 				// - does contract address exists?
 				if !hasContract(state, msg.Contract) {
-					return fmt.Errorf("unknown contract: %state", msg.Contract)
+					return fmt.Errorf("unknown contract: %s", msg.Contract)
 				}
 				state.GenMsgs = append(state.GenMsgs, types.GenesisState_GenMsgs{
 					Sum: &types.GenesisState_GenMsgs_ExecuteContract{ExecuteContract: &msg},
@@ -271,7 +271,7 @@ func GetAllCodes(state *types.GenesisState) ([]CodeMeta, error) {
 				accessConfig = *msg.InstantiatePermission
 			} else {
 				// default
-				creator, err := sdk.AccAddressFromBech32(msg.Sender)
+				creator, err := sdk.WasmAddressFromBech32(msg.Sender)
 				if err != nil {
 					return nil, fmt.Errorf("sender: %s", err)
 				}
@@ -324,7 +324,7 @@ func GetAllContracts(state *types.GenesisState) []ContractMeta {
 	return all
 }
 
-func hasAccountBalance(cmd *cobra.Command, appState map[string]json.RawMessage, sender sdk.AccAddress, coins sdk.Coins) (bool, error) {
+func hasAccountBalance(cmd *cobra.Command, appState map[string]json.RawMessage, sender sdk.WasmAddress, coins sdk.Coins) (bool, error) {
 	// no coins needed, no account needed
 	if coins.IsZero() {
 		return true, nil
@@ -476,7 +476,7 @@ func codeSeqValue(state *types.GenesisState) uint64 {
 // getActorAddress returns the account address for the `--run-as` flag.
 // The flag value can either be an address already or a key name where the
 // address is read from the keyring instead.
-func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
+func getActorAddress(cmd *cobra.Command) (sdk.WasmAddress, error) {
 	actorArg, err := cmd.Flags().GetString(flagRunAs)
 	if err != nil {
 		return nil, fmt.Errorf("run-as: %s", err.Error())
@@ -485,7 +485,7 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 		return nil, errors.New("run-as address is required")
 	}
 
-	actorAddr, err := sdk.AccAddressFromBech32(actorArg)
+	actorAddr, err := sdk.WasmAddressFromBech32(actorArg)
 	if err == nil {
 		return actorAddr, nil
 	}
@@ -506,5 +506,5 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get address from Keybase: %w", err)
 	}
-	return info.GetAddress(), nil
+	return sdk.AccToAWasmddress(info.GetAddress()), nil
 }

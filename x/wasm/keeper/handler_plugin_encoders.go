@@ -17,23 +17,23 @@ import (
 	"github.com/okex/exchain/x/wasm/types"
 )
 
-type BankEncoder func(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error)
-type CustomEncoder func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error)
-type DistributionEncoder func(sender sdk.AccAddress, msg *wasmvmtypes.DistributionMsg) ([]ibcadapter.Msg, error)
-type StakingEncoder func(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]ibcadapter.Msg, error)
-type StargateEncoder func(sender sdk.AccAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error)
-type WasmEncoder func(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error)
-type IBCEncoder func(ctx sdk.Context, sender sdk.AccAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]ibcadapter.Msg, error)
+type BankEncoder func(sender sdk.WasmAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error)
+type CustomEncoder func(sender sdk.WasmAddress, msg json.RawMessage) ([]ibcadapter.Msg, error)
+type DistributionEncoder func(sender sdk.WasmAddress, msg *wasmvmtypes.DistributionMsg) ([]ibcadapter.Msg, error)
+type StakingEncoder func(sender sdk.WasmAddress, msg *wasmvmtypes.StakingMsg) ([]ibcadapter.Msg, error)
+type StargateEncoder func(sender sdk.WasmAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error)
+type WasmEncoder func(sender sdk.WasmAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error)
+type IBCEncoder func(ctx sdk.Context, sender sdk.WasmAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]ibcadapter.Msg, error)
 
 type MessageEncoders struct {
-	Bank   func(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error)
-	Custom func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error)
-	//Distribution func(sender sdk.AccAddress, msg *wasmvmtypes.DistributionMsg) ([]sdk.Msg, error)
-	//IBC          func(ctx sdk.Context, sender sdk.AccAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]sdk.Msg, error)
-	//Staking      func(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]sdk.Msg, error)
-	Stargate func(sender sdk.AccAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error)
-	Wasm     func(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error)
-	//Gov          func(sender sdk.AccAddress, msg *wasmvmtypes.GovMsg) ([]sdk.Msg, error)
+	Bank   func(sender sdk.WasmAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error)
+	Custom func(sender sdk.WasmAddress, msg json.RawMessage) ([]ibcadapter.Msg, error)
+	//Distribution func(sender sdk.WasmAddress, msg *wasmvmtypes.DistributionMsg) ([]sdk.Msg, error)
+	//IBC          func(ctx sdk.Context, sender sdk.WasmAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]sdk.Msg, error)
+	//Staking      func(sender sdk.WasmAddress, msg *wasmvmtypes.StakingMsg) ([]sdk.Msg, error)
+	//Stargate func(sender sdk.WasmAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error)
+	Wasm func(sender sdk.WasmAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error)
+	//Gov          func(sender sdk.WasmAddress, msg *wasmvmtypes.GovMsg) ([]sdk.Msg, error)
 }
 
 func DefaultEncoders(unpacker codectypes.AnyUnpacker, portSource types.ICS20TransferPortSource) MessageEncoders {
@@ -43,8 +43,8 @@ func DefaultEncoders(unpacker codectypes.AnyUnpacker, portSource types.ICS20Tran
 		//Distribution: EncodeDistributionMsg,
 		//IBC:          EncodeIBCMsg(portSource),
 		//Staking:      EncodeStakingMsg,
-		Stargate: EncodeStargateMsg(unpacker),
-		Wasm:     EncodeWasmMsg,
+		//Stargate: EncodeStargateMsg(unpacker), // TODO we have not test this so disable it.
+		Wasm: EncodeWasmMsg,
 		//Gov:          EncodeGovMsg,
 	}
 }
@@ -68,9 +68,9 @@ func (e MessageEncoders) Merge(o *MessageEncoders) MessageEncoders {
 	//if o.Staking != nil {
 	//	e.Staking = o.Staking
 	//}
-	if o.Stargate != nil {
-		e.Stargate = o.Stargate
-	}
+	//if o.Stargate != nil {
+	//	e.Stargate = o.Stargate
+	//}
 	if o.Wasm != nil {
 		e.Wasm = o.Wasm
 	}
@@ -80,7 +80,7 @@ func (e MessageEncoders) Merge(o *MessageEncoders) MessageEncoders {
 	return e
 }
 
-func (e MessageEncoders) Encode(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]ibcadapter.Msg, error) {
+func (e MessageEncoders) Encode(ctx sdk.Context, contractAddr sdk.WasmAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]ibcadapter.Msg, error) {
 	switch {
 	case msg.Bank != nil:
 		return e.Bank(contractAddr, msg.Bank)
@@ -92,8 +92,8 @@ func (e MessageEncoders) Encode(ctx sdk.Context, contractAddr sdk.AccAddress, co
 	//	return e.IBC(ctx, contractAddr, contractIBCPortID, msg.IBC)
 	//case msg.Staking != nil:
 	//	return e.Staking(contractAddr, msg.Staking)
-	case msg.Stargate != nil:
-		return e.Stargate(contractAddr, msg.Stargate)
+	//case msg.Stargate != nil:
+	//	return e.Stargate(contractAddr, msg.Stargate)
 	case msg.Wasm != nil:
 		return e.Wasm(contractAddr, msg.Wasm)
 		//case msg.Gov != nil:
@@ -102,7 +102,7 @@ func (e MessageEncoders) Encode(ctx sdk.Context, contractAddr sdk.AccAddress, co
 	return nil, sdkerrors.Wrap(types.ErrUnknownMsg, "unknown variant of Wasm")
 }
 
-func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error) {
+func EncodeBankMsg(sender sdk.WasmAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error) {
 	if msg.Send == nil {
 		return nil, sdkerrors.Wrap(types.ErrUnknownMsg, "unknown variant of Bank")
 	}
@@ -122,14 +122,14 @@ func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapte
 	return []ibcadapter.Msg{&sdkMsg}, nil
 }
 
-func NoCustomMsg(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
+func NoCustomMsg(sender sdk.WasmAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 	return nil, sdkerrors.Wrap(types.ErrUnknownMsg, "custom variant not supported")
 }
 
-//func EncodeDistributionMsg(sender sdk.AccAddress, msg *wasmvmtypes.DistributionMsg) ([]ibcadapter.Msg, error) {
+//func EncodeDistributionMsg(sender sdk.WasmAddress, msg *wasmvmtypes.DistributionMsg) ([]ibcadapter.Msg, error) {
 //	switch {
 //	case msg.SetWithdrawAddress != nil:
-//		withDrawAddress, err := sdk.AccAddressFromBech32(msg.SetWithdrawAddress.Address)
+//		withDrawAddress, err := sdk.WasmAddressFromBech32(msg.SetWithdrawAddress.Address)
 //		if err != nil {
 //			return nil, err
 //		}
@@ -139,7 +139,7 @@ func NoCustomMsg(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, 
 //		}
 //		return []ibcadapter.Msg{&setMsg}, nil
 //	case msg.WithdrawDelegatorReward != nil:
-//		validatorAddress, err := sdk.AccAddressFromBech32(msg.WithdrawDelegatorReward.Validator)
+//		validatorAddress, err := sdk.WasmAddressFromBech32(msg.WithdrawDelegatorReward.Validator)
 //		if err != nil {
 //			return nil, err
 //		}
@@ -153,14 +153,14 @@ func NoCustomMsg(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, 
 //	}
 //}
 
-//func EncodeStakingMsg(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]ibcadapter.Msg, error) {
+//func EncodeStakingMsg(sender sdk.WasmAddress, msg *wasmvmtypes.StakingMsg) ([]ibcadapter.Msg, error) {
 //	switch {
 //	case msg.Delegate != nil:
 //		coin, err := ConvertWasmCoinToSdkCoin(msg.Delegate.Amount)
 //		if err != nil {
 //			return nil, err
 //		}
-//		validatorAddress, err := sdk.AccAddressFromBech32(msg.Delegate.Validator)
+//		validatorAddress, err := sdk.WasmAddressFromBech32(msg.Delegate.Validator)
 //		if err != nil {
 //			return nil, err
 //		}
@@ -176,11 +176,11 @@ func NoCustomMsg(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, 
 //		if err != nil {
 //			return nil, err
 //		}
-//		srcValidatorAddress, err := sdk.AccAddressFromBech32(msg.Redelegate.SrcValidator)
+//		srcValidatorAddress, err := sdk.WasmAddressFromBech32(msg.Redelegate.SrcValidator)
 //		if err != nil {
 //			return nil, err
 //		}
-//		dstValidatorAddress, err := sdk.AccAddressFromBech32(msg.Redelegate.DstValidator)
+//		dstValidatorAddress, err := sdk.WasmAddressFromBech32(msg.Redelegate.DstValidator)
 //		if err != nil {
 //			return nil, err
 //		}
@@ -196,7 +196,7 @@ func NoCustomMsg(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, 
 //		if err != nil {
 //			return nil, err
 //		}
-//		dstValidatorAddress, err := sdk.AccAddressFromBech32(msg.Undelegate.Validator)
+//		dstValidatorAddress, err := sdk.WasmAddressFromBech32(msg.Undelegate.Validator)
 //		if err != nil {
 //			return nil, err
 //		}
@@ -212,7 +212,7 @@ func NoCustomMsg(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, 
 //}
 
 func EncodeStargateMsg(unpacker codectypes.AnyUnpacker) StargateEncoder {
-	return func(sender sdk.AccAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error) {
+	return func(sender sdk.WasmAddress, msg *wasmvmtypes.StargateMsg) ([]ibcadapter.Msg, error) {
 		any := codectypes.Any{
 			TypeUrl: msg.TypeURL,
 			Value:   msg.Value,
@@ -228,7 +228,7 @@ func EncodeStargateMsg(unpacker codectypes.AnyUnpacker) StargateEncoder {
 	}
 }
 
-func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error) {
+func EncodeWasmMsg(sender sdk.WasmAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapter.Msg, error) {
 	switch {
 	case msg.Execute != nil:
 		coins, err := ConvertWasmCoinsToSdkCoins(msg.Execute.Funds)
@@ -284,8 +284,8 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapte
 	}
 }
 
-func EncodeIBCMsg(portSource types.ICS20TransferPortSource) func(ctx sdk.Context, sender sdk.AccAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]ibcadapter.Msg, error) {
-	return func(ctx sdk.Context, sender sdk.AccAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]ibcadapter.Msg, error) {
+func EncodeIBCMsg(portSource types.ICS20TransferPortSource) func(ctx sdk.Context, sender sdk.WasmAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]ibcadapter.Msg, error) {
+	return func(ctx sdk.Context, sender sdk.WasmAddress, contractIBCPortID string, msg *wasmvmtypes.IBCMsg) ([]ibcadapter.Msg, error) {
 		switch {
 		case msg.CloseChannel != nil:
 			return []ibcadapter.Msg{&channeltypes.MsgChannelCloseInit{
@@ -314,7 +314,7 @@ func EncodeIBCMsg(portSource types.ICS20TransferPortSource) func(ctx sdk.Context
 	}
 }
 
-//func EncodeGovMsg(sender sdk.AccAddress, msg *wasmvmtypes.GovMsg) ([]ibcadapter.Msg, error) {
+//func EncodeGovMsg(sender sdk.WasmAddress, msg *wasmvmtypes.GovMsg) ([]ibcadapter.Msg, error) {
 //	var option govtypes.VoteOption
 //	switch msg.Vote.Vote {
 //	case wasmvmtypes.Yes:

@@ -14,28 +14,19 @@ func (msg MsgSendToEvm) Type() string {
 }
 
 func (msg MsgSendToEvm) ValidateBasic() error {
-	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		return ErrMsgSendToEvm(err.Error())
-	}
-	if !sdk.IsWasmAddress(sender) {
-		return ErrIsNotWasmAddr
 	}
 
-	contract, err := sdk.AccAddressFromBech32(msg.Contract)
+	_, err = sdk.AccAddressFromBech32(msg.Contract)
 	if err != nil {
 		return ErrMsgSendToEvm(err.Error())
-	}
-	if sdk.IsWasmAddress(contract) {
-		return ErrIsNotEvmAddr
 	}
 
-	recipient, err := sdk.AccAddressFromBech32(msg.Recipient)
+	_, err = sdk.AccAddressFromBech32(msg.Recipient)
 	if err != nil {
 		return ErrMsgSendToEvm(err.Error())
-	}
-	if sdk.IsWasmAddress(recipient) {
-		return ErrIsNotEvmAddr
 	}
 
 	if msg.Amount.IsNegative() {
