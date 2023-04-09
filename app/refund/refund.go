@@ -25,11 +25,7 @@ func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper, ik innert
 		var gasRefundHandler sdk.GasRefundHandler
 
 		if tmtypes.HigherThanEarth(ctx.BlockHeight()) {
-			if tx.GetType() == sdk.EvmTxType || tx.GetType() == sdk.StdTxType {
-				gasRefundHandler = evmGasRefundHandler
-			} else {
-				return nil, nil
-			}
+			gasRefundHandler = evmGasRefundHandler
 		} else {
 			if tx.GetType() == sdk.EvmTxType {
 				gasRefundHandler = evmGasRefundHandler
