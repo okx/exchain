@@ -50,7 +50,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		ctx = app.getContextForTx(mode, req.Tx)
 		exTxInfo := app.GetTxInfo(ctx, tx)
 		data, _ := json.Marshal(exTxInfo)
-		app.updataCheckTxResponseNonce(tx, mode, exTxInfo.SenderNonce)
+		app.updateCheckTxResponseNonce(tx, mode, exTxInfo.SenderNonce)
 
 		return abci.ResponseCheckTx{
 			Tx:          tx,
@@ -63,7 +63,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	if err != nil {
 		return sdkerrors.ResponseCheckTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
-	app.updataCheckTxResponseNonce(tx, mode, info.accountNonce)
+	app.updateCheckTxResponseNonce(tx, mode, info.accountNonce)
 
 	return abci.ResponseCheckTx{
 		Tx:          tx,
@@ -76,8 +76,8 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 	}
 }
 
-// for adaptivet the same sender multi-tx in mempool can add to TxQueue
-func (app *BaseApp) updataCheckTxResponseNonce(tx sdk.Tx, mode runTxMode, senderNonce uint64) {
+// for adaptive the same sender multi-tx in mempool can add to TxQueue
+func (app *BaseApp) updateCheckTxResponseNonce(tx sdk.Tx, mode runTxMode, senderNonce uint64) {
 	if tx.GetNonce() == 0 &&
 		app.updateCMTxNonceHandler != nil &&
 		mode == runTxModeCheck &&

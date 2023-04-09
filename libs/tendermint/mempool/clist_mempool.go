@@ -537,7 +537,6 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 	txNonce := memTx.realTx.GetNonce()
 	mem.logger.Debug("mempool", "addPendingTx", hex.EncodeToString(memTx.realTx.TxHash()), "nonce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice(), "pending Nouce", pendingNonce, "excepectNouce", expectedNonce)
-	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
 	if txNonce == 0 || txNonce < expectedNonce {
 		return mem.addTx(memTx)
 	}
