@@ -19,10 +19,12 @@ import (
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
-		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
-		if err != nil {
-			return err
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo, canSetCoin bool) error {
+		if canSetCoin {
+			err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+			if err != nil {
+				return err
+			}
 		}
 
 		// split fee
@@ -31,7 +33,7 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 			feesplits, sortAddrs := groupByAddrAndSortFeeSplits(txFeesplit)
 			for _, addr := range sortAddrs {
 				acc := sdk.MustAccAddressFromBech32(addr)
-				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
+				err := sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
 				if err != nil {
 					return err
 				}

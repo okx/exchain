@@ -151,7 +151,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 	return ctx, nil
 }
 
-func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
+func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
@@ -177,7 +177,11 @@ func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = deductFees(ik, ak, sk, *ctx, acc, feeAmt)
+		err = auth.DeductFees(sk, *ctx, acc, feeAmt)
+		if !ctx.IsCheckTx() {
+			toAcc := sk.GetModuleAddress(types.FeeCollectorName)
+			ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, feeAmt, err)
+		}
 		if err != nil {
 			return err
 		}
@@ -185,43 +189,6 @@ func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	auth.SetGasMeter(simulate, ctx, gasLimit)
-	return nil
-}
-
-func deductFees(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
-	blockTime := ctx.BlockTime()
-	coins := acc.GetCoins()
-
-	if !fees.IsValid() {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", fees)
-	}
-
-	// verify the account has enough funds to pay for fees
-	balance, hasNeg := coins.SafeSub(fees)
-	if hasNeg {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
-			"insufficient funds to pay for fees; %s < %s", coins, fees)
-	}
-
-	// Validate the account has enough "spendable" coins as this will cover cases
-	// such as vesting accounts.
-	spendableCoins := acc.SpendableCoins(blockTime)
-	if _, hasNeg := spendableCoins.SafeSub(fees); hasNeg {
-		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
-			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
-	}
-
-	// set coins and record innertx
-	err := acc.SetCoins(balance)
-	if !ctx.IsCheckTx() {
-		toAcc := sk.GetModuleAddress(types.FeeCollectorName)
-		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, fees, err)
-	}
-	if err != nil {
-		return err
-	}
-	ak.SetAccount(ctx, acc)
-
 	return nil
 }
 
@@ -313,7 +280,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 
 		ctx.EnableAccountCache()
 		// account would be updated
-		err = ethGasConsume(avd.evmKeeper, avd.ak, avd.sk, &ctx, acc, getAccGasUsed, msgEthTx, simulate)
+		err = ethGasConsume(avd.evmKeeper, avd.sk, &ctx, acc, getAccGasUsed, msgEthTx, simulate)
 		acc = nil
 		acc, _ = ctx.GetFromAccountCacheData().(exported.Account)
 		ctx.DisableAccountCache()

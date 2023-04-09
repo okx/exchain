@@ -23,7 +23,7 @@ type EvmSysContractAddressHandler func(ctx Context, addr AccAddress) bool
 
 type UpdateCMTxNonceHandler func(tx Tx, nonce uint64)
 
-type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo) error
+type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo, canSetCoin bool) error
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
 type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins, isDelete bool)
@@ -74,21 +74,22 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 
 // Terminator AnteDecorator will get added to the chain to simplify decorator code
 // Don't need to check if next == nil further up the chain
-//                        ______
-//                     <((((((\\\
-//                     /      . }\
-//                     ;--..--._|}
-//  (\                 '--/\--'  )
-//   \\                | '-'  :'|
-//    \\               . -==- .-|
-//     \\               \.__.'   \--._
-//     [\\          __.--|       //  _/'--.
-//     \ \\       .'-._ ('-----'/ __/      \
-//      \ \\     /   __>|      | '--.       |
-//       \ \\   |   \   |     /    /       /
-//        \ '\ /     \  |     |  _/       /
-//         \  \       \ |     | /        /
-//   snd    \  \      \        /
+//
+//	                      ______
+//	                   <((((((\\\
+//	                   /      . }\
+//	                   ;--..--._|}
+//	(\                 '--/\--'  )
+//	 \\                | '-'  :'|
+//	  \\               . -==- .-|
+//	   \\               \.__.'   \--._
+//	   [\\          __.--|       //  _/'--.
+//	   \ \\       .'-._ ('-----'/ __/      \
+//	    \ \\     /   __>|      | '--.       |
+//	     \ \\   |   \   |     /    /       /
+//	      \ '\ /     \  |     |  _/       /
+//	       \  \       \ |     | /        /
+//	 snd    \  \      \        /
 type Terminator struct{}
 
 const AnteTerminatorTag = "ante-terminator"

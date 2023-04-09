@@ -188,7 +188,7 @@ func (app *BaseApp) fixFeeCollector() {
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
 	// The feesplit is only processed at the endblock
-	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil); err != nil {
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil, false); err != nil {
 		panic(err)
 	}
 }
@@ -334,8 +334,8 @@ func (app *BaseApp) endParallelTxs(txSize int) [][]byte {
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
-//we reuse the nonce that changed by the last async call
-//if last ante handler has been failed, we need rerun it ? or not?
+// we reuse the nonce that changed by the last async call
+// if last ante handler has been failed, we need rerun it ? or not?
 func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	app.parallelTxManage.currentRerunIndex = txIndex
 	defer func() {
