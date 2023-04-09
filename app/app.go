@@ -609,7 +609,7 @@ func NewOKExChainApp(
 
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
-	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
+	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
@@ -618,6 +618,7 @@ func NewOKExChainApp(
 				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
 				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+				vmbridge.NewCallToWasmEventHandler(*app.VMBridgeKeeper),
 			),
 			app.FeeSplitKeeper.Hooks(),
 		),
@@ -759,6 +760,7 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
+	app.SetUpdateCMTxNonceHandler(NewUpdateCMTxNonceHandler())
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -1009,5 +1011,14 @@ func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHa
 			return false
 		}
 		return ak.IsMatchSysContractAddress(ctx, addr)
+	}
+}
+
+func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
+	return func(tx sdk.Tx, nonce uint64) {
+		stdtx, ok := tx.(*authtypes.StdTx)
+		if ok && nonce != 0 {
+			stdtx.Nonce = nonce
+		}
 	}
 }

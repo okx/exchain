@@ -10,6 +10,7 @@ func RegisterInterface(registry interfacetypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*txmsg.Msg)(nil),
 		&MsgSendToEvm{},
+		&MsgCallToEvm{},
 	)
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }

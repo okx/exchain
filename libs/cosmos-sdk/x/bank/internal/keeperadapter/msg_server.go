@@ -40,11 +40,28 @@ func (k msgServer) Send(goCtx context.Context, msg *typesadapter.MsgSend) (*type
 	if k.BlacklistedAddr(to) {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", msg.ToAddress)
 	}
-
-	err = k.SendCoins(ctx, from, to, sdk.CoinAdaptersToCoins(msg.Amount))
+	amt := sdk.CoinAdaptersToCoins(msg.Amount)
+	err = k.SendCoins(ctx, from, to, amt)
 	if err != nil {
 		return nil, err
 	}
+
+	//For using 0x prefix address at wasm tx ,so we must be follow code
+	ctx.EventManager().PopEvent()
+	ctx.EventManager().PopEvent()
+	ctx.EventManager().EmitEvents(sdk.Events{
+		// This event should have all info (to, from, amount) without looking at other events
+		sdk.NewEvent(
+			types.EventTypeTransfer,
+			sdk.NewAttribute(types.AttributeKeyRecipient, sdk.AccToAWasmddress(to).String()),
+			sdk.NewAttribute(types.AttributeKeySender, sdk.AccToAWasmddress(from).String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, amt.String()),
+		),
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(types.AttributeKeySender, sdk.AccToAWasmddress(from).String()),
+		),
+	})
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
