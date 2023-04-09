@@ -34,7 +34,6 @@ type CacheTxContextFunc func(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.
 //in this func, edit any member in BaseApp is prohibited
 func handleGasRefund(info *runTxInfo, cacheTxCtxFunc CacheTxContextFunc, gasRefundHandler sdk.GasRefundHandler) sdk.DecCoins {
 	var gasRefundCtx sdk.Context
-	gasRefundCtx.SetOutOfGas(info.outOfGas)
 	info.ctx.Cache().Write(false)
 	if cms, ok := info.GetCacheMultiStore(); ok {
 		gasRefundCtx, info.msCache = info.ctx, cms
@@ -43,6 +42,7 @@ func handleGasRefund(info *runTxInfo, cacheTxCtxFunc CacheTxContextFunc, gasRefu
 		gasRefundCtx, info.msCache = cacheTxCtxFunc(info.ctx, info.txBytes)
 	}
 
+	gasRefundCtx.SetOutOfGas(info.outOfGas)
 	refund, err := gasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
 		panic(err)
