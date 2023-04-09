@@ -2,6 +2,7 @@ package ante
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -176,7 +177,7 @@ func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Con
 		feeAmt := sdk.NewDecCoinsFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(cost, sdk.Precision))
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
-
+		fmt.Println("ethGasConsume", "feeAmt=", feeAmt, "accGetGas=", accGetGas)
 		err = auth.DeductFees(sk, *ctx, acc, feeAmt)
 		if !ctx.IsCheckTx() {
 			toAcc := sk.GetModuleAddress(types.FeeCollectorName)

@@ -1,6 +1,7 @@
 package refund
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -74,6 +75,7 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	gasFees := calculateRefundFees(gasUsed, gas, fees)
 
 	// set coins and record innertx
+	fmt.Println("gasRefund", "gasFees=", gasFees)
 	err = refund.RefundFees(sk, ctx, feePayerAcc.GetAddress(), gasFees)
 	if !ctx.IsCheckTx() {
 		fromAddr := sk.GetModuleAddress(types.FeeCollectorName)

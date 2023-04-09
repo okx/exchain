@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -94,6 +95,7 @@ func (k Keeper) PostTxProcessing(
 	}
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
+	fmt.Println("gas back=", fees)
 	//distribute the fees to the contract deployer / withdraw address
 	err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, k.feeCollectorName, withdrawer, fees)
 	if err != nil {
