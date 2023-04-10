@@ -70,6 +70,12 @@ type GasRegister interface {
 	ToWasmVMGas(source sdk.Gas) uint64
 	// FromWasmVMGas converts from wasmvm gas to sdk gas
 	FromWasmVMGas(source uint64) sdk.Gas
+
+	// UpdateGasMultiplier
+	GetGasMultiplier() uint64
+
+	// UpdateGasMultiplier
+	UpdateGasMultiplier(gasMultiplier uint64)
 }
 
 // WasmGasRegisterConfig config type
@@ -123,7 +129,7 @@ func NewDefaultWasmGasRegister() WasmGasRegister {
 // NewWasmGasRegister constructor
 func NewWasmGasRegister(c WasmGasRegisterConfig) WasmGasRegister {
 	if c.GasMultiplier == 0 {
-		panic(sdkerrors.Wrap(sdkerrors.ErrLogic, "GasMultiplier can not be 0"))
+		panic(sdkerrors.Wrap(sdkerrors.ErrLogic, "GasFactor can not be 0"))
 	}
 	return WasmGasRegister{
 		c: c,
@@ -224,4 +230,15 @@ func (g WasmGasRegister) ToWasmVMGas(source storetypes.Gas) uint64 {
 // FromWasmVMGas converts to SDK gas unit
 func (g WasmGasRegister) FromWasmVMGas(source uint64) sdk.Gas {
 	return source / g.c.GasMultiplier
+}
+
+// GetGasMultiplier
+func (g WasmGasRegister) GetGasMultiplier() uint64 {
+	return g.c.GasMultiplier
+}
+
+// UpdateGasMultiplier
+func (g WasmGasRegister) UpdateGasMultiplier(gasMultiplier uint64) {
+	// TODO need use *?
+	g.c.GasMultiplier = gasMultiplier
 }

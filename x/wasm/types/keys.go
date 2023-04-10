@@ -32,6 +32,7 @@ var (
 	PinnedCodeIndexPrefix                          = []byte{0x07}
 	TXCounterPrefix                                = []byte{0x08}
 	ContractMethodBlockedListPrefix                = []byte{0x10}
+	GasFactorPrefix                                = []byte{0x11}
 
 	KeyLastCodeID     = append(SequenceKeyPrefix, []byte("lastCodeId")...)
 	KeyLastInstanceID = append(SequenceKeyPrefix, []byte("lastContractId")...)
@@ -111,6 +112,14 @@ func GetContractMethodBlockedListPrefix(contractAddr string) []byte {
 	r := make([]byte, prefixLen+contractAddrLen)
 	copy(r, ContractMethodBlockedListPrefix)
 	copy(r[prefixLen:], contractAddr)
+	return r
+}
+
+
+func GetGasFactorPrefix() []byte {
+	prefixLen := len(GasFactorPrefix)
+	r := make([]byte, prefixLen)
+	copy(r, GasFactorPrefix)
 	return r
 }
 

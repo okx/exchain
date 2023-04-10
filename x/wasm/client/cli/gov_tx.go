@@ -3,8 +3,6 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"strconv"
-
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -15,6 +13,7 @@ import (
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/spf13/cobra"
+	"strconv"
 )
 
 //func ProposalStoreCodeCmd() *cobra.Command {

@@ -281,6 +281,54 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return params
 }
 
+func (k Keeper) InvokeExtraProposal(ctx sdk.Context, action string, extra string) error {
+	switch action {
+	case types.ActionModifyGasFactor:
+		return k.modifyGasFactor(ctx, extra)
+	}
+
+	return nil
+}
+
+func (k *Keeper) UpdateGasRegister(ctx sdk.Context) {
+	gasFactor := k.GetGasFactor(ctx)
+	config, ok := k.gasRegister.(WasmGasRegister)
+	if ok && gasFactor != config.GetGasMultiplier() {
+		config.UpdateGasMultiplier(gasFactor)
+	}
+	return
+}
+
+func (k *Keeper) modifyGasFactor(ctx sdk.Context, extra string) error {
+	param, err := types.NewActionModifyGasFactor(extra)
+	if err != nil {
+		return err
+	}
+
+	k.SetGasFactor(ctx, param.Factor)
+	return nil
+}
+
+// get the gas factor
+func (k Keeper) GetGasFactor(ctx sdk.Context) uint64 {
+	store := ctx.KVStore(k.storeKey)
+	if store.Has(types.GetGasFactorPrefix()) {
+		return DefaultGasMultiplier
+	}
+
+	b := store.Get(types.GetGasFactorPrefix())
+	if b != nil {
+		return sdk.BigEndianToUint64(b)
+	}
+	return DefaultGasMultiplier
+}
+
+// set the gas factor
+func (k Keeper) SetGasFactor(ctx sdk.Context, factor uint64) {
+	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+	store.Set(types.GetGasFactorPrefix(), sdk.Uint64ToBigEndian(factor))
+}
+
 func (k Keeper) SetParams(ctx sdk.Context, ps types.Params) {
 	watcher.SetParams(ps)
 	k.paramSpace.SetParamSet(ctx, &ps)
