@@ -66,6 +66,13 @@ var (
 	interfaceReg types2.InterfaceRegistry
 	protoCdc     *codec.ProtoCodec
 	proxyOnce    sync.Once
+
+	ss  proxy.SubspaceProxy
+	akp proxy.AccountKeeperProxy
+	bkp proxy.BankKeeperProxy
+	pkp proxy.PortKeeperProxy
+	ckp proxy.CapabilityKeeperProxy
+	skp proxy.SupplyKeeperProxy
 )
 
 func NewProxyKeeper() keeper.Keeper {
@@ -77,14 +84,14 @@ func NewProxyKeeper() keeper.Keeper {
 		RegisterInterfaces(interfaceReg)
 		bank.RegisterInterface(interfaceReg)
 		protoCdc = codec.NewProtoCodec(interfaceReg)
+		ss = proxy.SubspaceProxy{}
+		akp = proxy.NewAccountKeeperProxy()
+		bkp = proxy.NewBankKeeperProxy(akp)
+		pkp = proxy.PortKeeperProxy{}
+		ckp = proxy.CapabilityKeeperProxy{}
+		skp = proxy.SupplyKeeperProxy{}
 	})
 
-	ss := proxy.SubspaceProxy{}
-	akp := proxy.NewAccountKeeperProxy()
-	bkp := proxy.NewBankKeeperProxy(akp)
-	pkp := proxy.PortKeeperProxy{}
-	ckp := proxy.CapabilityKeeperProxy{}
-	skp := proxy.SupplyKeeperProxy{}
 	msgRouter := baseapp.NewMsgServiceRouter()
 	msgRouter.SetInterfaceRegistry(interfaceReg)
 	queryRouter := baseapp.NewGRPCQueryRouter()
