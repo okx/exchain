@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	simulationGasLimit = 3000000
+	SimulationGasLimit = 3000000
 )
 
 var clientCtx clientcontext.CLIContext
@@ -33,7 +33,7 @@ func MakeContext(storeKey sdk.StoreKey) sdk.Context {
 	cms := getCommitMultiStore()
 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
-	ctx.SetGasMeter(sdk.NewGasMeter(simulationGasLimit))
+	ctx.SetGasMeter(sdk.NewGasMeter(SimulationGasLimit))
 	return ctx
 }
 

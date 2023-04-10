@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
@@ -87,8 +86,6 @@ type Keeper struct {
 	gasRegister       GasRegister
 	maxQueryStackSize uint32
 	ada               types.DBAdapter
-
-	wasmVMMutex sync.Mutex
 }
 
 type defaultAdapter struct{}
@@ -108,7 +105,7 @@ func NewKeeper(
 	paramSpace paramtypes.Subspace,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
-//distKeeper types.DistributionKeeper,
+	//distKeeper types.DistributionKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	capabilityKeeper types.CapabilityKeeper,
@@ -471,8 +468,6 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 
 // Execute executes the contract instance
 func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress, msg []byte, coins sdk.Coins) ([]byte, error) {
-	k.wasmVMMutex.Lock()
-	defer k.wasmVMMutex.Unlock()
 
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "execute")
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddress)

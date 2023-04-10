@@ -61,6 +61,13 @@ func (w *Simulator) Release() {
 	proxy.PutBackStorePool(w.ctx.MultiStore().(sdk.CacheMultiStore))
 }
 
+func (w *Simulator) Reset() {
+	if !watcher.Enable() {
+		return
+	}
+	w.ctx = proxy.MakeContext(w.k.GetStoreKey())
+}
+
 func NewProxyKeeper() keeper.Keeper {
 	cdc := codec.New()
 	RegisterCodec(cdc)

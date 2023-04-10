@@ -442,8 +442,13 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			}
 		}
 		if isPureWasm {
-			wasmSimulator := simulator.NewWasmSimulator()
-			defer wasmSimulator.Release()
+			// wasmSimulator := simulator.NewWasmSimulator()
+			wasmSimulator := getSimulator()
+			wasmSimulator.Reset()
+			defer func() {
+				wasmSimulator.Release()
+				putBackSimulator(wasmSimulator)
+			}()
 
 			wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
 			wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
@@ -695,4 +700,18 @@ func enableFastQuery() bool {
 		fastQuery = viper.GetBool("fast-query")
 	})
 	return fastQuery
+}
+
+var simulatorPool = &sync.Pool{
+	New: func() interface{} {
+		return simulator.NewWasmSimulator()
+	},
+}
+
+func getSimulator() simulator.Simulator {
+	return simulatorPool.Get().(simulator.Simulator)
+}
+
+func putBackSimulator(sim simulator.Simulator) {
+	simulatorPool.Put(sim)
 }
