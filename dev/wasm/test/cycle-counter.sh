@@ -5,6 +5,7 @@ code_id=$(echo "$res" | jq -r '.logs[0].events[1].attributes[0].value')
 #exchaincli tx gov vote $proposal_id yes -y -b block --fees 0.004okt --gas 2000000 --from captain | jq
 res=$(exchaincli tx wasm instantiate $code_id '{"count":"0"}' --label counter_Uint128 --admin 0xbbE4733d85bc2b90682147779DA49caB38C0aA1F --from captain --fees 0.01okt --gas 3000000 -y -b block)
 contract_addr=$(echo "$res" | jq -r '.logs[0].events[0].attributes[0].value')
+echo "contract_addr: $contract_addr"
 exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"1"}}' --from captain --fees 0.01okt --gas 30000000 -y -b block | jq -r '.gas_used'
 exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"10"}}' --from captain --fees 0.01okt --gas 30000000 -y -b block | jq -r '.gas_used'
 exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"100"}}' --from captain --fees 0.01okt --gas 30000000 -y -b block | jq -r '.gas_used'
