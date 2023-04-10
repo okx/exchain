@@ -115,11 +115,13 @@ func GetContractMethodBlockedListPrefix(contractAddr string) []byte {
 	return r
 }
 
-
 func GetGasFactorPrefix() []byte {
+	const gasFactor = "gasfactor"
 	prefixLen := len(GasFactorPrefix)
-	r := make([]byte, prefixLen)
+	gasFactorLen := len(gasFactor)
+	r := make([]byte, prefixLen+gasFactorLen)
 	copy(r, GasFactorPrefix)
+	copy(r[prefixLen:], gasFactor)
 	return r
 }
 

@@ -72,9 +72,10 @@ func (m MockGasRegister) GetGasMultiplier() uint64 {
 	return m.GetGasMultiplier()
 }
 
-func (m *MockGasRegister) UpdateGasMultiplier(gasMultiplier uint64) {
+func (m *MockGasRegister) UpdateGasMultiplier(gasMultiplier uint64) bool {
 	if m.FromWasmVMGasFn == nil {
 		panic("not expected to be called")
 	}
 	m.UpdateGasMultiplier(gasMultiplier)
+	return true
 }

@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -75,7 +76,7 @@ type GasRegister interface {
 	GetGasMultiplier() uint64
 
 	// UpdateGasMultiplier
-	UpdateGasMultiplier(gasMultiplier uint64)
+	UpdateGasMultiplier(gasMultiplier uint64) bool
 }
 
 // WasmGasRegisterConfig config type
@@ -238,7 +239,9 @@ func (g WasmGasRegister) GetGasMultiplier() uint64 {
 }
 
 // UpdateGasMultiplier
-func (g WasmGasRegister) UpdateGasMultiplier(gasMultiplier uint64) {
-	// TODO need use *?
+func (g *WasmGasRegister) UpdateGasMultiplier(gasMultiplier uint64) bool {
 	g.c.GasMultiplier = gasMultiplier
+
+	fmt.Println(fmt.Sprintf("-----"))
+	return true
 }

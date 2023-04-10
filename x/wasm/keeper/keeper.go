@@ -292,10 +292,13 @@ func (k Keeper) InvokeExtraProposal(ctx sdk.Context, action string, extra string
 
 func (k *Keeper) UpdateGasRegister(ctx sdk.Context) {
 	gasFactor := k.GetGasFactor(ctx)
-	config, ok := k.gasRegister.(WasmGasRegister)
-	if ok && gasFactor != config.GetGasMultiplier() {
-		config.UpdateGasMultiplier(gasFactor)
-	}
+
+	fmt.Println(fmt.Sprintf("UpdateGasRegister-----store:%d, config:%d", gasFactor, k.gasRegister.GetGasMultiplier()))
+	k.gasRegister.UpdateGasMultiplier(1)
+	//if ok {
+	//	//gasFactor != config.GetGasMultiplier()
+	//	config.UpdateGasMultiplier(gasFactor)
+	//}
 	return
 }
 
@@ -311,8 +314,9 @@ func (k *Keeper) modifyGasFactor(ctx sdk.Context, extra string) error {
 
 // get the gas factor
 func (k Keeper) GetGasFactor(ctx sdk.Context) uint64 {
-	store := ctx.KVStore(k.storeKey)
-	if store.Has(types.GetGasFactorPrefix()) {
+	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+
+	if !store.Has(types.GetGasFactorPrefix()) {
 		return DefaultGasMultiplier
 	}
 
