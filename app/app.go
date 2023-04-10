@@ -776,6 +776,8 @@ func NewOKExChainApp(
 		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
 		}
+
+		app.WasmKeeper.UpdateGasRegister(ctx)
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
