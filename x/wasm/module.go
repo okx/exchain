@@ -132,7 +132,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.permissionKeeper))
 	if watcher.Enable() {
 		k := NewProxyKeeper()
-		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(&k))
+		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(k))
 	} else {
 		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
 	}

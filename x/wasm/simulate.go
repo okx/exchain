@@ -26,7 +26,7 @@ func NewWasmSimulator() simulator.Simulator {
 	ctx := proxy.MakeContext(k.GetStoreKey())
 	return &Simulator{
 		handler: h,
-		k:       &k,
+		k:       k,
 		ctx:     ctx,
 	}
 }
@@ -75,7 +75,7 @@ var (
 	skp proxy.SupplyKeeperProxy
 )
 
-func NewProxyKeeper() keeper.Keeper {
+func NewProxyKeeper() *keeper.Keeper {
 	proxyOnce.Do(func() {
 		cdc = codec.New()
 		RegisterCodec(cdc)
@@ -99,7 +99,7 @@ func NewProxyKeeper() keeper.Keeper {
 
 	k := keeper.NewSimulateKeeper(codec.NewCodecProxy(protoCdc, cdc), getStoreKey(), ss, akp, bkp, nil, pkp, ckp, nil, msgRouter, queryRouter, WasmDir(), WasmConfig(), SupportedFeatures)
 	types.RegisterMsgServer(msgRouter, keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(k)))
-	types.RegisterQueryServer(queryRouter, NewQuerier(&k))
+	types.RegisterQueryServer(queryRouter, NewQuerier(k))
 	bank.RegisterBankMsgServer(msgRouter, bank.NewMsgServerImpl(bkp))
 	bank.RegisterQueryServer(queryRouter, bank.NewBankQueryServer(bkp, skp))
 

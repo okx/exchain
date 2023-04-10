@@ -125,7 +125,7 @@ func NewKeeper(
 	k := newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, defaultAdapter{}, opts...)
 	accountKeeper.SetObserverKeeper(k)
 
-	return k
+	return *k
 }
 
 func NewSimulateKeeper(
@@ -144,7 +144,7 @@ func NewSimulateKeeper(
 	wasmConfig types.WasmConfig,
 	supportedFeatures string,
 	opts ...Option,
-) Keeper {
+) *Keeper {
 	return newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, watcher.Adapter{}, opts...)
 }
 
@@ -164,7 +164,7 @@ func newKeeper(cdc *codec.CodecProxy,
 	supportedFeatures string,
 	ada types.DBAdapter,
 	opts ...Option,
-) Keeper {
+) *Keeper {
 	wasmer, err := wasmvm.NewVM(filepath.Join(homeDir, "wasm"), supportedFeatures, contractMemoryLimit, wasmConfig.ContractDebugMode, wasmConfig.MemoryCacheSize)
 	if err != nil {
 		panic(err)
@@ -191,7 +191,7 @@ func newKeeper(cdc *codec.CodecProxy,
 	}
 	// not updateable, yet
 	keeper.wasmVMResponseHandler = NewDefaultWasmVMContractResponseHandler(NewMessageDispatcher(keeper.messenger, keeper))
-	return *keeper
+	return keeper
 }
 
 func (k Keeper) GetStoreKey() sdk.StoreKey {
