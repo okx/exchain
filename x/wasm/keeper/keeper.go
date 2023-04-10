@@ -292,13 +292,9 @@ func (k Keeper) InvokeExtraProposal(ctx sdk.Context, action string, extra string
 
 func (k *Keeper) UpdateGasRegister(ctx sdk.Context) {
 	gasFactor := k.GetGasFactor(ctx)
-
-	fmt.Println(fmt.Sprintf("UpdateGasRegister-----store:%d, config:%d", gasFactor, k.gasRegister.GetGasMultiplier()))
-	k.gasRegister.UpdateGasMultiplier(1)
-	//if ok {
-	//	//gasFactor != config.GetGasMultiplier()
-	//	config.UpdateGasMultiplier(gasFactor)
-	//}
+	if gasFactor != k.gasRegister.GetGasMultiplier() {
+		k.gasRegister.UpdateGasMultiplier(gasFactor)
+	}
 	return
 }
 
