@@ -306,6 +306,9 @@ func (k *Keeper) modifyGasFactor(ctx sdk.Context, extra string) error {
 	}
 
 	value := result.MulInt64(int64(BaseGasMultiplier)).TruncateInt64()
+	if value <= 0 {
+		return types.ErrCodeInvalidGasFactor
+	}
 	k.SetGasFactor(ctx, uint64(value))
 	return nil
 }

@@ -91,7 +91,7 @@ var (
 	// ErrExceedMaxQueryStackSize error if max query stack size is exceeded
 	ErrExceedMaxQueryStackSize = sdkErrors.Register(DefaultCodespace, 27, "max query stack size exceeded")
 
-	ErrCodeInvalidHeight          = sdkErrors.Register(ModuleName, 29, "height must be greater than current block")
+	ErrCodeInvalidGasFactor       = sdkErrors.Register(ModuleName, 29, "invalid gas factor")
 	ErrHandleExtraProposal        = sdkErrors.Register(DefaultCodespace, 30, "handle extra proposal error")
 	ErrUnknownExtraProposalAction = sdkErrors.Register(DefaultCodespace, 31, "extra proposal's action unknown")
 

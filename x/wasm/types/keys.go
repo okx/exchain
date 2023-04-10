@@ -36,7 +36,7 @@ var (
 
 	KeyLastCodeID      = append(SequenceKeyPrefix, []byte("lastCodeId")...)
 	KeyLastInstanceID  = append(SequenceKeyPrefix, []byte("lastContractId")...)
-	KeyGasFactorPrefix = append(SequenceKeyPrefix, []byte("gasFactor")...)
+	KeyGasFactorPrefix = append(GasFactorPrefix, []byte("gasFactor")...)
 )
 
 // GetCodeKey constructs the key for retreiving the ID for the WASM code
