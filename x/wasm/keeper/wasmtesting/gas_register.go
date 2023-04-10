@@ -66,10 +66,7 @@ func (m MockGasRegister) FromWasmVMGas(source uint64) sdk.Gas {
 }
 
 func (m MockGasRegister) GetGasMultiplier() uint64 {
-	if m.GetGasMultiplier == nil {
-		panic("not expected to be called")
-	}
-	return m.GetGasMultiplier()
+	return 0
 }
 
 func (m *MockGasRegister) UpdateGasMultiplier(gasMultiplier uint64) bool {

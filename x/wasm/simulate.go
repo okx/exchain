@@ -24,7 +24,6 @@ func NewWasmSimulator() simulator.Simulator {
 	k := NewProxyKeeper()
 	h := NewHandler(keeper.NewDefaultPermissionKeeper(k))
 	ctx := proxy.MakeContext(k.GetStoreKey())
-	k.UpdateGasRegister(ctx)
 	return &Simulator{
 		handler: h,
 		k:       &k,

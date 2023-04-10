@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -220,28 +219,23 @@ type GasFactor struct {
 	Factor string `json:"factor" yaml:"factor"`
 }
 
-func NewActionModifyGasFactor(data string) (string, error) {
+func NewActionModifyGasFactor(data string) (sdk.Dec, error) {
 	var param GasFactor
 	err := json.Unmarshal([]byte(data), &param)
 	if err != nil {
-		return "", ErrExtraProposalParams("parse json error")
+		return sdk.Dec{}, ErrExtraProposalParams("parse json error")
 	}
 
-	floatNumb, err := strconv.ParseFloat(param.Factor, 64)
+	result, err := sdk.NewDecFromStr(param.Factor)
 	if err != nil {
-		return "", ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
 	}
 
-	_, err = sdk.NewDecFromStr(param.Factor)
-	if err != nil {
-		return "", ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+	if result.IsNil() || result.IsNegative() || result.IsZero() {
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
 	}
 
-	if floatNumb < 0 {
-		return "", ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
-	}
-
-	return param.Factor, nil
+	return result, nil
 }
 
 // MarshalYAML pretty prints the wasm byte code

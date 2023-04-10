@@ -34,8 +34,9 @@ var (
 	ContractMethodBlockedListPrefix                = []byte{0x10}
 	GasFactorPrefix                                = []byte{0x11}
 
-	KeyLastCodeID     = append(SequenceKeyPrefix, []byte("lastCodeId")...)
-	KeyLastInstanceID = append(SequenceKeyPrefix, []byte("lastContractId")...)
+	KeyLastCodeID      = append(SequenceKeyPrefix, []byte("lastCodeId")...)
+	KeyLastInstanceID  = append(SequenceKeyPrefix, []byte("lastContractId")...)
+	KeyGasFactorPrefix = append(SequenceKeyPrefix, []byte("gasFactor")...)
 )
 
 // GetCodeKey constructs the key for retreiving the ID for the WASM code
@@ -112,16 +113,6 @@ func GetContractMethodBlockedListPrefix(contractAddr string) []byte {
 	r := make([]byte, prefixLen+contractAddrLen)
 	copy(r, ContractMethodBlockedListPrefix)
 	copy(r[prefixLen:], contractAddr)
-	return r
-}
-
-func GetGasFactorPrefix() []byte {
-	const gasFactor = "gasfactor"
-	prefixLen := len(GasFactorPrefix)
-	gasFactorLen := len(gasFactor)
-	r := make([]byte, prefixLen+gasFactorLen)
-	copy(r, GasFactorPrefix)
-	copy(r[prefixLen:], gasFactor)
 	return r
 }
 

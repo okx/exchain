@@ -72,7 +72,7 @@ type GasRegister interface {
 	// FromWasmVMGas converts from wasmvm gas to sdk gas
 	FromWasmVMGas(source uint64) sdk.Gas
 
-	// UpdateGasMultiplier
+	// GetGasMultiplier
 	GetGasMultiplier() uint64
 
 	// UpdateGasMultiplier
