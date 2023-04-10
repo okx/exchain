@@ -1262,6 +1262,10 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return moduleLogger(ctx)
 }
 
+func (k *Keeper) Cleanup() {
+	k.wasmVM.Cleanup()
+}
+
 func (k *Keeper) SetInnerTxKeeper(innertxKeeper innertx.InnerTxKeeper) {
 	k.innertxKeeper = innertxKeeper
 }
