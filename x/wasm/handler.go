@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -37,6 +38,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 			}
 		}()
 
+		now := time.Now()
 		switch msg := msg.(type) {
 		case *MsgStoreCode: //nolint:typecheck
 			res, err = msgServer.StoreCode(sdk.WrapSDKContext(ctx), msg)
@@ -53,6 +55,10 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		default:
 			errMsg := fmt.Sprintf("unrecognized wasm message type: %T", msg)
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
+
+		if ctx.IsDeliver() {
+			fmt.Println("time cost:", time.Since(now))
 		}
 
 		ctx.SetEventManager(filterMessageEvents(ctx))
