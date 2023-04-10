@@ -13,7 +13,7 @@ import (
 const (
 	// DefaultParamspace for params keeper
 	DefaultParamspace       = ModuleName
-	defaultMaxGasLimitPerTx = 30000000
+	defaultMaxGasLimitPerTx = 50000000
 )
 
 // Parameter keys
