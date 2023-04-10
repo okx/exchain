@@ -63,6 +63,9 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 
 	// call evm hooks
 	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) {
+		if tx.Ctx.IsCheckTx() {
+			tx.StateTransition.Csdb.IntermediateRoot(true)
+		}
 		receipt := &ethtypes.Receipt{
 			Status:           ethtypes.ReceiptStatusSuccessful,
 			Bloom:            result.ResultData.Bloom,
