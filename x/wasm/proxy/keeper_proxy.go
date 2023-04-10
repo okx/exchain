@@ -109,8 +109,9 @@ type BankKeeperProxy struct {
 	akp              AccountKeeperProxy
 }
 
-func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
-	modAccAddrs := make(map[string]bool)
+var modAccAddrs = make(map[string]bool)
+
+func init() {
 	maccPerms := map[string][]string{
 		auth.FeeCollectorName:     nil,
 		distr.ModuleName:          nil,
@@ -130,6 +131,9 @@ func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
 	for acc := range maccPerms {
 		modAccAddrs[supply.NewModuleAddress(acc).String()] = true
 	}
+}
+
+func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
 	return BankKeeperProxy{
 		blacklistedAddrs: modAccAddrs,
 		akp:              akp,

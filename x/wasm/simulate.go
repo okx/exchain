@@ -61,14 +61,23 @@ func (w *Simulator) Release() {
 	proxy.PutBackStorePool(w.ctx.MultiStore().(sdk.CacheMultiStore))
 }
 
+var (
+	cdc          *codec.Codec
+	interfaceReg types2.InterfaceRegistry
+	protoCdc     *codec.ProtoCodec
+	proxyOnce    sync.Once
+)
+
 func NewProxyKeeper() keeper.Keeper {
-	cdc := codec.New()
-	RegisterCodec(cdc)
-	bank.RegisterCodec(cdc)
-	interfaceReg := types2.NewInterfaceRegistry()
-	RegisterInterfaces(interfaceReg)
-	bank.RegisterInterface(interfaceReg)
-	protoCdc := codec.NewProtoCodec(interfaceReg)
+	proxyOnce.Do(func() {
+		cdc = codec.New()
+		RegisterCodec(cdc)
+		bank.RegisterCodec(cdc)
+		interfaceReg = types2.NewInterfaceRegistry()
+		RegisterInterfaces(interfaceReg)
+		bank.RegisterInterface(interfaceReg)
+		protoCdc = codec.NewProtoCodec(interfaceReg)
+	})
 
 	ss := proxy.SubspaceProxy{}
 	akp := proxy.NewAccountKeeperProxy()
@@ -86,6 +95,7 @@ func NewProxyKeeper() keeper.Keeper {
 	types.RegisterQueryServer(queryRouter, NewQuerier(&k))
 	bank.RegisterBankMsgServer(msgRouter, bank.NewMsgServerImpl(bkp))
 	bank.RegisterQueryServer(queryRouter, bank.NewBankQueryServer(bkp, skp))
+
 	return k
 }
 
