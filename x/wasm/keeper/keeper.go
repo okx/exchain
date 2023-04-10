@@ -299,12 +299,13 @@ func (k *Keeper) UpdateGasRegister(ctx sdk.Context) {
 }
 
 func (k *Keeper) modifyGasFactor(ctx sdk.Context, extra string) error {
-	param, err := types.NewActionModifyGasFactor(extra)
+	result, err := types.NewActionModifyGasFactor(extra)
 	if err != nil {
 		return err
 	}
 
-	k.SetGasFactor(ctx, param.Factor)
+	value := sdk.MustNewDecFromStr(result).MulInt64(int64(BaseGasMultiplier)).TruncateInt64()
+	k.SetGasFactor(ctx, uint64(value))
 	return nil
 }
 

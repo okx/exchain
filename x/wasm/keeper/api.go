@@ -16,7 +16,6 @@ const (
 	DefaultDeserializationCostPerByte = 1
 )
 
-// TODO ?zhujianguo
 var (
 	costHumanize            = DefaultGasCostHumanAddress * DefaultGasMultiplier
 	costCanonical           = DefaultGasCostCanonicalAddress * DefaultGasMultiplier

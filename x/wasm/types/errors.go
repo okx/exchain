@@ -94,6 +94,8 @@ var (
 	ErrCodeInvalidHeight          = sdkErrors.Register(ModuleName, 29, "height must be greater than current block")
 	ErrHandleExtraProposal        = sdkErrors.Register(DefaultCodespace, 30, "handle extra proposal error")
 	ErrUnknownExtraProposalAction = sdkErrors.Register(DefaultCodespace, 31, "extra proposal's action unknown")
+
+	ErrProposerMustBeValidator = sdkErrors.Register(ModuleName, 32, "the proposal of proposer must be validator")
 )
 
 type ErrNoSuchContract struct {

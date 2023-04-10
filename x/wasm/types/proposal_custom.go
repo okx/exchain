@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -178,6 +179,8 @@ func FindContractMethods(cms []*ContractMethods, contractAddr string) *ContractM
 	return nil
 }
 
+var _ govtypes.Content = &ExtraProposal{}
+
 // ProposalRoute returns the routing key of a parameter change proposal.
 func (p ExtraProposal) ProposalRoute() string { return RouterKey }
 
@@ -214,17 +217,31 @@ func (p ExtraProposal) ValidateBasic() error {
 }
 
 type GasFactor struct {
-	Factor uint64 `json:"factor" yaml:"factor"`
+	Factor string `json:"factor" yaml:"factor"`
 }
 
-func NewActionModifyGasFactor(data string) (GasFactor, error) {
+func NewActionModifyGasFactor(data string) (string, error) {
 	var param GasFactor
 	err := json.Unmarshal([]byte(data), &param)
 	if err != nil {
-		return param, ErrExtraProposalParams("parse json error")
+		return "", ErrExtraProposalParams("parse json error")
 	}
 
-	return param, nil
+	floatNumb, err := strconv.ParseFloat(param.Factor, 64)
+	if err != nil {
+		return "", ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+	}
+
+	_, err = sdk.NewDecFromStr(param.Factor)
+	if err != nil {
+		return "", ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+	}
+
+	if floatNumb < 0 {
+		return "", ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+	}
+
+	return param.Factor, nil
 }
 
 // MarshalYAML pretty prints the wasm byte code
