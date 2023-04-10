@@ -292,6 +292,10 @@ func (k Keeper) InvokeExtraProposal(ctx sdk.Context, action string, extra string
 
 // UpdateGasRegister warning, only use it in beginblock
 func (k *Keeper) UpdateGasRegister(ctx sdk.Context) {
+	if ctx.IsCheckTx() || ctx.IsTraceTx() {
+		return
+	}
+
 	gasFactor := k.GetGasFactor(ctx)
 	if gasFactor != k.gasRegister.GetGasMultiplier() {
 		k.gasRegister.UpdateGasMultiplier(gasFactor)
