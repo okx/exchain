@@ -20,8 +20,23 @@ type Simulator struct {
 	k       *keeper.Keeper
 }
 
+var (
+	gProxyKeeper    keeper.Keeper
+	proxyKeeperOnce sync.Once
+)
+
+func proxyKeeperInst() keeper.Keeper {
+	proxyKeeperOnce.Do(
+		func() {
+			gProxyKeeper = NewProxyKeeper()
+		},
+	)
+
+	return gProxyKeeper
+}
+
 func NewWasmSimulator() simulator.Simulator {
-	k := NewProxyKeeper()
+	k := proxyKeeperInst()
 	h := NewHandler(keeper.NewDefaultPermissionKeeper(k))
 	ctx := proxy.MakeContext(k.GetStoreKey())
 	return &Simulator{
