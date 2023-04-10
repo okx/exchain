@@ -14,7 +14,6 @@ var ProposalHandlers = []govclient.ProposalHandler{
 	//govclient.NewProposalHandler(cli.ProposalExecuteContractCmd, rest.ExecuteProposalHandler),
 	//govclient.NewProposalHandler(cli.ProposalSudoContractCmd, rest.SudoProposalHandler),
 	//govclient.NewProposalHandler(cli.ProposalUpdateContractAdminCmd, rest.UpdateContractAdminProposalHandler),
-	//govclient.NewProposalHandler(cli.ProposalClearContractAdminCmd, rest.ClearContractAdminProposalHandler),
 	//govclient.NewProposalHandler(cli.ProposalPinCodesCmd, rest.PinCodeProposalHandler),
 	//govclient.NewProposalHandler(cli.ProposalUnpinCodesCmd, rest.UnpinCodeProposalHandler),
 	//govclient.NewProposalHandler(cli.ProposalUpdateInstantiateConfigCmd, rest.UpdateInstantiateConfigProposalHandler),
@@ -22,9 +21,6 @@ var ProposalHandlers = []govclient.ProposalHandler{
 
 // UpdateContractAdminProposalHandler is a proposal handler which can update admin of a contract.
 var UpdateContractAdminProposalHandler = govclient.NewProposalHandler(cli.ProposalUpdateContractAdminCmd, rest.UpdateContractAdminProposalHandler)
-
-// ClearContractAdminProposalHandler is a proposal handler which can clear admin of a contract.
-var ClearContractAdminProposalHandler = govclient.NewProposalHandler(cli.ProposalClearContractAdminCmd, rest.ClearContractAdminProposalHandler)
 
 // MigrateContractProposalHandler is a proposal handler which can migrate contract to disable some methods of the contract.
 var MigrateContractProposalHandler = govclient.NewProposalHandler(cli.ProposalMigrateContractCmd, rest.MigrateProposalHandler)
