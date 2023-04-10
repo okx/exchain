@@ -123,16 +123,16 @@ type WasmGasRegister struct {
 }
 
 // NewDefaultWasmGasRegister creates instance with default values
-func NewDefaultWasmGasRegister() WasmGasRegister {
+func NewDefaultWasmGasRegister() *WasmGasRegister {
 	return NewWasmGasRegister(DefaultGasRegisterConfig())
 }
 
 // NewWasmGasRegister constructor
-func NewWasmGasRegister(c WasmGasRegisterConfig) WasmGasRegister {
+func NewWasmGasRegister(c WasmGasRegisterConfig) *WasmGasRegister {
 	if c.GasMultiplier == 0 {
 		panic(sdkerrors.Wrap(sdkerrors.ErrLogic, "GasFactor can not be 0"))
 	}
-	return WasmGasRegister{
+	return &WasmGasRegister{
 		c: c,
 	}
 }
