@@ -152,7 +152,7 @@ Where proposal.json contains like these:
         }
     ]
 }
-`, version.ClientName, sdk.DefaultBondDenom, sdk.DefaultBondDenom, sdk.DefaultBondDenom,
+`, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cdc := cdcP.GetCdc()
