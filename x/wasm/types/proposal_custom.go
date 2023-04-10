@@ -1,8 +1,12 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
 const (
@@ -172,4 +176,79 @@ func FindContractMethods(cms []*ContractMethods, contractAddr string) *ContractM
 		}
 	}
 	return nil
+}
+
+var _ govtypes.Content = &ExtraProposal{}
+
+// ProposalRoute returns the routing key of a parameter change proposal.
+func (p ExtraProposal) ProposalRoute() string { return RouterKey }
+
+// ProposalType returns the type
+func (p ExtraProposal) ProposalType() string {
+	return string(ProposalTypeExtra)
+}
+
+// ValidateBasic validates the proposal
+func (p ExtraProposal) ValidateBasic() error {
+	if err := validateProposalCommons(p.Title, p.Description); err != nil {
+		return err
+	}
+
+	if len(strings.TrimSpace(p.Action)) == 0 {
+		return govtypes.ErrInvalidProposalContent("extra proposal's action is required")
+	}
+	if len(p.Action) > govtypes.MaxExtraActionLength {
+		return govtypes.ErrInvalidProposalContent("extra proposal's action length is bigger than max length")
+	}
+	if len(strings.TrimSpace(p.Extra)) == 0 {
+		return govtypes.ErrInvalidProposalContent("extra proposal's extra is required")
+	}
+	if len(p.Extra) > govtypes.MaxExtraBodyLength {
+		return govtypes.ErrInvalidProposalContent("extra proposal's extra body length is bigger than max length")
+	}
+	switch p.Action {
+	case ActionModifyGasFactor:
+		_, err := NewActionModifyGasFactor(p.Extra)
+		return err
+	default:
+		return ErrUnknownExtraProposalAction
+	}
+}
+
+type GasFactor struct {
+	Factor string `json:"factor" yaml:"factor"`
+}
+
+func NewActionModifyGasFactor(data string) (sdk.Dec, error) {
+	var param GasFactor
+	err := json.Unmarshal([]byte(data), &param)
+	if err != nil {
+		return sdk.Dec{}, ErrExtraProposalParams("parse json error")
+	}
+
+	result, err := sdk.NewDecFromStr(param.Factor)
+	if err != nil {
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+	}
+
+	if result.IsNil() || result.IsNegative() || result.IsZero() {
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+	}
+
+	return result, nil
+}
+
+// MarshalYAML pretty prints the wasm byte code
+func (p ExtraProposal) MarshalYAML() (interface{}, error) {
+	return struct {
+		Title       string `yaml:"title"`
+		Description string `yaml:"description"`
+		Action      string `yaml:"action"`
+		Extra       string `yaml:"extra"`
+	}{
+		Title:       p.Title,
+		Description: p.Description,
+		Action:      p.Action,
+		Extra:       p.Extra,
+	}, nil
 }

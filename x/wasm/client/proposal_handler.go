@@ -36,3 +36,6 @@ var UpdateDeploymentWhitelistProposalHandler = govclient.NewProposalHandler(cli.
 
 // UpdateWASMContractMethodBlockedListProposalHandler is a custom proposal handler which defines methods blacklist of a contract.
 var UpdateWASMContractMethodBlockedListProposalHandler = govclient.NewProposalHandler(cli.ProposalUpdateWASMContractMethodBlockedListCmd, rest.EmptyProposalRestHandler)
+
+// GetCmdExtraProposal is a custom proposal handler which extra proposal.
+var GetCmdExtraProposal = govclient.NewProposalHandler(cli.GetCmdExtraProposal, rest.EmptyProposalRestHandler)

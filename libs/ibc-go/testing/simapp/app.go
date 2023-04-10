@@ -186,6 +186,7 @@ var (
 			wasmclient.UnpinCodesProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
+			wasmclient.GetCmdExtraProposal,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},

@@ -25,6 +25,9 @@ const (
 	ProposalTypeUpdateInstantiateConfig             ProposalType = "UpdateInstantiateConfig"
 	ProposalTypeUpdateDeploymentWhitelist           ProposalType = "UpdateDeploymentWhitelist"
 	ProposalTypeUpdateWasmContractMethodBlockedList ProposalType = "UpdateWasmContractMethodBlockedList"
+	ProposalTypeExtra                               ProposalType = "WasmExtra"
+
+	ActionModifyGasFactor = "GasFactor"
 )
 
 // DisableAllProposals contains no wasm gov types.
@@ -44,6 +47,7 @@ var EnableAllProposals = []ProposalType{
 	ProposalTypeUpdateInstantiateConfig,
 	ProposalTypeUpdateDeploymentWhitelist,
 	ProposalTypeUpdateWasmContractMethodBlockedList,
+	ProposalTypeExtra,
 }
 
 // NecessaryProposals contains necessary wasm gov types as keys.
@@ -55,6 +59,7 @@ var NecessaryProposals = []ProposalType{
 	ProposalTypeUnpinCodes,
 	ProposalTypeUpdateDeploymentWhitelist,
 	ProposalTypeUpdateWasmContractMethodBlockedList,
+	ProposalTypeExtra,
 }
 
 // ConvertToProposals maps each key to a ProposalType and returns a typed list.
@@ -88,6 +93,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateInstantiateConfig))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateDeploymentWhitelist))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateWasmContractMethodBlockedList))
+	govtypes.RegisterProposalType(string(ProposalTypeExtra))
 	govtypes.RegisterProposalTypeCodec(&StoreCodeProposal{}, "wasm/StoreCodeProposal")
 	govtypes.RegisterProposalTypeCodec(&InstantiateContractProposal{}, "wasm/InstantiateContractProposal")
 	govtypes.RegisterProposalTypeCodec(&MigrateContractProposal{}, "wasm/MigrateContractProposal")
@@ -100,6 +106,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalTypeCodec(&UpdateInstantiateConfigProposal{}, "wasm/UpdateInstantiateConfigProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateDeploymentWhitelistProposal{}, "wasm/UpdateDeploymentWhitelistProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateWASMContractMethodBlockedListProposal{}, "wasm/UpdateWASMContractMethodBlockedListProposal")
+	govtypes.RegisterProposalTypeCodec(&ExtraProposal{}, "wasm/ExtraProposal")
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.

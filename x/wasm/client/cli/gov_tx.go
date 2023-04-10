@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/spf13/cobra"
-
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -16,6 +14,7 @@ import (
 	govcli "github.com/okex/exchain/x/gov/client/cli"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/spf13/cobra"
 )
 
 //func ProposalStoreCodeCmd() *cobra.Command {
