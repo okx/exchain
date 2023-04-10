@@ -1,4 +1,4 @@
-res=$(exchaincli tx wasm store ../cycle-counter/target/wasm32-unknown-unknown/release/counter.wasm --fees 0.01okt --from captain --gas=3000000 -b block -y)
+res=$(exchaincli tx wasm store ../cycle-counter/artifacts/counter.wasm --fees 0.01okt --from captain --gas=3000000 -b block -y -o json)
 code_id=$(echo "$res" | jq -r '.logs[0].events[1].attributes[0].value')
 #res=$(exchaincli tx gov submit-proposal pin-codes $code_id --deposit 100okt --title "test title" --description "test description" --fees 0.001okt --from captain --gas=3000000 -b block -y)
 #proposal_id=$(echo "$res" | jq -r '.logs[0].events[1].attributes[1].value')
