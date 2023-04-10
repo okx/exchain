@@ -33,7 +33,7 @@ run() {
       --enable-preruntx=1 \
       --iavl-enable-async-commit \
       --enable-gid \
-      --fast-query=false \
+      --fast-query=true \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
       --commit-gap-height 3 \
@@ -71,7 +71,7 @@ rm -rf $HOME_SERVER
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
-exchaincli config output text
+exchaincli config output json
 exchaincli config indent true
 exchaincli config trust-node true
 exchaincli config keyring-backend test
