@@ -444,9 +444,9 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 		if isPureWasm {
 			// wasmSimulator := simulator.NewWasmSimulator()
 			wasmSimulator := getSimulator()
-			wasmSimulator.Reset()
 			defer func() {
 				wasmSimulator.Release()
+				wasmSimulator.Reset()
 				putBackSimulator(wasmSimulator)
 			}()
 

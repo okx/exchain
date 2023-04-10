@@ -65,7 +65,6 @@ func (w *Simulator) Reset() {
 	if !watcher.Enable() {
 		return
 	}
-	proxy.PutBackStorePool(w.ctx.MultiStore().(sdk.CacheMultiStore))
 	w.ctx = proxy.MakeContext(w.k.GetStoreKey())
 }
 
