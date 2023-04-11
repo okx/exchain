@@ -1,4 +1,20 @@
-package keeper
+package keeper_test
+
+import (
+	"github.com/okex/exchain/x/wasm"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"testing"
+	"time"
+
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/wasm/types"
+	"github.com/stretchr/testify/suite"
+)
 
 //import (
 //	"bytes"
@@ -841,3 +857,79 @@ package keeper
 //		})
 //	}
 //}
+
+func (suite *ProposalTestSuite) SetupTest() {
+	checkTx := false
+
+	suite.app = app.Setup(checkTx)
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.wasmHandler = keeper.NewWasmProposalHandler(&suite.app.WasmKeeper, wasm.NecessaryProposals)
+	suite.codec = codec.New()
+}
+
+func TestSuite(t *testing.T) {
+	suite.Run(t, new(ProposalTestSuite))
+}
+
+type ProposalTestSuite struct {
+	suite.Suite
+
+	ctx         sdk.Context
+	wasmHandler govtypes.Handler
+	app         *app.OKExChainApp
+	codec       *codec.Codec
+}
+
+func (suite *ProposalTestSuite) TestModifyNextBlockUpdateProposal() {
+	suite.ctx.SetBlockHeight(1000)
+
+	proposal := types.ExtraProposal{
+		Title:       types.ActionModifyGasFactor,
+		Description: "Description",
+		Action:      types.ActionModifyGasFactor,
+		Extra:       "",
+	}
+
+	govProposal := govtypes.Proposal{
+		Content: &proposal,
+	}
+
+	testCases := []struct {
+		msg         string
+		extra       string
+		gasFactor   uint64
+		expectError error
+	}{
+		{"1", "", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
+		{"1", "{}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:")},
+		{"1", "{\"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
+		{"1", "{\"df\", \"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
+		{"1", "{\"factor\":19.7}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
+		{"1", "{\"factor\":19}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
+		{"1", "{\"factor\": \"adfasd\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:adfasd")},
+		{"1", "{\"factor\": \"-1\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:-1")},
+		{"2", "{\"factor\": \"0\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:0")},
+		{"3", "{\"factor\": \"0.0000000000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:0.0000000000000000000000001")},
+		{"4", "{\"factor\": \"0.000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrCodeInvalidGasFactor},
+		{"4", "{\"factor\":\"19.7a\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:19.7a")},
+		{"4", "{\"factor\":\"a19.7\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:a19.7")},
+		{"4", "{\"factor\": \"1000000\"}", 1000000 * keeper.BaseGasMultiplier, nil},
+		{"4", "{\"factor\":\"19.7\"}", 197 * keeper.BaseGasMultiplier / 10, nil},
+	}
+
+	tmtypes.UnittestOnlySetMilestoneEarthHeight(-1)
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			proposal.Extra = tc.extra
+			govProposal.Content = &proposal
+
+			err := suite.wasmHandler(suite.ctx, &govProposal)
+			suite.app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: 1, Time: time.Now()}})
+			suite.Require().Equal(tc.expectError, err)
+
+			gasFactor := suite.app.WasmKeeper.GetGasFactor(suite.ctx)
+			suite.Require().Equal(tc.gasFactor, gasFactor)
+		})
+	}
+}
