@@ -3,13 +3,19 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 )
 
@@ -909,6 +915,284 @@ func TestProposalJsonSignBytes(t *testing.T) {
 
 			bz := msg.GetSignBytes()
 			assert.JSONEq(t, spec.exp, string(bz), "raw: %s", string(bz))
+		})
+	}
+}
+
+type ProposalSuite struct {
+	suite.Suite
+}
+
+func TestProposalSuite(t *testing.T) {
+	suite.Run(t, new(ProposalSuite))
+}
+
+func RandStr(length int) string {
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	result := []byte{}
+	rand.Seed(time.Now().UnixNano() + int64(rand.Intn(100)))
+	for i := 0; i < length; i++ {
+		result = append(result, bytes[rand.Intn(len(bytes))])
+	}
+	return string(result)
+}
+
+func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
+	testCases := []struct {
+		name        string
+		title       string
+		description string
+		action      string
+		extra       string
+		err         error
+	}{
+		{
+			"no proposal title",
+			"",
+			"description",
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("proposal title cannot be blank"),
+		},
+		{
+			"gt max proposal title length",
+			RandStr(types.MaxTitleLength + 1),
+			"description",
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent(fmt.Sprintf("proposal title is longer than max length of %d", govtypes.MaxTitleLength)),
+		},
+		{
+			"gt max proposal title length",
+			RandStr(types.MaxTitleLength),
+			"",
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("proposal description cannot be blank"),
+		},
+		{
+			"gt max proposal description length",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength + 1),
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent(fmt.Sprintf("proposal description is longer than max length of %d", govtypes.MaxDescriptionLength)),
+		},
+		{
+			"no action",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's action is required"),
+		},
+		{
+			"action too large",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxExtraActionLength + 1),
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's action length is bigger than max length"),
+		},
+		{
+			"no extra body",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxExtraActionLength),
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's extra is required"),
+		},
+		{
+			"extra too large",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxTitleLength),
+			RandStr(govtypes.MaxExtraBodyLength + 1),
+			govtypes.ErrInvalidProposalContent("extra proposal's extra body length is bigger than max length"),
+		},
+		{
+			"unknown action",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxTitleLength),
+			RandStr(govtypes.MaxExtraBodyLength),
+			ErrUnknownExtraProposalAction,
+		},
+		{
+			"ActionModifyGasFactor, parse error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{dfafdasf}",
+			ErrExtraProposalParams("parse json error"),
+		},
+		{
+			"ActionModifyGasFactor, action is nil",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's action is required"),
+		},
+		{
+			"ActionModifyGasFactor, extra is nil",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"hello",
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's extra is required"),
+		},
+		{
+			"ActionModifyGasFactor, error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"hello",
+			"hello",
+			ErrUnknownExtraProposalAction,
+		},
+		{
+			"ActionModifyGasFactor, extra is nil",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's extra is required"),
+		},
+		{
+			"ActionModifyGasFactor, error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{}",
+			ErrExtraProposalParams("parse factor error:"),
+		},
+		{
+			"ActionModifyGasFactor, error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"\"}",
+			ErrExtraProposalParams("parse json error"),
+		},
+		{
+			"ActionModifyGasFactor, key error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"df\": \"\"}",
+			ErrExtraProposalParams("parse factor error:"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":19.7}",
+			ErrExtraProposalParams("parse json error"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":19}",
+			ErrExtraProposalParams("parse json error"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"adfasd\"}",
+			ErrExtraProposalParams("parse factor error:adfasd"),
+		},
+		{
+			"ActionModifyGasFactor, value -1",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"-1\"}",
+			ErrExtraProposalParams("parse factor error:-1"),
+		},
+		{
+			"ActionModifyGasFactor, value 0",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"0\"}",
+			ErrExtraProposalParams("parse factor error:0"),
+		},
+		{
+			"ActionModifyGasFactor, value > 18",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"0.0000000000000000001\"}",
+			ErrExtraProposalParams("parse factor error:0.0000000000000000001"),
+		},
+		{
+			"ActionModifyGasFactor, value = 18",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"0.000000000000000001\"}",
+			nil,
+		},
+		{
+			"ActionModifyGasFactor, value ok",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"111111111111111111111111111\"}",
+			nil,
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"19.7a\"}",
+			ErrExtraProposalParams("parse factor error:19.7a"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"a19.7\"}",
+			ErrExtraProposalParams("parse factor error:a19.7"),
+		},
+		{
+			"ActionModifyGasFactor, value ok",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"19.7\"}",
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			global.SetGlobalHeight(100)
+			proposal := ExtraProposal{
+				Title:       tc.title,
+				Description: tc.description,
+				Action:      tc.action,
+				Extra:       tc.extra,
+			}
+
+			require.Equal(suite.T(), tc.title, proposal.GetTitle())
+			require.Equal(suite.T(), tc.description, proposal.GetDescription())
+			require.Equal(suite.T(), RouterKey, proposal.ProposalRoute())
+			require.Equal(suite.T(), string(ProposalTypeExtra), proposal.ProposalType())
+			require.NotPanics(suite.T(), func() {
+				_ = proposal.String()
+			})
+
+			err := proposal.ValidateBasic()
+			require.Equal(suite.T(), tc.err, err)
 		})
 	}
 }
