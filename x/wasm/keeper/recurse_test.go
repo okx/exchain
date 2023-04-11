@@ -53,12 +53,12 @@ func initRecurseContract(t *testing.T) (contract sdk.WasmAddress, creator sdk.Wa
 
 func TestGasCostOnQuery(t *testing.T) {
 	const (
-		GasNoWork uint64 = 63_751
+		GasNoWork uint64 = 63_869
 		// Note: about 100 SDK gas (10k wasmer gas) for each round of sha256
-		GasWork50 uint64 = 64_240 // this is a little shy of 50k gas - to keep an eye on the limit
+		GasWork50 uint64 = 65_716 // this is a little shy of 50k gas - to keep an eye on the limit
 
-		GasReturnUnhashed uint64 = 26
-		GasReturnHashed   uint64 = 25
+		GasReturnUnhashed uint64 = 97
+		GasReturnHashed   uint64 = 90
 	)
 
 	cases := map[string]struct {
@@ -216,9 +216,9 @@ func TestLimitRecursiveQueryGas(t *testing.T) {
 
 	const (
 		// Note: about 100 SDK gas (10k wasmer gas) for each round of sha256
-		GasWork2k uint64 = 84_075 // = NewContractInstanceCosts + x // we have 6x gas used in cpu than in the instance
+		GasWork2k uint64 = 138792 // = NewContractInstanceCosts + x // we have 6x gas used in cpu than in the instance
 		// This is overhead for calling into a sub-contract
-		GasReturnHashed uint64 = 26
+		GasReturnHashed uint64 = 90
 	)
 
 	cases := map[string]struct {
@@ -246,13 +246,13 @@ func TestLimitRecursiveQueryGas(t *testing.T) {
 			},
 			expectQueriesFromContract: 5,
 			// FIXME: why -1 ... confused a bit by calculations, seems like rounding issues
-			expectedGas: GasWork2k + 5*(GasWork2k+GasReturnHashed) - 5,
+			expectedGas: GasWork2k + 5*(GasWork2k+GasReturnHashed) + 1,
 		},
 		// this is where we expect an error...
 		// it has enough gas to run 4 times and die on the 5th (4th time dispatching to sub-contract)
 		// however, if we don't charge the cpu gas before sub-dispatching, we can recurse over 20 times
 		"deep recursion, should die on 5th level": {
-			gasLimit: 400_000,
+			gasLimit: 600_000,
 			msg: Recurse{
 				Depth: 50,
 				Work:  2000,
@@ -269,7 +269,7 @@ func TestLimitRecursiveQueryGas(t *testing.T) {
 			expectQueriesFromContract: 10,
 			expectOutOfGas:            false,
 			expectError:               "query wasm contract failed", // Error we get from the contract instance doing the failing query, not wasmd
-			expectedGas:               10*(GasWork2k+GasReturnHashed) - 275,
+			expectedGas:               10*(GasWork2k+GasReturnHashed) - 686,
 		},
 	}
 

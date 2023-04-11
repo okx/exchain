@@ -419,53 +419,6 @@ func ProposalUpdateContractAdminCmd(m *codec.CodecProxy, reg codectypes.Interfac
 	return cmd
 }
 
-func ProposalClearContractAdminCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "clear-contract-admin [contract_addr_bech32]",
-		Short: "Submit a clear admin for a contract to prevent further migrations proposal",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-			cliCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
-			proposalTitle, err := cmd.Flags().GetString(govcli.FlagTitle)
-			if err != nil {
-				return fmt.Errorf("proposal title: %s", err)
-			}
-			proposalDescr, err := cmd.Flags().GetString(govcli.FlagDescription)
-			if err != nil {
-				return fmt.Errorf("proposal description: %s", err)
-			}
-			depositArg, err := cmd.Flags().GetString(govcli.FlagDeposit)
-			if err != nil {
-				return fmt.Errorf("deposit: %s", err)
-			}
-			deposit, err := sdk.ParseCoinsNormalized(depositArg)
-			if err != nil {
-				return err
-			}
-
-			content := types.ClearAdminProposal{
-				Title:       proposalTitle,
-				Description: proposalDescr,
-				Contract:    args[0],
-			}
-
-			msg := govtypes.NewMsgSubmitProposal(&content, deposit, cliCtx.GetFromAddress())
-			if err = msg.ValidateBasic(); err != nil {
-				return err
-			}
-
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
-		},
-	}
-	// proposal flags
-	cmd.Flags().String(govcli.FlagTitle, "", "Title of proposal")
-	cmd.Flags().String(govcli.FlagDescription, "", "Description of proposal")
-	cmd.Flags().String(govcli.FlagDeposit, "", "Deposit of proposal")
-	return cmd
-}
-
 func ProposalPinCodesCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pin-codes [code-ids]",
