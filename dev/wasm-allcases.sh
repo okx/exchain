@@ -127,9 +127,18 @@ proposal_vote() {
   fi;
 }
 
+#####################################################
+########    rest deployment whitelist     #########
+#####################################################
+echo "## rest wasm code deployment whitelist"
+res=$(exchaincli tx gov submit-proposal update-wasm-deployment-whitelist "nobody" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "proposal_id: $proposal_id"
+proposal_vote "$proposal_id"
+
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not create code: failed to execute message; message index: 0"
+failed_log="unauthorized: Failed to create code, nobody allowed to upload contract: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
 then
   echo "expect fail when update-wasm-deployment-whitelist is nobody"
@@ -155,7 +164,7 @@ echo "store cw20 contract succeed"
 cw20_code_id1=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 
 echo "## store cw20 contract...nobody"
-res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-nobody=true --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 echo "store cw20 contract succeed"
 cw20_code_id2=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 
@@ -207,22 +216,6 @@ echo "instantiate cw20 succeed"
 if [[ $(echo "$res" | jq '.logs[0].events[0].attributes[0].key' | sed 's/\"//g') != "_contract_address" ]];
 then
   echo "unexpected result of instantiate"
-  exit 1
-fi;
-
-echo "## instantiate nobody..."
-res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from captain $TX_EXTRA)
-raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
-if [[ "${raw_log}" != "${failed_log}" ]];
-then
-  exit 1
-fi;
-res=$(exchaincli tx wasm instantiate "$cw20_code_id2" '{"decimals":10,"initial_balances":[{"address":"'$captain'","amount":"100000000"}],"name":"my test token", "symbol":"mtt"}' --label test1 --admin "$captain" --from admin18 $TX_EXTRA)
-raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not instantiate: failed to execute message; message index: 0"
-if [[ "${raw_log}" != "${failed_log}" ]];
-then
   exit 1
 fi;
 
@@ -455,9 +448,9 @@ then
 fi;
 
 echo "## clear admin..."
-res=$(exchaincli tx wasm clear-contract-admin "$cw4contractAddr" --from admin18 $TX_EXTRA)
+res=$(exchaincli tx wasm set-contract-admin "$cw4contractAddr" "0x0000000000000000000000000000000000000000" --from admin18 $TX_EXTRA)
 actionName=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
-if [[ "${actionName}" != "clear-contract-admin" ]];
+if [[ "${actionName}" != "update-contract-admin" ]];
 then
   echo "invalid action name: ${actionName}"
   exit 1
@@ -529,7 +522,7 @@ then
   exit 1
 fi;
 
-res=$(exchaincli tx wasm clear-contract-admin "$cw20contractAddr" --from captain $TX_EXTRA)
+res=$(exchaincli tx wasm set-contract-admin "$cw20contractAddr" "0x0000000000000000000000000000000000000000" --from captain $TX_EXTRA)
 res=$(exchaincli tx wasm migrate "$cw20contractAddr" "$burner_code_id" '{"payout": "'$captain'"}' --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
 failed_log="unauthorized: can not migrate: failed to execute message; message index: 0"
@@ -761,13 +754,13 @@ then
 fi
 
 echo "## gov clear cw20 admin"
-res=$(exchaincli tx gov submit-proposal clear-contract-admin $cw20contractAddr --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
+res=$(exchaincli tx gov submit-proposal set-contract-admin $cw20contractAddr "0x0000000000000000000000000000000000000000" --deposit ${proposal_deposit} --title "test title" --description "test description" --from captain $TX_EXTRA)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
 proposal_vote "$proposal_id"
 
 cw20admin=$(exchaincli query wasm contract "$cw20contractAddr" "$QUERY_EXTRA" | jq '.contract_info.admin' | sed 's/\"//g')
-if [[ $cw20admin != "" ]];
+if [[ $cw20admin != "0x0000000000000000000000000000000000000000" ]];
 then
   echo "cw20 admin expected to be nobody"
   exit 1
@@ -784,7 +777,7 @@ res=$(exchaincli tx wasm store wasm/test/burner.wasm --from admin18 $TX_EXTRA)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-if [[ $raw_log != "unauthorized: can not create code: failed to execute message; message index: 0" ]];
+if [[ $raw_log != "unauthorized: Failed to create code, you are not allowed to upload contract as you are not on the authorized list: failed to execute message; message index: 0" ]];
 then
   exit 1
 fi;
@@ -865,7 +858,7 @@ proposal_vote "$proposal_id"
 
 res=$(exchaincli tx wasm store ./wasm/cw20-base/artifacts/cw20_base.wasm --instantiate-everybody=true --from captain $TX_EXTRA)
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
-failed_log="unauthorized: can not create code: failed to execute message; message index: 0"
+failed_log="unauthorized: Failed to create code, nobody allowed to upload contract: failed to execute message; message index: 0"
 if [[ "${raw_log}" != "${failed_log}" ]];
 then
   echo "expect fail when update-wasm-deployment-whitelist is nobody"
