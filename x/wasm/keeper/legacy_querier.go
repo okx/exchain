@@ -21,6 +21,7 @@ const (
 	QueryContractHistory           = "contract-history"
 	QueryListContractBlockedMethod = "list-contract-blocked-method"
 	QueryParams                    = "params"
+	QueryExtraParams               = "extra-params"
 )
 
 const (
@@ -76,6 +77,8 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 			rsp = queryListContractBlockedMethod(ctx, contractAddr, keeper)
 		case QueryParams:
 			rsp = queryParams(ctx, keeper)
+		case QueryExtraParams:
+			rsp = queryExtraParams(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown data query endpoint")
 		}
@@ -169,5 +172,12 @@ func queryListContractBlockedMethod(ctx sdk.Context, contractAddr sdk.WasmAddres
 
 func queryParams(ctx sdk.Context, keeper types.ViewKeeper) *types.Params {
 	params := keeper.GetParams(ctx)
+	return &params
+}
+
+func queryExtraParams(ctx sdk.Context, keeper types.ViewKeeper) *types.QueryExtraParams {
+	params := types.QueryExtraParams{
+		GasFactor: strconv.FormatUint(keeper.GetGasFactor(ctx), 10),
+	}
 	return &params
 }
