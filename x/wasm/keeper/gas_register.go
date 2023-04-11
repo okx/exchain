@@ -29,7 +29,8 @@ const (
 	//
 	// Please note that all gas prices returned to wasmvm should have this multiplied.
 	// Benchmarks and numbers were discussed in: https://github.com/okex/exchain/pull/634#issuecomment-938055852
-	DefaultGasMultiplier uint64 = 140_000_000
+	DefaultGasMultiplier uint64 = 38_000_000
+	BaseGasMultiplier    uint64 = 1_000_000
 	// DefaultInstanceCost is how much SDK gas we charge each time we load a WASM instance.
 	// Creating a new instance is costly, and this helps put a recursion limit to contracts calling contracts.
 	// Benchmarks and numbers were discussed in: https://github.com/okex/exchain/pull/634#issuecomment-938056803
@@ -70,6 +71,12 @@ type GasRegister interface {
 	ToWasmVMGas(source sdk.Gas) uint64
 	// FromWasmVMGas converts from wasmvm gas to sdk gas
 	FromWasmVMGas(source uint64) sdk.Gas
+
+	// GetGasMultiplier
+	GetGasMultiplier() uint64
+
+	// UpdateGasMultiplier
+	UpdateGasMultiplier(gasMultiplier uint64) bool
 }
 
 // WasmGasRegisterConfig config type
@@ -116,16 +123,16 @@ type WasmGasRegister struct {
 }
 
 // NewDefaultWasmGasRegister creates instance with default values
-func NewDefaultWasmGasRegister() WasmGasRegister {
+func NewDefaultWasmGasRegister() *WasmGasRegister {
 	return NewWasmGasRegister(DefaultGasRegisterConfig())
 }
 
 // NewWasmGasRegister constructor
-func NewWasmGasRegister(c WasmGasRegisterConfig) WasmGasRegister {
+func NewWasmGasRegister(c WasmGasRegisterConfig) *WasmGasRegister {
 	if c.GasMultiplier == 0 {
-		panic(sdkerrors.Wrap(sdkerrors.ErrLogic, "GasMultiplier can not be 0"))
+		panic(sdkerrors.Wrap(sdkerrors.ErrLogic, "GasFactor can not be 0"))
 	}
-	return WasmGasRegister{
+	return &WasmGasRegister{
 		c: c,
 	}
 }
@@ -224,4 +231,15 @@ func (g WasmGasRegister) ToWasmVMGas(source storetypes.Gas) uint64 {
 // FromWasmVMGas converts to SDK gas unit
 func (g WasmGasRegister) FromWasmVMGas(source uint64) sdk.Gas {
 	return source / g.c.GasMultiplier
+}
+
+// GetGasMultiplier
+func (g WasmGasRegister) GetGasMultiplier() uint64 {
+	return g.c.GasMultiplier
+}
+
+// UpdateGasMultiplier
+func (g *WasmGasRegister) UpdateGasMultiplier(gasMultiplier uint64) bool {
+	g.c.GasMultiplier = gasMultiplier
+	return true
 }

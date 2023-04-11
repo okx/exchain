@@ -7,6 +7,9 @@ import (
 	"io/ioutil"
 	"strconv"
 
+	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -18,8 +21,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
-	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 )
 
 const (
@@ -47,7 +48,6 @@ func NewTxCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Co
 		NewExecuteContractCmd(cdc, reg),
 		NewMigrateContractCmd(cdc, reg),
 		NewUpdateContractAdminCmd(cdc, reg),
-		NewClearContractAdminCmd(cdc, reg),
 	)
 	return txCmd
 }
@@ -63,7 +63,7 @@ func NewStoreCodeCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
 			clientCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
 
-			msg, err := parseStoreCodeArgs(args[0], clientCtx.GetFromAddress(), cmd.Flags())
+			msg, err := parseStoreCodeArgs(args[0], sdk.AccToAWasmddress(clientCtx.GetFromAddress()), cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -91,7 +91,7 @@ func NewInstantiateContractCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
 			clientCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
 
-			msg, err := parseInstantiateArgs(args[0], args[1], clientCtx.GetFromAddress(), cmd.Flags())
+			msg, err := parseInstantiateArgs(args[0], args[1], sdk.AccToAWasmddress(clientCtx.GetFromAddress()), cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -120,7 +120,7 @@ func NewExecuteContractCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
 			clientCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
 
-			msg, err := parseExecuteArgs(args[0], args[1], clientCtx.GetFromAddress(), cmd.Flags())
+			msg, err := parseExecuteArgs(args[0], args[1], sdk.AccToAWasmddress(clientCtx.GetFromAddress()), cmd.Flags())
 			if err != nil {
 				return err
 			}
@@ -186,32 +186,7 @@ func NewUpdateContractAdminCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 	return cmd
 }
 
-func NewClearContractAdminCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "clear-contract-admin [contract_addr_bech32]",
-		Short:   "Clears admin for a contract to prevent further migrations",
-		Aliases: []string{"clear-admin", "clr-adm"},
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			inBuf := bufio.NewReader(cmd.InOrStdin())
-			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-			clientCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
-
-			msg := types.MsgClearAdmin{
-				Sender:   clientCtx.GetFromAddress().String(),
-				Contract: args[0],
-			}
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
-			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
-		},
-	}
-	flags.AddTxFlagsToCmd(cmd)
-	return cmd
-}
-
-func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet) (types.MsgStoreCode, error) {
+func parseStoreCodeArgs(file string, sender sdk.WasmAddress, flags *flag.FlagSet) (types.MsgStoreCode, error) {
 	wasm, err := ioutil.ReadFile(file)
 	if err != nil {
 		return types.MsgStoreCode{}, err
@@ -234,7 +209,7 @@ func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet)
 		return types.MsgStoreCode{}, fmt.Errorf("instantiate by address: %s", err)
 	}
 	if onlyAddrStr != "" {
-		allowedAddr, err := sdk.AccAddressFromBech32(onlyAddrStr)
+		allowedAddr, err := sdk.WasmAddressFromBech32(onlyAddrStr)
 		if err != nil {
 			return types.MsgStoreCode{}, sdkerrors.Wrap(err, flagInstantiateByAddress)
 		}
@@ -264,7 +239,7 @@ func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet)
 	return msg, nil
 }
 
-func parseInstantiateArgs(rawCodeID, initMsg string, sender sdk.AccAddress, flags *flag.FlagSet) (types.MsgInstantiateContract, error) {
+func parseInstantiateArgs(rawCodeID, initMsg string, sender sdk.WasmAddress, flags *flag.FlagSet) (types.MsgInstantiateContract, error) {
 	// get the id of the code to instantiate
 	codeID, err := strconv.ParseUint(rawCodeID, 10, 64)
 	if err != nil {
@@ -303,7 +278,7 @@ func parseInstantiateArgs(rawCodeID, initMsg string, sender sdk.AccAddress, flag
 	return msg, nil
 }
 
-func parseExecuteArgs(contractAddr string, execMsg string, sender sdk.AccAddress, flags *flag.FlagSet) (types.MsgExecuteContract, error) {
+func parseExecuteArgs(contractAddr string, execMsg string, sender sdk.WasmAddress, flags *flag.FlagSet) (types.MsgExecuteContract, error) {
 	amountStr, err := flags.GetString(flagAmount)
 	if err != nil {
 		return types.MsgExecuteContract{}, fmt.Errorf("amount: %s", err)

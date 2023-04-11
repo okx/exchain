@@ -42,6 +42,11 @@ func (em EventManager) ABCIEvents() []abci.Event {
 	return em.events.ToABCIEvents()
 }
 
+func (em *EventManager) PopEvent() (result *Event) {
+	em.events, result = em.events.PopEvent()
+	return result
+}
+
 // ----------------------------------------------------------------------------
 // Events
 // ----------------------------------------------------------------------------
@@ -152,6 +157,14 @@ func (e Events) AppendEvent(event Event) Events {
 // AppendEvents adds a slice of Event objects to an exist slice of Event objects.
 func (e Events) AppendEvents(events Events) Events {
 	return append(e, events...)
+}
+
+func (e Events) PopEvent() (Events, *Event) {
+	size := len(e)
+	if size < 1 {
+		return e, nil
+	}
+	return e[:size-1], &e[size-1]
 }
 
 // ToABCIEvents converts a slice of Event objects to a slice of abci.Event

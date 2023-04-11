@@ -368,7 +368,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		logs        []*ethtypes.Log
 	)
 
-	if st.TxHash != nil && !st.Simulate {
+	if st.TxHash != nil {
 		logs, err = csdb.GetLogs(*st.TxHash)
 		if err != nil {
 			st.Csdb.RevertToSnapshot(preSSId)

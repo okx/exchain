@@ -61,3 +61,15 @@ func (lh LogProcessEvmHook) PostTxProcessing(ctx sdk.Context, st *types.StateTra
 	}
 	return nil
 }
+
+func (lh LogProcessEvmHook) IsCanHooked(logs []*ethtypes.Log) bool {
+	for _, log := range logs {
+		if len(log.Topics) == 0 {
+			continue
+		}
+		if _, ok := lh.handlers[log.Topics[0]]; ok {
+			return true
+		}
+	}
+	return false
+}

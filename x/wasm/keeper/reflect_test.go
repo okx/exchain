@@ -493,8 +493,8 @@ func TestWasmRawQueryWithNil(t *testing.T) {
 	require.Equal(t, []byte{}, reflectRawRes.Data)
 }
 
-func checkAccount(t *testing.T, ctx sdk.Context, accKeeper authkeeper.AccountKeeper, bankKeeper bank.Keeper, addr sdk.AccAddress, expected sdk.Coins) {
-	acct := accKeeper.GetAccount(ctx, addr)
+func checkAccount(t *testing.T, ctx sdk.Context, accKeeper authkeeper.AccountKeeper, bankKeeper bank.Keeper, addr sdk.WasmAddress, expected sdk.Coins) {
+	acct := accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(addr))
 	if expected == nil {
 		assert.Nil(t, acct)
 	} else {
@@ -545,7 +545,7 @@ func reflectEncoders(cdc codec.CodecProxy) *MessageEncoders {
 // fromReflectRawMsg decodes msg.Data to an sdk.Msg using proto Any and json encoding.
 // this needs to be registered on the Encoders
 func fromReflectRawMsg(cdc codec.CodecProxy) CustomEncoder {
-	return func(_sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
+	return func(_sender sdk.WasmAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 		var custom reflectCustomMsg
 		err := json.Unmarshal(msg, &custom)
 		if err != nil {
