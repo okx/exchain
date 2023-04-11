@@ -247,12 +247,19 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.blockGasMeterMu.Unlock()
 
 			pm.SetCurrentIndex(pm.upComingTxIndex, res)
-			if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
-				pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
-			} else {
-				ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-				ctx.SetMultiStore(app.parallelTxManage.cms)
-				pm.currTxFee = app.getFeeCollectorBalanceHandler(ctx)
+
+			if !res.msIsNil {
+				// update fee collector balance
+				if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
+					// evm:fee-refund
+					pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
+				} else {
+					// non-evm:reload fee collector balance
+					ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+					ctx.SetMultiStore(app.parallelTxManage.cms)
+					pm.currTxFee = app.getFeeCollectorBalanceHandler(ctx)
+				}
+
 			}
 
 			currentGas += uint64(res.resp.GasUsed)
