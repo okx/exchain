@@ -1144,15 +1144,15 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
-			"{\"factor\": \"1000001\"}",
-			ErrExtraProposalParams(fmt.Sprintf("max gas factor:%v", maxGasFactor)),
+			"{\"factor\": \"10000001\"}",
+			ErrExtraProposalParams(fmt.Sprintf("max gas factor:%v", MaxGasFactor)),
 		},
 		{
 			"ActionModifyGasFactor, value ok",
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
-			"{\"factor\": \"1000000\"}",
+			"{\"factor\": \"10000000\"}",
 			nil,
 		},
 		{

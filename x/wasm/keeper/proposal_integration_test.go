@@ -913,7 +913,7 @@ func (suite *ProposalTestSuite) TestModifyNextBlockUpdateProposal() {
 		{"4", "{\"factor\": \"0.000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrCodeInvalidGasFactor},
 		{"4", "{\"factor\":\"19.7a\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:19.7a")},
 		{"4", "{\"factor\":\"a19.7\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error:a19.7")},
-		{"4", "{\"factor\": \"1000000\"}", 1000000 * keeper.BaseGasMultiplier, nil},
+		{"4", "{\"factor\": \"10000000\"}", (uint64(types.MaxGasFactor)) * keeper.BaseGasMultiplier, nil},
 		{"4", "{\"factor\":\"19.7\"}", 197 * keeper.BaseGasMultiplier / 10, nil},
 	}
 

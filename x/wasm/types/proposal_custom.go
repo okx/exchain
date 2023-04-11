@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	maxAddressListLength = 100
-	maxMethodListLength  = 100
-	maxGasFactor         = 1000000
+	maxAddressListLength       = 100
+	maxMethodListLength        = 100
+	MaxGasFactor         int64 = 10000000
 )
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -236,8 +236,8 @@ func NewActionModifyGasFactor(data string) (sdk.Dec, error) {
 		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
 	}
 
-	if result.GT(sdk.NewDec(maxGasFactor)) {
-		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("max gas factor:%v", maxGasFactor))
+	if result.GT(sdk.NewDec(MaxGasFactor)) {
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("max gas factor:%v", MaxGasFactor))
 	}
 
 	return result, nil
