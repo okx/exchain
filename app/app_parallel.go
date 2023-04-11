@@ -17,6 +17,12 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
+func getFeeCollectorBalance(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorBalance {
+	return func(ctx sdk.Context) sdk.Coins {
+		return bk.GetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName))
+	}
+}
+
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {

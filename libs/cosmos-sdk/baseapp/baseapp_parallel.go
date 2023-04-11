@@ -247,6 +247,14 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.blockGasMeterMu.Unlock()
 
 			pm.SetCurrentIndex(pm.upComingTxIndex, res)
+			if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
+				pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
+			} else {
+				ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+				ctx.SetMultiStore(app.parallelTxManage.cms)
+				pm.currTxFee = app.getFeeCollectorBalanceHandler(ctx)
+			}
+
 			currentGas += uint64(res.resp.GasUsed)
 
 			if isReRun {
@@ -334,8 +342,8 @@ func (app *BaseApp) endParallelTxs(txSize int) [][]byte {
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
-//we reuse the nonce that changed by the last async call
-//if last ante handler has been failed, we need rerun it ? or not?
+// we reuse the nonce that changed by the last async call
+// if last ante handler has been failed, we need rerun it ? or not?
 func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	app.parallelTxManage.currentRerunIndex = txIndex
 	defer func() {
@@ -781,5 +789,5 @@ func (pm *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 			pm.conflictCheck[storeKey].Write[key] = value
 		}
 	}
-	pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[txIndex].fee.Sub(pm.finalResult[txIndex].paraMsg.RefundFee)...)
+
 }
