@@ -360,21 +360,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 		gasLimit := r.CheckTx.GasWanted
 		if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-			var gasUsed int64
 			txHash := tx.Hash(mem.Height())
-			gasUsed, txInfo.isGasPrecise = mem.txInfoparser.GetTxHistoryGasUsed(tx, gasLimit) // r.CheckTx.GasWanted is gasLimit
-			if gasUsed < 0 {
-				gasUsed, err = mem.simulateTx(tx, gasLimit)
-				if err != nil {
-					return err
-				}
-				txInfo.isGasPrecise = true
-			} else if err = updatePGU(tx.Hash(mem.Height()), gasUsed); err != nil {
-				mem.logger.Error("updatePGU", "txHash", hex.EncodeToString(tx.Hash(mem.Height())), "hguGas", gasUsed, "error", err)
-			}
-			txInfo.gasUsed = gasUsed
+			txInfo.gasUsed, txInfo.isGasPrecise = mem.txInfoparser.GetTxHistoryGasUsed(tx, gasLimit) // r.CheckTx.GasWanted is gasLimit
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(txHash), r.CheckTx.GasWanted, gasUsed))
+				hex.EncodeToString(txHash), r.CheckTx.GasWanted, txInfo.gasUsed))
 		} else {
 			txInfo.gasUsed = gasLimit
 		}
@@ -710,10 +699,10 @@ func (mem *CListMempool) resCbFirstTime(
 				from:        r.CheckTx.Tx.GetFrom(),
 				senderNonce: r.CheckTx.SenderNonce,
 			}
-			if txInfo.isGasPrecise {
-				memTx.preciseOrOutdated = 1
-				memTx.isSim = 1
-			}
+			//if txInfo.isGasPrecise {
+			//	memTx.preciseOrOutdated = 1
+			//	memTx.isSim = 1
+			//}
 
 			if txInfo.wrapCMTx != nil {
 				memTx.isWrapCMTx = true
