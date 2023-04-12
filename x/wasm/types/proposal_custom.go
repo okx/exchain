@@ -229,11 +229,11 @@ func NewActionModifyGasFactor(data string) (sdk.Dec, error) {
 
 	result, err := sdk.NewDecFromStr(param.Factor)
 	if err != nil {
-		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error,factor:%s", param.Factor))
 	}
 
 	if result.IsNil() || result.IsNegative() || result.IsZero() {
-		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error,factor:%s", param.Factor))
 	}
 
 	if result.GT(sdk.NewDec(MaxGasFactor)) {

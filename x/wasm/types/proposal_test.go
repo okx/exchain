@@ -1065,7 +1065,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{}",
-			ErrExtraProposalParams("parse factor error:"),
+			ErrExtraProposalParams("parse factor error,factor:"),
 		},
 		{
 			"ActionModifyGasFactor, error json",
@@ -1081,7 +1081,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"df\": \"\"}",
-			ErrExtraProposalParams("parse factor error:"),
+			ErrExtraProposalParams("parse factor error,factor:"),
 		},
 		{
 			"ActionModifyGasFactor, value error",
@@ -1105,7 +1105,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\": \"adfasd\"}",
-			ErrExtraProposalParams("parse factor error:adfasd"),
+			ErrExtraProposalParams("parse factor error,factor:adfasd"),
 		},
 		{
 			"ActionModifyGasFactor, value -1",
@@ -1113,7 +1113,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\": \"-1\"}",
-			ErrExtraProposalParams("parse factor error:-1"),
+			ErrExtraProposalParams("parse factor error,factor:-1"),
 		},
 		{
 			"ActionModifyGasFactor, value 0",
@@ -1121,7 +1121,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\": \"0\"}",
-			ErrExtraProposalParams("parse factor error:0"),
+			ErrExtraProposalParams("parse factor error,factor:0"),
 		},
 		{
 			"ActionModifyGasFactor, value > 18",
@@ -1129,7 +1129,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\": \"0.0000000000000000001\"}",
-			ErrExtraProposalParams("parse factor error:0.0000000000000000001"),
+			ErrExtraProposalParams("parse factor error,factor:0.0000000000000000001"),
 		},
 		{
 			"ActionModifyGasFactor, value = 18",
@@ -1161,7 +1161,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":\"19.7a\"}",
-			ErrExtraProposalParams("parse factor error:19.7a"),
+			ErrExtraProposalParams("parse factor error,factor:19.7a"),
 		},
 		{
 			"ActionModifyGasFactor, value error",
@@ -1169,7 +1169,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":\"a19.7\"}",
-			ErrExtraProposalParams("parse factor error:a19.7"),
+			ErrExtraProposalParams("parse factor error,factor:a19.7"),
 		},
 		{
 			"ActionModifyGasFactor, value ok",
@@ -1185,7 +1185,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":\"19.6757657657657567864554354354357\"}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error:19.6757657657657567864554354354357")),
+			ErrExtraProposalParams(fmt.Sprintf("parse factor error,factor:19.6757657657657567864554354354357")),
 		},
 		{
 			"ActionModifyGasFactor, value ok",
