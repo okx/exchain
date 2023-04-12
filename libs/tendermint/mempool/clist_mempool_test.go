@@ -1069,3 +1069,41 @@ func TestConsumePendingtxConcurrency(t *testing.T) {
 	wg.Wait()
 	require.Equal(t, 0, mem.pendingPool.Size())
 }
+
+func TestCheckAndGetWrapCMTx(t *testing.T) {
+	wCMTx := &types.WrapCMTx{Tx: []byte("123456"), Nonce: 2}
+	wdata, err := cdc.MarshalJSON(wCMTx)
+	assert.NoError(t, err)
+
+	testcase := []struct {
+		tx     types.Tx
+		txInfo TxInfo
+		res    *types.WrapCMTx
+	}{
+		{
+			tx:     []byte("123"),
+			txInfo: TxInfo{wrapCMTx: &types.WrapCMTx{Tx: []byte("123"), Nonce: 1}},
+			res:    &types.WrapCMTx{Tx: []byte("123"), Nonce: 1},
+		},
+		{
+			tx:     []byte("123"),
+			txInfo: TxInfo{},
+			res:    nil,
+		},
+		{
+			tx:     wdata,
+			txInfo: TxInfo{},
+			res:    wCMTx,
+		},
+	}
+
+	clistMem := &CListMempool{}
+	for _, tc := range testcase {
+		re := clistMem.CheckAndGetWrapCMTx(tc.tx, tc.txInfo)
+		if re != nil {
+			assert.Equal(t, *re, *tc.res)
+		} else {
+			assert.Equal(t, re, tc.res)
+		}
+	}
+}

@@ -13,6 +13,7 @@ const (
 	StoreKey          = sdkparams.StoreKey
 	TStoreKey         = sdkparams.TStoreKey
 	RouterKey         = sdkparams.RouterKey
+	UpgradeRouterKey  = types.UpgradeRouterKey
 )
 
 type (

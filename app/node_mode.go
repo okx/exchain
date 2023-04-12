@@ -20,6 +20,7 @@ import (
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 )
@@ -72,7 +73,7 @@ func setRpcConfig(ctx *server.Context) {
 
 func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
-	viper.SetDefault(appconfig.FlagDynamicGpMode, types.MinimalGpMode)
+	viper.SetDefault(appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
@@ -82,9 +83,8 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(mempool.FlagEnablePendingPool, false)
 	viper.SetDefault(config.FlagEnablePGU, true)
 
-
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
-		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, types.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, true,
+		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
 		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000,
 		mempool.FlagEnablePendingPool, false))

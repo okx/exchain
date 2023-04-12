@@ -23,6 +23,16 @@ func (d Deposit) String() string {
 		d.Depositor, d.ProposalID, d.Amount)
 }
 
+type WrappedDeposits struct {
+	Ds Deposits `json:"deposits" yaml:"result"`
+}
+
+func NewWrappedDeposits(ds Deposits) WrappedDeposits {
+	return WrappedDeposits{
+		Ds: ds,
+	}
+}
+
 // Deposits is a collection of Deposit objects
 type Deposits []Deposit
 

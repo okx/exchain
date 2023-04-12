@@ -23,17 +23,15 @@ import (
 	"github.com/spf13/viper"
 
 	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 
-	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/simulation"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	"github.com/okex/exchain/app/types"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -53,9 +51,11 @@ import (
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/erc20"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/vmbridge"
 )
 
 const (
@@ -67,6 +67,8 @@ const (
 
 	EvmHookGasEstimate = uint64(60000)
 	EvmDefaultGasLimit = uint64(21000)
+
+	FlagAllowUnprotectedTxs = "rpc.allow-unprotected-txs"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -258,59 +260,69 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	recommendGP := (*big.Int)(api.gasPrice)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		price := new(big.Int).Set(app.GlobalGp)
-		if price.Cmp(gasprice.MinPrice) == -1 {
-			price.Set(gasprice.MinPrice)
+	minGP := (*big.Int)(api.gasPrice)
+	maxGP := new(big.Int).Mul(minGP, big.NewInt(5000))
+
+	rgp := new(big.Int).Set(minGP)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+		// If current block is not congested, rgp == minimal gas price.
+		if mempool.IsCongested {
+			rgp.Set(mempool.GlobalRecommendedGP)
 		}
 
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+		if rgp.Cmp(minGP) == -1 {
+			rgp.Set(minGP)
+		}
+
+		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 1 {
 			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			recommendGP = new(big.Int).Mul(price, coefficient)
-		} else {
-			recommendGP = price
+			rgp = new(big.Int).Mul(rgp, coefficient)
 		}
 
-		if recommendGP.Cmp(gasprice.MaxPrice) == 1 {
-			recommendGP.Set(gasprice.MaxPrice)
+		if rgp.Cmp(maxGP) == 1 {
+			rgp.Set(maxGP)
 		}
 	}
 
-	return (*hexutil.Big)(recommendGP)
+	return (*hexutil.Big)(rgp)
 }
 
 func (api *PublicEthereumAPI) GasPriceIn3Gears() *rpctypes.GPIn3Gears {
 	monitor := monitor.GetMonitor("eth_gasPriceIn3Gears", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	avgGP := (*big.Int)(api.gasPrice)
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		price := new(big.Int).Set(app.GlobalGp)
-		if price.Cmp(gasprice.MinPrice) == -1 {
-			price.Set(gasprice.MinPrice)
+	minGP := (*big.Int)(api.gasPrice)
+	maxGP := new(big.Int).Mul(minGP, big.NewInt(5000))
+
+	avgGP := new(big.Int).Set(minGP)
+	if appconfig.GetOecConfig().GetDynamicGpMode() != tmtypes.MinimalGpMode {
+		if mempool.IsCongested {
+			avgGP.Set(mempool.GlobalRecommendedGP)
 		}
 
-		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 0 {
+		if avgGP.Cmp(minGP) == -1 {
+			avgGP.Set(minGP)
+		}
+
+		if appconfig.GetOecConfig().GetDynamicGpCoefficient() > 1 {
 			coefficient := big.NewInt(int64(appconfig.GetOecConfig().GetDynamicGpCoefficient()))
-			avgGP = new(big.Int).Mul(price, coefficient)
-		} else {
-			avgGP = price
+			avgGP = new(big.Int).Mul(avgGP, coefficient)
 		}
 
-		if avgGP.Cmp(gasprice.MaxPrice) == 1 {
-			avgGP.Set(gasprice.MaxPrice)
+		if avgGP.Cmp(maxGP) == 1 {
+			avgGP.Set(maxGP)
 		}
 	}
+
 	// safe low GP = average GP * 0.5, but it will not be less than the minimal GP.
 	safeGp := new(big.Int).Quo(avgGP, big.NewInt(2))
-	if safeGp.Cmp(gasprice.MinPrice) == -1 {
-		safeGp.Set(gasprice.MinPrice)
+	if safeGp.Cmp(minGP) == -1 {
+		safeGp.Set(minGP)
 	}
 	// fastest GP = average GP * 1.5, but it will not be greater than the max GP.
 	fastestGp := new(big.Int).Add(avgGP, new(big.Int).Quo(avgGP, big.NewInt(2)))
-	if fastestGp.Cmp(gasprice.MaxPrice) == 1 {
-		fastestGp.Set(gasprice.MaxPrice)
+	if fastestGp.Cmp(maxGP) == 1 {
+		fastestGp.Set(maxGP)
 	}
 
 	res := rpctypes.NewGPIn3Gears(safeGp, avgGP, fastestGp)
@@ -777,22 +789,22 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		return common.Hash{}, err
 	}
 	txBytes := data
-	var tx *evmtypes.MsgEthereumTx
+	tx := new(evmtypes.MsgEthereumTx)
 
-	if !tmtypes.HigherThanVenus(int64(height)) || api.txPool != nil {
-		tx = new(evmtypes.MsgEthereumTx)
+	// RLP decode raw transaction bytes
+	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
+		// Return nil is for when gasLimit overflows uint64
+		return common.Hash{}, err
+	}
 
-		// RLP decode raw transaction bytes
-		if err := authtypes.EthereumTxDecode(data, tx); err != nil {
-			// Return nil is for when gasLimit overflows uint64
+	if !tx.Protected() && !viper.GetBool(FlagAllowUnprotectedTxs) {
+		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
+	}
+
+	if !tmtypes.HigherThanVenus(int64(height)) {
+		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
+		if err != nil {
 			return common.Hash{}, err
-		}
-
-		if !tmtypes.HigherThanVenus(int64(height)) {
-			txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
-			if err != nil {
-				return common.Hash{}, err
-			}
 		}
 	}
 
@@ -961,7 +973,23 @@ func (api *PublicEthereumAPI) doCall(
 
 	//only worked when fast-query has been enabled
 	if sim != nil && useWatch {
-		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
+		simRes, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
+		if err != nil {
+			return simRes, err
+		}
+		data, err := evmtypes.DecodeResultData(simRes.Result.Data)
+		if err != nil {
+			return simRes, err
+		}
+		tempHooks := evm.NewLogProcessEvmHook(
+			erc20.NewSendToIbcEventHandler(erc20.Keeper{}),
+			erc20.NewSendNative20ToIbcEventHandler(erc20.Keeper{}),
+			vmbridge.NewSendToWasmEventHandler(vmbridge.Keeper{}),
+			vmbridge.NewCallToWasmEventHandler(vmbridge.Keeper{}),
+		)
+		if ok := tempHooks.IsCanHooked(data.Logs); !ok {
+			return simRes, nil
+		}
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -1328,9 +1356,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		status = 0 // transaction failed
 	}
 
-	if len(data.Logs) == 0 {
+	if len(data.Logs) == 0 || status == 0 {
 		data.Logs = []*ethtypes.Log{}
+		data.Bloom = ethtypes.BytesToBloom(make([]byte, 256))
 	}
+
 	contractAddr := &data.ContractAddress
 	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
 		contractAddr = nil

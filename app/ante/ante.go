@@ -12,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 	govante "github.com/okex/exchain/x/gov/ante"
+	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/staking"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 )
@@ -31,12 +32,12 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, option wasmkeeper.HandlerOption, ibcChannelKeepr *ibc.Keeper, s staking.Keeper) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, option wasmkeeper.HandlerOption, ibcChannelKeepr *ibc.Keeper, s staking.Keeper, pk params.Keeper) sdk.AnteHandler {
 	var stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler
 
 	stdTxAnteHandler = sdk.ChainAnteDecorators(
-		authante.NewSetUpContextDecorator(),                                             // outermost AnteDecorator. SetUpContext must be called first
-		wasmkeeper.NewLimitSimulationGasDecorator(option.WasmConfig.SimulationGasLimit), // after setup context to enforce limits early
+		authante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+		NewWasmGasLimitDecorator(evmKeeper), // gas limit should not be greater than max gas limit
 		wasmkeeper.NewCountTXDecorator(option.TXCounterStoreKey),
 		NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 		authante.NewMempoolFeeDecorator(),
@@ -51,7 +52,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 		NewValidateMsgHandlerDecorator(validateMsgHandler),
 		ibcante.NewAnteDecorator(ibcChannelKeepr),
-		govante.NewAnteDecorator(s, ak),
+		govante.NewAnteDecorator(s, ak, pk),
 	)
 
 	evmTxAnteHandler = sdk.ChainAnteDecorators(

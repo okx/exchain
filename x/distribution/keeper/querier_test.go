@@ -3,11 +3,12 @@ package keeper
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/distribution/types"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
 )
 
 func TestQueryParams(t *testing.T) {

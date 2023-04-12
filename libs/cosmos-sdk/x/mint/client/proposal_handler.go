@@ -11,4 +11,8 @@ var (
 		cli.GetCmdManageTreasuresProposal,
 		rest.ManageTreasuresProposalRESTHandler,
 	)
+	ModifyNextBlockUpdateProposalHandler = govcli.NewProposalHandler(
+		cli.GetCmdModifyNextBlockUpdateProposal,
+		rest.ModifyNextBlockUpdateProposalRESTHandler,
+	)
 )

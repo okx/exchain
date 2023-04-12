@@ -223,9 +223,9 @@ func (app *BaseApp) SetTmClient(client client.Client) {
 	app.tmClient = client
 }
 
-func (app *BaseApp) SetUpdateGPOHandler(handler sdk.UpdateGPOHandler) {
+func (app *BaseApp) SetUpdateCMTxNonceHandler(handler sdk.UpdateCMTxNonceHandler) {
 	if app.sealed {
-		panic("SetUpdateGPOHandler() on sealed BaseApp")
+		panic("SetUpdateCMTxNonceHandler() on sealed BaseApp")
 	}
-	app.updateGPOHandler = handler
+	app.updateCMTxNonceHandler = handler
 }

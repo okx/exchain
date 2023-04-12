@@ -79,15 +79,7 @@ import (
 var (
 	_ upgradetypes.UpgradeModule = (*SimpleBaseUpgradeModule)(nil)
 
-	test_prefix       = "upgrade_module_"
-	blockModules      map[string]struct{}
-	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
-		_, exist := blockModules[module]
-		if !exist {
-			return false
-		}
-		return true
-	}
+	test_prefix = "upgrade_module_"
 )
 
 type SimpleBaseUpgradeModule struct {
@@ -100,13 +92,13 @@ type SimpleBaseUpgradeModule struct {
 }
 
 func (b *SimpleBaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
-	if b.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
-	}
 	var ret cosmost.StoreFilter
 	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		if b.appModule.Name() != module {
 			return false
+		}
+		if b.UpgradeHeight() == 0 {
+			return true
 		}
 		if b.h == h {
 			store.SetUpgradeVersion(h)
@@ -122,14 +114,13 @@ func (b *SimpleBaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
 }
 
 func (b *SimpleBaseUpgradeModule) PruneFilter() *cosmost.StoreFilter {
-	if b.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
-	}
-
 	var ret cosmost.StoreFilter
 	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		if b.appModule.Name() != module {
 			return false
+		}
+		if b.UpgradeHeight() == 0 {
+			return true
 		}
 		if b.h >= h {
 			return false
@@ -311,7 +302,7 @@ func newTestOkcChainApp(
 	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
-	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey])
+	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey], logger)
 	app.subspaces[auth.ModuleName] = app.ParamsKeeper.Subspace(auth.DefaultParamspace)
 	app.subspaces[bank.ModuleName] = app.ParamsKeeper.Subspace(bank.DefaultParamspace)
 	app.subspaces[staking.ModuleName] = app.ParamsKeeper.Subspace(staking.DefaultParamspace)
@@ -561,7 +552,7 @@ func newTestOkcChainApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), wasmkeeper.HandlerOption{
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
-	}, app.IBCKeeper, app.StakingKeeper))
+	}, app.IBCKeeper, app.StakingKeeper, app.ParamsKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
@@ -675,7 +666,7 @@ func setupTestApp(db dbm.DB, cases []UpgradeCase, modules []*simpleAppModule) *t
 			a.mm.OrderExportGenesis = append(a.mm.OrderExportGenesis, m.Name())
 		}
 	}, func(a *testSimApp) {
-		a.setupUpgradeModules()
+		a.setupUpgradeModules(false)
 	})
 	return app
 }
@@ -698,7 +689,7 @@ func createKeysByCases(caseas []UpgradeCase) map[string]*sdk.KVStoreKey {
 	return keys
 }
 
-///
+// /
 type RecordMemDB struct {
 	db *dbm.MemDB
 	common.PlaceHolder

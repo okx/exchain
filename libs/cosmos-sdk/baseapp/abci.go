@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/okex/exchain/libs/system/trace/persist"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -22,9 +22,9 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/system/trace/persist"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/tendermint/go-amino"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -386,6 +386,9 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
 	}
 
+	if req.Height == 0 {
+		req.Height = app.LastBlockHeight()
+	}
 	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
 		return app.handleQueryGRPC(grpcHandler, req)
 	}
@@ -443,6 +446,8 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 		}
 		if isPureWasm {
 			wasmSimulator := simulator.NewWasmSimulator()
+			defer wasmSimulator.Release()
+
 			wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
 			wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
 			res, err := wasmSimulator.Simulate(msgs)

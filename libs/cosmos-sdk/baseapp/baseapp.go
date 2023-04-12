@@ -152,8 +152,8 @@ type BaseApp struct { // nolint: maligned
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
+	updateCMTxNonceHandler sdk.UpdateCMTxNonceHandler
 
-	updateGPOHandler sdk.UpdateGPOHandler
 	// volatile states:
 	//
 	// checkState is set on InitChain and reset on Commit

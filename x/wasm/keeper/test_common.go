@@ -148,7 +148,7 @@ type TestFaucet struct {
 	t                testing.TB
 	bankKeeper       bank.Keeper
 	supplyKeeper     supply.Keeper
-	sender           sdk.AccAddress
+	sender           sdk.WasmAddress
 	balance          sdk.Coins
 	minterModuleName string
 }
@@ -163,30 +163,30 @@ func NewTestFaucet(t testing.TB, ctx sdk.Context, bankKeeper bank.Keeper, supply
 	return r
 }
 
-func (f *TestFaucet) Mint(parentCtx sdk.Context, addr sdk.AccAddress, amounts ...sdk.Coin) {
+func (f *TestFaucet) Mint(parentCtx sdk.Context, addr sdk.WasmAddress, amounts ...sdk.Coin) {
 	require.NotEmpty(f.t, amounts)
 	ctx := parentCtx.SetEventManager(sdk.NewEventManager()) // discard all faucet related events
 
 	err := f.supplyKeeper.MintCoins(*ctx, f.minterModuleName, amounts)
 	require.NoError(f.t, err)
-	err = f.supplyKeeper.SendCoinsFromModuleToAccount(*ctx, f.minterModuleName, addr, amounts)
+	err = f.supplyKeeper.SendCoinsFromModuleToAccount(*ctx, f.minterModuleName, sdk.WasmToAccAddress(addr), amounts)
 	require.NoError(f.t, err)
 	f.balance = f.balance.Add(amounts...)
 }
 
-func (f *TestFaucet) Fund(parentCtx sdk.Context, receiver sdk.AccAddress, amounts ...sdk.Coin) {
+func (f *TestFaucet) Fund(parentCtx sdk.Context, receiver sdk.WasmAddress, amounts ...sdk.Coin) {
 	require.NotEmpty(f.t, amounts)
 	// ensure faucet is always filled
 	if !f.balance.IsAllGTE(amounts) {
 		f.Mint(parentCtx, f.sender, amounts...)
 	}
 	ctx := parentCtx.SetEventManager(sdk.NewEventManager()) // discard all faucet related events
-	err := f.bankKeeper.SendCoins(*ctx, f.sender, receiver, amounts)
+	err := f.bankKeeper.SendCoins(*ctx, sdk.WasmToAccAddress(f.sender), sdk.WasmToAccAddress(receiver), amounts)
 	require.NoError(f.t, err)
 	f.balance = f.balance.Sub(amounts)
 }
 
-func (f *TestFaucet) NewFundedAccount(ctx sdk.Context, amounts ...sdk.Coin) sdk.AccAddress {
+func (f *TestFaucet) NewFundedAccount(ctx sdk.Context, amounts ...sdk.Coin) sdk.WasmAddress {
 	_, _, addr := keyPubAddr()
 	f.Fund(ctx, addr, amounts...)
 	return addr
@@ -273,6 +273,7 @@ func createTestInput(
 		legacyAmino,
 		keys[paramstypes.StoreKey],
 		tkeys[paramstypes.TStoreKey],
+		ctx.Logger(),
 	)
 	for _, m := range []string{authtypes.ModuleName,
 		bank.ModuleName,
@@ -359,7 +360,7 @@ func createTestInput(
 	// set some funds ot pay out validatores, based on code from:
 	// https://github.com/okex/exchain/libs/cosmos-sdk/blob/fea231556aee4d549d7551a6190389c4328194eb/x/distribution/keeper/keeper_test.go#L50-L57
 	distrAcc := distKeeper.GetDistributionAccount(ctx)
-	faucet.Fund(ctx, distrAcc.GetAddress(), sdk.NewCoin("stake", sdk.NewInt(2000000)))
+	faucet.Fund(ctx, sdk.AccToAWasmddress(distrAcc.GetAddress()), sdk.NewCoin("stake", sdk.NewInt(2000000)))
 
 	supplyKeeper.SetModuleAccount(ctx, distrAcc)
 
@@ -487,7 +488,7 @@ func TestHandler(k types.ContractOpsKeeper) sdk.Handler {
 }
 
 func handleStoreCode(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgStoreCode) (*sdk.Result, error) {
-	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+	senderAddr, err := sdk.WasmAddressFromBech32(msg.Sender)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "sender")
 	}
@@ -503,13 +504,13 @@ func handleStoreCode(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgS
 }
 
 func handleInstantiate(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgInstantiateContract) (*sdk.Result, error) {
-	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+	senderAddr, err := sdk.WasmAddressFromBech32(msg.Sender)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "sender")
 	}
-	var adminAddr sdk.AccAddress
+	var adminAddr sdk.WasmAddress
 	if msg.Admin != "" {
-		if adminAddr, err = sdk.AccAddressFromBech32(msg.Admin); err != nil {
+		if adminAddr, err = sdk.WasmAddressFromBech32(msg.Admin); err != nil {
 			return nil, sdkerrors.Wrap(err, "admin")
 		}
 	}
@@ -526,11 +527,11 @@ func handleInstantiate(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.Ms
 }
 
 func handleExecute(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgExecuteContract) (*sdk.Result, error) {
-	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+	senderAddr, err := sdk.WasmAddressFromBech32(msg.Sender)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "sender")
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(msg.Contract)
+	contractAddr, err := sdk.WasmAddressFromBech32(msg.Contract)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "admin")
 	}
@@ -547,7 +548,7 @@ func handleExecute(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgExe
 
 var PubKeyCache = make(map[string]crypto.PubKey)
 
-func RandomAccountAddress(_ testing.TB) sdk.AccAddress {
+func RandomAccountAddress(_ testing.TB) sdk.WasmAddress {
 	_, pub, addr := keyPubAddr()
 	PubKeyCache[addr.String()] = pub
 	return addr
@@ -560,7 +561,7 @@ func RandomBech32AccountAddress(t testing.TB) string {
 type ExampleContract struct {
 	InitialAmount sdk.Coins
 	Creator       crypto.PrivKey
-	CreatorAddr   sdk.AccAddress
+	CreatorAddr   sdk.WasmAddress
 	CodeID        uint64
 }
 
@@ -600,7 +601,7 @@ var wasmIdent = []byte("\x00\x61\x73\x6D")
 
 type ExampleContractInstance struct {
 	ExampleContract
-	Contract sdk.AccAddress
+	Contract sdk.WasmAddress
 }
 
 // SeedNewContractInstance sets the mock wasmerEngine in keeper and calls store + instantiate to init the contract's metadata
@@ -640,11 +641,11 @@ func StoreRandomContractWithAccessConfig(
 
 type HackatomExampleInstance struct {
 	ExampleContract
-	Contract        sdk.AccAddress
+	Contract        sdk.WasmAddress
 	Verifier        crypto.PrivKey
-	VerifierAddr    sdk.AccAddress
+	VerifierAddr    sdk.WasmAddress
 	Beneficiary     crypto.PrivKey
-	BeneficiaryAddr sdk.AccAddress
+	BeneficiaryAddr sdk.WasmAddress
 }
 
 // InstantiateHackatomExampleContract load and instantiate the "./testdata/hackatom.wasm" contract
@@ -675,8 +676,8 @@ func InstantiateHackatomExampleContract(t testing.TB, ctx sdk.Context, keepers T
 }
 
 type HackatomExampleInitMsg struct {
-	Verifier    sdk.AccAddress `json:"verifier"`
-	Beneficiary sdk.AccAddress `json:"beneficiary"`
+	Verifier    sdk.WasmAddress `json:"verifier"`
+	Beneficiary sdk.WasmAddress `json:"beneficiary"`
 }
 
 func (m HackatomExampleInitMsg) GetBytes(t testing.TB) []byte {
@@ -686,8 +687,8 @@ func (m HackatomExampleInitMsg) GetBytes(t testing.TB) []byte {
 }
 
 type IBCReflectExampleInstance struct {
-	Contract      sdk.AccAddress
-	Admin         sdk.AccAddress
+	Contract      sdk.WasmAddress
+	Admin         sdk.WasmAddress
 	CodeID        uint64
 	ReflectCodeID uint64
 }
@@ -723,7 +724,7 @@ func (m IBCReflectInitMsg) GetBytes(t testing.TB) []byte {
 }
 
 type BurnerExampleInitMsg struct {
-	Payout sdk.AccAddress `json:"payout"`
+	Payout sdk.WasmAddress `json:"payout"`
 }
 
 func (m BurnerExampleInitMsg) GetBytes(t testing.TB) []byte {
@@ -732,8 +733,8 @@ func (m BurnerExampleInitMsg) GetBytes(t testing.TB) []byte {
 	return initMsgBz
 }
 
-func fundAccounts(t testing.TB, ctx sdk.Context, am authkeeper.AccountKeeper, bank bank.Keeper, supplyKeeper supply.Keeper, addr sdk.AccAddress, coins sdk.Coins) {
-	acc := am.NewAccountWithAddress(ctx, addr)
+func fundAccounts(t testing.TB, ctx sdk.Context, am authkeeper.AccountKeeper, bank bank.Keeper, supplyKeeper supply.Keeper, addr sdk.WasmAddress, coins sdk.Coins) {
+	acc := am.NewAccountWithAddress(ctx, sdk.WasmToAccAddress(addr))
 	am.SetAccount(ctx, acc)
 	NewTestFaucet(t, ctx, bank, supplyKeeper, mint.ModuleName, coins...).Fund(ctx, addr, coins...)
 }
@@ -742,13 +743,13 @@ var keyCounter uint64
 
 // we need to make this deterministic (same every test run), as encoded address size and thus gas cost,
 // depends on the actual bytes (due to ugly CanonicalAddress encoding)
-func keyPubAddr() (crypto.PrivKey, crypto.PubKey, sdk.AccAddress) {
+func keyPubAddr() (crypto.PrivKey, crypto.PubKey, sdk.WasmAddress) {
 	keyCounter++
 	seed := make([]byte, 8)
 	binary.BigEndian.PutUint64(seed, keyCounter)
 
 	key := ed25519.GenPrivKeyFromSecret(seed)
 	pub := key.PubKey()
-	addr := sdk.AccAddress(pub.Address())
+	addr := sdk.WasmAddress(pub.Address())
 	return key, pub, addr
 }

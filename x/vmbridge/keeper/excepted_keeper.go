@@ -15,7 +15,7 @@ type EVMKeeper interface {
 
 type WASMKeeper interface {
 	// Execute executes the contract instance
-	Execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress, msg []byte, coins sdk.Coins) ([]byte, error)
+	Execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, msg []byte, coins sdk.Coins) ([]byte, error)
 	GetParams(ctx sdk.Context) wasmtypes.Params
 }
 
@@ -24,4 +24,8 @@ type AccountKeeper interface {
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
 	SetAccount(ctx sdk.Context, acc authexported.Account)
 	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
+}
+
+type BankKeeper interface {
+	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
 }

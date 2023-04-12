@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"sync"
 
@@ -30,20 +29,19 @@ import (
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 
-	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
+
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
 
 	"github.com/okex/exchain/app/utils/appstatus"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
-	"github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -145,6 +143,7 @@ var (
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler,
+			paramsclient.UpgradeProposalHandler,
 			distr.CommunityPoolSpendProposalHandler,
 			distr.ChangeDistributionTypeProposalHandler,
 			distr.WithdrawRewardEnabledProposalHandler,
@@ -157,6 +156,7 @@ var (
 			evmclient.ManageSysContractAddressProposalHandler,
 			evmclient.ManageContractByteCodeProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
+			govclient.ModifyNextBlockUpdateProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
@@ -164,11 +164,11 @@ var (
 			fsclient.FeeSplitSharesProposalHandler,
 			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateContractAdminProposalHandler,
-			wasmclient.ClearContractAdminProposalHandler,
 			wasmclient.PinCodesProposalHandler,
 			wasmclient.UnpinCodesProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
+			wasmclient.GetCmdExtraProposal,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -215,8 +215,6 @@ var (
 		ibcfeetypes.ModuleName:      nil,
 		icatypes.ModuleName:         nil,
 	}
-
-	GlobalGp = &big.Int{}
 
 	onceLog sync.Once
 )
@@ -267,8 +265,6 @@ type OKExChainApp struct {
 
 	// simulation manager
 	sm *module.SimulationManager
-
-	gpo *gasprice.Oracle
 
 	configurator module.Configurator
 	// ibc
@@ -357,7 +353,7 @@ func NewOKExChainApp(
 	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
-	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey])
+	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey], logger)
 	app.subspaces[auth.ModuleName] = app.ParamsKeeper.Subspace(auth.DefaultParamspace)
 	app.subspaces[bank.ModuleName] = app.ParamsKeeper.Subspace(bank.DefaultParamspace)
 	app.subspaces[staking.ModuleName] = app.ParamsKeeper.Subspace(staking.DefaultParamspace)
@@ -547,7 +543,8 @@ func NewOKExChainApp(
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.V2Keeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
 		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper)).
-		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals))
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals)).
+		AddRoute(params.UpgradeRouterKey, params.NewUpgradeProposalHandler(&app.ParamsKeeper))
 
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
@@ -557,7 +554,8 @@ func NewOKExChainApp(
 		AddRoute(mint.RouterKey, &app.MintKeeper).
 		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
 		AddRoute(feesplit.RouterKey, &app.FeeSplitKeeper).
-		AddRoute(distr.RouterKey, &app.DistrKeeper)
+		AddRoute(distr.RouterKey, &app.DistrKeeper).
+		AddRoute(params.UpgradeRouterKey, &app.ParamsKeeper)
 
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
@@ -611,7 +609,7 @@ func NewOKExChainApp(
 
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
-	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
+	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
@@ -620,6 +618,7 @@ func NewOKExChainApp(
 				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
 				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+				vmbridge.NewCallToWasmEventHandler(*app.VMBridgeKeeper),
 			),
 			app.FeeSplitKeeper.Hooks(),
 		),
@@ -712,7 +711,7 @@ func NewOKExChainApp(
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
 	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
-	app.setupUpgradeModules()
+	app.setupUpgradeModules(false)
 
 	vmbridge.RegisterServices(app.configurator, *app.VMBridgeKeeper)
 
@@ -748,7 +747,7 @@ func NewOKExChainApp(
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
 	}
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper, app.StakingKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper, app.StakingKeeper, app.ParamsKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper, app.EvmKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
@@ -761,10 +760,7 @@ func NewOKExChainApp(
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
-
-	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
-	app.gpo = gasprice.NewOracle(gpoConfig)
-	app.SetUpdateGPOHandler(updateGPOHandler(app.gpo))
+	app.SetUpdateCMTxNonceHandler(NewUpdateCMTxNonceHandler())
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -776,6 +772,12 @@ func NewOKExChainApp(
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
+
+		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
+			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
+		}
+
+		app.WasmKeeper.UpdateGasRegister(ctx)
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
@@ -820,13 +822,6 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if appconfig.GetOecConfig().GetDynamicGpMode() != types.MinimalGpMode {
-		currentBlockGPsCopy := app.gpo.CurrentBlockGPs.Copy()
-		_ = app.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
-		GlobalGp = app.gpo.RecommendGP()
-		app.gpo.CurrentBlockGPs.Clear()
-	}
-
 	return app.mm.EndBlock(ctx, req)
 }
 
@@ -1018,5 +1013,14 @@ func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHa
 			return false
 		}
 		return ak.IsMatchSysContractAddress(ctx, addr)
+	}
+}
+
+func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
+	return func(tx sdk.Tx, nonce uint64) {
+		stdtx, ok := tx.(*authtypes.StdTx)
+		if ok && nonce != 0 {
+			stdtx.Nonce = nonce
+		}
 	}
 }

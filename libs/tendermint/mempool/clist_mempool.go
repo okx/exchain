@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
-
 	"math/big"
 	"strconv"
 	"sync"
@@ -14,10 +12,10 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
-
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
@@ -31,6 +29,12 @@ type TxInfoParser interface {
 	GetTxHistoryGasUsed(tx types.Tx, gasLimit int64) (int64, bool)
 	GetRealTxFromRawTx(rawTx types.Tx) abci.TxEssentials
 }
+
+var (
+	// GlobalRecommendedGP is initialized to 0.1GWei
+	GlobalRecommendedGP = big.NewInt(100000000)
+	IsCongested         = false
+)
 
 //--------------------------------------------------------------------------------
 
@@ -95,9 +99,10 @@ type CListMempool struct {
 
 	txs ITransactionQueue
 
-	simQueue chan *mempoolTx
-
+	simQueue        chan *mempoolTx
 	rmPendingTxChan chan types.EventDataRmPendingTx
+
+	gpo *Oracle
 }
 
 var _ Mempool = &CListMempool{}
@@ -119,6 +124,9 @@ func NewCListMempool(
 		txQueue = NewBaseTxQueue()
 	}
 
+	gpoConfig := NewGPOConfig(cfg.DynamicConfig.GetDynamicGpWeight(), cfg.DynamicConfig.GetDynamicGpCheckBlocks())
+	gpo := NewOracle(gpoConfig)
+
 	mempool := &CListMempool{
 		config:        config,
 		proxyAppConn:  proxyAppConn,
@@ -131,6 +139,7 @@ func NewCListMempool(
 		metrics:       NopMetrics(),
 		txs:           txQueue,
 		simQueue:      make(chan *mempoolTx, 200000),
+		gpo:           gpo,
 	}
 
 	if config.PendingRemoveEvent {
@@ -297,6 +306,15 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
 
+	var nonce uint64
+	wCMTx := mem.CheckAndGetWrapCMTx(tx, txInfo)
+	if wCMTx != nil {
+		txInfo.wrapCMTx = wCMTx
+		tx = wCMTx.GetTx()
+		nonce = wCMTx.GetNonce()
+		mem.logger.Debug("checkTx is wrapCMTx", "nonce", nonce)
+	}
+
 	txkey := txKey(tx)
 
 	// CACHE
@@ -337,7 +355,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if txInfo.from != "" {
 		types.SignatureCache().Add(txkey[:], txInfo.from)
 	}
-	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
+
+	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom(), Nonce: nonce})
 	if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 		gasLimit := r.CheckTx.GasWanted
 		if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
@@ -377,6 +396,19 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	return nil
+}
+
+func (mem *CListMempool) CheckAndGetWrapCMTx(tx types.Tx, txInfo TxInfo) *types.WrapCMTx {
+	if txInfo.wrapCMTx != nil { // from p2p
+		return txInfo.wrapCMTx
+	}
+	// from rpc should check if the tx is WrapCMTx
+	wtx := &types.WrapCMTx{}
+	err := cdc.UnmarshalJSON(tx, &wtx)
+	if err != nil {
+		return nil
+	}
+	return wtx
 }
 
 // Global callback that will be called after every ABCI response.
@@ -504,7 +536,6 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 	txNonce := memTx.realTx.GetNonce()
 	mem.logger.Debug("mempool", "addPendingTx", hex.EncodeToString(memTx.realTx.TxHash()), "nonce", memTx.realTx.GetNonce(), "gp", memTx.realTx.GetGasPrice(), "pending Nouce", pendingNonce, "excepectNouce", expectedNonce)
-	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
 	if txNonce == 0 || txNonce < expectedNonce {
 		return mem.addTx(memTx)
 	}
@@ -683,6 +714,11 @@ func (mem *CListMempool) resCbFirstTime(
 				memTx.preciseOrOutdated = 1
 			}
 
+			if txInfo.wrapCMTx != nil {
+				memTx.isWrapCMTx = true
+				memTx.wrapCMNonce = txInfo.wrapCMTx.GetNonce()
+			}
+
 			memTx.senders = make(map[uint16]struct{})
 			memTx.senders[txInfo.SenderID] = struct{}{}
 
@@ -849,7 +885,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		atomic.AddUint32(&memTx.preciseOrOutdated, 1)
 		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
 		newTotalGas := totalGas + gasWanted
-		if gasWanted >= maxGas {
+		if maxGas > -1 && gasWanted >= maxGas {
 			mem.logger.Error("tx gas overflow", "txHash", hex.EncodeToString(key[:]), "gasWanted", gasWanted, "isSim", memTx.isSim)
 		}
 		if maxGas > -1 && newTotalGas > maxGas && len(txs) > 0 {
@@ -980,14 +1016,18 @@ func (mem *CListMempool) Update(
 		addr := ""
 		nonce := uint64(0)
 		txhash := tx.Hash(height)
+		gasUsedPerTx := deliverTxResponses[i].GasUsed
+		gasPricePerTx := big.NewInt(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			atomic.AddUint32(&(ele.Value.(*mempoolTx).preciseOrOutdated), 1)
 			addr = ele.Address
 			nonce = ele.Nonce
+			gasPricePerTx = ele.GasPrice
 			mem.logUpdate(ele.Address, ele.Nonce)
 		} else {
 			if mem.txInfoparser != nil {
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
+				gasPricePerTx = txInfo.GasPrice
 				addr = txInfo.Sender
 				nonce = txInfo.Nonce
 			}
@@ -998,8 +1038,14 @@ func (mem *CListMempool) Update(
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
-			gasUsed += uint64(deliverTxResponses[i].GasUsed)
+			gasUsed += uint64(gasUsedPerTx)
 		}
+
+		if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
+			// Collect gas price and gas used of txs in current block for gas price recommendation
+			mem.gpo.CurrentBlockGPs.Update(gasPricePerTx, uint64(gasUsedPerTx))
+		}
+
 		if mem.pendingPool != nil {
 			addressNonce[addr] = nonce
 		}
@@ -1011,6 +1057,14 @@ func (mem *CListMempool) Update(
 			mem.rmPendingTxChan <- types.EventDataRmPendingTx{txhash, addr, nonce, types.Confirmed}
 		}
 	}
+
+	if cfg.DynamicConfig.GetDynamicGpMode() != types.MinimalGpMode {
+		currentBlockGPsCopy := mem.gpo.CurrentBlockGPs.Copy()
+		_ = mem.gpo.BlockGPQueue.Push(currentBlockGPsCopy)
+		GlobalRecommendedGP, IsCongested = mem.gpo.RecommendGP()
+		mem.gpo.CurrentBlockGPs.Clear()
+	}
+
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, strconv.FormatUint(gasUsed, 10))
 
@@ -1202,6 +1256,9 @@ type mempoolTx struct {
 
 	preciseOrOutdated uint32
 	isSim             uint32
+
+	isWrapCMTx  bool
+	wrapCMNonce uint64
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool

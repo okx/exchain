@@ -8,16 +8,20 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/params"
+	paramstypes "github.com/okex/exchain/x/params/types"
 	stakingkeeper "github.com/okex/exchain/x/staking"
+	wasmtypes "github.com/okex/exchain/x/wasm/types"
 )
 
 type AnteDecorator struct {
 	sk stakingkeeper.Keeper
 	ak auth.AccountKeeper
+	pk params.Keeper
 }
 
-func NewAnteDecorator(k stakingkeeper.Keeper, ak auth.AccountKeeper) AnteDecorator {
-	return AnteDecorator{sk: k, ak: ak}
+func NewAnteDecorator(k stakingkeeper.Keeper, ak auth.AccountKeeper, pk params.Keeper) AnteDecorator {
+	return AnteDecorator{sk: k, ak: ak, pk: pk}
 }
 
 func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
@@ -42,6 +46,14 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 				substituteAcc, ok := substitute.(*ethermint.EthAccount)
 				if !ok || !substituteAcc.IsContract() {
 					return ctx, evmtypes.ErrNotContracAddress(fmt.Errorf(ethcmn.BytesToAddress(proposalType.SubstituteContract).String()))
+				}
+			case paramstypes.UpgradeProposal:
+				if err := ad.pk.CheckMsgSubmitProposal(ctx, msg); err != nil {
+					return ctx, err
+				}
+			case *wasmtypes.ExtraProposal:
+				if !ad.sk.IsValidator(ctx, msg.Proposer) {
+					return ctx, wasmtypes.ErrProposerMustBeValidator
 				}
 			}
 		}

@@ -13,7 +13,7 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.6.8.2
+Version=v1.6.8.5
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -28,6 +28,7 @@ Venus1Height=1
 Venus2Height=0
 Venus3Height=1
 Venus4Height=0
+Venus5Height=0
 EarthHeight=0
 MarsHeight=0
 
@@ -50,7 +51,8 @@ ifeq ($(MAKECMDGOALS),mainnet)
    Venus1Height=12988000
    Venus2Height=14738000
    Venus3Height=15277000
-
+   Venus5Height=17849000
+	
    WITH_ROCKSDB=true
 else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
@@ -61,6 +63,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    Venus3Height=15540000
    EarthHeight=17364500
    Venus4Height=17531500
+   Venus5Height=18861500
 
    WITH_ROCKSDB=true
 endif
@@ -100,6 +103,7 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS3_HEIGHT=$(Venus3Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS4_HEIGHT=$(Venus4Height) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS5_HEIGHT=$(Venus5Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_EARTH_HEIGHT=$(EarthHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
 
@@ -140,7 +144,7 @@ exchain: check_version
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
 check_version:
-	@sh $(shell pwd)/dev/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
+	@sh $(shell pwd)/libs/check/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
 
 mainnet: exchain
 

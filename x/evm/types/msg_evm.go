@@ -363,7 +363,9 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, erro
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
 // A derived address is returned upon success or an error if recovery fails.
 func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
-	if !isProtectedV(msg.Data.V) && tmtypes.HigherThanMercury(height) {
+	if !isProtectedV(msg.Data.V) &&
+		tmtypes.HigherThanMercury(height) &&
+		!tmtypes.HigherThanVenus5(height) {
 		return errors.New("deprecated support for homestead Signer")
 	}
 	if msg.BaseTx.GetFrom() != "" {
@@ -398,6 +400,11 @@ func isProtectedV(V *big.Int) bool {
 // GetGas implements the GasTx interface. It returns the GasLimit of the transaction.
 func (msg *MsgEthereumTx) GetGas() uint64 {
 	return msg.Data.GasLimit
+}
+
+// Protected says whether the transaction is replay-protected.
+func (msg *MsgEthereumTx) Protected() bool {
+	return isProtectedV(msg.Data.V)
 }
 
 // Fee returns gasprice * gaslimit.

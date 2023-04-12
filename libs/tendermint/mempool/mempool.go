@@ -3,7 +3,6 @@ package mempool
 import (
 	"crypto/sha256"
 	"fmt"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -116,12 +115,13 @@ type TxInfo struct {
 	// SenderP2PID is the actual p2p.ID of the sender, used e.g. for logging.
 	SenderP2PID p2p.ID
 
-	from      string
-	wtx       *WrappedTx
-	checkType abci.CheckTxType
-
+	from         string
+	wtx          *WrappedTx
+	checkType    abci.CheckTxType
 	isGasPrecise bool
 	gasUsed      int64
+
+	wrapCMTx *types.WrapCMTx
 }
 
 //--------------------------------------------------------------------------------

@@ -21,13 +21,15 @@ type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type EvmSysContractAddressHandler func(ctx Context, addr AccAddress) bool
 
+type UpdateCMTxNonceHandler func(tx Tx, nonce uint64)
+
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo) error
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
 type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins, isDelete bool)
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 type GetTxFeeHandler func(tx Tx) Coins
-type UpdateGPOHandler func(dynamicGpInfos []DynamicGasInfo)
+
 type CustomizeOnStop func(ctx Context) error
 
 type MptCommitHandler func(ctx Context)

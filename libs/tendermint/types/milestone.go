@@ -39,6 +39,9 @@ var (
 	MILESTONE_VENUS4_HEIGHT string
 	milestoneVenus4Height   int64
 
+	MILESTONE_VENUS5_HEIGHT string
+	milestoneVenus5Height   int64
+
 	// note: it stores the earlies height of the node,and it is used by cli
 	nodePruneHeight int64
 
@@ -78,6 +81,7 @@ func init() {
 		milestoneVenus3Height = string2number(MILESTONE_VENUS3_HEIGHT)
 		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
+		milestoneVenus5Height = string2number(MILESTONE_VENUS5_HEIGHT)
 	})
 }
 
@@ -145,6 +149,10 @@ func IsMainNet() bool {
 // 1121818 is testnet GenesisHeight
 func IsTestNet() bool {
 	return MILESTONE_GENESIS_HEIGHT == "1121818"
+}
+
+func IsPrivateNet() bool {
+	return !IsMainNet() && !IsTestNet()
 }
 
 func GetStartBlockHeight() int64 {
@@ -272,6 +280,26 @@ func UnittestOnlySetMilestoneVenus4Height(h int64) {
 
 func GetVenus4Height() int64 {
 	return milestoneVenus4Height
+}
+
+// =========== Venus4 ===============
+// ==================================
+
+// ==================================
+// =========== Venus5 ===============
+func HigherThanVenus5(h int64) bool {
+	if milestoneVenus5Height == 0 {
+		return false
+	}
+	return h > milestoneVenus5Height
+}
+
+func UnittestOnlySetMilestoneVenus5Height(h int64) {
+	milestoneVenus5Height = h
+}
+
+func GetVenus5Height() int64 {
+	return milestoneVenus5Height
 }
 
 // =========== Venus4 ===============

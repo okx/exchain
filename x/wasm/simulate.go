@@ -10,6 +10,8 @@ import (
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/proxy"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
+	"sync"
 )
 
 type Simulator struct {
@@ -52,6 +54,14 @@ func (w *Simulator) Context() *sdk.Context {
 	return &w.ctx
 }
 
+func (w *Simulator) Release() {
+	if !watcher.Enable() {
+		return
+	}
+	proxy.PutBackStorePool(w.ctx.MultiStore().(sdk.CacheMultiStore))
+	w.k.Cleanup()
+}
+
 func NewProxyKeeper() keeper.Keeper {
 	cdc := codec.New()
 	RegisterCodec(cdc)
@@ -72,10 +82,25 @@ func NewProxyKeeper() keeper.Keeper {
 	queryRouter := baseapp.NewGRPCQueryRouter()
 	queryRouter.SetInterfaceRegistry(interfaceReg)
 
-	k := keeper.NewSimulateKeeper(codec.NewCodecProxy(protoCdc, cdc), sdk.NewKVStoreKey(StoreKey), ss, akp, bkp, nil, pkp, ckp, nil, msgRouter, queryRouter, WasmDir(), WasmConfig(), SupportedFeatures)
+	k := keeper.NewSimulateKeeper(codec.NewCodecProxy(protoCdc, cdc), getStoreKey(), ss, akp, bkp, nil, pkp, ckp, nil, msgRouter, queryRouter, WasmDir(), WasmConfig(), SupportedFeatures)
 	types.RegisterMsgServer(msgRouter, keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(k)))
 	types.RegisterQueryServer(queryRouter, NewQuerier(&k))
 	bank.RegisterBankMsgServer(msgRouter, bank.NewMsgServerImpl(bkp))
 	bank.RegisterQueryServer(queryRouter, bank.NewBankQueryServer(bkp, skp))
 	return k
+}
+
+var (
+	storeKeyOnce sync.Once
+	gStoreKey    sdk.StoreKey
+)
+
+func getStoreKey() sdk.StoreKey {
+	storeKeyOnce.Do(
+		func() {
+			gStoreKey = sdk.NewKVStoreKey(StoreKey)
+		},
+	)
+
+	return gStoreKey
 }

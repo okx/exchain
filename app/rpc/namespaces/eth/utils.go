@@ -11,7 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/vm"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/spf13/viper"
+
 	ethermint "github.com/okex/exchain/app/types"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerror "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -19,7 +22,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/token"
-	"github.com/spf13/viper"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+	wasmtypes "github.com/okex/exchain/x/wasm/types"
 )
 
 const (
@@ -42,9 +46,9 @@ func ParseGasPrice() *hexutil.Big {
 	if err == nil && gasPrices != nil && len(gasPrices) > 0 {
 		return (*hexutil.Big)(gasPrices[0].Amount.BigInt())
 	}
-
 	//return the default gas price : DefaultGasPrice
-	return (*hexutil.Big)(sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2+1).BigInt())
+	defaultGP := sdk.NewDecFromBigIntWithPrec(big.NewInt(ethermint.DefaultGasPrice), sdk.Precision/2+1).BigInt()
+	return (*hexutil.Big)(defaultGP)
 }
 
 type cosmosError struct {
@@ -241,15 +245,19 @@ func getStorageByAddressKey(addr common.Address, key []byte) common.Hash {
 	return ethcrypto.Keccak256Hash(compositeKey)
 }
 
-func accountType(account authexported.Account) token.AccType {
+func accountType(account authexported.Account, cliCtx clientCtx.CLIContext, wasmAddr sdk.WasmAddress) token.AccType {
 	switch account.(type) {
 	case *ethermint.EthAccount:
-		if sdk.IsWasmAddress(account.GetAddress()) {
-			return token.WasmAccount
-		}
 		ethAcc, _ := account.(*ethermint.EthAccount)
 		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
 			return token.ContractAccount
+		}
+		// Determine whether it is a wasm contract
+		route := fmt.Sprintf("custom/%s/%s/%s", wasmtypes.QuerierRoute, wasmkeeper.QueryGetContract, wasmAddr.String())
+		_, _, err := cliCtx.Query(route)
+		// Here, the address format must be valid, and only wasmtypes.ErrNotFound error may occur.
+		if err == nil {
+			return token.WasmAccount
 		}
 		return token.UserAccount
 	case *supply.ModuleAccount:

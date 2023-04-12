@@ -28,3 +28,24 @@ func ParseManageTreasuresProposalJSON(cdc *codec.Codec, proposalFilePath string)
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
 }
+
+// ModifyNextBlockUpdateProposalJSON defines a ModifyNextBlockUpdateProposal with a deposit used to parse
+// manage treasures proposals from a JSON file.
+type ModifyNextBlockUpdateProposalJSON struct {
+	Title       string       `json:"title" yaml:"title"`
+	Description string       `json:"description" yaml:"description"`
+	Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
+	BlockNum    uint64       `json:"block_num" yaml:"block_num"`
+}
+
+// ParseModifyNextBlockUpdateProposalJSON parses json from proposal file to ModifyNextBlockUpdateProposalJSON struct
+func ParseModifyNextBlockUpdateProposalJSON(cdc *codec.Codec, proposalFilePath string) (
+	proposal ModifyNextBlockUpdateProposalJSON, err error) {
+	contents, err := ioutil.ReadFile(proposalFilePath)
+	if err != nil {
+		return
+	}
+
+	cdc.MustUnmarshalJSON(contents, &proposal)
+	return
+}
