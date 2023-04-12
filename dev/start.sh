@@ -28,8 +28,10 @@ run() {
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
+      --mempool.max_gas_used_per_block=50000000 \
+      --mempool.enable-pgu=true \
       --dynamic-gp-mode=2 \
-      --consensus.timeout_commit 2000ms \
+      --consensus.timeout_commit 4000ms \
       --enable-preruntx=1 \
       --iavl-enable-async-commit \
       --enable-gid \
