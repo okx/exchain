@@ -344,16 +344,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	defer mem.updateMtx.RUnlock()
 
 	var err error
-	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
-		if gasUsed < 0 {
-			simuRes, err := mem.simulateTx(tx)
-			if err != nil {
-				return err
-			}
-			gasUsed = int64(simuRes.GasUsed)
-		}
+		txInfo.gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
 	}
 
 	if mem.preCheck != nil {
@@ -374,11 +366,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
-			if gasUsed < r.CheckTx.GasWanted {
-				r.CheckTx.GasWanted = gasUsed
+				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, txInfo.gasUsed))
+			if txInfo.gasUsed <= 0 || txInfo.gasUsed > r.CheckTx.GasWanted {
+				txInfo.gasUsed = r.CheckTx.GasWanted
 			}
-
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
@@ -702,7 +693,8 @@ func (mem *CListMempool) resCbFirstTime(
 
 			memTx := &mempoolTx{
 				height:      mem.Height(),
-				gasWanted:   r.CheckTx.GasWanted,
+				gasLimit:    r.CheckTx.GasWanted,
+				gasWanted:   txInfo.gasUsed,
 				tx:          tx,
 				realTx:      r.CheckTx.Tx,
 				nodeKey:     txInfo.wtx.GetNodeKey(),
@@ -1245,8 +1237,9 @@ func MultiPriceBump(rawPrice *big.Int, priceBump int64) *big.Int {
 
 // mempoolTx is a transaction that successfully ran
 type mempoolTx struct {
-	height      int64    // height that this tx had been validated in
-	gasWanted   int64    // amount of gas this tx states it will require
+	height      int64 // height that this tx had been validated in
+	gasWanted   int64 // amount of gas this tx states it will require
+	gasLimit    int64
 	tx          types.Tx //
 	realTx      abci.TxEssentials
 	nodeKey     []byte
@@ -1447,10 +1440,10 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 		return
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
-	atomic.StoreInt64(&memTx.gasWanted, gas)
-	if gas < atomic.LoadInt64(&memTx.gasWanted) {
+	if gas < atomic.LoadInt64(&memTx.gasLimit) {
 		atomic.StoreInt64(&memTx.gasWanted, gas)
 	}
+	atomic.AddUint32(&memTx.isSim, 1)
 	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), gas)
 }
 
