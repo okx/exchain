@@ -50,7 +50,7 @@ pub mod execute {
     pub fn increment(deps: DepsMut, count: Uint128) -> Result<Response, ContractError> {
         STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
             for _iu128 in 0..count.into() {
-                state.count += 1u128;//Uint256::from(1u128);
+                state.count = state.count.checked_add(1u128).unwrap();//Uint256::from(1u128);
             }
             Ok(state)
         })?;
