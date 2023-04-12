@@ -32,3 +32,7 @@ message ExtraProposal {
   string action = 3;
   string extra = 4;
 }
+
+message QueryExtraParams {
+  string gas_factor = 1;
+}

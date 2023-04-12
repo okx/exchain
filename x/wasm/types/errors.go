@@ -91,11 +91,11 @@ var (
 	// ErrExceedMaxQueryStackSize error if max query stack size is exceeded
 	ErrExceedMaxQueryStackSize = sdkErrors.Register(DefaultCodespace, 27, "max query stack size exceeded")
 
-	ErrCodeInvalidGasFactor       = sdkErrors.Register(ModuleName, 29, "invalid gas factor")
+	ErrCodeInvalidGasFactor       = sdkErrors.Register(DefaultCodespace, 29, "invalid gas factor")
 	ErrHandleExtraProposal        = sdkErrors.Register(DefaultCodespace, 30, "handle extra proposal error")
 	ErrUnknownExtraProposalAction = sdkErrors.Register(DefaultCodespace, 31, "extra proposal's action unknown")
 
-	ErrProposerMustBeValidator = sdkErrors.Register(ModuleName, 32, "the proposal of proposer must be validator")
+	ErrProposerMustBeValidator = sdkErrors.Register(DefaultCodespace, 32, "the proposal of proposer must be validator")
 )
 
 type ErrNoSuchContract struct {

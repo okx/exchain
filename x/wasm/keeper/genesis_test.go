@@ -458,10 +458,10 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
       "code_id": "1",
       "code_info": {
         "code_hash": %q,
-        "creator": "cosmos1qtu5n0cnhfkjj6l2rq97hmky9fd89gwca9yarx",
+        "creator": "ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0",
         "instantiate_config": {
           "permission": "OnlyAddress",
-          "address": "cosmos1qtu5n0cnhfkjj6l2rq97hmky9fd89gwca9yarx"
+          "address": "ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0"
         }
       },
       "code_bytes": %q
@@ -472,8 +472,8 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
       "contract_address": "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b",
       "contract_info": {
         "code_id": "1",
-        "creator": "cosmos13x849jzd03vne42ynpj25hn8npjecxqrjghd8x",
-        "admin": "cosmos1h5t8zxmjr30e9dqghtlpl40f2zz5cgey6esxtn",
+        "creator": "ex1fsfwwvl93qv6r56jpu084hxxzn9zphnyxhske5",
+        "admin": "ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
         "label": "ȀĴnZV芢毤"
       }
     }
@@ -513,7 +513,7 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	// verify code info
 	gotCodeInfo := keeper.GetCodeInfo(ctx, 1)
 	require.NotNil(t, gotCodeInfo)
-	codeCreatorAddr := "cosmos1qtu5n0cnhfkjj6l2rq97hmky9fd89gwca9yarx"
+	codeCreatorAddr := "ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0"
 	expCodeInfo := types.CodeInfo{
 		CodeHash: wasmCodeHash[:],
 		Creator:  codeCreatorAddr,
@@ -528,8 +528,8 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	contractAddr, _ := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 	gotContractInfo := keeper.GetContractInfo(ctx, contractAddr)
 	require.NotNil(t, gotContractInfo)
-	contractCreatorAddr := "cosmos13x849jzd03vne42ynpj25hn8npjecxqrjghd8x"
-	adminAddr := "cosmos1h5t8zxmjr30e9dqghtlpl40f2zz5cgey6esxtn"
+	contractCreatorAddr := "ex1fsfwwvl93qv6r56jpu084hxxzn9zphnyxhske5"
+	adminAddr := "ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9"
 
 	expContractInfo := types.ContractInfo{
 		CodeID:  firstCodeID,
