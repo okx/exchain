@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"bytes"
+	"encoding/hex"
 	"runtime"
 	"sync"
 
@@ -18,6 +19,7 @@ var (
 	maxTxResultInChan           = 20000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
+	feeAccountKeyInStore, _     = hex.DecodeString("01f1829676db577682e944fc3493d451b67ff3e29f")
 )
 
 type extraDataForTx struct {
@@ -689,7 +691,7 @@ func (pm *parallelTxManager) isConflict(e *executeResult) bool {
 		return true //TODO fix later
 	}
 	for storeKey, rw := range e.rwSet {
-
+		delete(rw.Read, string(feeAccountKeyInStore))
 		for key, value := range rw.Read {
 			if data, ok := pm.conflictCheck[storeKey].Write[key]; ok {
 				if !bytes.Equal(data.Value, value) {
