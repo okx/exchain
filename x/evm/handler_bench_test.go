@@ -197,7 +197,7 @@ func (e *EvmBatchTest) Deploy() {
 }
 
 func (e *EvmBatchTest) Run(name string) {
-	gasLimit := uint64(10000000000)
+	gasLimit := uint64(100000000000000)
 	gasPrice := big.NewInt(10000)
 	bytecode := GenAddParam(addParam, name)
 	priv, err := ethsecp256k1.GenerateKey()
@@ -215,7 +215,7 @@ func (e *EvmBatchTest) Run(name string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("the res gas used ", "cost time", end.Sub(st), len(resultData.Ret))
+	fmt.Println("opt", name, "count", addParam, "cost time", end.Sub(st), len(resultData.Ret))
 }
 
 func (e *EvmBatchTest) Query() {
@@ -243,7 +243,7 @@ func (e *EvmBatchTest) Query() {
 	}
 }
 
-func TestEvmBatch(t *testing.T) {
+func TestEvmBatchAdd(t *testing.T) {
 	e := InitEvmBatchTest()
 	e.Deploy()
 	e.Run("add")
@@ -262,4 +262,16 @@ func TestEvmBatchWrite(t *testing.T) {
 	e.Deploy()
 	e.Run("write")
 	e.Query()
+}
+
+func TestEvmBatch(t *testing.T) {
+	counts := []int64{1000000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000, 4500000, 5000000}
+	e := InitEvmBatchTest()
+	e.Deploy()
+	for _, c := range counts {
+		addParam = c
+		e.Run("add")
+		e.Run("read")
+		e.Run("write")
+	}
 }
