@@ -1,8 +1,8 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128, Uint256};
 use cw2::set_contract_version;
-use super::state::Number;
+
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, GetCountResponse, InstantiateMsg, QueryMsg};
@@ -20,7 +20,7 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let state = State {
-        count: msg.count,
+        count: msg.count.into(),
     };
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     STATE.save(deps.storage, &state)?;
@@ -47,10 +47,10 @@ pub fn execute(
 pub mod execute {
     use super::*;
 
-    pub fn increment(deps: DepsMut, count: Number) -> Result<Response, ContractError> {
+    pub fn increment(deps: DepsMut, count: Uint128) -> Result<Response, ContractError> {
         STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
-            for _i in 0..count.into() {
-                state.count += Number::from(1u128);
+            for _iu128 in 0..count.into() {
+                state.count += 1u128;//Uint256::from(1u128);
             }
             Ok(state)
         })?;
@@ -58,7 +58,7 @@ pub mod execute {
         Ok(Response::new().add_attribute("action", "increment"))
     }
 
-    pub fn write(deps: DepsMut, count: Number) -> Result<Response, ContractError> {
+    pub fn write(deps: DepsMut, count: Uint128) -> Result<Response, ContractError> {
         let state = STATE.load(deps.storage)?;
         for _i in 0..count.into() {
             STATE.save(deps.storage, &state)?;
@@ -67,7 +67,7 @@ pub mod execute {
         Ok(Response::new().add_attribute("action", "write"))
     }
 
-    pub fn read(deps: DepsMut, count: Number) -> Result<Response, ContractError> {
+    pub fn read(deps: DepsMut, count: Uint128) -> Result<Response, ContractError> {
         for _i in 0..count.into() {
             STATE.load(deps.storage)?;
         }

@@ -15,7 +15,7 @@ echo "contract_addr: $contract_addr"
 #exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"1000000"}}' --from captain --fees 0.01okt --gas 50000000 -y -b block | jq -r '.gas_used'
 #exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"10000000"}}' --from captain --fees 0.01okt --gas 50000000 -y -b block | jq -r '.gas_used'
 #exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"100000000"}}' --from captain --fees 0.01okt --gas 50000000 -y -b block | jq -r '.gas_used'
-exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"157600000"}}' --from captain --fees 0.01okt --gas 50000000 -y -b block | jq -r '.gas_used'
+exchaincli tx wasm execute ${contract_addr} '{"increment":{"count":"77600000"}}' --from captain --fees 0.01okt --gas 50000000 -y -b block | jq -r '.gas_used'
 exchaincli tx wasm execute ${contract_addr} '{"write":{"count":"11740"}}' --from captain --fees 0.01okt --gas 50000000 -y -b block | jq -r '.gas_used'
 exchaincli tx wasm execute ${contract_addr} '{"read":{"count":"39840"}}' --from captain --fees 0.01okt --gas 50000000 -y -b block | jq -r '.gas_used'
 exchaincli query wasm contract-state smart ${contract_addr} '{"get_count":{}}' | jq

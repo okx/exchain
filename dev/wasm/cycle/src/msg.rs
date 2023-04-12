@@ -1,16 +1,17 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Uint128;
 use super::state::Number;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub count: Number,
+    pub count: Uint128,
 }
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    Increment { count: Number },
-    Write { count: Number },
-    Read { count: Number },
+    Increment { count: Uint128 },
+    Write { count: Uint128 },
+    Read { count: Uint128 },
 }
 
 #[cw_serde]
