@@ -202,7 +202,6 @@ type BaseApp struct { // nolint: maligned
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	feeCollector          sdk.Coins
-	feeChanged            bool // used to judge whether should update the fee-collector account
 	FeeSplitCollector     []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache

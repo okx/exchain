@@ -188,7 +188,7 @@ func (app *BaseApp) fixFeeCollector() {
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
 	// The feesplit is only processed at the endblock
-	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil, false); err != nil {
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil); err != nil {
 		panic(err)
 	}
 }
@@ -299,9 +299,10 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	pm.alreadyEnd = true
 	pm.stop <- struct{}{}
 
-	// fix logs
-	app.feeChanged = true
+	// update fee collector balance
 	app.feeCollector = app.parallelTxManage.currTxFee
+
+	// fix logs
 	receiptsLogs := app.endParallelTxs(pm.txSize)
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result

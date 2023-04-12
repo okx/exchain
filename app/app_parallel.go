@@ -25,8 +25,8 @@ func getFeeCollectorBalance(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollecto
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo, canSetCoin bool) error {
-		if canSetCoin {
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
+		if balance != nil {
 			err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 			if err != nil {
 				return err
