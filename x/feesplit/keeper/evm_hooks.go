@@ -101,7 +101,9 @@ func (k Keeper) PostTxProcessing(
 	f.HasFee = true
 
 	// add innertx
-	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
+	if !ctx.IsCheckTx() {
+		k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
+	}
 
 	ctx.EventManager().EmitEvents(
 		sdk.Events{
