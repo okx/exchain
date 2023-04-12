@@ -164,11 +164,11 @@ var (
 			fsclient.FeeSplitSharesProposalHandler,
 			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateContractAdminProposalHandler,
-			wasmclient.ClearContractAdminProposalHandler,
 			wasmclient.PinCodesProposalHandler,
 			wasmclient.UnpinCodesProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
+			wasmclient.GetCmdExtraProposal,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -609,7 +609,7 @@ func NewOKExChainApp(
 
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
-	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
+	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
@@ -618,6 +618,7 @@ func NewOKExChainApp(
 				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
 				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+				vmbridge.NewCallToWasmEventHandler(*app.VMBridgeKeeper),
 			),
 			app.FeeSplitKeeper.Hooks(),
 		),
@@ -775,6 +776,8 @@ func NewOKExChainApp(
 		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
 		}
+
+		app.WasmKeeper.UpdateGasRegister(ctx)
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper

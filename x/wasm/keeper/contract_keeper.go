@@ -23,6 +23,8 @@ type decoratedKeeper interface {
 	updateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error
 
 	GetParams(ctx sdk.Context) types.Params
+
+	InvokeExtraProposal(ctx sdk.Context, action string, extra string) error
 }
 
 type PermissionedKeeper struct {
@@ -98,4 +100,8 @@ func (p PermissionedKeeper) UpdateContractMethodBlockedList(ctx sdk.Context, blo
 
 func (p PermissionedKeeper) GetParams(ctx sdk.Context) types.Params {
 	return p.nested.GetParams(ctx)
+}
+
+func (p PermissionedKeeper) InvokeExtraProposal(ctx sdk.Context, action string, extra string) error {
+	return p.nested.InvokeExtraProposal(ctx, action, extra)
 }

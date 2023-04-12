@@ -32,9 +32,11 @@ var (
 	PinnedCodeIndexPrefix                          = []byte{0x07}
 	TXCounterPrefix                                = []byte{0x08}
 	ContractMethodBlockedListPrefix                = []byte{0x10}
+	GasFactorPrefix                                = []byte{0x11}
 
-	KeyLastCodeID     = append(SequenceKeyPrefix, []byte("lastCodeId")...)
-	KeyLastInstanceID = append(SequenceKeyPrefix, []byte("lastContractId")...)
+	KeyLastCodeID      = append(SequenceKeyPrefix, []byte("lastCodeId")...)
+	KeyLastInstanceID  = append(SequenceKeyPrefix, []byte("lastContractId")...)
+	KeyGasFactorPrefix = append(GasFactorPrefix, []byte("gasFactor")...)
 )
 
 // GetCodeKey constructs the key for retreiving the ID for the WASM code

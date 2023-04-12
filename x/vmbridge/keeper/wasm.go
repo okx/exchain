@@ -30,12 +30,29 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if err != nil {
 		return err
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(wasmContractAddr)
+	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
 	if err != nil {
 		return err
 	}
 
-	ret, err := k.wasmKeeper.Execute(ctx, sdk.AccToAWasmddress(contractAddr), sdk.AccToAWasmddress(caller), input, sdk.Coins{})
+	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), input, sdk.Coins{})
+	if err != nil {
+		k.Logger().Error("wasm return", string(ret))
+	}
+	return err
+}
+
+func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractAddr string, value sdk.Int, calldata string) error {
+	if value.IsNegative() {
+		return types.ErrAmountNegative
+	}
+
+	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
+	if err != nil {
+		return err
+	}
+	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
+	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), []byte(calldata), coins)
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
 	}
@@ -51,12 +68,16 @@ func RegisterSendToEvmEncoder(cdc *codec.ProtoCodec) *wasm.MessageEncoders {
 
 func sendToEvmEncoder(cdc *codec.ProtoCodec) wasm.CustomEncoder {
 	return func(sender sdk.WasmAddress, data json.RawMessage) ([]ibcadapter.Msg, error) {
-		var msg types.MsgSendToEvm
-
-		if err := cdc.UnmarshalJSON(data, &msg); err != nil {
-			return nil, err
+		var sendToEvmMsg types.MsgSendToEvm
+		if err := cdc.UnmarshalJSON(data, &sendToEvmMsg); err != nil {
+			var callToEvmMsg types.MsgCallToEvm
+			if err := cdc.UnmarshalJSON(data, &callToEvmMsg); err != nil {
+				return nil, err
+			}
+			return []ibcadapter.Msg{&callToEvmMsg}, nil
 		}
-		return []ibcadapter.Msg{&msg}, nil
+
+		return []ibcadapter.Msg{&sendToEvmMsg}, nil
 	}
 }
 
@@ -88,5 +109,24 @@ func (k msgServer) SendToEvmEvent(goCtx context.Context, msg *types.MsgSendToEvm
 		return &types.MsgSendToEvmResponse{Success: false}, sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error())
 	}
 	response := types.MsgSendToEvmResponse{Success: success}
+	return &response, nil
+}
+
+func (k msgServer) CallToEvmEvent(goCtx context.Context, msg *types.MsgCallToEvm) (*types.MsgCallToEvmResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if !tmtypes.HigherThanEarth(ctx.BlockHeight()) {
+		errMsg := fmt.Sprintf("vmbridger not supprt at height %d", ctx.BlockHeight())
+		return &types.MsgCallToEvmResponse{Response: errMsg}, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+	}
+	params := k.wasmKeeper.GetParams(ctx)
+	if !params.VmbridgeEnable {
+		return &types.MsgCallToEvmResponse{Response: types.ErrVMBridgeEnable.Error()}, types.ErrVMBridgeEnable
+	}
+
+	result, err := k.Keeper.CallToEvm(ctx, msg.Sender, msg.Evmaddr, msg.Calldata, msg.Value)
+	if err != nil {
+		return &types.MsgCallToEvmResponse{Response: sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error()).Error()}, sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error())
+	}
+	response := types.MsgCallToEvmResponse{Response: result}
 	return &response, nil
 }

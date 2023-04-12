@@ -68,6 +68,9 @@ type ContractOpsKeeper interface {
 
 	// GetParams get params from paramsubspace.
 	GetParams(ctx sdk.Context) Params
+
+	// InvokeExtraProposal invoke extra proposal
+	InvokeExtraProposal(ctx sdk.Context, action string, extra string) error
 }
 
 // IBCContractKeeper IBC lifecycle event handler
