@@ -712,6 +712,7 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 			if txInfo.isGasPrecise {
 				memTx.preciseOrOutdated = 1
+				memTx.isSim = 1
 			}
 
 			if txInfo.wrapCMTx != nil {
