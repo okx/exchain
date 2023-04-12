@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"fmt"
 	"github.com/okex/exchain/x/wasm"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"testing"
@@ -902,18 +901,18 @@ func (suite *ProposalTestSuite) TestModifyNextBlockUpdateProposal() {
 		expectError error
 	}{
 		{"1", "", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:")},
-		{"1", "{}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get ", types.MaxGasFactor))},
+		{"1", "{}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, decimal string cannot be empty")},
 		{"1", "{\"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"\"}")},
 		{"1", "{\"df\", \"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"df\", \"\"}")},
 		{"1", "{\"factor\":19.7}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"factor\":19.7}")},
 		{"1", "{\"factor\":19}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"factor\":19}")},
-		{"1", "{\"factor\": \"adfasd\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get adfasd", types.MaxGasFactor))},
+		{"1", "{\"factor\": \"adfasd\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, failed to set decimal string: adfasd000000000000000000")},
 		{"1", "{\"factor\": \"-1\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, expect factor positive and 18 precision, but get -1")},
 		{"2", "{\"factor\": \"0\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, expect factor positive and 18 precision, but get 0")},
-		{"3", "{\"factor\": \"0.0000000000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get 0.0000000000000000000000001", types.MaxGasFactor))},
+		{"3", "{\"factor\": \"0.0000000000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, invalid precision; max: 18, got: 25")},
 		{"4", "{\"factor\": \"0.000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrCodeInvalidGasFactor},
-		{"4", "{\"factor\":\"19.7a\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get 19.7a", types.MaxGasFactor))},
-		{"4", "{\"factor\":\"a19.7\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get a19.7", types.MaxGasFactor))},
+		{"4", "{\"factor\":\"19.7a\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, failed to set decimal string: 197a0000000000000000")},
+		{"4", "{\"factor\":\"a19.7\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, failed to set decimal string: a19700000000000000000")},
 		{"4", "{\"factor\": \"10000000\"}", (uint64(types.MaxGasFactor)) * keeper.BaseGasMultiplier, nil},
 		{"4", "{\"factor\":\"19.7\"}", 197 * keeper.BaseGasMultiplier / 10, nil},
 	}

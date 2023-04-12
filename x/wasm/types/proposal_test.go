@@ -1065,7 +1065,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get ", MaxGasFactor)),
+			ErrExtraProposalParams("parse factor error, decimal string cannot be empty"),
 		},
 		{
 			"ActionModifyGasFactor, error json",
@@ -1081,7 +1081,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"df\": \"\"}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get ", MaxGasFactor)),
+			ErrExtraProposalParams("parse factor error, decimal string cannot be empty"),
 		},
 		{
 			"ActionModifyGasFactor, value error",
@@ -1105,7 +1105,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\": \"adfasd\"}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get adfasd", MaxGasFactor)),
+			ErrExtraProposalParams("parse factor error, failed to set decimal string: adfasd000000000000000000"),
 		},
 		{
 			"ActionModifyGasFactor, value -1",
@@ -1129,7 +1129,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\": \"0.0000000000000000001\"}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get 0.0000000000000000001", MaxGasFactor)),
+			ErrExtraProposalParams("parse factor error, invalid precision; max: 18, got: 19"),
 		},
 		{
 			"ActionModifyGasFactor, value = 18",
@@ -1161,7 +1161,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":\"19.7a\"}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get 19.7a", MaxGasFactor)),
+			ErrExtraProposalParams("parse factor error, failed to set decimal string: 197a0000000000000000"),
 		},
 		{
 			"ActionModifyGasFactor, value error",
@@ -1169,7 +1169,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":\"a19.7\"}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get a19.7", MaxGasFactor)),
+			ErrExtraProposalParams("parse factor error, failed to set decimal string: a19700000000000000000"),
 		},
 		{
 			"ActionModifyGasFactor, value ok",
@@ -1185,7 +1185,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":\"19.6757657657657567864554354354357\"}",
-			ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor range (0, %d], but get 19.6757657657657567864554354354357", MaxGasFactor)),
+			ErrExtraProposalParams("parse factor error, invalid precision; max: 18, got: 31"),
 		},
 		{
 			"ActionModifyGasFactor, value ok",
