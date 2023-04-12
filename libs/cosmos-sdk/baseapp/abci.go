@@ -204,11 +204,11 @@ func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 	if isEndBlock {
 		// The feesplit is only processed at the endblock
-		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector, false); err != nil {
 			panic(err)
 		}
 	} else {
-		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, nil); err != nil {
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, nil, false); err != nil {
 			panic(err)
 		}
 	}

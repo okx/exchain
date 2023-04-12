@@ -188,7 +188,7 @@ func (app *BaseApp) fixFeeCollector() {
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
 	// The feesplit is only processed at the endblock
-	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil); err != nil {
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil, false); err != nil {
 		panic(err)
 	}
 }

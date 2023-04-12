@@ -23,7 +23,7 @@ type EvmSysContractAddressHandler func(ctx Context, addr AccAddress) bool
 
 type UpdateCMTxNonceHandler func(tx Tx, nonce uint64)
 
-type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo) error
+type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo, canSetCoin bool) error
 
 type GetFeeCollectorBalance func(ctx Context) Coins
 
