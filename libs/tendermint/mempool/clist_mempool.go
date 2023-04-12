@@ -363,15 +363,16 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		types.SignatureCache().Add(txkey[:], txInfo.from)
 	}
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom(), Nonce: nonce})
-	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
+	if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
+		if txInfo.gasUsed <= 0 || txInfo.gasUsed > r.CheckTx.GasWanted {
+			txInfo.gasUsed = r.CheckTx.GasWanted
+		}
+		if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
 				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, txInfo.gasUsed))
-			if txInfo.gasUsed <= 0 || txInfo.gasUsed > r.CheckTx.GasWanted {
-				txInfo.gasUsed = r.CheckTx.GasWanted
-			}
 		}
 	}
+
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
 	atomic.AddInt64(&mem.checkCnt, 1)
 
