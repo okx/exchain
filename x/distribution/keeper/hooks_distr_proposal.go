@@ -107,3 +107,7 @@ func (h Hooks) CheckEnabled(ctx sdk.Context) bool {
 
 	return h.k.GetWithdrawRewardEnabled(ctx)
 }
+
+func (h Hooks) GetOfficeRewards() float64 {
+	return h.k.GetOfficeRewards()
+}

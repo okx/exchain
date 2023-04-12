@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/x/common/monitor"
 
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
@@ -183,7 +184,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
-	keeper := NewKeeper(pro, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace))
+	keeper := NewKeeper(pro, keyStaking, supplyKeeper, accountKeeper, pk.Subspace(DefaultParamspace), monitor.NopStakingMetric())
 	keeper.SetParams(ctx, types.DefaultParams())
 
 	// set module accounts
