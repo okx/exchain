@@ -224,7 +224,7 @@ func NewActionModifyGasFactor(data string) (sdk.Dec, error) {
 	var param GasFactor
 	err := json.Unmarshal([]byte(data), &param)
 	if err != nil {
-		return sdk.Dec{}, ErrExtraProposalParams("parse json error")
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse json error:%s", data))
 	}
 
 	result, err := sdk.NewDecFromStr(param.Factor)

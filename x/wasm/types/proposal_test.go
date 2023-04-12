@@ -1025,7 +1025,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{dfafdasf}",
-			ErrExtraProposalParams("parse json error"),
+			ErrExtraProposalParams("parse json error:{dfafdasf}"),
 		},
 		{
 			"ActionModifyGasFactor, action is nil",
@@ -1073,7 +1073,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"\"}",
-			ErrExtraProposalParams("parse json error"),
+			ErrExtraProposalParams("parse json error:{\"\"}"),
 		},
 		{
 			"ActionModifyGasFactor, key error",
@@ -1089,7 +1089,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":19.7}",
-			ErrExtraProposalParams("parse json error"),
+			ErrExtraProposalParams("parse json error:{\"factor\":19.7}"),
 		},
 		{
 			"ActionModifyGasFactor, value error",
@@ -1097,7 +1097,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			RandStr(types.MaxDescriptionLength),
 			ActionModifyGasFactor,
 			"{\"factor\":19}",
-			ErrExtraProposalParams("parse json error"),
+			ErrExtraProposalParams("parse json error:{\"factor\":19}"),
 		},
 		{
 			"ActionModifyGasFactor, value error",

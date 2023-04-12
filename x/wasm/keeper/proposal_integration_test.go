@@ -900,12 +900,12 @@ func (suite *ProposalTestSuite) TestModifyNextBlockUpdateProposal() {
 		gasFactor   uint64
 		expectError error
 	}{
-		{"1", "", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
+		{"1", "", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error:")},
 		{"1", "{}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error,factor:")},
-		{"1", "{\"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
-		{"1", "{\"df\", \"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
-		{"1", "{\"factor\":19.7}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
-		{"1", "{\"factor\":19}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error")},
+		{"1", "{\"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error:{\"\"}")},
+		{"1", "{\"df\", \"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error:{\"df\", \"\"}")},
+		{"1", "{\"factor\":19.7}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error:{\"factor\":19.7}")},
+		{"1", "{\"factor\":19}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error:{\"factor\":19}")},
 		{"1", "{\"factor\": \"adfasd\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error,factor:adfasd")},
 		{"1", "{\"factor\": \"-1\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error,factor:-1")},
 		{"2", "{\"factor\": \"0\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error,factor:0")},
