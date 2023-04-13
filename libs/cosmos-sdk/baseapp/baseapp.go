@@ -904,7 +904,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	events := sdk.EmptyEvents()
 
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
-	for i, m := range msgs {
+	for index, m := range msgs {
 		// skip actual execution for (Re)CheckTx mode
 		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
@@ -913,7 +913,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		if nil != app.messageHook {
 			callBack = app.messageHook(ctx, m, mode)
 		}
-		execute := func(msg sdk.Msg) error {
+		execute := func(i int, msg sdk.Msg) error {
 			if nil != callBack {
 				defer callBack()
 			}
@@ -967,7 +967,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			//app.pin("AppendEvents", false, mode)
 			return nil
 		}
-		if err := execute(m); nil != err {
+		if err := execute(index, m); nil != err {
 			return nil, err
 		}
 	}
