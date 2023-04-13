@@ -659,7 +659,7 @@ func TestQueryCodeInfo(t *testing.T) {
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	keeper := keepers.WasmKeeper
 
-	anyAddress, err := sdk.WasmAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
+	anyAddress, err := sdk.WasmAddressFromBech32("ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0")
 	require.NoError(t, err)
 	specs := map[string]struct {
 		codeId       uint64
@@ -714,7 +714,7 @@ func TestQueryCodeInfoList(t *testing.T) {
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	keeper := keepers.WasmKeeper
 
-	anyAddress, err := sdk.WasmAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
+	anyAddress, err := sdk.WasmAddressFromBech32("ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0")
 	require.NoError(t, err)
 	codeInfoWithConfig := func(accessConfig types.AccessConfig) types.CodeInfo {
 		codeInfo := types.CodeInfoFixture(types.WithSHA256CodeHash(wasmCode))
