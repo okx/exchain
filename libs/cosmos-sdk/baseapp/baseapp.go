@@ -235,7 +235,7 @@ type BaseApp struct { // nolint: maligned
 	mtx         *sync.Mutex
 }
 
-// hook the message ,return the call back
+// hook the message ,return the call back (pre-message-hander & post-message-handler)
 type MessageHook = func(ctx sdk.Context, msg sdk.Msg, txMode runTxMode) func()
 
 type recordHandle func(string)
