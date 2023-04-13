@@ -904,64 +904,72 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	events := sdk.EmptyEvents()
 
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
-	for i, msg := range msgs {
+	for i, m := range msgs {
 		// skip actual execution for (Re)CheckTx mode
 		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
 		}
+		callBack := func() {}
 		if nil != app.messageHook {
-			if callBack := app.messageHook(ctx, msg, mode); nil != callBack {
+			callBack = app.messageHook(ctx, m, mode)
+		}
+		execute := func(msg sdk.Msg) error {
+			if nil != callBack {
 				defer callBack()
 			}
-		}
-		msgRoute := msg.Route()
+			msgRoute := msg.Route()
 
-		var isConvert bool
+			var isConvert bool
 
-		if app.JudgeEvmConvert(ctx, msg) {
-			newmsg, err := ConvertMsg(msg, ctx.BlockHeight())
+			if app.JudgeEvmConvert(ctx, msg) {
+				newmsg, err := ConvertMsg(msg, ctx.BlockHeight())
+				if err != nil {
+					return sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
+				}
+				isConvert = true
+				msg = newmsg
+				msgRoute = msg.Route()
+			}
+
+			handler := app.router.Route(ctx, msgRoute)
+			if handler == nil {
+				return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
+			}
+
+			msgResult, err := handler(ctx, msg)
 			if err != nil {
-				return nil, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
+				return sdkerrors.Wrapf(err, "failed to execute message; message index: %d", i)
 			}
-			isConvert = true
-			msg = newmsg
-			msgRoute = msg.Route()
-		}
 
-		handler := app.router.Route(ctx, msgRoute)
-		if handler == nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
-		}
-
-		msgResult, err := handler(ctx, msg)
-		if err != nil {
-			return nil, sdkerrors.Wrapf(err, "failed to execute message; message index: %d", i)
-		}
-
-		msgEvents := sdk.Events{
-			sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyAction, msg.Type())),
-		}
-		//app.pin("AppendEvents", true, mode)
-
-		msgEvents = msgEvents.AppendEvents(msgResult.Events)
-
-		// append message events, data and logs
-		//
-		// Note: Each message result's data must be length-prefixed in order to
-		// separate each result.
-
-		if isConvert {
-			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-			v, err := EvmResultConvert(txHash, msgResult.Data)
-			if err == nil {
-				msgResult.Data = v
+			msgEvents := sdk.Events{
+				sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyAction, msg.Type())),
 			}
-		}
+			//app.pin("AppendEvents", true, mode)
 
-		events = events.AppendEvents(msgEvents)
-		data = append(data, msgResult.Data...)
-		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))
-		//app.pin("AppendEvents", false, mode)
+			msgEvents = msgEvents.AppendEvents(msgResult.Events)
+
+			// append message events, data and logs
+			//
+			// Note: Each message result's data must be length-prefixed in order to
+			// separate each result.
+
+			if isConvert {
+				txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+				v, err := EvmResultConvert(txHash, msgResult.Data)
+				if err == nil {
+					msgResult.Data = v
+				}
+			}
+
+			events = events.AppendEvents(msgEvents)
+			data = append(data, msgResult.Data...)
+			msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))
+			//app.pin("AppendEvents", false, mode)
+			return nil
+		}
+		if err := execute(m); nil != err {
+			return nil, err
+		}
 	}
 
 	return &sdk.Result{
