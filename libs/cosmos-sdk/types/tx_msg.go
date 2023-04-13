@@ -66,7 +66,7 @@ type HeightSensitive interface {
 }
 
 //  interface to lock the executor
-type LockAble interface {
+type LockSensitive interface {
 	NeedLock() bool
 }
 

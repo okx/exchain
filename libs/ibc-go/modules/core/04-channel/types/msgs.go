@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	_ sdk.Msg      = &MsgChannelOpenInit{}
-	_ sdk.LockAble = MsgChannelOpenInit{}
-	_ sdk.LockAble = MsgChannelOpenTry{}
+	_ sdk.Msg           = &MsgChannelOpenInit{}
+	_ sdk.LockSensitive = MsgChannelOpenInit{}
+	_ sdk.LockSensitive = MsgChannelOpenTry{}
 )
 
 // NewMsgChannelOpenInit creates a new MsgChannelOpenInit. It sets the counterparty channel

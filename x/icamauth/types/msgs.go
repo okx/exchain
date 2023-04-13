@@ -18,8 +18,8 @@ var (
 	_ sdk.HeightSensitive = MsgRegisterAccount{}
 	_ sdk.Msg             = &MsgSubmitTx{}
 	_ sdk.HeightSensitive = MsgSubmitTx{}
-	_ sdk.LockAble        = MsgRegisterAccount{}
-	_ sdk.LockAble        = MsgSubmitTx{}
+	_ sdk.LockSensitive   = MsgRegisterAccount{}
+	_ sdk.LockSensitive   = MsgSubmitTx{}
 
 	_ codectypes.UnpackInterfacesMessage = MsgSubmitTx{}
 )

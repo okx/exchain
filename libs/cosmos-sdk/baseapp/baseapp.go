@@ -291,7 +291,7 @@ func NewBaseApp(
 // Note: the call back must be consumed or the application will be blocked
 func (app *BaseApp) defaultMessageHook(ctx sdk.Context, msg sdk.Msg, mode runTxMode) func() {
 	if ctx.IsCheckTx() || ctx.IsReCheckTx() || ctx.IsTraceTx() {
-		if lockMsg, ok := msg.(sdk.LockAble); ok && lockMsg.NeedLock() {
+		if lockMsg, ok := msg.(sdk.LockSensitive); ok && lockMsg.NeedLock() {
 			app.mtx.Lock()
 			return func() {
 				app.mtx.Unlock()

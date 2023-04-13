@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	_ sdk.LockAble = MsgTransfer{}
+	_ sdk.LockSensitive = MsgTransfer{}
 )
 
 // MsgTransfer defines a msg to transfer fungible tokens (i.e Coins) between
