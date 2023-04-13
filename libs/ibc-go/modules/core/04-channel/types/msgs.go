@@ -670,10 +670,10 @@ func (msg MsgAcknowledgement) Type() string {
 }
 
 /////////////////
-func (msg MsgChannelOpenInit) NeedLock() bool {
+func (msg MsgChannelOpenInit) NeedLock(ctx sdk.Context) bool {
 	return true
 }
 
-func (msg MsgChannelOpenTry) NeedLock() bool {
+func (msg MsgChannelOpenTry) NeedLock(ctx sdk.Context) bool {
 	return true
 }

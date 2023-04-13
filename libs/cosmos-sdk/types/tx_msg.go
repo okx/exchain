@@ -67,7 +67,7 @@ type HeightSensitive interface {
 
 //  interface to lock the executor
 type LockSensitive interface {
-	NeedLock() bool
+	NeedLock(ctx Context) bool
 }
 
 type TxAdapter interface {

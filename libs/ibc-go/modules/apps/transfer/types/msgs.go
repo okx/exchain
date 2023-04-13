@@ -116,6 +116,6 @@ func (msg MsgTransfer) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{valAddr}
 }
 
-func (m MsgTransfer) NeedLock() bool {
+func (m MsgTransfer) NeedLock(ctx sdk.Context) bool {
 	return true
 }

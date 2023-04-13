@@ -156,10 +156,10 @@ func (msg MsgSubmitTx) ValidWithHeight(h int64) error {
 }
 
 //////////
-func (msg MsgRegisterAccount) NeedLock() bool {
+func (msg MsgRegisterAccount) NeedLock(ctx sdk.Context) bool {
 	return true
 }
 
-func (msg MsgSubmitTx) NeedLock() bool {
+func (msg MsgSubmitTx) NeedLock(ctx sdk.Context) bool {
 	return true
 }
