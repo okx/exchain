@@ -198,11 +198,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	return err
 }
 
-func (app *BaseApp) fillContextFromApp(c sdk.Context) sdk.Context {
-	c.SetMutex(app.mtx)
-	return c
-}
-
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	var anteCtx sdk.Context
