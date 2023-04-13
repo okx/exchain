@@ -16,6 +16,10 @@ const (
 	TypeMsgTransfer = "transfer"
 )
 
+var (
+	_ sdk.LockAble = MsgTransfer{}
+)
+
 // MsgTransfer defines a msg to transfer fungible tokens (i.e Coins) between
 // ICS20 enabled chains. See ICS Spec here:
 // https://github.com/cosmos/ics/tree/master/spec/ics-020-fungible-token-transfer#data-structures
@@ -110,4 +114,8 @@ func (msg MsgTransfer) GetSigners() []sdk.AccAddress {
 		panic(err)
 	}
 	return []sdk.AccAddress{valAddr}
+}
+
+func (m *MsgTransfer) NeedLock() bool {
+	return true
 }

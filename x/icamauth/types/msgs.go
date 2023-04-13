@@ -19,6 +19,7 @@ var (
 	_ sdk.Msg             = &MsgSubmitTx{}
 	_ sdk.HeightSensitive = MsgSubmitTx{}
 	_ sdk.LockAble        = MsgRegisterAccount{}
+	_ sdk.LockAble        = MsgSubmitTx{}
 
 	_ codectypes.UnpackInterfacesMessage = MsgSubmitTx{}
 )
@@ -156,5 +157,9 @@ func (msg MsgSubmitTx) ValidWithHeight(h int64) error {
 
 //////////
 func (msg MsgRegisterAccount) NeedLock() bool {
+	return true
+}
+
+func (msg MsgSubmitTx) NeedLock() bool {
 	return true
 }
