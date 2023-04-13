@@ -15,9 +15,9 @@ func TestDecay(t *testing.T) {
 	after := time.Now().AddDate(0, 0, 52*7).Unix()
 
 	tokens := sdk.NewDec(1000)
-	nowDec, err := calculateWeight(now, tokens)
+	nowDec, err := calculateWeight(now, tokens, 1)
 	require.NoError(t, err)
-	afterDec, err := calculateWeight(after, tokens)
+	afterDec, err := calculateWeight(after, tokens, 1)
 	require.NoError(t, err)
 	require.Equal(t, sdk.NewDec(2), afterDec.Quo(nowDec))
 }
