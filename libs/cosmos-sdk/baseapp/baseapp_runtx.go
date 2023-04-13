@@ -100,7 +100,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
-	info.ctx = app.fillContextFromApp(info.ctx)
 	//info with cache saved in app to load predesessor tx state
 	if mode != runTxModeTrace {
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
