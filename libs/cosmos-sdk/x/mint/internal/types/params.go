@@ -23,6 +23,18 @@ var (
 	KeyFarmProportion = []byte("YieldFarmingProportion")
 )
 
+// WrappedParams is used to wrap the Params, thus making the rest API response compatible with cosmos-sdk
+type WrappedParams struct {
+	Params Params `json:"params" yaml:"params"`
+}
+
+// NewWrappedParams creates a new instance of WrappedParams
+func NewWrappedParams(params Params) WrappedParams {
+	return WrappedParams{
+		Params: params,
+	}
+}
+
 // mint parameters
 type Params struct {
 	MintDenom           string  `json:"mint_denom" yaml:"mint_denom"`                       // type of coin to mint

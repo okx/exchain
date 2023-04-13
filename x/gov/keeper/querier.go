@@ -5,6 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/common"
+
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/gov/types"
 )
@@ -17,8 +18,12 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryParams(ctx, path[1:], req, keeper)
 		case types.QueryProposals:
 			return queryProposals(ctx, path[1:], req, keeper)
+		case types.QueryCM45Proposals:
+			return cm45QueryProposals(ctx, path[1:], req, keeper)
 		case types.QueryProposal:
 			return queryProposal(ctx, path[1:], req, keeper)
+		case types.QueryCM45Proposal:
+			return cm45QueryProposal(ctx, path[1:], req, keeper)
 		case types.QueryDeposits:
 			return queryDeposits(ctx, path[1:], req, keeper)
 		case types.QueryDeposit:

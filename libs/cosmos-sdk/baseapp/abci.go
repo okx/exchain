@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/okex/exchain/libs/system/trace/persist"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -22,9 +22,9 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/system/trace/persist"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/tendermint/go-amino"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -386,6 +386,9 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
 	}
 
+	if req.Height == 0 {
+		req.Height = app.LastBlockHeight()
+	}
 	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
 		return app.handleQueryGRPC(grpcHandler, req)
 	}
@@ -442,28 +445,8 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			}
 		}
 		if isPureWasm {
-			wasmSimulator := simulator.NewWasmSimulator()
-			wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
-			wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
-			res, err := wasmSimulator.Simulate(msgs)
-			if err != nil {
-				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
-			}
-
-			gasMeter := wasmSimulator.Context().GasMeter()
-			simRes := sdk.SimulationResponse{
-				GasInfo: sdk.GasInfo{
-					GasUsed: gasMeter.GasConsumed(),
-				},
-				Result: res,
-			}
-			return abci.ResponseQuery{
-				Codespace: sdkerrors.RootCodespace,
-				Height:    height,
-				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
-			}
+			return handleSimulateWasm(height, txBytes, msgs)
 		}
-
 	}
 	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
 
@@ -485,6 +468,47 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 		Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
 	}
 }
+
+func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg) (abciRes abci.ResponseQuery) {
+	wasmSimulator := simulator.NewWasmSimulator()
+	defer wasmSimulator.Release()
+	defer func() {
+		if r := recover(); r != nil {
+			gasMeter := wasmSimulator.Context().GasMeter()
+			simRes := sdk.SimulationResponse{
+				GasInfo: sdk.GasInfo{
+					GasUsed: gasMeter.GasConsumed(),
+				},
+			}
+			abciRes = abci.ResponseQuery{
+				Codespace: sdkerrors.RootCodespace,
+				Height:    height,
+				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+			}
+		}
+	}()
+
+	wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
+	wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
+	res, err := wasmSimulator.Simulate(msgs)
+	if err != nil {
+		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
+	}
+
+	gasMeter := wasmSimulator.Context().GasMeter()
+	simRes := sdk.SimulationResponse{
+		GasInfo: sdk.GasInfo{
+			GasUsed: gasMeter.GasConsumed(),
+		},
+		Result: res,
+	}
+	return abci.ResponseQuery{
+		Codespace: sdkerrors.RootCodespace,
+		Height:    height,
+		Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+	}
+}
+
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {
 	if len(path) >= 2 {
 		switch path[1] {

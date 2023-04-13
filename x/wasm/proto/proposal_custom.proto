@@ -25,3 +25,14 @@ message Method {
   string name = 1;
   string extra = 2;
 }
+
+message ExtraProposal {
+  string title = 1;
+  string description = 2;
+  string action = 3;
+  string extra = 4;
+}
+
+message QueryExtraParams {
+  string gas_factor = 1;
+}

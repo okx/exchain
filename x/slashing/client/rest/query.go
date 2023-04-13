@@ -27,6 +27,11 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		"/slashing/parameters",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
+
+	r.HandleFunc(
+		"/cosmos/slashing/v1beta1/params",
+		cm45QueryParamsHandlerFn(cliCtx),
+	).Methods("GET")
 }
 
 // http request handler to query signing info

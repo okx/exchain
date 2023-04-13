@@ -249,13 +249,13 @@ var xxx_messageInfo_Supply proto.InternalMessageInfo
 // DenomUnit represents a struct that describes a given
 // denomination unit of the basic token.
 type DenomUnit struct {
-	// denom represents the string name of the given denom unit (e.g uatom).
+	// denom represents the string name of the given denom unit (e.g okt).
 	Denom string `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
 	// exponent represents power of 10 exponent that one must
 	// raise the base_denom to in order to equal the given DenomUnit's denom
 	// 1 denom = 1^exponent base_denom
-	// (e.g. with a base_denom of uatom, one can create a DenomUnit of 'atom' with
-	// exponent = 6, thus: 1 atom = 10^6 uatom).
+	// (e.g. with a base_denom of okt, one can create a DenomUnit of 'okt' with
+	// exponent = 6).
 	Exponent uint32 `protobuf:"varint,2,opt,name=exponent,proto3" json:"exponent,omitempty"`
 	// aliases is a list of string aliases for the given denom
 	Aliases []string `protobuf:"bytes,3,rep,name=aliases,proto3" json:"aliases,omitempty"`

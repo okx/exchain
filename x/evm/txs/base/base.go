@@ -62,7 +62,12 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	// call evm hooks
-	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
+	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) {
+		// After TransitionDb, some account balance may be changed, hooks logic may use this account.
+		// So if have not fllow code to make account to account cachedb, the hook may be got a wrong result when simluate tx.
+		if tx.Ctx.IsCheckTx() {
+			tx.StateTransition.Csdb.IntermediateRoot(true)
+		}
 		receipt := &ethtypes.Receipt{
 			Status:           ethtypes.ReceiptStatusSuccessful,
 			Bloom:            result.ResultData.Bloom,
@@ -133,7 +138,9 @@ func (tx *Tx) AnalyzeStop(tag string) {
 }
 
 // SaveTx check Tx do not transition state db
-func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {}
+func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
+	tx.StateTransition.Csdb.SetTransactionHash(*tx.StateTransition.TxHash)
+}
 
 // GetSenderAccount check Tx do not need this
 func (tx *Tx) GetSenderAccount() authexported.Account { return nil }

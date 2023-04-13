@@ -17,6 +17,9 @@ import (
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/bank/accounts/{address}/transfers", SendRequestHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/bank/balances/{address}", QueryBalancesRequestHandlerFn(cliCtx)).Methods("GET")
+
+	//compatible with cosmos v0.45.1
+	r.HandleFunc("/cosmos/bank/v1beta1/balances/{address}", CM45QueryBalancesRequestHandlerFn(cliCtx)).Methods("GET")
 }
 
 // SendReq defines the properties of a send request's body.

@@ -30,11 +30,11 @@ const (
 
 	// AddrLen defines a valid address length
 	AddrLen = 20
-	// WasmContractAddrLen defines a valid wasm contract address length
-	WasmContractAddrLen = 32
 	// Bech32MainPrefix defines the main SDK Bech32 prefix of an account's address
 	Bech32MainPrefix = "cosmos"
 
+	// LongAddrLen defines a valid wasm contract address length
+	LongAddrLen = 32
 	// CoinType is the ATOM coin type as defined in SLIP44 (https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
 	CoinType = 118
 
@@ -98,10 +98,6 @@ var _ yaml.Marshaler = ConsAddress{}
 // When marshaled to a string or JSON, it uses Bech32.
 type AccAddress []byte
 
-func IsWasmAddress(acc AccAddress) bool {
-	return len(acc) == WasmContractAddrLen
-}
-
 func IsETHAddress(addr string) bool {
 	return strings.HasPrefix(addr, "0x")
 }
@@ -132,7 +128,7 @@ func VerifyAddressFormat(bz []byte) error {
 	if verifier != nil {
 		return verifier(bz)
 	}
-	if len(bz) != AddrLen && len(bz) != WasmContractAddrLen {
+	if len(bz) != AddrLen && len(bz) != LongAddrLen {
 		return errors.New("incorrect address length")
 	}
 	return nil

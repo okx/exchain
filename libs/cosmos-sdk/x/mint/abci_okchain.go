@@ -2,6 +2,7 @@ package mint
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 )

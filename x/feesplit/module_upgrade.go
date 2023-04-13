@@ -9,38 +9,6 @@ import (
 )
 
 var (
-	defaultDenyFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
-		return module == ModuleName
-	}
-	defaultCommitFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
-		if module != ModuleName {
-			return false
-		}
-
-		if h == tmtypes.GetVenus3Height() {
-			if s != nil {
-				s.SetUpgradeVersion(h)
-			}
-			return false
-		}
-
-		if tmtypes.HigherThanVenus3(h) {
-			return false
-		}
-
-		return true
-	}
-	defaultPruneFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
-		if module != ModuleName {
-			return false
-		}
-
-		if tmtypes.HigherThanVenus3(h) {
-			return false
-		}
-
-		return true
-	}
 	defaultVersionFilter store.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
 		if h < 0 {
 			return func(cb func(name string, version int64)) {}
@@ -64,17 +32,47 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 }
 
 func (am AppModule) CommitFilter() *store.StoreFilter {
-	if am.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
+	var filter store.StoreFilter
+	filter = func(module string, h int64, s store.CommitKVStore) bool {
+		if module != ModuleName {
+			return false
+		}
+		if am.UpgradeHeight() == 0 {
+			return true
+		}
+		if h == tmtypes.GetVenus3Height() {
+			if s != nil {
+				s.SetUpgradeVersion(h)
+			}
+			return false
+		}
+
+		if tmtypes.HigherThanVenus3(h) {
+			return false
+		}
+
+		return true
 	}
-	return &defaultCommitFilter
+	return &filter
 }
 
 func (am AppModule) PruneFilter() *store.StoreFilter {
-	if am.UpgradeHeight() == 0 {
-		return &defaultDenyFilter
+	var filter store.StoreFilter
+	filter = func(module string, h int64, s store.CommitKVStore) bool {
+		if module != ModuleName {
+			return false
+		}
+
+		if am.UpgradeHeight() == 0 {
+			return true
+		}
+		if tmtypes.HigherThanVenus3(h) {
+			return false
+		}
+
+		return true
 	}
-	return &defaultPruneFilter
+	return &filter
 }
 
 func (am AppModule) VersionFilter() *store.VersionFilter {

@@ -3,13 +3,19 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 )
 
@@ -95,8 +101,8 @@ func TestValidateProposalCommons(t *testing.T) {
 
 func TestValidateStoreCodeProposal(t *testing.T) {
 	var (
-		anyAddress     sdk.AccAddress = bytes.Repeat([]byte{0x0}, ContractAddrLen)
-		invalidAddress                = "invalid address"
+		anyAddress     sdk.WasmAddress = bytes.Repeat([]byte{0x0}, SDKAddrLen)
+		invalidAddress                 = "invalid address"
 	)
 
 	specs := map[string]struct {
@@ -531,7 +537,7 @@ func TestProposalStrings(t *testing.T) {
 			exp: `Store Code Proposal:
   Title:       Foo
   Description: Bar
-  Run as:      cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+  Run as:      0x0101010101010101010101010101010101010101
   WasmCode:    0102030405060708090A
 `,
 		},
@@ -542,11 +548,11 @@ func TestProposalStrings(t *testing.T) {
 			exp: `Instantiate Code Proposal:
   Title:       Foo
   Description: Bar
-  Run as:      cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
-  Admin:       cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+  Run as:      0x0101010101010101010101010101010101010101
+  Admin:       0x0101010101010101010101010101010101010101
   Code id:     1
   Label:       testing
-  Msg:         "{\"verifier\":\"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4\",\"beneficiary\":\"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4\"}"
+  Msg:         "{\"verifier\":\"0x0101010101010101010101010101010101010101\",\"beneficiary\":\"0x0101010101010101010101010101010101010101\"}"
   Funds:       1foo,2bar
 `,
 		},
@@ -555,11 +561,11 @@ func TestProposalStrings(t *testing.T) {
 			exp: `Instantiate Code Proposal:
   Title:       Foo
   Description: Bar
-  Run as:      cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
-  Admin:       cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+  Run as:      0x0101010101010101010101010101010101010101
+  Admin:       0x0101010101010101010101010101010101010101
   Code id:     1
   Label:       testing
-  Msg:         "{\"verifier\":\"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4\",\"beneficiary\":\"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4\"}"
+  Msg:         "{\"verifier\":\"0x0101010101010101010101010101010101010101\",\"beneficiary\":\"0x0101010101010101010101010101010101010101\"}"
   Funds:       
 `,
 		},
@@ -568,11 +574,11 @@ func TestProposalStrings(t *testing.T) {
 			exp: `Instantiate Code Proposal:
   Title:       Foo
   Description: Bar
-  Run as:      cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+  Run as:      0x0101010101010101010101010101010101010101
   Admin:       
   Code id:     1
   Label:       testing
-  Msg:         "{\"verifier\":\"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4\",\"beneficiary\":\"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4\"}"
+  Msg:         "{\"verifier\":\"0x0101010101010101010101010101010101010101\",\"beneficiary\":\"0x0101010101010101010101010101010101010101\"}"
   Funds:       
 `,
 		},
@@ -581,9 +587,9 @@ func TestProposalStrings(t *testing.T) {
 			exp: `Migrate Contract Proposal:
   Title:       Foo
   Description: Bar
-  Contract:    cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr
+  Contract:    0x5A8D648DEE57b2fc90D98DC17fa887159b69638b
   Code id:     1
-  Msg:         "{\"verifier\":\"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4\"}"
+  Msg:         "{\"verifier\":\"0x0101010101010101010101010101010101010101\"}"
 `,
 		},
 		"update admin": {
@@ -591,8 +597,8 @@ func TestProposalStrings(t *testing.T) {
 			exp: `Update Contract Admin Proposal:
   Title:       Foo
   Description: Bar
-  Contract:    cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr
-  New Admin:   cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+  Contract:    0x5A8D648DEE57b2fc90D98DC17fa887159b69638b
+  New Admin:   0x0101010101010101010101010101010101010101
 `,
 		},
 		"clear admin": {
@@ -600,7 +606,7 @@ func TestProposalStrings(t *testing.T) {
 			exp: `Clear Contract Admin Proposal:
   Title:       Foo
   Description: Bar
-  Contract:    cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr
+  Contract:    0x5A8D648DEE57b2fc90D98DC17fa887159b69638b
 `,
 		},
 		"pin codes": {
@@ -654,7 +660,7 @@ func TestProposalYaml(t *testing.T) {
 			}),
 			exp: `title: Foo
 description: Bar
-run_as: cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+run_as: 0x0101010101010101010101010101010101010101
 wasm_byte_code: AQIDBAUGBwgJCg==
 instantiate_permission: null
 `,
@@ -665,11 +671,11 @@ instantiate_permission: null
 			}),
 			exp: `title: Foo
 description: Bar
-run_as: cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
-admin: cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+run_as: 0x0101010101010101010101010101010101010101
+admin: 0x0101010101010101010101010101010101010101
 code_id: 1
 label: testing
-msg: '{"verifier":"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4","beneficiary":"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4"}'
+msg: '{"verifier":"0x0101010101010101010101010101010101010101","beneficiary":"0x0101010101010101010101010101010101010101"}'
 funds:
 - denom: foo
   amount: "0.000000000000000001"
@@ -681,11 +687,11 @@ funds:
 			src: InstantiateContractProposalFixture(func(p *InstantiateContractProposal) { p.Funds = nil }),
 			exp: `title: Foo
 description: Bar
-run_as: cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
-admin: cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+run_as: 0x0101010101010101010101010101010101010101
+admin: 0x0101010101010101010101010101010101010101
 code_id: 1
 label: testing
-msg: '{"verifier":"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4","beneficiary":"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4"}'
+msg: '{"verifier":"0x0101010101010101010101010101010101010101","beneficiary":"0x0101010101010101010101010101010101010101"}'
 funds: []
 `,
 		},
@@ -693,11 +699,11 @@ funds: []
 			src: InstantiateContractProposalFixture(func(p *InstantiateContractProposal) { p.Admin = "" }),
 			exp: `title: Foo
 description: Bar
-run_as: cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
+run_as: 0x0101010101010101010101010101010101010101
 admin: ""
 code_id: 1
 label: testing
-msg: '{"verifier":"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4","beneficiary":"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4"}'
+msg: '{"verifier":"0x0101010101010101010101010101010101010101","beneficiary":"0x0101010101010101010101010101010101010101"}'
 funds: []
 `,
 		},
@@ -705,24 +711,24 @@ funds: []
 			src: MigrateContractProposalFixture(),
 			exp: `title: Foo
 description: Bar
-contract: cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr
+contract: 0x5A8D648DEE57b2fc90D98DC17fa887159b69638b
 code_id: 1
-msg: '{"verifier":"cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4"}'
+msg: '{"verifier":"0x0101010101010101010101010101010101010101"}'
 `,
 		},
 		"update admin": {
 			src: UpdateAdminProposalFixture(),
 			exp: `title: Foo
 description: Bar
-new_admin: cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4
-contract: cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr
+new_admin: 0x0101010101010101010101010101010101010101
+contract: 0x5A8D648DEE57b2fc90D98DC17fa887159b69638b
 `,
 		},
 		"clear admin": {
 			src: ClearAdminProposalFixture(),
 			exp: `title: Foo
 description: Bar
-contract: cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr
+contract: 0x5A8D648DEE57b2fc90D98DC17fa887159b69638b
 `,
 		},
 		"pin codes": {
@@ -909,6 +915,308 @@ func TestProposalJsonSignBytes(t *testing.T) {
 
 			bz := msg.GetSignBytes()
 			assert.JSONEq(t, spec.exp, string(bz), "raw: %s", string(bz))
+		})
+	}
+}
+
+type ProposalSuite struct {
+	suite.Suite
+}
+
+func TestProposalSuite(t *testing.T) {
+	suite.Run(t, new(ProposalSuite))
+}
+
+func RandStr(length int) string {
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	result := []byte{}
+	rand.Seed(time.Now().UnixNano() + int64(rand.Intn(100)))
+	for i := 0; i < length; i++ {
+		result = append(result, bytes[rand.Intn(len(bytes))])
+	}
+	return string(result)
+}
+
+func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
+	testCases := []struct {
+		name        string
+		title       string
+		description string
+		action      string
+		extra       string
+		err         error
+	}{
+		{
+			"no proposal title",
+			"",
+			"description",
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("proposal title cannot be blank"),
+		},
+		{
+			"gt max proposal title length",
+			RandStr(types.MaxTitleLength + 1),
+			"description",
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent(fmt.Sprintf("proposal title is longer than max length of %d", govtypes.MaxTitleLength)),
+		},
+		{
+			"gt max proposal title length",
+			RandStr(types.MaxTitleLength),
+			"",
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("proposal description cannot be blank"),
+		},
+		{
+			"gt max proposal description length",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength + 1),
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent(fmt.Sprintf("proposal description is longer than max length of %d", govtypes.MaxDescriptionLength)),
+		},
+		{
+			"no action",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's action is required"),
+		},
+		{
+			"action too large",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxExtraActionLength + 1),
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's action length is bigger than max length"),
+		},
+		{
+			"no extra body",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxExtraActionLength),
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's extra is required"),
+		},
+		{
+			"extra too large",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxTitleLength),
+			RandStr(govtypes.MaxExtraBodyLength + 1),
+			govtypes.ErrInvalidProposalContent("extra proposal's extra body length is bigger than max length"),
+		},
+		{
+			"unknown action",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			RandStr(govtypes.MaxTitleLength),
+			RandStr(govtypes.MaxExtraBodyLength),
+			ErrUnknownExtraProposalAction,
+		},
+		{
+			"ActionModifyGasFactor, parse error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{dfafdasf}",
+			ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{dfafdasf}"),
+		},
+		{
+			"ActionModifyGasFactor, action is nil",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"",
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's action is required"),
+		},
+		{
+			"ActionModifyGasFactor, extra is nil",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"hello",
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's extra is required"),
+		},
+		{
+			"ActionModifyGasFactor, error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			"hello",
+			"hello",
+			ErrUnknownExtraProposalAction,
+		},
+		{
+			"ActionModifyGasFactor, extra is nil",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"",
+			govtypes.ErrInvalidProposalContent("extra proposal's extra is required"),
+		},
+		{
+			"ActionModifyGasFactor, error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{}",
+			ErrExtraProposalParams("parse factor error, decimal string cannot be empty"),
+		},
+		{
+			"ActionModifyGasFactor, error json",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"\"}",
+			ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"\"}"),
+		},
+		{
+			"ActionModifyGasFactor, key error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"df\": \"\"}",
+			ErrExtraProposalParams("parse factor error, decimal string cannot be empty"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":19.7}",
+			ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"factor\":19.7}"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":19}",
+			ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"factor\":19}"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"adfasd\"}",
+			ErrExtraProposalParams("parse factor error, failed to set decimal string: adfasd000000000000000000"),
+		},
+		{
+			"ActionModifyGasFactor, value -1",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"-1\"}",
+			ErrExtraProposalParams("parse factor error, expect factor positive and 18 precision, but get -1"),
+		},
+		{
+			"ActionModifyGasFactor, value 0",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"0\"}",
+			ErrExtraProposalParams("parse factor error, expect factor positive and 18 precision, but get 0"),
+		},
+		{
+			"ActionModifyGasFactor, value > 18",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"0.0000000000000000001\"}",
+			ErrExtraProposalParams("parse factor error, invalid precision; max: 18, got: 19"),
+		},
+		{
+			"ActionModifyGasFactor, value = 18",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"0.000000000000000001\"}",
+			nil,
+		},
+		{
+			"ActionModifyGasFactor, value ok",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"10000001\"}",
+			ErrExtraProposalParams("max gas factor:10000000, but get:10000001"),
+		},
+		{
+			"ActionModifyGasFactor, value ok",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\": \"10000000\"}",
+			nil,
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"19.7a\"}",
+			ErrExtraProposalParams("parse factor error, failed to set decimal string: 197a0000000000000000"),
+		},
+		{
+			"ActionModifyGasFactor, value error",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"a19.7\"}",
+			ErrExtraProposalParams("parse factor error, failed to set decimal string: a19700000000000000000"),
+		},
+		{
+			"ActionModifyGasFactor, value ok",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"19.7\"}",
+			nil,
+		},
+		{
+			"ActionModifyGasFactor, value ok",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"19.6757657657657567864554354354357\"}",
+			ErrExtraProposalParams("parse factor error, invalid precision; max: 18, got: 31"),
+		},
+		{
+			"ActionModifyGasFactor, value ok",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			ActionModifyGasFactor,
+			"{\"factor\":\"19.675765765767\"}",
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			global.SetGlobalHeight(100)
+			proposal := ExtraProposal{
+				Title:       tc.title,
+				Description: tc.description,
+				Action:      tc.action,
+				Extra:       tc.extra,
+			}
+
+			require.Equal(suite.T(), tc.title, proposal.GetTitle())
+			require.Equal(suite.T(), tc.description, proposal.GetDescription())
+			require.Equal(suite.T(), RouterKey, proposal.ProposalRoute())
+			require.Equal(suite.T(), string(ProposalTypeExtra), proposal.ProposalType())
+			require.NotPanics(suite.T(), func() {
+				_ = proposal.String()
+			})
+
+			err := proposal.ValidateBasic()
+			require.Equal(suite.T(), tc.err, err)
 		})
 	}
 }

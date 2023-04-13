@@ -35,12 +35,15 @@ func (q grpcQuerier) ContractInfo(c context.Context, req *types.QueryContractInf
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(req.Address)
+	contractAddr, err := sdk.WasmAddressFromBech32(req.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	rsp, err := queryContractInfo(q.UnwrapSDKContext(c), contractAddr, q.keeper)
+	ctx := q.UnwrapSDKContext(c)
+	defer q.release(ctx)
+
+	rsp, err := queryContractInfo(ctx, contractAddr, q.keeper)
 	switch {
 	case err != nil:
 		return nil, err
@@ -54,7 +57,7 @@ func (q grpcQuerier) ContractHistory(c context.Context, req *types.QueryContract
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(req.Address)
+	contractAddr, err := sdk.WasmAddressFromBech32(req.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +99,7 @@ func (q grpcQuerier) ContractsByCode(c context.Context, req *types.QueryContract
 
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
-			var contractAddr sdk.AccAddress = key[types.AbsoluteTxPositionLen:]
+			var contractAddr sdk.WasmAddress = key[types.AbsoluteTxPositionLen:]
 			r = append(r, contractAddr.String())
 		}
 		return true, nil
@@ -114,12 +117,15 @@ func (q grpcQuerier) AllContractState(c context.Context, req *types.QueryAllCont
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(req.Address)
+	contractAddr, err := sdk.WasmAddressFromBech32(req.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	if !q.keeper.HasContractInfo(q.UnwrapSDKContext(c), contractAddr) {
+	ctx := q.UnwrapSDKContext(c)
+	defer q.release(ctx)
+
+	if !q.keeper.HasContractInfo(ctx, contractAddr) {
 		return nil, types.ErrNotFound
 	}
 
@@ -149,12 +155,14 @@ func (q grpcQuerier) RawContractState(c context.Context, req *types.QueryRawCont
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
 
-	contractAddr, err := sdk.AccAddressFromBech32(req.Address)
+	contractAddr, err := sdk.WasmAddressFromBech32(req.Address)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx := q.UnwrapSDKContext(c)
+	defer q.release(ctx)
+
 	if !q.keeper.HasContractInfo(ctx, contractAddr) {
 		return nil, types.ErrNotFound
 	}
@@ -169,12 +177,13 @@ func (q grpcQuerier) SmartContractState(c context.Context, req *types.QuerySmart
 	if err := req.QueryData.ValidateBasic(); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid query data")
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(req.Address)
+	contractAddr, err := sdk.WasmAddressFromBech32(req.Address)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx := q.UnwrapSDKContext(c)
+	defer q.release(ctx)
 	ctx.SetGasMeter(sdk.NewGasMeter(q.queryGasLimit))
 
 	// recover from out-of-gas panic
@@ -217,7 +226,9 @@ func (q grpcQuerier) Code(c context.Context, req *types.QueryCodeRequest) (*type
 		return nil, sdkerrors.Wrap(types.ErrInvalid, "code id")
 	}
 
-	rsp, err := queryCode(q.UnwrapSDKContext(c), req.CodeId, q.keeper)
+	ctx := q.UnwrapSDKContext(c)
+	defer q.release(ctx)
+	rsp, err := queryCode(ctx, req.CodeId, q.keeper)
 	switch {
 	case err != nil:
 		return nil, err
@@ -259,7 +270,7 @@ func (q grpcQuerier) Codes(c context.Context, req *types.QueryCodesRequest) (*ty
 	return &types.QueryCodesResponse{CodeInfos: r, Pagination: pageRes}, nil
 }
 
-func queryContractInfo(ctx sdk.Context, addr sdk.AccAddress, keeper types.ViewKeeper) (*types.QueryContractInfoResponse, error) {
+func queryContractInfo(ctx sdk.Context, addr sdk.WasmAddress, keeper types.ViewKeeper) (*types.QueryContractInfoResponse, error) {
 	info := keeper.GetContractInfo(ctx, addr)
 	if info == nil {
 		return nil, types.ErrNotFound
@@ -333,4 +344,11 @@ func (q grpcQuerier) PrefixStore(c context.Context, pre []byte) sdk.KVStore {
 	ctx := sdk.UnwrapSDKContext(c)
 	return prefix.NewStore(ctx.KVStore(q.storeKey), pre)
 
+}
+
+func (q grpcQuerier) release(ctx sdk.Context) {
+	if !watcher.Enable() {
+		return
+	}
+	proxy.PutBackStorePool(ctx.MultiStore().(sdk.CacheMultiStore))
 }

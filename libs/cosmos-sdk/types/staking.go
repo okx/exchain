@@ -47,6 +47,10 @@ const (
 	BondStatusUnbonded  = "Unbonded"
 	BondStatusUnbonding = "Unbonding"
 	BondStatusBonded    = "Bonded"
+
+	CM45BondStatusUnbonded  = "BOND_STATUS_UNBONDED"
+	CM45BondStatusUnbonding = "BOND_STATUS_UNBONDING"
+	CM45BondStatusBonded    = "BOND_STATUS_BONDED"
 )
 
 // Equal compares two BondStatus instances
@@ -63,6 +67,20 @@ func (b BondStatus) String() string {
 		return BondStatusUnbonding
 	case 0x02:
 		return BondStatusBonded
+	default:
+		panic("invalid bond status")
+	}
+}
+
+// CM45String is used to compatible with cosmos v0.45.1
+func (b BondStatus) CM45String() string {
+	switch b {
+	case 0x00:
+		return CM45BondStatusUnbonded
+	case 0x01:
+		return CM45BondStatusUnbonding
+	case 0x02:
+		return CM45BondStatusBonded
 	default:
 		panic("invalid bond status")
 	}

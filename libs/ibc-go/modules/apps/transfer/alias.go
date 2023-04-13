@@ -9,4 +9,5 @@ var (
 	NewKeeper  = keeper.NewKeeper
 	ModuleCdc  = types.ModuleCdc
 	SetMarshal = types.SetMarshal
+	NewQuerier = keeper.NewQuerier
 )
