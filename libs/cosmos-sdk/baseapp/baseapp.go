@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -229,7 +230,13 @@ type BaseApp struct { // nolint: maligned
 	watcherCollector sdk.EvmWatcherCollector
 
 	tmClient client.Client
+
+	messageHook MessageHook
+	mtx         *sync.RWMutex
 }
+
+// hook the message ,return the call back
+type MessageHook = func(ctx sdk.Context, msg sdk.Msg, txMode runTxMode) func()
 
 type recordHandle func(string)
 
@@ -265,6 +272,7 @@ func NewBaseApp(
 
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
 		FeeSplitCollector:       make([]*sdk.FeeSplitInfo, 0),
+		mtx:                     &sync.RWMutex{},
 	}
 
 	for _, option := range options {
@@ -275,10 +283,19 @@ func NewBaseApp(
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
 	app.cms.SetLogger(app.logger)
+	app.SetMessageHook(app.defaultMessageHook)
 
 	return app
 }
-
+func (app *BaseApp) defaultMessageHook(ctx sdk.Context, msg sdk.Msg, mode runTxMode) func() {
+	if lockMsg, ok := msg.(sdk.LockAble); ok && lockMsg.NeedLock() {
+		app.mtx.Lock()
+		return func() {
+			app.mtx.Unlock()
+		}
+	}
+	return nil
+}
 func (app *BaseApp) SetInterceptors(interceptors map[string]Interceptor) {
 	app.interceptors = interceptors
 }
@@ -887,6 +904,11 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
 		}
+		if nil != app.messageHook {
+			if callBack := app.messageHook(ctx, msg, mode); nil != callBack {
+				defer callBack()
+			}
+		}
 		msgRoute := msg.Route()
 
 		var isConvert bool
@@ -1039,4 +1061,8 @@ func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 
 func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 	return app.txDecoder
+}
+
+func (app *BaseApp) SetMessageHook(h MessageHook) {
+	app.messageHook = h
 }

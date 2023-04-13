@@ -11,6 +11,7 @@ import (
 )
 
 var _ sdk.Msg = &MsgChannelOpenInit{}
+var _ sdk.LockAble = MsgChannelOpenInit{}
 
 // NewMsgChannelOpenInit creates a new MsgChannelOpenInit. It sets the counterparty channel
 // identifier to be empty.
@@ -663,4 +664,13 @@ func (msg MsgAcknowledgement) GetSigners() []sdk.AccAddress {
 // Type implements sdk.Msg
 func (msg MsgAcknowledgement) Type() string {
 	return sdk.MsgTypeURL(&msg)
+}
+
+/////////////////
+func (msg MsgChannelOpenInit) NeedLock() bool {
+	return true
+}
+
+func (msg MsgChannelOpenTry) NeedLock() bool {
+	return true
 }

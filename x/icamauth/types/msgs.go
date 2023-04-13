@@ -18,6 +18,7 @@ var (
 	_ sdk.HeightSensitive = MsgRegisterAccount{}
 	_ sdk.Msg             = &MsgSubmitTx{}
 	_ sdk.HeightSensitive = MsgSubmitTx{}
+	_ sdk.LockAble        = MsgRegisterAccount{}
 
 	_ codectypes.UnpackInterfacesMessage = MsgSubmitTx{}
 )
@@ -151,4 +152,9 @@ func (msg MsgRegisterAccount) ValidWithHeight(h int64) error {
 
 func (msg MsgSubmitTx) ValidWithHeight(h int64) error {
 	return common.MsgNotSupportBeforeHeight(&msg, h)
+}
+
+//////////
+func (msg MsgRegisterAccount) NeedLock() bool {
+	return true
 }

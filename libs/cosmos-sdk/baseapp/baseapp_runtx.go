@@ -99,6 +99,8 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if err != nil {
 		return err
 	}
+
+	info.ctx = app.fillContextFromApp(info.ctx)
 	//info with cache saved in app to load predesessor tx state
 	if mode != runTxModeTrace {
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
@@ -194,6 +196,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	err = handler.handleRunMsg(info)
 	app.pin(trace.RunMsg, false, mode)
 	return err
+}
+
+func (app *BaseApp) fillContextFromApp(c sdk.Context) sdk.Context {
+	c.SetMutex(app.mtx)
+	return c
 }
 
 func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {

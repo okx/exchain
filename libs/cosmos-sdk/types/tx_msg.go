@@ -65,6 +65,11 @@ type HeightSensitive interface {
 	ValidWithHeight(h int64) error
 }
 
+//  interface to lock the executor
+type LockAble interface {
+	NeedLock() bool
+}
+
 type TxAdapter interface {
 	Tx
 	HeightSensitive
