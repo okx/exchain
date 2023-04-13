@@ -54,8 +54,6 @@ type Context struct {
 	feesplitInfo   *FeeSplitInfo
 
 	outOfGas bool
-
-	mutex *sync.RWMutex
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -183,10 +181,6 @@ func (c *Context) BlockHeader() abci.Header {
 
 func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
-}
-
-func (c *Context) GetLock() *sync.RWMutex {
-	return c.mutex
 }
 
 ////TxCount
@@ -531,10 +525,6 @@ func (c *Context) SetOutOfGas(v bool) {
 
 func (c *Context) GetOutOfGas() bool {
 	return c.outOfGas
-}
-
-func (c *Context) SetMutex(mutex *sync.RWMutex) {
-	c.mutex = mutex
 }
 
 type AccountCache struct {
