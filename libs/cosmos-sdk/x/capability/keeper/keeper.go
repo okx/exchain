@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
@@ -40,6 +41,7 @@ type (
 		storeKey      sdk.StoreKey
 		memKey        sdk.StoreKey
 		capMap        map[uint64]*types.Capability
+		rwLock        *sync.RWMutex
 		scopedModules map[string]struct{}
 		sealed        bool
 	}
@@ -55,6 +57,7 @@ type (
 		storeKey sdk.StoreKey
 		memKey   sdk.StoreKey
 		capMap   map[uint64]*types.Capability
+		rwLock   *sync.RWMutex
 		module   string
 	}
 )
@@ -67,6 +70,7 @@ func NewKeeper(cdc *codec.CodecProxy, storeKey, memKey sdk.StoreKey) *Keeper {
 		storeKey:      storeKey,
 		memKey:        memKey,
 		capMap:        make(map[uint64]*types.Capability),
+		rwLock:        &sync.RWMutex{},
 		scopedModules: make(map[string]struct{}),
 		sealed:        false,
 	}
@@ -94,6 +98,7 @@ func (k *Keeper) ScopeToModule(moduleName string) ScopedKeeper {
 		storeKey: k.storeKey,
 		memKey:   k.memKey,
 		capMap:   k.capMap,
+		rwLock:   k.rwLock,
 		module:   moduleName,
 	}
 }
@@ -223,7 +228,11 @@ func (sk ScopedKeeper) NewCapability(ctx sdk.Context, name string) (*types.Capab
 	if _, ok := sk.GetCapability(ctx, name); ok {
 		return nil, sdkerrors.Wrapf(types.ErrCapabilityTaken, fmt.Sprintf("module: %s, name: %s", sk.module, name))
 	}
-
+	// NOTE, FwdCapabilityKey use the pointer address to build key
+	// which means, when simulate and deliver tx concurrently execute ,the capMap maybe override by simulate which will fail
+	// to create the channel
+	sk.rwLock.Lock()
+	defer sk.rwLock.Unlock()
 	// create new capability with the current global index
 	index := types.IndexFromKey(store.Get(types.KeyIndex))
 	cap := types.NewCapability(index)
@@ -395,6 +404,8 @@ func (sk ScopedKeeper) GetCapability(ctx sdk.Context, name string) (*types.Capab
 	//}
 	//
 	//return cap, true
+	sk.rwLock.RLock()
+	defer sk.rwLock.RUnlock()
 
 	if strings.TrimSpace(name) == "" {
 		return nil, false
