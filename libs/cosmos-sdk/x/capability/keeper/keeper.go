@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
@@ -37,6 +38,7 @@ type (
 	// a single specific module.
 	Keeper struct {
 		cdc           *codec.Codec
+		outLock       *sync.Mutex
 		storeKey      sdk.StoreKey
 		memKey        sdk.StoreKey
 		capMap        map[uint64]*types.Capability
@@ -61,9 +63,10 @@ type (
 
 // NewKeeper constructs a new CapabilityKeeper instance and initializes maps
 // for capability map and scopedModules map.
-func NewKeeper(cdc *codec.CodecProxy, storeKey, memKey sdk.StoreKey) *Keeper {
+func NewKeeper(cdc *codec.CodecProxy, outLock *sync.Mutex, storeKey, memKey sdk.StoreKey) *Keeper {
 	return &Keeper{
 		cdc:           cdc.GetCdc(),
+		outLock:       outLock,
 		storeKey:      storeKey,
 		memKey:        memKey,
 		capMap:        make(map[uint64]*types.Capability),
@@ -531,6 +534,9 @@ func (k *Keeper) InitMemStore(ctx sdk.Context) {
 
 	// check if memory store has not been initialized yet by checking if initialized flag is nil.
 	if !k.IsInitialized(noGasCtx) || tmtypes.DownloadDelta {
+		k.outLock.Lock()
+		defer k.outLock.Unlock()
+
 		prefixStore := prefix.NewStore(noGasCtx.KVStore(k.storeKey), types.KeyPrefixIndexCapability)
 		iterator := sdk.KVStorePrefixIterator(prefixStore, nil)
 

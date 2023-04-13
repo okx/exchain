@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -366,6 +367,7 @@ func createTestInput(
 
 	capabilityKeeper := capabilitykeeper.NewKeeper(
 		&appCodec,
+		&sync.Mutex{},
 		keys[capabilitytypes.StoreKey],
 		memKeys[capabilitytypes.MemStoreKey],
 	)

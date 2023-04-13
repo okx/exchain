@@ -30,7 +30,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	//cdc := app.Codec()
 	codecProxy, _ := okexchaincodec.MakeCodecSuit(simapp.ModuleBasics)
 	// create new keeper so we can define custom scoping before init and seal
-	keeper := keeper.NewKeeper(codecProxy, app.GetKey(types.StoreKey), app.GetMemKey(types.MemStoreKey))
+	keeper := keeper.NewKeeper(codecProxy, app.GetLock(), app.GetKey(types.StoreKey), app.GetMemKey(types.MemStoreKey))
 
 	suite.app = app
 	suite.ctx = app.BaseApp.NewContext(checkTx, abci.Header{Height: 1})

@@ -1079,3 +1079,7 @@ func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
 func (app *BaseApp) SetMessageHook(h MessageHook) {
 	app.messageHook = h
 }
+
+func (app *BaseApp) GetLock() *sync.Mutex {
+	return app.mtx
+}
