@@ -232,7 +232,7 @@ type BaseApp struct { // nolint: maligned
 	tmClient client.Client
 
 	messageHook MessageHook
-	mtx         *sync.RWMutex
+	mtx         *sync.Mutex
 }
 
 // hook the message ,return the call back
@@ -272,7 +272,7 @@ func NewBaseApp(
 
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
 		FeeSplitCollector:       make([]*sdk.FeeSplitInfo, 0),
-		mtx:                     &sync.RWMutex{},
+		mtx:                     &sync.Mutex{},
 	}
 
 	for _, option := range options {
