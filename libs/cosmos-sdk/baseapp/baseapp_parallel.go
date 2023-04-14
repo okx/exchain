@@ -2,24 +2,24 @@ package baseapp
 
 import (
 	"bytes"
-	"encoding/hex"
 	"runtime"
 	"sync"
-
-	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/viper"
 )
 
 var (
 	maxTxResultInChan           = 20000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
-	feeAccountKeyInStore, _     = hex.DecodeString("01f1829676db577682e944fc3493d451b67ff3e29f")
+	feeAccountKeyInStore        = append(auth.AddressStoreKeyPrefix, supply.NewModuleAddress(auth.FeeCollectorName)...)
 )
 
 type extraDataForTx struct {
