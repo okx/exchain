@@ -38,6 +38,9 @@ func RevCapabilityKey(module, name string) []byte {
 
 // FwdCapabilityKey returns a forward lookup key for a given module and capability
 // reference.
+// NOTE, FwdCapabilityKey use the pointer address to build key
+// which means, when simulate and deliver  concurrently execute ,the capMap maybe override by simulate which will fail
+// to create the channel
 func FwdCapabilityKey(module string, cap *Capability) []byte {
 	return []byte(fmt.Sprintf("%s/fwd/%d", module, cap.Index))
 }
