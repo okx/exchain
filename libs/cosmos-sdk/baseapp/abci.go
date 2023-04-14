@@ -11,9 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/spf13/viper"
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -24,7 +21,10 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/system/trace/persist"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -410,7 +410,31 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 	}
 }
-func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) abci.ResponseQuery {
+
+func handleSimulateWithBuffer(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) abci.ResponseQuery {
+	simRes, err := handleSimulate(app, path, height, txBytes, overrideBytes)
+	if err != nil {
+		return sdkerrors.QueryResult(err)
+	}
+	if len(path) < 3 || path[2] != "mempool" {
+		buffer := cfg.DynamicConfig.GetGasLimitBuffer()
+		gasUsed := simRes.GasUsed
+		gasUsed += gasUsed * buffer / 100
+		if gasUsed > SimulationGasLimit {
+			gasUsed = SimulationGasLimit
+		}
+		simRes.GasUsed = gasUsed
+	}
+
+	return abci.ResponseQuery{
+		Codespace: sdkerrors.RootCodespace,
+		Height:    height,
+		Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+	}
+
+}
+
+func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) (sdk.SimulationResponse, error) {
 	// if path contains address, it means 'eth_estimateGas' the sender
 	hasExtraPaths := len(path) > 2
 	var from string
@@ -430,7 +454,7 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	if tx == nil {
 		tx, err = app.txDecoder(txBytes)
 		if err != nil {
-			return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+			return sdk.SimulationResponse{}, sdkerrors.Wrap(err, "failed to decode tx")
 		}
 	}
 
@@ -454,36 +478,25 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	// return the actual gasUsed even though simulate tx failed
 	isMempoolSim := hasExtraPaths && path[2] == "mempool"
 	if err != nil && !isMempoolSim {
-		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate tx"))
+		return sdk.SimulationResponse{}, sdkerrors.Wrap(err, "failed to simulate tx")
 	}
 
-	simRes := sdk.SimulationResponse{
+	return sdk.SimulationResponse{
 		GasInfo: gInfo,
 		Result:  res,
-	}
-
-	return abci.ResponseQuery{
-		Codespace: sdkerrors.RootCodespace,
-		Height:    height,
-		Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
-	}
+	}, nil
 }
 
-func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg) (abciRes abci.ResponseQuery) {
+func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg) (simRes sdk.SimulationResponse, err error) {
 	wasmSimulator := simulator.NewWasmSimulator()
 	defer wasmSimulator.Release()
 	defer func() {
 		if r := recover(); r != nil {
 			gasMeter := wasmSimulator.Context().GasMeter()
-			simRes := sdk.SimulationResponse{
+			simRes = sdk.SimulationResponse{
 				GasInfo: sdk.GasInfo{
 					GasUsed: gasMeter.GasConsumed(),
 				},
-			}
-			abciRes = abci.ResponseQuery{
-				Codespace: sdkerrors.RootCodespace,
-				Height:    height,
-				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
 			}
 		}
 	}()
@@ -492,28 +505,23 @@ func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg) (abciRes a
 	wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
 	res, err := wasmSimulator.Simulate(msgs)
 	if err != nil {
-		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
+		return sdk.SimulationResponse{}, sdkerrors.Wrap(err, "failed to simulate wasm tx")
 	}
 
 	gasMeter := wasmSimulator.Context().GasMeter()
-	simRes := sdk.SimulationResponse{
+	return sdk.SimulationResponse{
 		GasInfo: sdk.GasInfo{
 			GasUsed: gasMeter.GasConsumed(),
 		},
 		Result: res,
-	}
-	return abci.ResponseQuery{
-		Codespace: sdkerrors.RootCodespace,
-		Height:    height,
-		Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
-	}
+	}, nil
 }
 
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {
 	if len(path) >= 2 {
 		switch path[1] {
 		case "simulate":
-			return handleSimulate(app, path, req.Height, req.Data, nil)
+			return handleSimulateWithBuffer(app, path, req.Height, req.Data, nil)
 
 		case "simulateWithOverrides":
 			queryBytes := req.Data
@@ -521,7 +529,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			if err := json.Unmarshal(queryBytes, &queryData); err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode simulateOverrideData"))
 			}
-			return handleSimulate(app, path, req.Height, queryData.TxBytes, queryData.OverridesBytes)
+			return handleSimulateWithBuffer(app, path, req.Height, queryData.TxBytes, queryData.OverridesBytes)
 
 		case "trace":
 			var queryParam sdk.QueryTraceTx
