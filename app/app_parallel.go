@@ -17,7 +17,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
-func getFeeCollectorBalance(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorBalance {
+func getFeeCollectorInfo(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorInfo {
 	return func(ctx sdk.Context, onlyGetFeeCollectorStoreKey bool) (sdk.Coins, []byte) {
 		if onlyGetFeeCollectorStoreKey {
 			return sdk.Coins{}, auth.AddressStoreKey(sk.GetModuleAddress(auth.FeeCollectorName))

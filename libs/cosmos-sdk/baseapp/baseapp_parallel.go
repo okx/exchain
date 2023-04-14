@@ -175,7 +175,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	}
 
 	if len(feeAccountKeyInStore) == 0 {
-		_, feeAccountKeyInStore = app.getFeeCollectorBalanceHandler(app.deliverState.ctx, true)
+		_, feeAccountKeyInStore = app.getFeeCollectorInfoHandler(app.deliverState.ctx, true)
 	}
 
 	pm := app.parallelTxManage
@@ -262,7 +262,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 					// non-evm:reload fee collector balance
 					ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 					ctx.SetMultiStore(app.parallelTxManage.cms)
-					pm.currTxFee, _ = app.getFeeCollectorBalanceHandler(ctx, false)
+					pm.currTxFee, _ = app.getFeeCollectorInfoHandler(ctx, false)
 				}
 
 			}
