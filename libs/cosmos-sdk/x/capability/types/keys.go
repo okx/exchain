@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -38,7 +39,7 @@ func RevCapabilityKey(module, name string) []byte {
 // FwdCapabilityKey returns a forward lookup key for a given module and capability
 // reference.
 func FwdCapabilityKey(module string, cap *Capability) []byte {
-	return []byte(fmt.Sprintf("%s/fwd/%p", module, cap))
+	return []byte(fmt.Sprintf("%s/fwd/%d", module, cap.Index))
 }
 
 // IndexToKey returns bytes to be used as a key for a given capability index.
