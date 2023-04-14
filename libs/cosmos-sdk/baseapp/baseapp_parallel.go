@@ -8,9 +8,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 )
@@ -19,7 +18,9 @@ var (
 	maxTxResultInChan           = 20000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
-	feeAccountKeyInStore        = append(auth.AddressStoreKeyPrefix, supply.NewModuleAddress(auth.FeeCollectorName)...)
+	// addressStoreKeyPrefix prefix for account-by-address store
+	addressStoreKeyPrefix = []byte{0x01}
+	feeAccountKeyInStore  = append(addressStoreKeyPrefix, sdk.AccAddress(crypto.AddressHash([]byte("fee_collector")))...)
 )
 
 type extraDataForTx struct {
