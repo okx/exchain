@@ -412,11 +412,11 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 }
 
 func handleSimulateWithBuffer(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) abci.ResponseQuery {
-	simRes, err := handleSimulate(app, path, height, txBytes, overrideBytes)
+	simRes, shouldAddBuffer, err := handleSimulate(app, path, height, txBytes, overrideBytes)
 	if err != nil {
 		return sdkerrors.QueryResult(err)
 	}
-	if len(path) < 3 || path[2] != "mempool" {
+	if shouldAddBuffer {
 		buffer := cfg.DynamicConfig.GetGasLimitBuffer()
 		gasUsed := simRes.GasUsed
 		gasUsed += gasUsed * buffer / 100
@@ -434,7 +434,7 @@ func handleSimulateWithBuffer(app *BaseApp, path []string, height int64, txBytes
 
 }
 
-func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) (sdk.SimulationResponse, error) {
+func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) (sdk.SimulationResponse, bool, error) {
 	// if path contains address, it means 'eth_estimateGas' the sender
 	hasExtraPaths := len(path) > 2
 	var from string
@@ -454,8 +454,15 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	if tx == nil {
 		tx, err = app.txDecoder(txBytes)
 		if err != nil {
-			return sdk.SimulationResponse{}, sdkerrors.Wrap(err, "failed to decode tx")
+			return sdk.SimulationResponse{}, false, sdkerrors.Wrap(err, "failed to decode tx")
 		}
+	}
+	// if path contains mempool, it means to enable MaxGasUsedPerBlock
+	// return the actual gasUsed even though simulate tx failed
+	isMempoolSim := hasExtraPaths && path[2] == "mempool"
+	var shouldAddBuffer bool
+	if !isMempoolSim && tx.GetType() != types.EvmTxType {
+		shouldAddBuffer = true
 	}
 
 	msgs := tx.GetMsgs()
@@ -469,22 +476,19 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			}
 		}
 		if isPureWasm {
-			return handleSimulateWasm(height, txBytes, msgs)
+			res, err := handleSimulateWasm(height, txBytes, msgs)
+			return res, shouldAddBuffer, err
 		}
 	}
 	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
-
-	// if path contains mempool, it means to enable MaxGasUsedPerBlock
-	// return the actual gasUsed even though simulate tx failed
-	isMempoolSim := hasExtraPaths && path[2] == "mempool"
 	if err != nil && !isMempoolSim {
-		return sdk.SimulationResponse{}, sdkerrors.Wrap(err, "failed to simulate tx")
+		return sdk.SimulationResponse{}, false, sdkerrors.Wrap(err, "failed to simulate tx")
 	}
 
 	return sdk.SimulationResponse{
 		GasInfo: gInfo,
 		Result:  res,
-	}, nil
+	}, shouldAddBuffer, nil
 }
 
 func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg) (simRes sdk.SimulationResponse, err error) {
