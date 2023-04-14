@@ -218,6 +218,11 @@ func (pool *TxPool) insertTx(address common.Address, tx *evmtypes.MsgEthereumTx)
 
 // iterate through the txPool map, check if need to continue broadcast tx and do it
 func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint64, address common.Address) error {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Errorf("panic of continueBroadcast")
+		}
+	}()
 	i := 0
 	txsLen := len(pool.addressTxsPool[address])
 	var err error
@@ -245,12 +250,12 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 		if !strings.Contains(err.Error(), sdkerrors.ErrMempoolIsFull.Error()) &&
 			!strings.Contains(err.Error(), sdkerrors.ErrInvalidSequence.Error()) {
 			// tx has err, and err is not mempoolfull, the tx should be dropped
-			err = fmt.Errorf("broadcast failed and tx dropped. err:%s; nonce:%d; tx_hash:%s; address:%s\n",
-				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce, pool.addressTxsPool[address][i].Data.Hash.String(), address.String())
+			//err = fmt.Errorf("broadcast failed and tx dropped. err:%s; nonce:%d; tx_hash:%s; address:%s\n",
+			//	err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce, pool.addressTxsPool[address][i].Data.Hash.String(), address.String())
 			pool.dropTxs(i+1, address)
 		} else {
-			err = fmt.Errorf("broadcast failed. err:%s; nonce:%d; tx_hash:%s; address:%s\n",
-				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce, pool.addressTxsPool[address][i].Data.Hash.String(), address.String())
+			//err = fmt.Errorf("broadcast failed. err:%s; nonce:%d; tx_hash:%s; address:%s\n",
+			//	err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce, pool.addressTxsPool[address][i].Data.Hash.String(), address.String())
 			pool.dropTxs(i, address)
 		}
 		pool.logger.Error(err.Error())
