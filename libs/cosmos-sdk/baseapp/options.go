@@ -170,6 +170,13 @@ func (app *BaseApp) SetUpdateFeeCollectorAccHandler(handler sdk.UpdateFeeCollect
 	app.updateFeeCollectorAccHandler = handler
 }
 
+func (app *BaseApp) SetGetFeeCollectorInfo(handle sdk.GetFeeCollectorInfo) {
+	if app.sealed {
+		panic("SetGetFeeCollectorBalance() on sealed BaseApp")
+	}
+	app.getFeeCollectorInfoHandler = handle
+}
+
 func (app *BaseApp) SetParallelTxLogHandlers(fixLog sdk.LogFix) {
 	if app.sealed {
 		panic("SetPallTxLogHandler() on sealed BaseApp")

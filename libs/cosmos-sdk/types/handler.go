@@ -23,7 +23,9 @@ type EvmSysContractAddressHandler func(ctx Context, addr AccAddress) bool
 
 type UpdateCMTxNonceHandler func(tx Tx, nonce uint64)
 
-type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo, canSetCoin bool) error
+type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo) error
+
+type GetFeeCollectorInfo func(ctx Context, onlyGetFeeCollectorStoreKey bool) (Coins, []byte)
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
 type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins, isDelete bool)

@@ -169,28 +169,15 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
-	app.feeCollector = sdk.Coins{}
-	app.feeChanged = false
+	app.feeCollector = nil
 	// clean FeeSplitCollector
 	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 
 	return res
 }
 
-func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
-	if fee.IsZero() {
-		return
-	}
-	app.feeChanged = true
-	if add {
-		app.feeCollector = app.feeCollector.Add(fee...)
-	} else {
-		app.feeCollector = app.feeCollector.Sub(fee)
-	}
-}
-
 func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
-	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
+	if app.updateFeeCollectorAccHandler == nil {
 		return
 	}
 
@@ -204,11 +191,11 @@ func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 	if isEndBlock {
 		// The feesplit is only processed at the endblock
-		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector, false); err != nil {
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
 			panic(err)
 		}
 	} else {
-		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, nil, false); err != nil {
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, nil); err != nil {
 			panic(err)
 		}
 	}
