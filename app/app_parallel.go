@@ -18,15 +18,18 @@ import (
 )
 
 func getFeeCollectorBalance(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorBalance {
-	return func(ctx sdk.Context) sdk.Coins {
-		return bk.GetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName))
+	return func(ctx sdk.Context, onlyGetFeeCollectorStoreKey bool) (sdk.Coins, []byte) {
+		if onlyGetFeeCollectorStoreKey {
+			return sdk.Coins{}, auth.AddressStoreKey(sk.GetModuleAddress(auth.FeeCollectorName))
+		}
+		return bk.GetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName)), nil
 	}
 }
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
-		if balance != nil {
+		if !balance.Empty() {
 			err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 			if err != nil {
 				return err

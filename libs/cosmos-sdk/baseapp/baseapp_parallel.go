@@ -9,7 +9,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 )
@@ -18,9 +17,8 @@ var (
 	maxTxResultInChan           = 20000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
-	// addressStoreKeyPrefix prefix for account-by-address store
-	addressStoreKeyPrefix = []byte{0x01}
-	feeAccountKeyInStore  = append(addressStoreKeyPrefix, sdk.AccAddress(crypto.AddressHash([]byte("fee_collector")))...)
+
+	feeAccountKeyInStore = make([]byte, 0)
 )
 
 type extraDataForTx struct {
@@ -176,6 +174,10 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 		return make([]*abci.ResponseDeliverTx, 0)
 	}
 
+	if len(feeAccountKeyInStore) == 0 {
+		_, feeAccountKeyInStore = app.getFeeCollectorBalanceHandler(app.deliverState.ctx, true)
+	}
+
 	pm := app.parallelTxManage
 	pm.init(txs, app.deliverState.ctx.BlockHeight(), app.deliverState.ms)
 
@@ -260,7 +262,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 					// non-evm:reload fee collector balance
 					ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 					ctx.SetMultiStore(app.parallelTxManage.cms)
-					pm.currTxFee = app.getFeeCollectorBalanceHandler(ctx)
+					pm.currTxFee, _ = app.getFeeCollectorBalanceHandler(ctx, false)
 				}
 
 			}
