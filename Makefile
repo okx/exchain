@@ -29,6 +29,7 @@ Venus2Height=0
 Venus3Height=1
 Venus4Height=0
 Venus5Height=0
+Venus6Height=0
 EarthHeight=0
 MarsHeight=0
 
@@ -105,6 +106,7 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS3_HEIGHT=$(Venus3Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS4_HEIGHT=$(Venus4Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS5_HEIGHT=$(Venus5Height) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS6_HEIGHT=$(Venus6Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_EARTH_HEIGHT=$(EarthHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
 
