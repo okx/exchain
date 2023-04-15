@@ -121,6 +121,9 @@ func NonNegativePowerInvariantCustom(k Keeper) sdk.Invariant {
 // ModuleAccountInvariantsCustom check invariants for module account
 func ModuleAccountInvariantsCustom(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
+
+		fmt.Println("----Staking---KeeperKeeperKeeperKeeperKeeperKeeper-----")
+
 		bonded := sdk.ZeroDec()
 		notBonded := sdk.ZeroDec()
 		bondedPool := k.GetBondedPool(ctx)

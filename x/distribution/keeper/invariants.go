@@ -72,6 +72,8 @@ func CanWithdrawInvariant(k Keeper) sdk.Invariant {
 // is consistent with the sum of accumulated commissions
 func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
+
+		fmt.Println("----Distribution---KeeperKeeperKeeperKeeperKeeperKeeper-----")
 		if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) || !k.CheckInitExistedValidatorFlag(ctx) {
 			return "", false
 		}

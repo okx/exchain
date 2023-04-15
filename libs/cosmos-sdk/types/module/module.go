@@ -1,10 +1,10 @@
 /*
 Package module contains application module patterns and associated "manager" functionality.
 The module pattern has been broken down by:
- - independent module functionality (AppModuleBasic)
- - inter-dependent module genesis functionality (AppModuleGenesis)
- - inter-dependent module simulation functionality (AppModuleSimulation)
- - inter-dependent module full functionality (AppModule)
+  - independent module functionality (AppModuleBasic)
+  - inter-dependent module genesis functionality (AppModuleGenesis)
+  - inter-dependent module simulation functionality (AppModuleSimulation)
+  - inter-dependent module full functionality (AppModule)
 
 inter-dependent module functionality is module functionality which somehow
 depends on other modules, typically through the module keeper.  Many of the
@@ -30,7 +30,7 @@ package module
 
 import (
 	"encoding/json"
-
+	"fmt"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/gorilla/mux"
@@ -261,7 +261,11 @@ func (m *Manager) SetOrderEndBlockers(moduleNames ...string) {
 // RegisterInvariants registers all module routes and module querier routes
 func (m *Manager) RegisterInvariants(ir sdk.InvariantRegistry) {
 	for _, module := range m.Modules {
-		module.RegisterInvariants(ir)
+		if "distribution" == module.Name() {
+			module.RegisterInvariants(ir)
+			fmt.Println(fmt.Sprintf("RegisterInvariants module name:%s", module.Name()))
+		}
+
 	}
 }
 

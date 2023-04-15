@@ -25,6 +25,7 @@ func AllInvariants(keeper Keeper) sdk.Invariant {
 // deposit amounts held on store
 func ModuleAccountInvariant(keeper Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
+		fmt.Println("----Gov----KeeperKeeperKeeperKeeperKeeperKeeper-----")
 		var expectedDeposits sdk.Coins
 
 		keeper.IterateAllDeposits(ctx, func(deposit types.Deposit) bool {
