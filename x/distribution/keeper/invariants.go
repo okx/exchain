@@ -77,7 +77,7 @@ func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 		if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) || !k.CheckInitExistedValidatorFlag(ctx) {
 			return "", false
 		}
-
+		fmt.Println("----Distribution--2---KeeperKeeperKeeperKeeperKeeperKeeper-----")
 		var accumulatedOutstanding sdk.SysCoins
 		k.IterateValidatorOutstandingRewards(ctx,
 			func(_ sdk.ValAddress, reward types.ValidatorOutstandingRewards) (stop bool) {
