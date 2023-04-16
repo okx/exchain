@@ -122,6 +122,8 @@ type OecConfig struct {
 
 	//
 	commitGapOffset int64
+
+	enableRemainWaiting bool
 }
 
 const (
@@ -658,6 +660,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetCommitGapOffset(r)
+	case server.FlagRemainWaiting:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetRemainWaiting(r)
 	}
 
 }
@@ -1074,4 +1082,12 @@ func (c *OecConfig) GetIavlAcNoBatch() bool {
 
 func (c *OecConfig) SetIavlAcNoBatch(value bool) {
 	c.iavlAcNoBatch = value
+}
+
+func (c *OecConfig) SetRemainWaiting(value bool) {
+	c.enableRemainWaiting = value
+}
+
+func (c *OecConfig) GetRemainWaiting() bool {
+	return c.enableRemainWaiting
 }

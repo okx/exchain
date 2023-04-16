@@ -292,6 +292,20 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	if cfg.DynamicConfig.GetRemainWaiting() && sleepDuration > 0 {
+		gapWaiting := cs.remainWaiting
+		if gapWaiting > maxGapWaiting {
+			gapWaiting = maxGapWaiting
+		}
+		if sleepDuration > gapWaiting {
+			sleepDuration = sleepDuration - gapWaiting
+			cs.remainWaiting = cs.remainWaiting - gapWaiting
+		} else {
+			cs.remainWaiting = cs.remainWaiting - sleepDuration
+			sleepDuration = 0
+		}
+	}
+
 	if !cs.config.Waiting {
 		sleepDuration = 0
 	}

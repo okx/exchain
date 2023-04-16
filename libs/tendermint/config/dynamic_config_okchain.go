@@ -28,6 +28,7 @@ type IDynamicConfig interface {
 	GetEnableHasBlockPartMsg() bool
 	GetCommitGapOffset() int64
 	GetIavlAcNoBatch() bool
+	GetRemainWaiting() bool
 	GetDynamicGpWeight() int
 	GetDynamicGpCheckBlocks() int
 	GetDynamicGpMode() int
@@ -143,6 +144,10 @@ func (d MockDynamicConfig) GetCommitGapOffset() int64 {
 }
 
 func (d MockDynamicConfig) GetIavlAcNoBatch() bool {
+	return false
+}
+
+func (d MockDynamicConfig) GetRemainWaiting() bool {
 	return false
 }
 

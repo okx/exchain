@@ -25,8 +25,15 @@ func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
 func (cs *State) initNewHeight() {
 	// waiting finished and enterNewHeight by timeoutNewHeight
 	if cs.Step == cstypes.RoundStepNewHeight {
+		tNow := tmtime.Now()
+		if cfg.DynamicConfig.GetRemainWaiting() {
+			if remainTime := tNow.Sub(cs.StartTime) - cfg.DynamicConfig.GetCsTimeoutCommit(); remainTime > 0 {
+				cs.remainWaiting += remainTime
+			}
+		}
+
 		// init StartTime
-		cs.StartTime = tmtime.Now()
+		cs.StartTime = tNow
 		cs.dumpElapsed(cs.blockTimeTrc, trace.LastBlockTime)
 		cs.traceDump()
 	}

@@ -73,6 +73,7 @@ const (
 	FlagFastSyncGap = "fastsync-gap"
 
 	FlagEventBlockTime = "event-block-time"
+	FlagRemainWaiting  = "set-remain-waiting"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
