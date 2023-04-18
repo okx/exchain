@@ -70,7 +70,6 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 
 	if !genOnly {
 		nodeURI = viper.GetString(flags.FlagNode)
-		nodeURI = "https://exchaintmrpc.okex.org"
 		if nodeURI != "" {
 			rpc, err = rpchttp.New(nodeURI, "/websocket")
 			if err != nil {

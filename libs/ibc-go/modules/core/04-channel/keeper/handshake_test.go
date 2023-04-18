@@ -41,6 +41,8 @@ func (suite *KeeperTestSuite) TestChanOpenInit() {
 		}, true},
 		{"channel already exists", func() {
 			suite.coordinator.Setup(path)
+			// we refactor the `FwdCapabilityKey`,so we have to change the index
+			portCap.Index = 100
 		}, false},
 		{"connection doesn't exist", func() {
 			// any non-empty values
@@ -151,6 +153,22 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 	)
 
 	testCases := []testCase{
+		{"connection does not support ORDERED channels", func() {
+			suite.coordinator.SetupConnections(path)
+			path.SetChannelOrdered()
+			path.EndpointA.ChanOpenInit()
+
+			// modify connA versions to only support UNORDERED channels
+			conn := path.EndpointA.GetConnection()
+
+			version := connectiontypes.NewVersion("1", []string{"ORDER_UNORDERED"})
+			conn.Versions = []*connectiontypes.Version{version}
+
+			suite.chainA.GetSimApp().GetIBCKeeper().ConnectionKeeper.SetConnection(
+				suite.chainA.GetContext(),
+				path.EndpointA.ConnectionID, conn,
+			)
+		}, false},
 		{"success", func() {
 			suite.coordinator.SetupConnections(path)
 			path.SetChannelOrdered()
@@ -216,23 +234,6 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			suite.chainB.CreatePortCapability(suite.chainB.GetSimApp().ScopedIBCMockKeeper, ibctesting.MockPort)
 			portCap = suite.chainB.GetPortCapability(ibctesting.MockPort)
 		}, false},
-		{"connection does not support ORDERED channels", func() {
-			suite.coordinator.SetupConnections(path)
-			path.SetChannelOrdered()
-			path.EndpointA.ChanOpenInit()
-
-			// modify connA versions to only support UNORDERED channels
-			conn := path.EndpointA.GetConnection()
-
-			version := connectiontypes.NewVersion("1", []string{"ORDER_UNORDERED"})
-			conn.Versions = []*connectiontypes.Version{version}
-
-			suite.chainA.GetSimApp().GetIBCKeeper().ConnectionKeeper.SetConnection(
-				suite.chainA.GetContext(),
-				path.EndpointA.ConnectionID, conn,
-			)
-			// we dont have to commit a block for chainA ,since the cap is for the  chainB
-		}, false},
 	}
 
 	for _, tc := range testCases {
@@ -272,7 +273,6 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 				suite.Require().True(ok, "could not retrieve channel capapbility after successful ChanOpenTry")
 				suite.Require().Equal(chanCap.String(), cap.String(), "channel capability is not correct")
 			} else {
-				fmt.Println(err)
 				suite.Require().Error(err)
 			}
 		})
