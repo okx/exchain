@@ -104,6 +104,7 @@ import (
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	paramstypes "github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
@@ -394,8 +395,7 @@ func NewOKExChainApp(
 	)
 
 	stakingKeeper := staking.NewKeeper(
-		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName], &app.ParamsKeeper,
-	)
+		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName])
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
 		codecProxy.GetCdc(), keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
@@ -772,6 +772,10 @@ func NewOKExChainApp(
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
+
+		app.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS6_NAME, func(info paramstypes.UpgradeInfo) {
+			tmtypes.InitMilestoneVenus6Height(int64(info.EffectiveHeight))
+		})
 
 		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))

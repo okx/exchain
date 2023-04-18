@@ -3,8 +3,6 @@ package keeper
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/types"
-
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // ClearProxy clears the ProxyAddress on the delegator who has bound
@@ -64,7 +62,7 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 	k.BeforeDelegationSharesModified(ctx, delAddr, delegatorValAddresses)
 
 	lenVals := len(vals)
-	shares, sdkErr := calculateWeight(ctx.BlockTime().Unix(), tokens, k.IsWeightFixedValue(ctx))
+	shares, sdkErr := calculateWeight(ctx.BlockTime().Unix(), tokens, ctx.BlockHeight())
 	if sdkErr != nil {
 		return sdkErr
 	}
@@ -106,7 +104,7 @@ func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, v
 	shares types.Shares, sdkErr error) {
 	lenVals := len(vals)
 
-	shares, sdkErr = calculateWeight(ctx.BlockTime().Unix(), tokens, k.IsWeightFixedValue(ctx))
+	shares, sdkErr = calculateWeight(ctx.BlockTime().Unix(), tokens, ctx.BlockHeight())
 	if sdkErr != nil {
 		return
 	}
@@ -200,13 +198,4 @@ func (k Keeper) GetValidatorsToAddShares(ctx sdk.Context, valAddrs []sdk.ValAddr
 	}
 
 	return vals, nil
-}
-
-// IsWeightFixedValue
-func (k Keeper) IsWeightFixedValue(ctx sdk.Context) bool {
-	if k.paramsKeeper != nil && k.paramsKeeper.IsUpgradeEffective(ctx, tmtypes.MILESTONE_VENUS6) {
-		return true
-	}
-
-	return false
 }

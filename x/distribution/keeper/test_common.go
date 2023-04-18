@@ -241,7 +241,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms)
 
 	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace), nil)
+		pk.Subspace(staking.DefaultParamspace))
 	sk.SetParams(ctx, staking.DefaultParams())
 
 	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(types.DefaultParamspace), sk, supplyKeeper,

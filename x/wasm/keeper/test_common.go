@@ -331,7 +331,6 @@ func createTestInput(
 		keys[stakingtypes.StoreKey],
 		supplyKeeper,
 		subspace(stakingtypes.ModuleName),
-		nil,
 	)
 	stakingKeeper.SetParams(ctx, TestingStakeParams)
 

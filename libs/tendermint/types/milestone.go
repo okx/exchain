@@ -42,6 +42,9 @@ var (
 	MILESTONE_VENUS5_HEIGHT string
 	milestoneVenus5Height   int64
 
+	MILESTONE_VENUS6_NAME       = "venus6"
+	milestoneVenus6Height int64 = 0
+
 	// note: it stores the earlies height of the node,and it is used by cli
 	nodePruneHeight int64
 
@@ -68,10 +71,6 @@ const (
 
 	TestNetChangeChainId = 2270901
 	TestNetChainName1    = "okexchain-65"
-)
-
-const (
-	MILESTONE_VENUS6 = "venus6"
 )
 
 func init() {
@@ -306,5 +305,25 @@ func GetVenus5Height() int64 {
 	return milestoneVenus5Height
 }
 
-// =========== Venus4 ===============
+// =========== Venus5 ===============
+// ==================================
+
+// ==================================
+// =========== Venus6 ===============
+func HigherThanVenus6(h int64) bool {
+	if milestoneVenus6Height == 0 {
+		return false
+	}
+	return h > milestoneVenus6Height
+}
+
+func InitMilestoneVenus6Height(h int64) {
+	milestoneVenus6Height = h
+}
+
+func GetVenus6Height() int64 {
+	return milestoneVenus6Height
+}
+
+// =========== Venus6 ===============
 // ==================================

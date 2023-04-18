@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"math"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -16,9 +17,9 @@ const (
 	fixedTimeStamp      = int64(1685577600) // 2023-06-01 00:00:00 GMT+0
 )
 
-func calculateWeight(nowTime int64, tokens sdk.Dec, fixedValue bool) (shares types.Shares, sdkErr error) {
+func calculateWeight(nowTime int64, tokens sdk.Dec, height int64) (shares types.Shares, sdkErr error) {
 	var nowWeek int64
-	if fixedValue {
+	if types2.HigherThanVenus6(height) {
 		nowWeek = (fixedTimeStamp - blockTimestampEpoch) / secondsPerWeek
 	} else {
 		nowWeek = (nowTime - blockTimestampEpoch) / secondsPerWeek
@@ -36,6 +37,6 @@ func calculateWeight(nowTime int64, tokens sdk.Dec, fixedValue bool) (shares typ
 	return
 }
 
-func SimulateWeight(nowTime int64, tokens sdk.Dec) (votes types.Shares, sdkErr error) {
-	return calculateWeight(nowTime, tokens, false)
+func SimulateWeight(nowTime int64, tokens sdk.Dec, height int64) (votes types.Shares, sdkErr error) {
+	return calculateWeight(nowTime, tokens, height)
 }

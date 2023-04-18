@@ -9,7 +9,6 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/staking/types"
 )
@@ -24,12 +23,11 @@ type Keeper struct {
 	supplyKeeper types.SupplyKeeper
 	hooks        types.StakingHooks
 	paramstore   params.Subspace
-	paramsKeeper types.ParamsKeeper
 }
 
 // NewKeeper creates a new staking Keeper instance
 func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
-	paramstore params.Subspace, paramsKeeper types.ParamsKeeper) Keeper {
+	paramstore params.Subspace) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramstore.HasKeyTable() {
 		paramstore = paramstore.WithKeyTable(ParamKeyTable())
@@ -43,20 +41,13 @@ func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types
 		panic(fmt.Sprintf("%s module account has not been set", types.NotBondedPoolName))
 	}
 
-	k := Keeper{
+	return Keeper{
 		storeKey:     key,
 		cdcMarshl:    cdcMarshl,
 		supplyKeeper: supplyKeeper,
 		paramstore:   paramstore,
 		hooks:        nil,
-		paramsKeeper: paramsKeeper,
 	}
-
-	if paramsKeeper != nil {
-		k.paramsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS6, nil)
-	}
-
-	return k
 }
 
 func NewKeeperWithNoParam(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
