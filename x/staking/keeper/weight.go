@@ -17,7 +17,7 @@ const (
 	constNowWeek        = (constTimeStamp - blockTimestampEpoch) / secondsPerWeek
 )
 
-func calculateWeight(nowTime int64, tokens sdk.Dec, height int64, fixedValue bool) (shares types.Shares, sdkErr error) {
+func calculateWeight(nowTime int64, tokens sdk.Dec, fixedValue bool) (shares types.Shares, sdkErr error) {
 	var nowWeek int64
 	if fixedValue {
 		nowWeek = constNowWeek
@@ -38,5 +38,5 @@ func calculateWeight(nowTime int64, tokens sdk.Dec, height int64, fixedValue boo
 }
 
 func SimulateWeight(nowTime int64, tokens sdk.Dec, height int64) (votes types.Shares, sdkErr error) {
-	return calculateWeight(nowTime, tokens, height, false)
+	return calculateWeight(nowTime, tokens, false)
 }
