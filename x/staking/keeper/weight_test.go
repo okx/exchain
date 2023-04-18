@@ -39,7 +39,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		{"set upgrade height, reached height", true, 1},
 	}
 	formatTime, _ := gotime.Parse("2006-01-02 15:04:05", "2023-06-01 00:00:00")
-	require.Equal(suite.T(), formatTime.Unix(), constTimeStamp)
+	require.Equal(suite.T(), formatTime.Unix(), fixedTimeStamp)
 
 	for _, tc := range testCases {
 		suite.Run(tc.title, func() {

@@ -13,14 +13,13 @@ const (
 	blockTimestampEpoch = int64(946684800)
 	secondsPerWeek      = int64(60 * 60 * 24 * 7)
 	weeksPerYear        = float64(52)
-	constTimeStamp      = int64(1685577600) // 2023-06-01 00:00:00 GMT+0
-	constNowWeek        = (constTimeStamp - blockTimestampEpoch) / secondsPerWeek
+	fixedTimeStamp      = int64(1685577600) // 2023-06-01 00:00:00 GMT+0
 )
 
 func calculateWeight(nowTime int64, tokens sdk.Dec, fixedValue bool) (shares types.Shares, sdkErr error) {
 	var nowWeek int64
 	if fixedValue {
-		nowWeek = constNowWeek
+		nowWeek = (fixedTimeStamp - blockTimestampEpoch) / secondsPerWeek
 	} else {
 		nowWeek = (nowTime - blockTimestampEpoch) / secondsPerWeek
 	}
