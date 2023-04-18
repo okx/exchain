@@ -258,7 +258,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				return txBytes
 			},
 			0,
-			159669,
+			159732,
 		},
 		{
 			"send tx for gov with error fee, failed, do not write to block",
