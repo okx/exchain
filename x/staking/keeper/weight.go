@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"math"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/staking/types"
 )
 
