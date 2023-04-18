@@ -144,7 +144,7 @@ Where proposal.json contains like these:
     "title":"modify wasm gas factor",
     "description":"modify wasm gas factor",
     "action": "GasFactor",
-    "extra": "{\"factor\":240000000}",
+    "extra": "{\"factor\":\"14\"}",
     "deposit":[
         {
             "denom":"%s",

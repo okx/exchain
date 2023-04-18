@@ -33,6 +33,7 @@ type IDynamicConfig interface {
 	GetDynamicGpMode() int
 	GetDynamicGpMaxTxNum() int64
 	GetDynamicGpMaxGasUsed() int64
+	GetGasLimitBuffer() uint64
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -184,4 +185,8 @@ func (d *MockDynamicConfig) SetDynamicGpMaxGasUsed(value int64) {
 
 func (d MockDynamicConfig) GetDynamicGpMaxGasUsed() int64 {
 	return d.dynamicGpMaxGasUsed
+}
+
+func (d MockDynamicConfig) GetGasLimitBuffer() uint64 {
+	return 0
 }

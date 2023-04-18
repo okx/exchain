@@ -100,6 +100,9 @@ func (h SendToIbcEventHandler) EventID() common.Hash {
 // Handle Process the log
 func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
 	h.Logger(ctx).Info("trigger evm event", "event", SendToIbcEvent.Name, "contract", contract)
+	if ctx.IsCheckTx() {
+		return nil
+	}
 	// first confirm that the contract address and denom are registered,
 	// to avoid unpacking any contract '__OKCSendToIbc' event, which consumes performance
 	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
@@ -160,6 +163,9 @@ func (h SendNative20ToIbcEventHandler) EventID() common.Hash {
 // Handle Process the log
 func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
 	h.Logger(ctx).Info("trigger evm event", "event", SendNative20ToIbcEvent.Name, "contract", contract)
+	if ctx.IsCheckTx() {
+		return nil
+	}
 	// first confirm that the contract address and denom are registered,
 	// to avoid unpacking any contract '__OKCSendNative20ToIbc' event, which consumes performance
 	denom, found := h.Keeper.GetDenomByContract(ctx, contract)

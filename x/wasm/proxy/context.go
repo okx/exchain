@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"sync"
 	"time"
@@ -17,10 +18,6 @@ import (
 	evmwatcher "github.com/okex/exchain/x/evm/watcher"
 )
 
-const (
-	simulationGasLimit = 3000000
-)
-
 var clientCtx clientcontext.CLIContext
 
 func SetCliContext(ctx clientcontext.CLIContext) {
@@ -33,7 +30,7 @@ func MakeContext(storeKey sdk.StoreKey) sdk.Context {
 	cms := getCommitMultiStore()
 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
-	ctx.SetGasMeter(sdk.NewGasMeter(simulationGasLimit))
+	ctx.SetGasMeter(sdk.NewGasMeter(baseapp.SimulationGasLimit))
 	return ctx
 }
 

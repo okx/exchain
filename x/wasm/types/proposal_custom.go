@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	maxAddressListLength = 100
-	maxMethodListLength  = 100
+	maxAddressListLength       = 100
+	maxMethodListLength        = 100
+	MaxGasFactor         int64 = 10000000
 )
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -223,16 +224,20 @@ func NewActionModifyGasFactor(data string) (sdk.Dec, error) {
 	var param GasFactor
 	err := json.Unmarshal([]byte(data), &param)
 	if err != nil {
-		return sdk.Dec{}, ErrExtraProposalParams("parse json error")
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse json error, expect like {\"factor\":\"14\"}, but get:%s", data))
 	}
 
 	result, err := sdk.NewDecFromStr(param.Factor)
 	if err != nil {
-		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error, %s", err.Error()))
 	}
 
 	if result.IsNil() || result.IsNegative() || result.IsZero() {
-		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error:%s", param.Factor))
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("parse factor error, expect factor positive and 18 precision, but get %s", param.Factor))
+	}
+
+	if result.GT(sdk.NewDec(MaxGasFactor)) {
+		return sdk.Dec{}, ErrExtraProposalParams(fmt.Sprintf("max gas factor:%v, but get:%s", MaxGasFactor, param.Factor))
 	}
 
 	return result, nil
