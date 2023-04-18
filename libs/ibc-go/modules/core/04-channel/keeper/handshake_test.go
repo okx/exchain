@@ -231,7 +231,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 				suite.chainA.GetContext(),
 				path.EndpointA.ConnectionID, conn,
 			)
-			// we dont have to commit a block for chainA ,since the cap is for the chainB
+			// we dont have to commit a block for chainA ,since the cap is for the  chainB
 		}, false},
 	}
 
