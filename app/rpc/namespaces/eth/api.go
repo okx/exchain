@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,12 +22,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/spf13/viper"
-
-	appconfig "github.com/okex/exchain/app/config"
-	"github.com/okex/exchain/libs/tendermint/mempool"
-
 	"github.com/okex/exchain/app/config"
+	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/backend"
@@ -50,18 +48,21 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/erc20"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/vmbridge"
+	"github.com/spf13/viper"
 )
 
 const (
 	CacheOfEthCallLru = 40960
 
 	FlagFastQueryThreshold = "fast-query-threshold"
+	FlagWasmSystemContract = "wasm-system-contract"
 
 	NameSpace = "eth"
 
@@ -90,6 +91,8 @@ type PublicEthereumAPI struct {
 	callCache          *lru.Cache
 	cdc                *codec.Codec
 	fastQueryThreshold uint64
+	wasmSystemContract string
+	wasmABI            abi.ABI
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -115,6 +118,8 @@ func NewAPI(
 		wrappedBackend:     watcher.NewQuerier(),
 		watcherBackend:     watcher.NewWatcher(log),
 		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
+		wasmSystemContract: viper.GetString(FlagWasmSystemContract),
+		wasmABI:            newWasmAbi(),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 	module := evm.AppModuleBasic{}
@@ -864,7 +869,6 @@ func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, overrides *evmtypes.StateOverrides) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
-
 	if overrides != nil {
 		if err := overrides.Check(); err != nil {
 			return nil, err
@@ -881,6 +885,10 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	blockNr, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
 		return nil, err
+	}
+	// eth_call for wasm
+	if args.To != nil && args.To.String() == api.wasmSystemContract {
+		return api.wasmCall(args, blockNr)
 	}
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false, overrides)
 	if err != nil {
