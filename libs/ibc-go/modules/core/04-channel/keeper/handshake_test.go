@@ -231,8 +231,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 				suite.chainA.GetContext(),
 				path.EndpointA.ConnectionID, conn,
 			)
-			suite.chainA.CreatePortCapability(suite.chainA.GetSimApp().ScopedIBCMockKeeper, ibctesting.MockPort)
-			portCap = suite.chainA.GetPortCapability(ibctesting.MockPort)
+			// we dont have to commit a block for chainA ,since the cap is for the chainB
 		}, false},
 	}
 
@@ -273,6 +272,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 				suite.Require().True(ok, "could not retrieve channel capapbility after successful ChanOpenTry")
 				suite.Require().Equal(chanCap.String(), cap.String(), "channel capability is not correct")
 			} else {
+				fmt.Println(err)
 				suite.Require().Error(err)
 			}
 		})
