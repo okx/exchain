@@ -91,7 +91,7 @@ func CreateTestInputAdvancedForBenchmark(b *testing.B, isCheckTx bool, initPower
 		staking.BondedPoolName:    {supply.Burner, supply.Staking},
 	}
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms)
-	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace))
+	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper, pk.Subspace(staking.DefaultParamspace), nil)
 	sk.SetParams(ctx, staking.DefaultParams())
 	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(types.DefaultParamspace), sk, supplyKeeper, auth.FeeCollectorName, nil)
 

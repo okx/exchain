@@ -42,9 +42,6 @@ var (
 	MILESTONE_VENUS5_HEIGHT string
 	milestoneVenus5Height   int64
 
-	MILESTONE_VENUS6_HEIGHT string
-	milestoneVenus6Height   int64
-
 	// note: it stores the earlies height of the node,and it is used by cli
 	nodePruneHeight int64
 
@@ -73,6 +70,10 @@ const (
 	TestNetChainName1    = "okexchain-65"
 )
 
+const (
+	MILESTONE_VENUS6 = "venus6"
+)
+
 func init() {
 	once.Do(func() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
@@ -85,7 +86,6 @@ func init() {
 		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 		milestoneVenus4Height = string2number(MILESTONE_VENUS4_HEIGHT)
 		milestoneVenus5Height = string2number(MILESTONE_VENUS5_HEIGHT)
-		milestoneVenus6Height = string2number(MILESTONE_VENUS6_HEIGHT)
 	})
 }
 
@@ -307,24 +307,4 @@ func GetVenus5Height() int64 {
 }
 
 // =========== Venus4 ===============
-// ==================================
-
-// ==================================
-// =========== Venus6 ===============
-func HigherThanVenus6(h int64) bool {
-	if milestoneVenus6Height == 0 {
-		return false
-	}
-	return h > milestoneVenus6Height
-}
-
-func UnittestOnlySetMilestoneVenus6Height(h int64) {
-	milestoneVenus6Height = h
-}
-
-func GetVenus6Height() int64 {
-	return milestoneVenus6Height
-}
-
-// =========== Venus6 ===============
 // ==================================

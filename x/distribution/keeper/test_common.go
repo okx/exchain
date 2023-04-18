@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//nolint: deadcode unused
+// nolint: deadcode unused
 var (
 	delPk1   = ed25519.GenPrivKey().PubKey()
 	delPk2   = ed25519.GenPrivKey().PubKey()
@@ -241,7 +241,7 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	supplyKeeper := supply.NewKeeper(cdc, keySupply, accountKeeper, bank.NewBankKeeperAdapter(bankKeeper), maccPerms)
 
 	sk := staking.NewKeeper(pro, keyStaking, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace))
+		pk.Subspace(staking.DefaultParamspace), nil)
 	sk.SetParams(ctx, staking.DefaultParams())
 
 	keeper := NewKeeper(cdc, keyDistr, pk.Subspace(types.DefaultParamspace), sk, supplyKeeper,

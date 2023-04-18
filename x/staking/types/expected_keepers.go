@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	paramsexported "github.com/okex/exchain/x/params/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
@@ -98,4 +99,9 @@ type StakingHooks interface {
 	//BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec)
 	// Check modules enabled
 	CheckEnabled(ctx sdk.Context) bool
+}
+
+type ParamsKeeper interface {
+	IsUpgradeEffective(ctx sdk.Context, name string) bool
+	ClaimReadyForUpgrade(name string, cb func(paramsexported.UpgradeInfo))
 }

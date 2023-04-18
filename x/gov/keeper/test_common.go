@@ -177,7 +177,7 @@ func CreateTestInput(
 
 	// for staking/distr rollback to cosmos-sdk
 	stakingKeeper := staking.NewKeeper(pro, stakingSk, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace))
+		pk.Subspace(staking.DefaultParamspace), nil)
 
 	stakingKeeper.SetParams(ctx, staking.DefaultParams())
 	pk.SetStakingKeeper(stakingKeeper)
