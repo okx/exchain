@@ -36,6 +36,6 @@ func calculateWeight(nowTime int64, tokens sdk.Dec, fixedValue bool) (shares typ
 	return
 }
 
-func SimulateWeight(nowTime int64, tokens sdk.Dec, height int64) (votes types.Shares, sdkErr error) {
+func SimulateWeight(nowTime int64, tokens sdk.Dec) (votes types.Shares, sdkErr error) {
 	return calculateWeight(nowTime, tokens, false)
 }
