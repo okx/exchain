@@ -16,6 +16,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -151,16 +152,19 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 	return ctx, nil
 }
 
-func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
+func ethGasConsume(ek EVMKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
 	gasLimit := msgEthTx.GetGas()
-	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
-	if err != nil {
-		return sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
-	}
 
-	// intrinsic gas verification during CheckTx
-	if ctx.IsCheckTx() && gasLimit < gas {
-		return sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+	if !IsE2CTx(ek, ctx, msgEthTx) { // e2c tx no need ethcore check gas
+		gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
+		if err != nil {
+			return sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
+		}
+
+		// intrinsic gas verification during CheckTx
+		if ctx.IsCheckTx() && gasLimit < gas {
+			return sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+		}
 	}
 
 	// Charge sender for gas up to limit
@@ -177,7 +181,7 @@ func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = deductFees(ik, ak, sk, *ctx, acc, feeAmt)
+		err := deductFees(ek, ak, sk, *ctx, acc, feeAmt)
 		if err != nil {
 			return err
 		}
@@ -186,6 +190,14 @@ func ethGasConsume(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types
 	// Set gas meter after ante handler to ignore gaskv costs
 	auth.SetGasMeter(simulate, ctx, gasLimit)
 	return nil
+}
+
+func IsE2CTx(ek EVMKeeper, ctx *sdk.Context, msgEthTx *evmtypes.MsgEthereumTx) bool {
+	toAddr, ok := evm.EvmConvertJudge(msgEthTx)
+	if ok && len(toAddr) != 0 && ek.IsMatchSysContractAddress(*ctx, toAddr) {
+		return true
+	}
+	return false
 }
 
 func deductFees(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
