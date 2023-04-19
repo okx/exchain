@@ -78,6 +78,13 @@ func newWasmAbi() abi.ABI {
 	return wasmABI
 }
 
+type SmartContractStateRequest struct {
+	// address is the address of the contract
+	Address string `json:"address"`
+	// QueryData contains the query data passed to the contract
+	QueryData string `json:"query_data"`
+}
+
 func (api *PublicEthereumAPI) wasmCall(args rpctypes.CallArgs, blockNum rpctypes.BlockNumber) (hexutil.Bytes, error) {
 	clientCtx := api.clientCtx
 	// pass the given block height to the context if the height is not pending or latest
@@ -106,13 +113,21 @@ func (api *PublicEthereumAPI) wasmCall(args rpctypes.CallArgs, blockNum rpctypes
 		return nil, err
 	}
 
-	var stateReq wasmtypes.QuerySmartContractStateRequest
+	var stateReq SmartContractStateRequest
 	if err := json.Unmarshal(inputData, &stateReq); err != nil {
 		return nil, err
 	}
 
+	queryData, err := hex.DecodeString(stateReq.QueryData)
+	if err != nil {
+		return nil, wasmInvalidErr
+	}
+
 	queryClient := wasmtypes.NewQueryClient(clientCtx)
-	res, err := queryClient.SmartContractState(context.Background(), &stateReq)
+	res, err := queryClient.SmartContractState(context.Background(), &wasmtypes.QuerySmartContractStateRequest{
+		Address:   stateReq.Address,
+		QueryData: queryData,
+	})
 	if err != nil {
 		return nil, err
 	}
