@@ -243,7 +243,7 @@ func TestRegisterCmHandleV1_ConvertMsg(t *testing.T) {
 			}),
 		},
 		{
-			module:      "module5",
+			module:      "module15",
 			funcName:    "test3",
 			blockHeight: 6,
 			setHeight:   5,
