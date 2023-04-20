@@ -109,6 +109,41 @@ func TestConvertMsgStoreCode(t *testing.T) {
 				require.Equal(t, *msg.(*types.MsgStoreCode), res)
 			},
 		},
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"wasm_byte_code\":\"aGVsbG8=\",\"instantiate_permission\":{\"address\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\"}}",
+			res: types.MsgStoreCode{
+				Sender:                "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				WASMByteCode:          []byte("hello"),
+				InstantiatePermission: &types.AccessConfig{0, "0x67582AB2adb08a8583A181b7745762B53710e9B1"},
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgStoreCode) {
+				require.Error(t, err)
+				require.Nil(t, msg)
+			},
+		},
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"wasm_byte_code\":\"aGVsbG8=\"}",
+			res: types.MsgStoreCode{
+				Sender:       "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				WASMByteCode: []byte("hello"),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgStoreCode) {
+				require.NoError(t, err)
+				require.Equal(t, *msg.(*types.MsgStoreCode), res)
+			},
+		},
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"wasm_byte_code\":\"aGVsbG8=\",\"instantiate_permission\":{\"permission\":\"OnlyAddress\",\"address\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\"}}",
+			res: types.MsgStoreCode{
+				Sender:                "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F",
+				WASMByteCode:          []byte("hello"),
+				InstantiatePermission: &types.AccessConfig{2, "0x67582AB2adb08a8583A181b7745762B53710e9B1"},
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgStoreCode) {
+				require.Equal(t, ErrCheckSignerFail, err)
+				require.Nil(t, msg)
+			},
+		},
 	}
 
 	tmtypes.InitMilestoneVenus6Height(1)
@@ -142,6 +177,49 @@ func TestConvertMsgInstantiateContract(t *testing.T) {
 				require.Equal(t, *msg.(*types.MsgInstantiateContract), res)
 			},
 		},
+		{ // Msg need "{}" and Funds field can not fill:
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"admin\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"code_id\":2,\"label\":\"hello\",\"msg\":{}}",
+			res: types.MsgInstantiateContract{
+				Sender: "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Admin:  "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				CodeID: 2,
+				Label:  "hello",
+				Msg:    []byte("{}"),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgInstantiateContract) {
+				require.NoError(t, err)
+				require.Equal(t, *msg.(*types.MsgInstantiateContract), res)
+			},
+		},
+		// error
+		{ // no Msg field
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"admin\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"code_id\":2,\"label\":\"hello\",\"funds\":[]}",
+			res: types.MsgInstantiateContract{
+				Sender: "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Admin:  "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				CodeID: 2,
+				Label:  "hello",
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgInstantiateContract) {
+				require.Error(t, err)
+				require.Nil(t, msg)
+			},
+		},
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"admin\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"code_id\":2,\"label\":\"hello\",\"msg\":{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}},\"funds\":[{\"denom\":\"mytoken\",\"amount\":\"10000000000000000000\"}]}",
+			res: types.MsgInstantiateContract{
+				Sender: "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F",
+				Admin:  "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				CodeID: 2,
+				Label:  "hello",
+				Msg:    []byte("{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}"),
+				Funds:  sdk.CoinsToCoinAdapters([]sdk.DecCoin{sdk.NewDecCoin("mytoken", sdk.NewInt(10))}),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgInstantiateContract) {
+				require.Equal(t, ErrCheckSignerFail, err)
+				require.Nil(t, msg)
+			},
+		},
 	}
 
 	tmtypes.InitMilestoneVenus6Height(1)
@@ -168,6 +246,43 @@ func TestConvertMsgExecuteContract(t *testing.T) {
 			fnCheck: func(msg sdk.Msg, err error, res types.MsgExecuteContract) {
 				require.NoError(t, err)
 				require.Equal(t, *msg.(*types.MsgExecuteContract), res)
+			},
+		},
+		{ // Msg need "{}" and Funds field can not fill:
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"msg\":{}}",
+			res: types.MsgExecuteContract{
+				Sender:   "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				Msg:      []byte("{}"),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgExecuteContract) {
+				require.NoError(t, err)
+				require.Equal(t, *msg.(*types.MsgExecuteContract), res)
+			},
+		},
+		// error
+		{ // no Msg field
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"funds\":[{\"denom\":\"mytoken\",\"amount\":\"10000000000000000000\"}]}",
+			res: types.MsgExecuteContract{
+				Sender:   "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgExecuteContract) {
+				require.Error(t, err)
+				require.Nil(t, msg)
+			},
+		},
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"msg\":{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}},\"funds\":[{\"denom\":\"mytoken\",\"amount\":\"10000000000000000000\"}]}",
+			res: types.MsgExecuteContract{
+				Sender:   "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				Msg:      []byte("{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}"),
+				Funds:    sdk.CoinsToCoinAdapters([]sdk.DecCoin{sdk.NewDecCoin("mytoken", sdk.NewInt(10))}),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgExecuteContract) {
+				require.Equal(t, ErrCheckSignerFail, err)
+				require.Nil(t, msg)
 			},
 		},
 	}
@@ -198,6 +313,57 @@ func TestConvertMsgMigrateContract(t *testing.T) {
 				require.Equal(t, *msg.(*types.MsgMigrateContract), res)
 			},
 		},
+		{ // Msg need "{}"
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"code_id\":1,\"msg\":{}}",
+			res: types.MsgMigrateContract{
+				Sender:   "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				CodeID:   1,
+				Msg:      []byte("{}"),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgMigrateContract) {
+				require.NoError(t, err)
+				require.Equal(t, *msg.(*types.MsgMigrateContract), res)
+			},
+		},
+		// error
+		{ // no code id
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"msg\":{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}}",
+			res: types.MsgMigrateContract{
+				Sender:   "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				Msg:      []byte("{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}"),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgMigrateContract) {
+				require.Error(t, err)
+				require.Nil(t, msg)
+			},
+		},
+		{ // no Msg field
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"code_id\":1}",
+			res: types.MsgMigrateContract{
+				Sender:   "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				CodeID:   1,
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgMigrateContract) {
+				require.Error(t, err)
+				require.Nil(t, msg)
+			},
+		},
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\",\"code_id\":1,\"msg\":{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}}",
+			res: types.MsgMigrateContract{
+				Sender:   "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+				CodeID:   1,
+				Msg:      []byte("{\"balance\":{\"address\":\"0xCf164e001d86639231d92Ab1D71DB8353E43C295\"}}"),
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgMigrateContract) {
+				require.Equal(t, ErrCheckSignerFail, err)
+				require.Nil(t, msg)
+			},
+		},
 	}
 	tmtypes.InitMilestoneVenus6Height(1)
 	for _, ts := range testcases {
@@ -222,6 +388,31 @@ func TestConvertMsgUpdateAdmin(t *testing.T) {
 			fnCheck: func(msg sdk.Msg, err error, res types.MsgUpdateAdmin) {
 				require.NoError(t, err)
 				require.Equal(t, *msg.(*types.MsgUpdateAdmin), res)
+			},
+		},
+		// error
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"new_admin\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\"}",
+			res: types.MsgUpdateAdmin{
+				Sender:   "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				NewAdmin: "0x67582AB2adb08a8583A181b7745762B53710e9B1",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgUpdateAdmin) {
+				require.Error(t, err)
+				require.Nil(t, msg)
+			},
+		},
+		{
+			msgstr: "{\"sender\":\"0x67582AB2adb08a8583A181b7745762B53710e9B1\",\"new_admin\":\"0x67582AB2adb08a8583A181b7745762B53710e9B3\",\"contract\":\"0x67582AB2adb08a8583A181b7745762B53710e9B2\"}",
+			res: types.MsgUpdateAdmin{
+				Sender:   "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F",
+				NewAdmin: "0x67582AB2adb08a8583A181b7745762B53710e9B3",
+				Contract: "0x67582AB2adb08a8583A181b7745762B53710e9B2",
+			},
+			fnCheck: func(msg sdk.Msg, err error, res types.MsgUpdateAdmin) {
+				require.Equal(t, ErrCheckSignerFail, err)
+				require.Nil(t, msg)
 			},
 		},
 	}
