@@ -1,81 +1,34 @@
 package eth
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
+
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/x/evm"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 
 	wasmtypes "github.com/okex/exchain/x/wasm/types"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 )
 
 var (
-	wasmContractABI = `
-[
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "input",
-				"type": "string"
-			}
-		],
-		"name": "smart_query",
-		"outputs": [
-			{
-				"name": "",
-				"type": "string"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": false,
-		"inputs": [
-			{
-				"name": "x",
-				"type": "uint256"
-			}
-		],
-		"name": "set",
-		"outputs": [],
-		"payable": false,
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [],
-		"name": "get",
-		"outputs": [
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	}
-]
-`
 	wasmQueryParam = "input"
 	wasmInvalidErr = fmt.Errorf("invalid input data")
 )
 
-func newWasmAbi() abi.ABI {
-	wasmABI, err := abi.JSON(strings.NewReader(wasmContractABI))
+func getSystemContractAddr(clientCtx clientcontext.CLIContext) []byte {
+	route := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QuerySysContractAddress)
+	addr, _, err := clientCtx.QueryWithData(route, nil)
 	if err != nil {
-		panic(fmt.Errorf("wasm abi json decode failed: %s", err.Error()))
+		return nil
 	}
-	return wasmABI
+	return addr
 }
 
 type SmartContractStateRequest struct {
@@ -99,7 +52,7 @@ func (api *PublicEthereumAPI) wasmCall(args rpctypes.CallArgs, blockNum rpctypes
 
 	methodSigData := data[:4]
 	inputsSigData := data[4:]
-	method, err := api.wasmABI.MethodById(methodSigData)
+	method, err := evm.SysABI().MethodById(methodSigData)
 	if err != nil {
 		return nil, err
 	}
@@ -136,5 +89,16 @@ func (api *PublicEthereumAPI) wasmCall(args rpctypes.CallArgs, blockNum rpctypes
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	result, err := evm.EncodeQueryOutput(out)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (api *PublicEthereumAPI) isWasmCall(args rpctypes.CallArgs) bool {
+	if args.To == nil || !bytes.Equal(args.To.Bytes(), api.systemContract) {
+		return false
+	}
+	return args.Data != nil && evm.IsMatchSystemContractQuery(*args.Data)
 }

@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -62,7 +60,6 @@ const (
 	CacheOfEthCallLru = 40960
 
 	FlagFastQueryThreshold = "fast-query-threshold"
-	FlagWasmSystemContract = "wasm-system-contract"
 
 	NameSpace = "eth"
 
@@ -91,8 +88,7 @@ type PublicEthereumAPI struct {
 	callCache          *lru.Cache
 	cdc                *codec.Codec
 	fastQueryThreshold uint64
-	wasmSystemContract string
-	wasmABI            abi.ABI
+	systemContract     []byte
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -118,8 +114,7 @@ func NewAPI(
 		wrappedBackend:     watcher.NewQuerier(),
 		watcherBackend:     watcher.NewWatcher(log),
 		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
-		wasmSystemContract: viper.GetString(FlagWasmSystemContract),
-		wasmABI:            newWasmAbi(),
+		systemContract:     getSystemContractAddr(clientCtx),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 	module := evm.AppModuleBasic{}
@@ -887,7 +882,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 		return nil, err
 	}
 	// eth_call for wasm
-	if args.To != nil && args.To.String() == api.wasmSystemContract {
+	if api.isWasmCall(args) {
 		return api.wasmCall(args, blockNr)
 	}
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false, overrides)
