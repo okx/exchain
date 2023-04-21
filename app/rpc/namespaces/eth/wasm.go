@@ -20,16 +20,16 @@ import (
 )
 
 const (
-	genMsgStoreCode      = "genMsgStoreCode"
-	wasmHelperABIStr     = `[{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgExecuteContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"string","name":"_msg","type":"string"},{"internalType":"string","name":"amount","type":"string"}],"name":"genMsgExecuteContractWithOKT","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_label","type":"string"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgInstantiateContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_label","type":"string"},{"internalType":"string","name":"_msg","type":"string"},{"internalType":"string","name":"amount","type":"string"}],"name":"genMsgInstantiateContractWithOKT","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"}],"name":"genMsgMigrateContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgMigrateContractWithMSG","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"_wasmBytecode","type":"string"},{"internalType":"string","name":"_permission","type":"string"},{"internalType":"address","name":"_addr","type":"address"}],"name":"genMsgStoreCode","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_newAdmin","type":"address"},{"internalType":"address","name":"_contract","type":"address"}],"name":"genMsgUpdateAdmin","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"input","type":"string"}],"name":"invoke","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"_str","type":"string"}],"name":"stringToHexString","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"pure","type":"function"}]`
-	FlagE2cWasmCodeLimit = "e2c-wasm-code-limit"
+	genMsgStoreCode          = "genMsgStoreCode"
+	wasmHelperABIStr         = `[{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgExecuteContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"string","name":"_msg","type":"string"},{"internalType":"string","name":"amount","type":"string"}],"name":"genMsgExecuteContractWithOKT","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_label","type":"string"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgInstantiateContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_label","type":"string"},{"internalType":"string","name":"_msg","type":"string"},{"internalType":"string","name":"amount","type":"string"}],"name":"genMsgInstantiateContractWithOKT","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"}],"name":"genMsgMigrateContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgMigrateContractWithMSG","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes","name":"_wasmBytecode","type":"bytes"},{"internalType":"string","name":"_permission","type":"string"},{"internalType":"address","name":"_addr","type":"address"}],"name":"genMsgStoreCode","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_newAdmin","type":"address"},{"internalType":"address","name":"_contract","type":"address"}],"name":"genMsgUpdateAdmin","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"input","type":"string"}],"name":"invoke","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"_str","type":"string"}],"name":"stringToHexString","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"pure","type":"function"}]`
+	FlagE2cWasmCodeLimit     = "e2c-wasm-code-limit"
+	FlagE2cWasmMsgHelperAddr = "e2c-wasm-msg-helper-addr"
 )
 
 var (
-	wasmQueryParam   = "input"
-	wasmInvalidErr   = fmt.Errorf("invalid input data")
-	wasmHelperABI    *evmtypes.ABI
-	e2cWasmCodeLimit = 1 * 1024
+	wasmQueryParam = "input"
+	wasmInvalidErr = fmt.Errorf("invalid input data")
+	wasmHelperABI  *evmtypes.ABI
 )
 
 func init() {
@@ -132,6 +132,10 @@ func (api *PublicEthereumAPI) isLargeWasmMsgStoreCode(args rpctypes.CallArgs) (c
 	if args.To == nil || args.Data == nil || len(*args.Data) <= int(api.e2cWasmCodeLimit) {
 		return nil, nil, false
 	}
+	// set the e2cWasmMsgHelperAddr should only this contract address judge the large msg store code
+	if api.e2cWasmMsgHelperAddr != "" && !bytes.Equal(common.HexToAddress(api.e2cWasmMsgHelperAddr).Bytes(), args.To.Bytes()) {
+		return nil, nil, false
+	}
 	if !wasmHelperABI.IsMatchFunction(genMsgStoreCode, *args.Data) {
 		return nil, nil, false
 	}
@@ -154,22 +158,22 @@ func ParseMsgStoreCodeParam(input []byte) ([]byte, []interface{}, error) {
 	if len(res) < 1 {
 		return nil, nil, wasmInvalidErr
 	}
-	v, ok := res[0].(string)
+	v, ok := res[0].([]byte)
 	if !ok {
 		return nil, nil, wasmInvalidErr
 	}
-	return []byte(v), res, nil
+	return v, res, nil
 }
 
 func genNullCodeMsgStoreCodeParam(input []interface{}) ([]byte, error) {
 	if len(input) == 0 {
 		return nil, wasmInvalidErr
 	}
-	_, ok := input[0].(string)
+	_, ok := input[0].([]byte)
 	if !ok {
 		return nil, wasmInvalidErr
 	}
-	input[0] = ""
+	input[0] = []byte{}
 	return wasmHelperABI.Pack(genMsgStoreCode, input...)
 }
 
@@ -238,7 +242,7 @@ func msgStoreCodeToHexDecode(msgWrap *MsgWrapper, msc *wasmtypes.MsgStoreCode, c
 }
 
 // get from the cli
-func JudgeWasmCode(input []byte) ([]byte, error) {
+func judgeWasmCode(input []byte) ([]byte, error) {
 	// gzip the wasm file
 	if ioutils.IsWasm(input) {
 		wasm, err := ioutils.GzipIt(input)
