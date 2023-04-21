@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -101,4 +103,11 @@ func (api *PublicEthereumAPI) isWasmCall(args rpctypes.CallArgs) bool {
 		return false
 	}
 	return args.Data != nil && evm.IsMatchSystemContractQuery(*args.Data)
+}
+
+func (api *PublicEthereumAPI) isEvm2CmTx(to *common.Address) bool {
+	if to == nil {
+		return false
+	}
+	return bytes.Equal(api.systemContract, to.Bytes())
 }

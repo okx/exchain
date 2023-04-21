@@ -1310,7 +1310,8 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	monitor := monitor.GetMonitor("eth_getTransactionReceipt", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
 	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
-	if e == nil {
+	// do not use watchdb when it`s a evm2cm tx
+	if e == nil && !api.isEvm2CmTx(res.To) {
 		return res, nil
 	}
 
@@ -1367,6 +1368,17 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	contractAddr := &data.ContractAddress
 	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
 		contractAddr = nil
+	}
+
+	// evm2cm tx logs
+	if api.isEvm2CmTx(ethTx.To()) {
+		data.Logs = append(data.Logs, &ethtypes.Log{
+			Address:     *ethTx.To(),
+			Data:        []byte(tx.TxResult.Log),
+			BlockNumber: uint64(tx.Height),
+			TxHash:      hash,
+			BlockHash:   blockHash,
+		})
 	}
 
 	// fix gasUsed when deliverTx ante handler check sequence invalid
