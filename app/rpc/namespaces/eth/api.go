@@ -89,6 +89,7 @@ type PublicEthereumAPI struct {
 	cdc                *codec.Codec
 	fastQueryThreshold uint64
 	systemContract     []byte
+	e2cWasmCodeLimit   uint64
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -115,6 +116,7 @@ func NewAPI(
 		watcherBackend:     watcher.NewWatcher(log),
 		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
 		systemContract:     getSystemContractAddr(clientCtx),
+		e2cWasmCodeLimit:   viper.GetUint64(FlagE2cWasmCodeLimit),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 	module := evm.AppModuleBasic{}
@@ -881,6 +883,12 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	if err != nil {
 		return nil, err
 	}
+
+	wasmCode, newParam, isWasmMsgStoreCode := api.isLargeWasmMsgStoreCode(args)
+	if isWasmMsgStoreCode {
+		*args.Data = newParam
+	}
+
 	// eth_call for wasm
 	if api.isWasmCall(args) {
 		return api.wasmCall(args, blockNr)
@@ -894,6 +902,15 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
+
+	if isWasmMsgStoreCode {
+		ret, err := replaceToRealWasmCode(data.Ret, wasmCode)
+		if err != nil {
+			return []byte{}, TransformDataError(err, "eth_call replaceToRealWasmCode")
+		}
+		data.Ret = ret
+	}
+
 	if overrides == nil {
 		api.addCallCache(key, data.Ret)
 	}

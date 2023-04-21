@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/x/wasm/ioutils"
 
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/x/evm"
@@ -19,10 +19,26 @@ import (
 	rpctypes "github.com/okex/exchain/app/rpc/types"
 )
 
-var (
-	wasmQueryParam = "input"
-	wasmInvalidErr = fmt.Errorf("invalid input data")
+const (
+	genMsgStoreCode      = "genMsgStoreCode"
+	wasmHelperABIStr     = `[{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgExecuteContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"string","name":"_msg","type":"string"},{"internalType":"string","name":"amount","type":"string"}],"name":"genMsgExecuteContractWithOKT","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_label","type":"string"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgInstantiateContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_label","type":"string"},{"internalType":"string","name":"_msg","type":"string"},{"internalType":"string","name":"amount","type":"string"}],"name":"genMsgInstantiateContractWithOKT","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"}],"name":"genMsgMigrateContract","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_contract","type":"address"},{"internalType":"uint256","name":"_codeID","type":"uint256"},{"internalType":"string","name":"_msg","type":"string"}],"name":"genMsgMigrateContractWithMSG","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"_wasmBytecode","type":"string"},{"internalType":"string","name":"_permission","type":"string"},{"internalType":"address","name":"_addr","type":"address"}],"name":"genMsgStoreCode","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_newAdmin","type":"address"},{"internalType":"address","name":"_contract","type":"address"}],"name":"genMsgUpdateAdmin","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"input","type":"string"}],"name":"invoke","outputs":[],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"_str","type":"string"}],"name":"stringToHexString","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"pure","type":"function"}]`
+	FlagE2cWasmCodeLimit = "e2c-wasm-code-limit"
 )
+
+var (
+	wasmQueryParam   = "input"
+	wasmInvalidErr   = fmt.Errorf("invalid input data")
+	wasmHelperABI    *evmtypes.ABI
+	e2cWasmCodeLimit = 1 * 1024
+)
+
+func init() {
+	abi, err := evmtypes.NewABI(wasmHelperABIStr)
+	if err != nil {
+		panic(fmt.Errorf("wasm abi json decode failed: %s", err.Error()))
+	}
+	wasmHelperABI = abi
+}
 
 func getSystemContractAddr(clientCtx clientcontext.CLIContext) []byte {
 	route := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QuerySysContractAddress)
@@ -110,4 +126,128 @@ func (api *PublicEthereumAPI) isEvm2CmTx(to *common.Address) bool {
 		return false
 	}
 	return bytes.Equal(api.systemContract, to.Bytes())
+}
+
+func (api *PublicEthereumAPI) isLargeWasmMsgStoreCode(args rpctypes.CallArgs) (code, newparam []byte, is bool) {
+	if args.To == nil || args.Data == nil || len(*args.Data) <= int(api.e2cWasmCodeLimit) {
+		return nil, nil, false
+	}
+	if !wasmHelperABI.IsMatchFunction(genMsgStoreCode, *args.Data) {
+		return nil, nil, false
+	}
+	data, res, err := ParseMsgStoreCodeParam(*args.Data)
+	if err != nil {
+		return nil, nil, false
+	}
+	newparam, err = genNullCodeMsgStoreCodeParam(res)
+	if err != nil {
+		return nil, nil, false
+	}
+	return data, newparam, true
+}
+
+func ParseMsgStoreCodeParam(input []byte) ([]byte, []interface{}, error) {
+	res, err := wasmHelperABI.DecodeInputParam(genMsgStoreCode, input)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(res) < 1 {
+		return nil, nil, wasmInvalidErr
+	}
+	v, ok := res[0].(string)
+	if !ok {
+		return nil, nil, wasmInvalidErr
+	}
+	return []byte(v), res, nil
+}
+
+func genNullCodeMsgStoreCodeParam(input []interface{}) ([]byte, error) {
+	if len(input) == 0 {
+		return nil, wasmInvalidErr
+	}
+	_, ok := input[0].(string)
+	if !ok {
+		return nil, wasmInvalidErr
+	}
+	input[0] = ""
+	return wasmHelperABI.Pack(genMsgStoreCode, input...)
+}
+
+type MsgWrapper struct {
+	Name string          `json:"type"`
+	Data json.RawMessage `json:"value"`
+}
+
+func replaceToRealWasmCode(ret, code []byte) ([]byte, error) {
+	re, err := wasmHelperABI.Unpack(genMsgStoreCode, ret)
+	if err != nil || len(re) != 1 {
+		return nil, wasmInvalidErr
+	}
+	hexdata, ok := re[0].(string)
+	if !ok {
+		return nil, wasmInvalidErr
+	}
+
+	// decode
+	msgWrap, msc, err := hexDecodeToMsgStoreCode(hexdata)
+	if err != nil {
+		return nil, err
+	}
+
+	// replace and encode
+	rstr, err := msgStoreCodeToHexDecode(msgWrap, msc, code)
+	if err != nil {
+		return nil, err
+	}
+
+	rret, err := wasmHelperABI.EncodeOutput(genMsgStoreCode, []byte(rstr))
+	if err != nil {
+		return nil, err
+	}
+	return rret, nil
+}
+
+func hexDecodeToMsgStoreCode(input string) (*MsgWrapper, *wasmtypes.MsgStoreCode, error) {
+	value, err := hex.DecodeString(input)
+	if err != nil {
+		return nil, nil, err
+	}
+	var msgWrap MsgWrapper
+	if err := json.Unmarshal(value, &msgWrap); err != nil {
+		return nil, nil, err
+	}
+	var msc wasmtypes.MsgStoreCode
+	if err := json.Unmarshal(msgWrap.Data, &msc); err != nil {
+		return nil, nil, err
+	}
+	return &msgWrap, &msc, nil
+}
+
+func msgStoreCodeToHexDecode(msgWrap *MsgWrapper, msc *wasmtypes.MsgStoreCode, code []byte) (string, error) {
+	msc.WASMByteCode = code
+	v, err := json.Marshal(msc)
+	if err != nil {
+		return "", err
+	}
+	msgWrap.Data = v
+	rData, err := json.Marshal(msgWrap)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(rData), nil
+}
+
+// get from the cli
+func JudgeWasmCode(input []byte) ([]byte, error) {
+	// gzip the wasm file
+	if ioutils.IsWasm(input) {
+		wasm, err := ioutils.GzipIt(input)
+		if err != nil {
+			return nil, err
+		}
+		return wasm, nil
+	} else if !ioutils.IsGzip(input) {
+		return nil, fmt.Errorf("invalid input file. Use wasm binary or gzip")
+	}
+	return input, nil
 }
