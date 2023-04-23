@@ -1397,6 +1397,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	if api.isEvm2CmTx(ethTx.To()) {
 		data.Logs = append(data.Logs, &ethtypes.Log{
 			Address:     *ethTx.To(),
+			Topics:      []common.Hash{hash},
 			Data:        []byte(tx.TxResult.Log),
 			BlockNumber: uint64(tx.Height),
 			TxHash:      hash,
