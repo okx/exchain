@@ -276,7 +276,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		msgEthTx.SetFrom(ctx.From())
 		address = msgEthTx.AccountAddress()
 	}
-	if !address.Empty() && msgEthTx.From == "" {
+	if ctx.IsCheckTx() && !address.Empty() && msgEthTx.From == "" {
 		msgEthTx.SetFrom(common.BytesToAddress(address.Bytes()).String())
 	}
 	if !simulate {
