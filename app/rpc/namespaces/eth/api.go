@@ -117,7 +117,6 @@ func NewAPI(
 		watcherBackend:       watcher.NewWatcher(log),
 		fastQueryThreshold:   viper.GetUint64(FlagFastQueryThreshold),
 		systemContract:       getSystemContractAddr(clientCtx),
-		e2cWasmCodeLimit:     viper.GetUint64(FlagE2cWasmCodeLimit),
 		e2cWasmMsgHelperAddr: viper.GetString(FlagE2cWasmMsgHelperAddr),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
