@@ -9,9 +9,7 @@ import (
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -118,8 +116,7 @@ func NewReadStore(pre []byte) sdk.KVStore {
 type Adapter struct{}
 
 func (a Adapter) NewStore(gasMeter sdk.GasMeter, _ sdk.KVStore, pre []byte) sdk.KVStore {
-	store := NewReadStore(pre)
-	return gaskv.NewStore(store, gasMeter, stypes.KVGasConfig())
+	return NewReadStore(pre)
 }
 
 type readStore struct {
