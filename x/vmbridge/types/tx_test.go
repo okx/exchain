@@ -163,3 +163,170 @@ func TestMsgSendToEvm_ValidateBasic(t *testing.T) {
 		})
 	}
 }
+
+func TestMsgCallToEvm_GetSigners(t *testing.T) {
+	testCases := []struct {
+		name   string
+		msg    MsgCallToEvm
+		isErr  bool
+		expect []sdk.AccAddress
+	}{
+		{
+			name:   "normal",
+			msg:    MsgCallToEvm{Sender: sdk.AccAddress{0x1}.String()},
+			expect: []sdk.AccAddress{sdk.AccAddress{0x1}},
+		},
+		{
+			name:  "sender is empty",
+			msg:   MsgCallToEvm{},
+			isErr: true,
+		},
+		{
+			name:  "sender is error",
+			msg:   MsgCallToEvm{Sender: "0x1111"},
+			isErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(tt *testing.T) {
+
+			defer func() {
+				r := recover()
+				if tc.isErr {
+					require.NotNil(t, r)
+					require.Error(tt, r.(error))
+				}
+			}()
+			result := tc.msg.GetSigners()
+			require.Equal(tt, tc.expect, result)
+		})
+	}
+}
+
+func TestMsgCallToEvm_GetSignBytes(t *testing.T) {
+	testCases := []struct {
+		name  string
+		msg   MsgCallToEvm
+		isErr bool
+	}{
+		{
+			name:  "normal",
+			msg:   MsgCallToEvm{Sender: sdk.AccAddress{0x1}.String(), Evmaddr: sdk.AccAddress{0x2}.String(), Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "sender is empty",
+			msg:   MsgCallToEvm{Evmaddr: sdk.AccAddress{0x2}.String(), Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "sender is error",
+			msg:   MsgCallToEvm{Sender: "ex111", Evmaddr: sdk.AccAddress{0x2}.String(), Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "contract is error",
+			msg:   MsgCallToEvm{Sender: sdk.AccAddress{0x1}.String(), Evmaddr: "ex111", Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "Calldata is empty",
+			msg:   MsgCallToEvm{Sender: sdk.AccAddress{0x1}.String(), Evmaddr: sdk.AccAddress{0x2}.String(), Value: sdk.NewInt(1)},
+			isErr: true,
+		},
+		{
+			name:  "amount is negative",
+			msg:   MsgCallToEvm{Sender: sdk.AccAddress{0x1}.String(), Evmaddr: sdk.AccAddress{0x2}.String(), Value: sdk.NewInt(-1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(tt *testing.T) {
+
+			defer func() {
+				r := recover()
+				if tc.isErr {
+					require.NotNil(t, r)
+					require.Error(tt, r.(error))
+				}
+			}()
+			tc.msg.GetSignBytes()
+		})
+	}
+}
+
+func TestMsgCallToEvm_ValidateBasic(t *testing.T) {
+	addrEx := sdk.AccAddress(make([]byte, 20)).String()
+	addr0x := sdk.WasmAddress(make([]byte, 20)).String()
+	addr := sdk.AccAddress{0x1}.String()
+	errAddr := "error addr"
+	testCases := []struct {
+		name  string
+		msg   MsgCallToEvm
+		isErr bool
+	}{
+		{
+			name:  "normal",
+			msg:   MsgCallToEvm{Sender: addr0x, Evmaddr: addr0x, Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: false,
+		},
+		{
+			name:  "sender is empty",
+			msg:   MsgCallToEvm{Evmaddr: "", Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "sender is error",
+			msg:   MsgCallToEvm{Sender: errAddr, Evmaddr: addr0x, Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "sender is incorrect length",
+			msg:   MsgCallToEvm{Sender: addr, Evmaddr: addr0x, Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "sender is ex",
+			msg:   MsgCallToEvm{Sender: addrEx, Evmaddr: addr0x, Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: false,
+		},
+		{
+			name:  "contract is empty",
+			msg:   MsgCallToEvm{Sender: addr0x, Evmaddr: "", Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "contract is error",
+			msg:   MsgCallToEvm{Sender: addr0x, Evmaddr: errAddr, Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "contract is incorrect length ",
+			msg:   MsgCallToEvm{Sender: addr0x, Evmaddr: addr, Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+		{
+			name:  "contract is ex ",
+			msg:   MsgCallToEvm{Sender: addr0x, Evmaddr: addrEx, Value: sdk.NewInt(1), Calldata: "CALL DATA"},
+			isErr: false,
+		},
+		{
+			name:  "amount is negative",
+			msg:   MsgCallToEvm{Sender: addr0x, Evmaddr: addr0x, Value: sdk.NewInt(-1), Calldata: "CALL DATA"},
+			isErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(tt *testing.T) {
+			if err := tc.msg.ValidateBasic(); tc.isErr {
+				require.Error(tt, err)
+			} else {
+				require.NoError(tt, err)
+			}
+
+		})
+	}
+}

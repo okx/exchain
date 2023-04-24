@@ -59,7 +59,7 @@ func TestGenesisExportImport(t *testing.T) {
 		f.Fuzz(&pinned)
 		f.Fuzz(&contractExtension)
 
-		creatorAddr, err := sdk.AccAddressFromBech32(codeInfo.Creator)
+		creatorAddr, err := sdk.WasmAddressFromBech32(codeInfo.Creator)
 		require.NoError(t, err)
 		codeID, err := contractKeeper.Create(srcCtx, creatorAddr, wasmCode, &codeInfo.InstantiateConfig)
 		require.NoError(t, err)
@@ -104,7 +104,7 @@ func TestGenesisExportImport(t *testing.T) {
 	dstKeeper, dstCtx, dstStoreKeys := setupKeeper(t)
 
 	// reset contract code index in source DB for comparison with dest DB
-	wasmKeeper.IterateContractInfo(srcCtx, func(address sdk.AccAddress, info wasmTypes.ContractInfo) bool {
+	wasmKeeper.IterateContractInfo(srcCtx, func(address sdk.WasmAddress, info wasmTypes.ContractInfo) bool {
 		wasmKeeper.removeFromContractCodeSecondaryIndex(srcCtx, address, wasmKeeper.getLastContractHistoryEntry(srcCtx, address))
 		prefixStore := prefix.NewStore(srcCtx.KVStore(wasmKeeper.storeKey), types.GetContractCodeHistoryElementPrefix(address))
 		iter := prefixStore.Iterator(nil, nil)
@@ -458,10 +458,10 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
       "code_id": "1",
       "code_info": {
         "code_hash": %q,
-        "creator": "cosmos1qtu5n0cnhfkjj6l2rq97hmky9fd89gwca9yarx",
+        "creator": "ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0",
         "instantiate_config": {
           "permission": "OnlyAddress",
-          "address": "cosmos1qtu5n0cnhfkjj6l2rq97hmky9fd89gwca9yarx"
+          "address": "ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0"
         }
       },
       "code_bytes": %q
@@ -469,11 +469,11 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
   ],
   "contracts": [
     {
-      "contract_address": "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr",
+      "contract_address": "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b",
       "contract_info": {
         "code_id": "1",
-        "creator": "cosmos13x849jzd03vne42ynpj25hn8npjecxqrjghd8x",
-        "admin": "cosmos1h5t8zxmjr30e9dqghtlpl40f2zz5cgey6esxtn",
+        "creator": "ex1fsfwwvl93qv6r56jpu084hxxzn9zphnyxhske5",
+        "admin": "ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
         "label": "ȀĴnZV芢毤"
       }
     }
@@ -513,7 +513,7 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	// verify code info
 	gotCodeInfo := keeper.GetCodeInfo(ctx, 1)
 	require.NotNil(t, gotCodeInfo)
-	codeCreatorAddr := "cosmos1qtu5n0cnhfkjj6l2rq97hmky9fd89gwca9yarx"
+	codeCreatorAddr := "ex190227rqaps5nplhg2tg8hww7slvvquzy0qa0l0"
 	expCodeInfo := types.CodeInfo{
 		CodeHash: wasmCodeHash[:],
 		Creator:  codeCreatorAddr,
@@ -525,11 +525,11 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	assert.Equal(t, expCodeInfo, *gotCodeInfo)
 
 	// verify contract
-	contractAddr, _ := sdk.AccAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+	contractAddr, _ := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 	gotContractInfo := keeper.GetContractInfo(ctx, contractAddr)
 	require.NotNil(t, gotContractInfo)
-	contractCreatorAddr := "cosmos13x849jzd03vne42ynpj25hn8npjecxqrjghd8x"
-	adminAddr := "cosmos1h5t8zxmjr30e9dqghtlpl40f2zz5cgey6esxtn"
+	contractCreatorAddr := "ex1fsfwwvl93qv6r56jpu084hxxzn9zphnyxhske5"
+	adminAddr := "ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9"
 
 	expContractInfo := types.ContractInfo{
 		CodeID:  firstCodeID,
@@ -556,9 +556,9 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
 	require.NoError(t, err)
 	var (
-		myAddress          sdk.AccAddress = bytes.Repeat([]byte{1}, types.ContractAddrLen)
-		verifierAddress    sdk.AccAddress = bytes.Repeat([]byte{2}, types.ContractAddrLen)
-		beneficiaryAddress sdk.AccAddress = bytes.Repeat([]byte{3}, types.ContractAddrLen)
+		myAddress          sdk.WasmAddress = bytes.Repeat([]byte{1}, types.SDKAddrLen)
+		verifierAddress    sdk.WasmAddress = bytes.Repeat([]byte{2}, types.SDKAddrLen)
+		beneficiaryAddress sdk.WasmAddress = bytes.Repeat([]byte{3}, types.SDKAddrLen)
 	)
 	const denom = "stake"
 	importState := types.GenesisState{
@@ -620,7 +620,7 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 	require.NotNil(t, cInfo)
 
 	// verify contract executed
-	coins := keepers.BankKeeper.GetCoins(ctx, beneficiaryAddress)
+	coins := keepers.BankKeeper.GetCoins(ctx, sdk.WasmToAccAddress(beneficiaryAddress))
 	gotBalance := coins.AmountOf(denom)
 	assert.Equal(t, sdk.NewCoin(denom, sdk.NewInt(10)), sdk.NewDecCoinFromDec(denom, gotBalance))
 }

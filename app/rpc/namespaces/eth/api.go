@@ -51,9 +51,11 @@ import (
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/erc20"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/vmbridge"
 )
 
 const (
@@ -971,7 +973,23 @@ func (api *PublicEthereumAPI) doCall(
 
 	//only worked when fast-query has been enabled
 	if sim != nil && useWatch {
-		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
+		simRes, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
+		if err != nil {
+			return simRes, err
+		}
+		data, err := evmtypes.DecodeResultData(simRes.Result.Data)
+		if err != nil {
+			return simRes, err
+		}
+		tempHooks := evm.NewLogProcessEvmHook(
+			erc20.NewSendToIbcEventHandler(erc20.Keeper{}),
+			erc20.NewSendNative20ToIbcEventHandler(erc20.Keeper{}),
+			vmbridge.NewSendToWasmEventHandler(vmbridge.Keeper{}),
+			vmbridge.NewCallToWasmEventHandler(vmbridge.Keeper{}),
+		)
+		if ok := tempHooks.IsCanHooked(data.Logs); !ok {
+			return simRes, nil
+		}
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -1341,6 +1359,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	if len(data.Logs) == 0 || status == 0 {
 		data.Logs = []*ethtypes.Log{}
 		data.Bloom = ethtypes.BytesToBloom(make([]byte, 256))
+	}
+	for k, log := range data.Logs {
+		if len(log.Topics) == 0 {
+			data.Logs[k].Topics = make([]common.Hash, 0)
+		}
 	}
 
 	contractAddr := &data.ContractAddress

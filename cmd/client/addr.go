@@ -1,8 +1,8 @@
 package client
 
 import (
-	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/system"
 	"strings"
 
@@ -22,10 +22,10 @@ type accAddrToPrefixFunc func(sdk.AccAddress, string) string
 func AddrCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "addr",
-		Short: "opreate all kind of address in the "+system.ChainName+" network",
-		Long: ` Address is a identification for join in the `+system.ChainName+` network.
+		Short: "opreate all kind of address in the " + system.ChainName + " network",
+		Long: ` Address is a identification for join in the ` + system.ChainName + ` network.
 
-	The address in `+system.ChainName+` network begins with "ex" or "0x"`,
+	The address in ` + system.ChainName + ` network begins with "ex" or "0x"`,
 	}
 	cmd.AddCommand(convertCommand())
 	return cmd
@@ -35,7 +35,7 @@ func AddrCommands() *cobra.Command {
 func convertCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "convert [sourceAddr]",
-		Short: "convert source address to all kind of address in the "+system.ChainName+" network",
+		Short: "convert source address to all kind of address in the " + system.ChainName + " network",
 		Long: `sourceAddr must be begin with "okexchain","ex" or "0x".
 	
 	When input one of these address, we will convert to the other kinds.`,
@@ -68,8 +68,11 @@ func convertCommand() *cobra.Command {
 				accAddr, err = bech32ToAccAddr(exPrefix, srcAddr)
 
 			case strings.HasPrefix(srcAddr, rawPrefix):
-				addrList[rawPrefix] = srcAddr
 				accAddr, err = hexToAccAddr(rawPrefix, srcAddr)
+				if err != nil {
+					return err
+				}
+				addrList[rawPrefix] = common.BytesToAddress(accAddr.Bytes()).String()
 
 			default:
 				return fmt.Errorf("unsupported prefix to convert")
@@ -120,5 +123,5 @@ func hexToAccAddr(prefix string, srcAddr string) (sdk.AccAddress, error) {
 
 // hexFromAccAddr create a hex string from an account address
 func hexFromAccAddr(accAddr sdk.AccAddress, prefix string) string {
-	return prefix + hex.EncodeToString(accAddr.Bytes())
+	return common.BytesToAddress(accAddr.Bytes()).String()
 }

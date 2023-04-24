@@ -48,6 +48,9 @@ const (
 	// LatestSimulateTxHeight is the height to simulate tx based on the state of latest block height
 	// only for runTxModeSimulate
 	LatestSimulateTxHeight = 0
+
+	// SimulationGasLimit gas limit of Simulation, limit only stdTx, especially wasm stdTx
+	SimulationGasLimit = 50000000
 )
 
 var (
@@ -152,6 +155,7 @@ type BaseApp struct { // nolint: maligned
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
+	updateCMTxNonceHandler sdk.UpdateCMTxNonceHandler
 
 	// volatile states:
 	//

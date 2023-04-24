@@ -54,7 +54,7 @@ func (c Code) ValidateBasic() error {
 }
 
 func (c Contract) ValidateBasic() error {
-	if _, err := sdk.AccAddressFromBech32(c.ContractAddress); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(c.ContractAddress); err != nil {
 		return sdkerrors.Wrap(err, "contract address")
 	}
 	if err := c.ContractInfo.ValidateBasic(); err != nil {
