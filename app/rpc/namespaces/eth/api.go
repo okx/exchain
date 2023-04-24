@@ -1360,6 +1360,11 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		data.Logs = []*ethtypes.Log{}
 		data.Bloom = ethtypes.BytesToBloom(make([]byte, 256))
 	}
+	for k, log := range data.Logs {
+		if len(log.Topics) == 0 {
+			data.Logs[k].Topics = make([]common.Hash, 0)
+		}
+	}
 
 	contractAddr := &data.ContractAddress
 	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
