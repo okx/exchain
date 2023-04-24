@@ -19,10 +19,8 @@ const (
 )
 
 func calculateWeight(nowTime int64, tokens sdk.Dec, height int64) (shares types.Shares, sdkErr error) {
-	var nowWeek int64
-	if types2.HigherThanVenus6(height) {
-		nowWeek = fixedWeek
-	} else {
+	nowWeek := fixedWeek
+	if !types2.HigherThanVenus6(height) {
 		nowWeek = (nowTime - blockTimestampEpoch) / secondsPerWeek
 	}
 
