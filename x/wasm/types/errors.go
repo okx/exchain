@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkErrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
@@ -88,6 +90,12 @@ var (
 
 	// ErrExceedMaxQueryStackSize error if max query stack size is exceeded
 	ErrExceedMaxQueryStackSize = sdkErrors.Register(DefaultCodespace, 27, "max query stack size exceeded")
+
+	ErrCodeInvalidGasFactor       = sdkErrors.Register(DefaultCodespace, 29, "invalid gas factor")
+	ErrHandleExtraProposal        = sdkErrors.Register(DefaultCodespace, 30, "handle extra proposal error")
+	ErrUnknownExtraProposalAction = sdkErrors.Register(DefaultCodespace, 31, "extra proposal's action unknown")
+
+	ErrProposerMustBeValidator = sdkErrors.Register(DefaultCodespace, 32, "the proposal of proposer must be validator")
 )
 
 type ErrNoSuchContract struct {
@@ -106,7 +114,7 @@ func (m *ErrNoSuchContract) Codespace() string {
 	return DefaultCodespace
 }
 
-func GenerateUnauthorizeError(act AccessType) string{
+func GenerateUnauthorizeError(act AccessType) string {
 	switch act {
 	case AccessTypeNobody:
 		return "Failed to create code, nobody allowed to upload contract"
@@ -114,4 +122,8 @@ func GenerateUnauthorizeError(act AccessType) string{
 		return "Failed to create code, you are not allowed to upload contract as you are not on the authorized list"
 	}
 	return "Failed to create code, unexpected error"
+}
+
+func ErrExtraProposalParams(desc string) sdk.Error {
+	return sdkErrors.New(DefaultCodespace, 28, fmt.Sprintf("wasm extra proposal error:%s", desc))
 }

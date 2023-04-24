@@ -59,6 +59,8 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 			return handleUpdateInstantiateConfigProposal(ctx, k, *c)
 		case *types.UpdateDeploymentWhitelistProposal:
 			return handleUpdateDeploymentWhitelistProposal(ctx, k, *c)
+		case *types.ExtraProposal:
+			return handleExtraProposal(ctx, k, *c)
 		case *types.UpdateWASMContractMethodBlockedListProposal:
 			return handleUpdateWASMContractMethodBlockedListProposal(ctx, k, *c)
 		default:
@@ -284,6 +286,10 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 	}
 	k.UpdateUploadAccessConfig(ctx, result)
 	return nil
+}
+
+func handleExtraProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.ExtraProposal) (err error) {
+	return k.InvokeExtraProposal(ctx, p.Action, p.Extra)
 }
 
 func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateWASMContractMethodBlockedListProposal) error {

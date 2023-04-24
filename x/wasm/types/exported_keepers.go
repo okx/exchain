@@ -23,6 +23,7 @@ type ViewKeeper interface {
 	IsPinnedCode(ctx sdk.Context, codeID uint64) bool
 	GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *ContractMethods
 	GetParams(ctx sdk.Context) Params
+	GetGasFactor(ctx sdk.Context) uint64
 }
 
 // ContractOpsKeeper contains mutable operations on a contract.
@@ -68,6 +69,9 @@ type ContractOpsKeeper interface {
 
 	// GetParams get params from paramsubspace.
 	GetParams(ctx sdk.Context) Params
+
+	// InvokeExtraProposal invoke extra proposal
+	InvokeExtraProposal(ctx sdk.Context, action string, extra string) error
 }
 
 // IBCContractKeeper IBC lifecycle event handler

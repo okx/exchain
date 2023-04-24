@@ -107,6 +107,18 @@ type CListMempool struct {
 	rmPendingTxChan chan types.EventDataRmPendingTx
 
 	gpo *Oracle
+
+	info pguInfo
+}
+
+type pguInfo struct {
+	txCount int64
+	gasUsed int64
+}
+
+func (p *pguInfo) reset() {
+	p.txCount = 0
+	p.gasUsed = 0
 }
 
 var _ Mempool = &CListMempool{}
@@ -344,16 +356,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	defer mem.updateMtx.RUnlock()
 
 	var err error
-	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
-		if gasUsed < 0 {
-			simuRes, err := mem.simulateTx(tx)
-			if err != nil {
-				return err
-			}
-			gasUsed = int64(simuRes.GasUsed)
-		}
+		txInfo.gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
 	}
 
 	if mem.preCheck != nil {
@@ -371,16 +375,16 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		types.SignatureCache().Add(txkey[:], txInfo.from)
 	}
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom(), Nonce: nonce})
-	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
-		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
+	if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
+		if txInfo.gasUsed <= 0 || txInfo.gasUsed > r.CheckTx.GasWanted {
+			txInfo.gasUsed = r.CheckTx.GasWanted
+		}
+		if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
-			if gasUsed < r.CheckTx.GasWanted {
-				r.CheckTx.GasWanted = gasUsed
-			}
-
+				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, txInfo.gasUsed))
 		}
 	}
+
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
 	atomic.AddInt64(&mem.checkCnt, 1)
 
@@ -702,7 +706,8 @@ func (mem *CListMempool) resCbFirstTime(
 
 			memTx := &mempoolTx{
 				height:      mem.Height(),
-				gasWanted:   r.CheckTx.GasWanted,
+				gasLimit:    r.CheckTx.GasWanted,
+				gasWanted:   txInfo.gasUsed,
 				tx:          tx,
 				realTx:      r.CheckTx.Tx,
 				nodeKey:     txInfo.wtx.GetNodeKey(),
@@ -862,8 +867,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
-		trace.GetElapsedInfo().AddInfo(trace.SimTx, fmt.Sprintf("%d:%d", mem.Height()+1, simCount))
-		trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, fmt.Sprintf("%d:%d", mem.Height()+1, simGas))
+		mem.info.txCount = simCount
+		mem.info.gasUsed = simGas
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
@@ -993,6 +998,9 @@ func (mem *CListMempool) Update(
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
 	}
+	trace.GetElapsedInfo().AddInfo(trace.SimTx, fmt.Sprintf("%d", mem.info.txCount))
+	trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, fmt.Sprintf("%d", mem.info.gasUsed))
+	mem.info.reset()
 
 	// Set height
 	atomic.StoreInt64(&mem.height, height)
@@ -1245,8 +1253,9 @@ func MultiPriceBump(rawPrice *big.Int, priceBump int64) *big.Int {
 
 // mempoolTx is a transaction that successfully ran
 type mempoolTx struct {
-	height      int64    // height that this tx had been validated in
-	gasWanted   int64    // amount of gas this tx states it will require
+	height      int64 // height that this tx had been validated in
+	gasWanted   int64 // amount of gas this tx states it will require
+	gasLimit    int64
 	tx          types.Tx //
 	realTx      abci.TxEssentials
 	nodeKey     []byte
@@ -1447,10 +1456,10 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 		return
 	}
 	gas := int64(simuRes.GasUsed) * int64(cfg.DynamicConfig.GetPGUAdjustment()*100) / 100
-	atomic.StoreInt64(&memTx.gasWanted, gas)
-	if gas < atomic.LoadInt64(&memTx.gasWanted) {
+	if gas < atomic.LoadInt64(&memTx.gasLimit) {
 		atomic.StoreInt64(&memTx.gasWanted, gas)
 	}
+	atomic.AddUint32(&memTx.isSim, 1)
 	mem.gasCache.Add(hex.EncodeToString(memTx.realTx.TxHash()), gas)
 }
 
