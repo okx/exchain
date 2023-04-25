@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strconv"
 	"sync"
@@ -107,43 +108,24 @@ type CListMempool struct {
 	rmPendingTxChan chan types.EventDataRmPendingTx
 
 	gpo *Oracle
-
-	filter *cmTxFilter
 }
 
-type cmTxFilter struct {
-	sync.Mutex
-	m map[string]int
-}
-
-func newCmTxFilter() *cmTxFilter {
-	return &cmTxFilter{
-		m: make(map[string]int),
-	}
-}
-
-func (c *cmTxFilter) add(tx abci.TxEssentials) bool {
+func (mem *CListMempool) filterCMTx(tx abci.TxEssentials) bool {
 	if tx.GetType() != abci.StdTxType {
 		return true
 	}
-	c.Lock()
-	defer c.Unlock()
-	if c.m[tx.GetFrom()] == 0 {
-		c.m[tx.GetFrom()] += 1
-		return true
+	if mem.txs.GetAddressTxsCnt(tx.GetFrom()) != 0 {
+		return false
 	}
-	return false
-}
 
-func (c *cmTxFilter) done(tx abci.TxEssentials) {
-	if tx.GetType() != abci.StdTxType {
-		return
+	if tx2, ok := tx.(abci.TxFilter); ok {
+		addr := ethcmn.BytesToAddress(tx2.GetFromBytes()).String()
+		if mem.txs.GetAddressTxsCnt(addr) != 0 {
+			return false
+		}
 	}
-	c.Lock()
-	defer c.Unlock()
-	if c.m[tx.GetFrom()] > 0 {
-		c.m[tx.GetFrom()] -= 1
-	}
+
+	return true
 }
 
 var _ Mempool = &CListMempool{}
@@ -184,7 +166,6 @@ func NewCListMempool(
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
 		gpo:           gpo,
-		filter:        newCmTxFilter(),
 	}
 
 	if config.PendingRemoveEvent {
@@ -730,7 +711,7 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
-			if !mem.filter.add(r.CheckTx.Tx) {
+			if !mem.filterCMTx(r.CheckTx.Tx) {
 				mem.cache.RemoveKey(txkey)
 				errMsg := "The transaction could not be added to the mempool as there is already another transaction from the same sender in the mempool"
 				mem.logger.Error(errMsg)
@@ -1065,7 +1046,6 @@ func (mem *CListMempool) Update(
 			nonce = ele.Nonce
 			gasPricePerTx = ele.GasPrice
 			mem.logUpdate(ele.Address, ele.Nonce)
-			mem.filter.done(ele.Value.(*mempoolTx).realTx)
 		} else {
 			if mem.txInfoparser != nil {
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)

@@ -280,6 +280,14 @@ func (tx *StdTx) GetFrom() string {
 	return signers[0].String()
 }
 
+func (tx *StdTx) GetFromBytes() []byte {
+	signers := tx.GetSigners()
+	if len(signers) == 0 {
+		return nil
+	}
+	return signers[0]
+}
+
 func (tx *StdTx) GetSender(_ sdk.Context) string {
 	return tx.GetFrom()
 }

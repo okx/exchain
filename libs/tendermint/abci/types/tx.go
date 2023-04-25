@@ -31,6 +31,10 @@ type TxEssentials interface {
 	GetType() TransactionType
 }
 
+type TxFilter interface {
+	GetFromBytes() []byte
+}
+
 type MockTx struct {
 	Raw      []byte
 	Hash     []byte
