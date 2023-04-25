@@ -18,7 +18,7 @@ func NewWrapWasmCountTXDecorator(ctd *wasmkeeper.CountTXDecorator, evmKeeper EVM
 }
 
 func (a WrapWasmCountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if isE2CTx(a.evmKeeper, &ctx, tx) && tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+	if tmtypes.HigherThanVenus6(ctx.BlockHeight()) && isE2CTx(a.evmKeeper, &ctx, tx) {
 		return a.ctd.AnteHandle(ctx, tx, simulate, next)
 	}
 	return next(ctx, tx, simulate)

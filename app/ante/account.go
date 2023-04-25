@@ -2,6 +2,7 @@ package ante
 
 import (
 	"bytes"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strconv"
 	"strings"
@@ -155,7 +156,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 func ethGasConsume(ek EVMKeeper, ak accountKeeperInterface, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
 	gasLimit := msgEthTx.GetGas()
 
-	if !IsE2CTx(ek, ctx, msgEthTx) { // e2c tx no need ethcore check gas
+	if shouldIntrinsicGas(ek, ctx, msgEthTx) {
 		gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 		if err != nil {
 			return sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
@@ -192,7 +193,18 @@ func ethGasConsume(ek EVMKeeper, ak accountKeeperInterface, sk types.SupplyKeepe
 	return nil
 }
 
+func shouldIntrinsicGas(ek EVMKeeper, ctx *sdk.Context, msgEthTx *evmtypes.MsgEthereumTx) bool {
+	if !tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+		return true
+	} else { // e2c tx no need ethcore check gas than Venus6
+		return !IsE2CTx(ek, ctx, msgEthTx)
+	}
+}
+
 func IsE2CTx(ek EVMKeeper, ctx *sdk.Context, msgEthTx *evmtypes.MsgEthereumTx) bool {
+	currentGasmeter := ctx.GasMeter()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	defer ctx.SetGasMeter(currentGasmeter)
 	toAddr, ok := evm.EvmConvertJudge(msgEthTx)
 	if ok && len(toAddr) != 0 && ek.IsMatchSysContractAddress(*ctx, toAddr) {
 		return true
