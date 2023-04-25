@@ -732,7 +732,7 @@ func (mem *CListMempool) resCbFirstTime(
 
 			if !mem.filter.add(r.CheckTx.Tx) {
 				mem.cache.RemoveKey(txkey)
-				errMsg := "there is another cmtx, please wait"
+				errMsg := "The transaction could not be added to the mempool as there is already another transaction from the same sender in the mempool"
 				mem.logger.Error(errMsg)
 				r.CheckTx.Code = 1
 				r.CheckTx.Log = errMsg
