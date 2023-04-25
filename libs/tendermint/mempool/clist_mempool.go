@@ -107,6 +107,44 @@ type CListMempool struct {
 	rmPendingTxChan chan types.EventDataRmPendingTx
 
 	gpo *Oracle
+
+	filter *cmTxFilter
+}
+
+type cmTxFilter struct {
+	sync.Mutex
+	m map[string]int
+}
+
+func newCmTxFilter() *cmTxFilter {
+	return &cmTxFilter{
+		m: make(map[string]int),
+	}
+}
+
+func (c *cmTxFilter) add(tx abci.TxEssentials) bool {
+	fmt.Println("debug type:", tx.GetType())
+	if tx.GetType() != abci.StdTxType {
+		return true
+	}
+	c.Lock()
+	defer c.Unlock()
+	if c.m[tx.GetFrom()] == 0 {
+		c.m[tx.GetFrom()] += 1
+		return true
+	}
+	return false
+}
+
+func (c *cmTxFilter) done(tx abci.TxEssentials) {
+	if tx.GetType() != abci.StdTxType {
+		return
+	}
+	c.Lock()
+	defer c.Unlock()
+	if c.m[tx.GetFrom()] > 0 {
+		c.m[tx.GetFrom()] -= 1
+	}
 }
 
 var _ Mempool = &CListMempool{}
@@ -147,6 +185,7 @@ func NewCListMempool(
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
 		gpo:           gpo,
+		filter:        newCmTxFilter(),
 	}
 
 	if config.PendingRemoveEvent {
@@ -692,6 +731,15 @@ func (mem *CListMempool) resCbFirstTime(
 				return
 			}
 
+			if !mem.filter.add(r.CheckTx.Tx) {
+				mem.cache.RemoveKey(txkey)
+				errMsg := "there is another cmtx, please wait"
+				mem.logger.Error(errMsg)
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = errMsg
+				return
+			}
+
 			memTx := &mempoolTx{
 				height:      mem.Height(),
 				gasLimit:    r.CheckTx.GasWanted,
@@ -1018,6 +1066,7 @@ func (mem *CListMempool) Update(
 			nonce = ele.Nonce
 			gasPricePerTx = ele.GasPrice
 			mem.logUpdate(ele.Address, ele.Nonce)
+			mem.filter.done(ele.Value.(*mempoolTx).realTx)
 		} else {
 			if mem.txInfoparser != nil {
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
