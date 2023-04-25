@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"math/big"
+	
+	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 // Transactions messages must fulfill the Msg
@@ -94,25 +96,13 @@ func (tx *BaseTx) GetSender(_ Context) string          { return tx.From }
 
 //__________________________________________________________
 
-type TransactionType int
+type TransactionType = types.TransactionType
 
 const (
 	UnknownType TransactionType = iota
 	StdTxType
 	EvmTxType
 )
-
-func (t TransactionType) String() (res string) {
-	switch t {
-	case StdTxType:
-		res = "StdTx"
-	case EvmTxType:
-		res = "EvmTx"
-	default:
-		res = "Unknown"
-	}
-	return res
-}
 
 // __________________________________________________________
 // TxDecoder unmarshals transaction bytes

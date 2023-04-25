@@ -2,12 +2,37 @@ package types
 
 import "math/big"
 
+type TransactionType int
+
+const (
+	UnknownType TransactionType = iota
+	StdTxType
+	EvmTxType
+)
+
+func (t TransactionType) String() (res string) {
+	switch t {
+	case StdTxType:
+		res = "StdTx"
+	case EvmTxType:
+		res = "EvmTx"
+	default:
+		res = "Unknown"
+	}
+	return res
+}
+
 type TxEssentials interface {
 	GetRaw() []byte
 	TxHash() []byte
 	GetFrom() string
 	GetNonce() uint64
 	GetGasPrice() *big.Int
+	GetType() TransactionType
+}
+
+type TxFilter interface {
+	GetFromBytes() []byte
 }
 
 type MockTx struct {
@@ -36,4 +61,8 @@ func (tx MockTx) GetNonce() uint64 {
 
 func (tx MockTx) GetGasPrice() *big.Int {
 	return tx.GasPrice
+}
+
+func (tx MockTx) GetType() TransactionType {
+	return UnknownType
 }
