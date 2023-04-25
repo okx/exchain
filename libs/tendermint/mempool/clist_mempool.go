@@ -123,7 +123,6 @@ func newCmTxFilter() *cmTxFilter {
 }
 
 func (c *cmTxFilter) add(tx abci.TxEssentials) bool {
-	fmt.Println("debug type:", tx.GetType())
 	if tx.GetType() != abci.StdTxType {
 		return true
 	}
