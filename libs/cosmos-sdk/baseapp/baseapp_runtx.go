@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"runtime/debug"
 
 	"github.com/pkg/errors"
@@ -12,6 +11,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type runTxInfo struct {
