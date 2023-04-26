@@ -101,6 +101,7 @@ type ParaMsg struct {
 	RefundFee           Coins
 	LogIndex            int
 	HasRunEvmTx         bool
+	CosmosIndexInBlock  int
 }
 
 type FeeSplitInfo struct {
