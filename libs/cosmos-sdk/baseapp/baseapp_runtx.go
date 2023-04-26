@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"runtime/debug"
 
 	"github.com/pkg/errors"
@@ -161,7 +162,15 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 		app.pin(trace.Refund, true, mode)
 		defer app.pin(trace.Refund, false, mode)
-		handler.handleDeferRefund(info)
+		if types2.HigherThanVenus6(height) {
+			if (tx.GetType() == sdk.StdTxType && isAnteSucceed && err == nil) ||
+				tx.GetType() == sdk.EvmTxType {
+				handler.handleDeferRefund(info)
+			}
+		} else {
+			handler.handleDeferRefund(info)
+		}
+
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
