@@ -35,27 +35,29 @@ func TestProposalSuite(t *testing.T) {
 func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 	testCases := []struct {
 		title         string
+		curTime       string
 		curHeight     int64
 		upgradeHeight int64
 		quo           int64
 	}{
-		{"default", 100, 0, 2},
-		{"set upgrade height, not reached height", 100, 100, 2},
-		{"set upgrade height, reached height", 101, 100, 1},
+		{"default", "2023-05-01 00:00:00", 100, 0, 2},
+		{"set upgrade height, not reached height", "2023-05-01 00:00:00", 100, 100, 2},
+		{"set upgrade height, reached height", "2023-05-01 00:00:00", 101, 100, 1},
 	}
-	formatTime, _ := gotime.Parse("2006-01-02 15:04:05", "2023-06-01 00:00:00")
-	require.Equal(suite.T(), formatTime.Unix(), fixedTimeStamp)
 
 	for _, tc := range testCases {
 		suite.Run(tc.title, func() {
+			tokens := sdk.NewDec(1)
+			curTime, _ := gotime.Parse("2006-01-02 15:04:05", tc.curTime)
+			curDecBefore, err := calculateWeight(curTime.Unix(), tokens, tc.curHeight)
 			global.SetGlobalHeight(tc.curHeight)
 			tmtypes.InitMilestoneVenus6Height(tc.upgradeHeight)
-			tokens := sdk.NewDec(1000)
-			nowDec, err := calculateWeight(time.Now().Unix(), tokens, tc.curHeight)
+			curDec, err := calculateWeight(curTime.Unix(), tokens, tc.curHeight)
+			require.Equal(suite.T(), true, curDec.GTE(curDecBefore))
 			require.NoError(suite.T(), err)
-			afterDec, err := calculateWeight(time.Now().AddDate(0, 0, 52*7).Unix(), tokens, tc.curHeight)
+			afterDec, err := calculateWeight(curTime.AddDate(0, 0, 52*7).Unix(), tokens, tc.curHeight)
 			require.NoError(suite.T(), err)
-			require.Equal(suite.T(), sdk.NewDec(tc.quo), afterDec.Quo(nowDec))
+			require.Equal(suite.T(), sdk.NewDec(tc.quo), afterDec.Quo(curDec))
 		})
 	}
 }
