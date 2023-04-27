@@ -14,7 +14,7 @@ const (
 	blockTimestampEpoch = int64(946684800)
 	secondsPerWeek      = int64(60 * 60 * 24 * 7)
 	weeksPerYear        = float64(52)
-	fixedWeight         = int64(11700000)
+	fixedWeight         = int64(11700000) // The weight of 1 okt, calculated by calculateWeight before venus6. (nowTime=2023-06-01 00:00:00 GMT+0)
 )
 
 func calculateWeight(nowTime int64, tokens sdk.Dec, height int64) (shares types.Shares, sdkErr error) {
