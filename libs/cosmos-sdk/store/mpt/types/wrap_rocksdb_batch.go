@@ -82,7 +82,8 @@ var _ ethdb.Batch = (*WrapRocksDBBatch)(nil)
 
 type WrapRocksDBBatch struct {
 	*tmdb.RocksDBBatch
-	id int64
+	id   int64
+	size int
 }
 
 func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
@@ -103,6 +104,7 @@ func (wrsdbb *WrapRocksDBBatch) Put(key []byte, value []byte) error {
 	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	wrsdbb.Set(key, value)
+	wrsdbb.size += len(key) + len(value)
 	return nil
 }
 
@@ -110,11 +112,12 @@ func (wrsdbb *WrapRocksDBBatch) Delete(key []byte) error {
 	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	wrsdbb.RocksDBBatch.Delete(key)
+	wrsdbb.size += len(key)
 	return nil
 }
 
 func (wrsdbb *WrapRocksDBBatch) ValueSize() int {
-	return wrsdbb.Size()
+	return wrsdbb.size
 }
 
 func (wrsdbb *WrapRocksDBBatch) Write() error {
@@ -146,4 +149,8 @@ func (wrsdbb *WrapRocksDBBatch) Replay(w ethdb.KeyValueWriter) error {
 
 func (wrsdbb *WrapRocksDBBatch) GetID() int64 {
 	return wrsdbb.id
+}
+
+func (wrsdbb *WrapRocksDBBatch) Reset() {
+	b.size = 0
 }
