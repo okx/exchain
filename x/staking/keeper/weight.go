@@ -14,16 +14,16 @@ const (
 	blockTimestampEpoch = int64(946684800)
 	secondsPerWeek      = int64(60 * 60 * 24 * 7)
 	weeksPerYear        = float64(52)
-	fixedTimeStamp      = int64(1685577600) // 2023-06-01 00:00:00 GMT+0
-	fixedWeek           = int64(1221)       // (fixedTimeStamp - blockTimestampEpoch) / secondsPerWeek
+	fixedWeight         = int64(11700000)
 )
 
 func calculateWeight(nowTime int64, tokens sdk.Dec, height int64) (shares types.Shares, sdkErr error) {
-	nowWeek := fixedWeek
-	if !types2.HigherThanVenus6(height) {
-		nowWeek = (nowTime - blockTimestampEpoch) / secondsPerWeek
+	if types2.HigherThanVenus6(height) {
+		shares = tokens.MulInt64(fixedWeight)
+		return
 	}
 
+	nowWeek := (nowTime - blockTimestampEpoch) / secondsPerWeek
 	rate := float64(nowWeek) / weeksPerYear
 	weight := math.Pow(float64(2), rate)
 
