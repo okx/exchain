@@ -88,7 +88,7 @@ type WrapRocksDBBatch struct {
 
 func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
 	sed := atomic.LoadInt64(&batchIdSeed)
-	batch := &WrapRocksDBBatch{tmdb.NewRocksDBBatch(db), sed}
+	batch := &WrapRocksDBBatch{tmdb.NewRocksDBBatch(db), sed, 0}
 	atomic.AddInt64(&batchIdSeed, 1)
 
 	batchCache := InstanceBatchCache()
@@ -152,5 +152,6 @@ func (wrsdbb *WrapRocksDBBatch) GetID() int64 {
 }
 
 func (wrsdbb *WrapRocksDBBatch) Reset() {
-	b.size = 0
+	wrsdbb.RocksDBBatch.Reset()
+	wrsdbb.size = 0
 }
