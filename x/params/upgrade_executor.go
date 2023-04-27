@@ -5,7 +5,6 @@ import (
 	"math"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/common"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params/types"
@@ -77,11 +76,8 @@ func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.Upgrad
 
 	if confirmHeight < currentHeight {
 		// if it's too late to make the proposal become effective at the height which we expected,
-		// refuse to effective this proposal
-		return 0, sdkerrors.New(DefaultCodespace, types.BaseParamsError,
-			fmt.Sprintf("current height '%d' has exceed "+
-				"the expect height '%d' of upgrade proposal '%s'",
-				currentHeight, proposal.ExpectHeight, proposal.Name))
+		// make the upgrade effective at next block (just like height is not specified).
+		confirmHeight = currentHeight
 	}
 	return confirmHeight, nil
 }
@@ -146,15 +142,6 @@ func checkUpgradeValidEffectiveHeight(ctx sdk.Context, k *Keeper, effectiveHeigh
 	return nil
 }
 
-func checkUpgradeVote(ctx sdk.Context, proposalID uint64, proposal types.UpgradeProposal, _ govtypes.Vote) (string, sdk.Error) {
-	curHeight := uint64(ctx.BlockHeight())
-
-	if proposal.ExpectHeight != 0 && proposal.ExpectHeight <= curHeight {
-		return "", sdkerrors.New(DefaultCodespace, types.BaseParamsError,
-			fmt.Sprintf("can not vote： current height '%d' has exceed "+
-				"the expect height '%d' of upgrade proposal '%s'(proposal id '%d')",
-				curHeight, proposal.ExpectHeight, proposal.Name, proposalID))
-	}
-
+func checkUpgradeVote(_ sdk.Context, _ uint64, _ types.UpgradeProposal, _ govtypes.Vote) (string, sdk.Error) {
 	return "", nil
 }
