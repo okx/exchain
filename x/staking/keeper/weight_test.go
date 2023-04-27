@@ -49,15 +49,15 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		suite.Run(tc.title, func() {
 			tokens := sdk.NewDec(1)
 			curTime, _ := gotime.Parse("2006-01-02 15:04:05", tc.curTime)
-			beforeDec, err := calculateWeight(curTime.Unix(), tokens, tc.curHeight)
+			curDecBefore, err := calculateWeight(curTime.Unix(), tokens, tc.curHeight)
 			global.SetGlobalHeight(tc.curHeight)
 			tmtypes.InitMilestoneVenus6Height(tc.upgradeHeight)
-			curlDec, err := calculateWeight(curTime.Unix(), tokens, tc.curHeight)
-			require.Equal(suite.T(), true, curlDec.GTE(beforeDec))
+			curDec, err := calculateWeight(curTime.Unix(), tokens, tc.curHeight)
+			require.Equal(suite.T(), true, curDec.GTE(curDecBefore))
 			require.NoError(suite.T(), err)
 			afterDec, err := calculateWeight(curTime.AddDate(0, 0, 52*7).Unix(), tokens, tc.curHeight)
 			require.NoError(suite.T(), err)
-			require.Equal(suite.T(), sdk.NewDec(tc.quo), afterDec.Quo(curlDec))
+			require.Equal(suite.T(), sdk.NewDec(tc.quo), afterDec.Quo(curDec))
 		})
 	}
 }
