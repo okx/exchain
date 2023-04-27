@@ -5,6 +5,7 @@ import (
 	"math"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/staking/types"
 )
 
@@ -13,10 +14,16 @@ const (
 	blockTimestampEpoch = int64(946684800)
 	secondsPerWeek      = int64(60 * 60 * 24 * 7)
 	weeksPerYear        = float64(52)
+	fixedTimeStamp      = int64(1685577600) // 2023-06-01 00:00:00 GMT+0
+	fixedWeek           = int64(1221)       // (fixedTimeStamp - blockTimestampEpoch) / secondsPerWeek
 )
 
-func calculateWeight(nowTime int64, tokens sdk.Dec) (shares types.Shares, sdkErr error) {
-	nowWeek := (nowTime - blockTimestampEpoch) / secondsPerWeek
+func calculateWeight(nowTime int64, tokens sdk.Dec, height int64) (shares types.Shares, sdkErr error) {
+	nowWeek := fixedWeek
+	if !types2.HigherThanVenus6(height) {
+		nowWeek = (nowTime - blockTimestampEpoch) / secondsPerWeek
+	}
+
 	rate := float64(nowWeek) / weeksPerYear
 	weight := math.Pow(float64(2), rate)
 
@@ -29,6 +36,6 @@ func calculateWeight(nowTime int64, tokens sdk.Dec) (shares types.Shares, sdkErr
 	return
 }
 
-func SimulateWeight(nowTime int64, tokens sdk.Dec) (votes types.Shares, sdkErr error) {
-	return calculateWeight(nowTime, tokens)
+func SimulateWeight(nowTime int64, tokens sdk.Dec, height int64) (votes types.Shares, sdkErr error) {
+	return calculateWeight(nowTime, tokens, height)
 }

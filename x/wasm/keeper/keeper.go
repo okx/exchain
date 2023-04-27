@@ -91,10 +91,11 @@ type Keeper struct {
 type defaultAdapter struct{}
 
 func (d defaultAdapter) NewStore(_ sdk.GasMeter, store sdk.KVStore, pre []byte) sdk.KVStore {
+	store = watcher.WrapWriteKVStore(store)
 	if len(pre) != 0 {
 		store = prefix.NewStore(store, pre)
 	}
-	return watcher.WrapWriteKVStore(store)
+	return store
 }
 
 // NewKeeper creates a new contract Keeper instance
