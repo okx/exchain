@@ -34,6 +34,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		_ = storeWaitingUpgrade(ctx, k, proposal, effectiveHeight) // ignore error
 		return nil
 	}
+	defer k.gk.RemoveFromWaitingProposalQueue(ctx, confirmHeight, proposalID)
 
 	// proposal will be confirmed right now, check if ready.
 	cbs, ready := k.queryReadyForUpgrade(proposal.Name)
