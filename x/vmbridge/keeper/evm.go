@@ -221,6 +221,7 @@ func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.A
 		TraceTxLog:   false,
 	}
 
+	st.SetCallToCM(k.evmKeeper.GetCallToCM())
 	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
 	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
 		//TODO maybe add innertx
