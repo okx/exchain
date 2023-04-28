@@ -42,21 +42,21 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	return err
 }
 
-func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractAddr string, value sdk.Int, calldata string) error {
+func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractAddr string, value sdk.Int, calldata string) ([]byte, error) {
 	if value.IsNegative() {
-		return types.ErrAmountNegative
+		return nil, types.ErrAmountNegative
 	}
 
 	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), []byte(calldata), coins)
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
 	}
-	return err
+	return ret, err
 }
 
 // RegisterSendToEvmEncoder needs to be registered in app setup to handle custom message callbacks

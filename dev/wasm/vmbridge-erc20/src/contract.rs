@@ -233,7 +233,8 @@ fn try_transfer(
     Ok(Response::new()
         .add_attribute("action", "transfer")
         .add_attribute("sender", info.sender)
-        .add_attribute("recipient", recipient))
+        .add_attribute("recipient", recipient)
+        .set_data(b"the result wasm contract data"))
 }
 
 fn try_transfer_from(

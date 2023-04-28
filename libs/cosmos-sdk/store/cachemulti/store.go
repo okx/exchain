@@ -194,6 +194,36 @@ func (cms Store) Write() {
 	}
 }
 
+// Write calls Write on each underlying store.
+func (cms Store) WriteWithSnapShotWSet() types.SnapShotWSet {
+	panic("not support ")
+}
+
+func (cms Store) RevertDBWithSnapShotRWSet(set types.SnapShotWSet) {
+	panic("not support ")
+}
+
+func (cms Store) WriteGetMultiSnapShotWSet() types.MultiSnapShotWSet {
+	multiSet := types.NewMultiSnapShotWSet()
+	multiSet.Root = cms.db.WriteWithSnapShotWSet()
+	for key, store := range cms.stores {
+		multiSet.Stores[key] = store.WriteWithSnapShotWSet()
+	}
+	return multiSet
+}
+
+func (cms Store) RevertDBWithMultiSnapShotRWSet(set types.MultiSnapShotWSet) {
+	types.RevertSnapShotWSet(cms.db, set.Root)
+	for key, store := range cms.stores {
+		if vSet, ok := set.Stores[key]; !ok {
+			panic(fmt.Errorf("RevertDBWithMultiSnapShotRWSet store %s but MultiSnapShotWSet have not", key.String()))
+		} else {
+			store.RevertDBWithSnapShotRWSet(vSet)
+		}
+
+	}
+}
+
 func (cms Store) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool, sKey types.StoreKey) bool {
 	for key, store := range cms.stores {
 		if !store.IteratorCache(isdirty, cb, key) {

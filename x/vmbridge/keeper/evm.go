@@ -100,7 +100,8 @@ func (h CallToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address,
 	if err != nil {
 		return err
 	}
-	return h.Keeper.CallToWasm(ctx, caller, wasmAddr, value, string(buff))
+	_, err = h.Keeper.CallToWasm(ctx, caller, wasmAddr, value, string(buff))
+	return err
 }
 
 // wasm call evm for erc20 exchange cw20,

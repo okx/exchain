@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"sync"
 	"time"
 
@@ -53,6 +54,7 @@ type Context struct {
 	watcher        *TxWatcher
 	feesplitInfo   *FeeSplitInfo
 
+	statedb  vm.StateDB
 	outOfGas bool
 }
 
@@ -407,6 +409,14 @@ func (c *Context) GetWatcher() IWatcher {
 	return c.watcher.IWatcher
 }
 
+func (c *Context) GetEVMStateDB() vm.StateDB {
+	return c.statedb
+}
+
+func (c *Context) SetEVMStateDB(db vm.StateDB) {
+	c.statedb = db
+}
+
 //func (c *Context) SetTxCount(count uint32) *Context {
 //	c.txCount = count
 //	return c
@@ -454,6 +464,21 @@ func (c *Context) CacheContext() (cc Context, writeCache func()) {
 	cc.SetEventManager(NewEventManager())
 	writeCache = cms.Write
 	return
+}
+
+func (c *Context) CacheContextWithMultiSnapShotRWSet() (cc Context, writeCacheWithRWSet func() stypes.MultiSnapShotWSet) {
+	cms := c.MultiStore().CacheMultiStore()
+	cc = *c
+	cc.SetMultiStore(cms)
+	cc.SetEventManager(NewEventManager())
+	writeCacheWithRWSet = cms.WriteGetMultiSnapShotWSet
+	return
+}
+
+func (c *Context) RevertDBWithMultiSnapShotRWSet(set stypes.MultiSnapShotWSet) {
+	cms := c.MultiStore().CacheMultiStore()
+	cms.RevertDBWithMultiSnapShotRWSet(set)
+	cms.Write()
 }
 
 func (c Context) WithBlockTime(newTime time.Time) Context {

@@ -41,3 +41,20 @@ func (m *mockCMS) IteratorCache(isdirty bool, cb func(key string, value []byte, 
 func (m *mockCMS) Write() {
 	*m.committed = true
 }
+
+func (m *mockCMS) WriteWithSnapShotWSet() types.SnapShotWSet {
+	panic("not support WriteWithSnapShotWSet")
+}
+
+func (cms *mockCMS) WriteGetMultiSnapShotWSet() types.MultiSnapShotWSet {
+	panic("not support WriteGetMultiSnapShotWSet")
+}
+
+// Implements Cachetypes.KVStore.
+func (cms *mockCMS) RevertDBWithSnapShotRWSet(set types.SnapShotWSet) {
+	panic("not support WriteGetMultiSnapShotWSet")
+}
+
+func (cms *mockCMS) RevertDBWithMultiSnapShotRWSet(set types.MultiSnapShotWSet) {
+	panic("not support WriteGetMultiSnapShotWSet")
+}

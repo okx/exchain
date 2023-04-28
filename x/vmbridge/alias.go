@@ -13,6 +13,7 @@ var (
 	RegisterSendToEvmEncoder  = keeper.RegisterSendToEvmEncoder
 	NewKeeper                 = keeper.NewKeeper
 	RegisterInterface         = types.RegisterInterface
+	PrecompileHooks           = keeper.PrecompileHooks
 )
 
 type (

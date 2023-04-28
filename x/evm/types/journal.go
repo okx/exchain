@@ -2,6 +2,7 @@ package types
 
 import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -130,6 +131,10 @@ type (
 	accessListAddSlotChange struct {
 		address *ethcmn.Address
 		slot    *ethcmn.Hash
+	}
+
+	cmChange struct {
+		sets *types.MultiSnapShotWSet
 	}
 )
 
@@ -261,5 +266,13 @@ func (ch accessListAddSlotChange) revert(s *CommitStateDB) {
 }
 
 func (ch accessListAddSlotChange) dirtied() *ethcmn.Address {
+	return nil
+}
+
+func (ch cmChange) revert(s *CommitStateDB) {
+	s.ctx.RevertDBWithMultiSnapShotRWSet(*ch.sets)
+}
+
+func (ch cmChange) dirtied() *ethcmn.Address {
 	return nil
 }

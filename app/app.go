@@ -610,7 +610,7 @@ func NewOKExChainApp(
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
 	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
-
+	app.EvmKeeper.SetCallToCM(vmbridge.PrecompileHooks(app.VMBridgeKeeper))
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
 		evm.NewMultiEvmHooks(
