@@ -4,6 +4,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/cosmos/gorocksdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 	tmdb "github.com/okex/exchain/libs/tm-db"
@@ -54,6 +55,14 @@ func (db *WrapRocksDB) Stat(property string) (string, error) {
 func (db *WrapRocksDB) Compact(start []byte, limit []byte) error {
 	db.DB().CompactRange(gorocksdb.Range{Start: start, Limit: limit})
 	return nil
+}
+
+func (db *WrapRocksDB) NewBatchWithSize(size int) ethdb.Batch {
+	panic(fmt.Errorf("not support NewBatchWithSize"))
+}
+
+func (db *WrapRocksDB) NewSnapshot() (ethdb.Snapshot, error) {
+	panic(fmt.Errorf("not support NewSnapshot"))
 }
 
 // BytesPrefix returns key range that satisfy the given prefix.

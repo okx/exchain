@@ -84,7 +84,7 @@ func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event, abi.Event) {
 	}
 	event, ok := ret.Events[SendToWasmEventName]
 	if !ok {
-		panic(fmt.Errorf("abi must have event %s,%s,%s", SendToWasmEvent, ret, string(data)))
+		panic(fmt.Errorf("abi must have event %s,%v,%s", SendToWasmEvent, ret, string(data)))
 	}
 	callToWasmEvent, ok := ret.Events[CallToWasmEventName]
 	if !ok {

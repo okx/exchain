@@ -183,7 +183,7 @@ func (so *stateObject) CommitTrie(db ethstate.Database) error {
 		return so.dbErr
 	}
 
-	root, err := so.trie.Commit(nil)
+	root, _, err := so.trie.Commit(false)
 	if err == nil {
 		so.stateRoot = root
 	}

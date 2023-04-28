@@ -3,7 +3,6 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -223,17 +222,8 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
 		k.rootTrie = k.EvmStateDb.GetRootTrie()
 
-		// The onleaf func is called _serially_, so we can reuse the same account
-		// for unmarshalling every time.
-		var storageRoot ethcmn.Hash
-		root, _ := k.rootTrie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-			storageRoot.SetBytes(leaf)
-			if storageRoot != ethtypes.EmptyRootHash {
-				k.db.TrieDB().Reference(storageRoot, parent)
-			}
-
-			return nil
-		})
+		//TODO we must be change this line
+		root := mpt.TrieCommit(k.rootTrie, k.db, true)
 		k.SetMptRootHash(ctx, root)
 		k.rootHash = root
 	}

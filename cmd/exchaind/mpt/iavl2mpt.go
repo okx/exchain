@@ -3,6 +3,8 @@ package mpt
 import (
 	"bytes"
 	"fmt"
+	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"log"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -157,7 +159,6 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	// 3. Migrates Bloom -> rawdb
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
-	/*
 	// 4. save an empty evmlegacy iavl tree in mirgate height
 	upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvmLegacyKey))
 	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
@@ -165,7 +166,7 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
 	panicError(err)
 	fmt.Printf("Successfully save an empty evmlegacy iavl tree in %d\n", version)
-	 */
+
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -191,8 +192,7 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 			return false
 		})
 		// 1.3 calculate rootHash of contract mpt
-		rootHash, err := contractTrie.Commit(nil)
-		panicError(err)
+		rootHash := mpt.TrieCommit(contractTrie, evmMptDb, false)
 		// 1.4 set the rootHash of contract mpt into evm mpt
 		panicError(evmTrie.TryUpdate(addr[:], rootHash.Bytes()))
 
@@ -302,11 +302,11 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 
 }
 
-func readAllParams(app *app.OKExChainApp) map[string][]byte{
+func readAllParams(app *app.OKExChainApp) map[string][]byte {
 	tree := getUpgradedTree(app.GetDB(), []byte(KeyParams), false)
 
 	paramsMap := make(map[string][]byte)
-	tree.IterateRange(nil, nil, true, func(key, value []byte) bool{
+	tree.IterateRange(nil, nil, true, func(key, value []byte) bool {
 		paramsMap[string(key)] = value
 		return false
 	})

@@ -2,6 +2,7 @@ package mpt
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/trie"
 	"io"
 	"sync"
 
@@ -243,10 +244,8 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	// stop pre round prefetch
 	ms.StopPrefetcher()
 
-	root, err := ms.trie.Commit(nil)
-	if err != nil {
-		panic("fail to commit trie data: " + err.Error())
-	}
+	root := TrieCommit(ms.trie, ms.db, false)
+
 	ms.SetMptRootHash(uint64(ms.version), root)
 	ms.originalRoot = root
 
@@ -263,6 +262,23 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	}, nil
 }
 
+func TrieCommit(tree ethstate.Trie, db ethstate.Database, collectLeaf bool) ethcmn.Hash {
+	nodes := trie.NewMergedNodeSet()
+	root, set, err := tree.Commit(collectLeaf)
+	if err != nil {
+		panic("fail to commit trie data: " + err.Error())
+	}
+	if set != nil {
+		if err := nodes.Merge(set); err != nil {
+			panic(err)
+		}
+	}
+
+	if err := db.TrieDB().Update(nodes); err != nil {
+		panic(err)
+	}
+	return root
+}
 func (ms *MptStore) LastCommitID() types.CommitID {
 	return types.CommitID{
 		Version: ms.version,
