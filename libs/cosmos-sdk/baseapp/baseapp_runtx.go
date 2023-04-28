@@ -35,7 +35,7 @@ type runTxInfo struct {
 	overridesBytes          []byte
 
 	outOfGas        bool
-	mempoolSimulate bool
+	mempoolSimulate bool // for judge this sim is from mempool
 }
 
 func (info *runTxInfo) GetCacheMultiStore() (sdk.CacheMultiStore, bool) {

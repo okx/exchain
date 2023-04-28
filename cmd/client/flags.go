@@ -68,6 +68,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(config.FlagDynamicGpCheckBlocks, 5, "The recommended number of blocks checked of dynamic gas price [1,100])")
 	cmd.Flags().Int(config.FlagDynamicGpCoefficient, 1, "Adjustment coefficient of dynamic gas price [1,100])")
 	cmd.Flags().Int(config.FlagDynamicGpMode, tmtypes.MinimalGpMode, "Dynamic gas price mode (0: higher price|1: normal price|2: minimal price) is used to manage flags")
+	cmd.Flags().Bool(config.FlagEnableMempoolSimGuFactor, false, "Enable mempool simulate gas used is after the gu_factor(false is mean the simulate gas used is no has gu_factor)")
 
 	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")

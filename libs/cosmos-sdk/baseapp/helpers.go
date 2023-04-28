@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"regexp"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -16,6 +17,9 @@ func (app *BaseApp) Check(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 }
 
 func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, mempoolSimulate bool, from ...string) (sdk.GasInfo, *sdk.Result, error) {
+	if mempoolSimulate && cfg.DynamicConfig.GetEnableMempoolSimGuFactor() {
+		mempoolSimulate = false // the mempool is false is need gu factor
+	}
 	info := &runTxInfo{
 		overridesBytes:  overridesBytes,
 		mempoolSimulate: mempoolSimulate,

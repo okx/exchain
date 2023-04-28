@@ -122,6 +122,8 @@ type OecConfig struct {
 
 	//
 	commitGapOffset int64
+	// enable mempool sim gu factor
+	enableMempoolSimGuFactor bool
 }
 
 const (
@@ -159,6 +161,7 @@ const (
 	FlagEnableHasBlockPartMsg      = "enable-blockpart-ack"
 	FlagDebugGcInterval            = "debug.gc-interval"
 	FlagCommitGapOffset            = "commit-gap-offset"
+	FlagEnableMempoolSimGuFactor   = "enable-mem-sim-gu-factor"
 )
 
 var (
@@ -308,6 +311,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
+	c.SetEnableMempoolSimGuFactor(viper.GetBool(FlagEnableMempoolSimGuFactor))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -380,6 +384,7 @@ func (c *OecConfig) format() string {
     commit-gap-height: %d
 	enable-analyzer: %v
     iavl-commit-async-no-batch: %v
+    enable-mempool-sim-gu-factor: %v
 	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
@@ -409,6 +414,7 @@ func (c *OecConfig) format() string {
 		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
 		c.GetIavlAcNoBatch(),
+		c.GetEnableMempoolSimGuFactor(),
 		c.GetActiveVC(),
 	)
 }
@@ -658,6 +664,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetCommitGapOffset(r)
+	case FlagEnableMempoolSimGuFactor:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableMempoolSimGuFactor(r)
 	}
 
 }
@@ -1074,4 +1086,12 @@ func (c *OecConfig) GetIavlAcNoBatch() bool {
 
 func (c *OecConfig) SetIavlAcNoBatch(value bool) {
 	c.iavlAcNoBatch = value
+}
+
+func (c *OecConfig) SetEnableMempoolSimGuFactor(v bool) {
+	c.enableMempoolSimGuFactor = v
+}
+
+func (c *OecConfig) GetEnableMempoolSimGuFactor() bool {
+	return c.enableMempoolSimGuFactor
 }

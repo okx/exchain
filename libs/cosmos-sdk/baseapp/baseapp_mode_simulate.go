@@ -21,6 +21,7 @@ func (m *modeHandlerSimulate) handleStartHeight(info *runTxInfo, height int64) e
 			fmt.Sprintf("height(%d) should be greater than start block height(%d)", height, startHeight))
 	} else if height > startHeight && height <= lastHeight {
 		info.ctx, err = app.getContextForSimTx(info.txBytes, height)
+		info.ctx.SetMempoolSimulate(info.mempoolSimulate)
 	} else {
 		err = sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 			fmt.Sprintf("height(%d) should be less than or equal to latest block height(%d)", height, lastHeight))
