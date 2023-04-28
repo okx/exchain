@@ -100,7 +100,7 @@ type modeHandlerSimulate struct {
 	*modeHandlerBase
 }
 
-//modeHandlerTrace derived from modeHandlerDeliver
+// modeHandlerTrace derived from modeHandlerDeliver
 type modeHandlerTrace struct {
 	*modeHandlerDeliver
 }
@@ -119,7 +119,7 @@ func (m *modeHandlerBase) handleStartHeight(info *runTxInfo, height int64) error
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 			fmt.Sprintf("height(%d) should be greater than start block height(%d)", height, startHeight))
 	} else {
-		info.ctx = app.getContextForTx(m.mode, info.txBytes)
+		info.ctx = app.getContextForTx(m.mode, info.txBytes, info.mempoolSimulate)
 	}
 
 	return nil
@@ -164,15 +164,15 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	return
 }
 
-//=============================
+// =============================
 // 4. handleDeferGasConsumed
 func (m *modeHandlerBase) handleDeferGasConsumed(*runTxInfo) {}
 
-//====================================================================
+// ====================================================================
 // 5. handleDeferRefund
 func (m *modeHandlerBase) handleDeferRefund(*runTxInfo) {}
 
-//===========================================================================================
+// ===========================================================================================
 // other members
 func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter")

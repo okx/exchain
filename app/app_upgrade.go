@@ -22,7 +22,7 @@ func (app *OKExChainApp) grpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result,
 	if err != nil {
 		return sdk.GasInfo{}, nil, sdkerrors.Wrap(err, "failed to decode tx")
 	}
-	return app.Simulate(txBytes, tx, 0, nil)
+	return app.Simulate(txBytes, tx, 0, nil, false)
 }
 
 func (app *OKExChainApp) setupUpgradeModules(onlyTask bool) {

@@ -676,7 +676,7 @@ func (app *BaseApp) getState(mode runTxMode) *state {
 }
 
 // retrieve the context for the tx w/ txBytes and other memoized values.
-func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context {
+func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte, mempoolSimulate bool) sdk.Context {
 	ctx := app.getState(mode).ctx
 	ctx.SetTxBytes(txBytes).
 		SetVoteInfos(app.voteInfos).
@@ -693,7 +693,11 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+		if mempoolSimulate {
+			ctx.SetMempoolSimulate(true)
+		}
 	}
+
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx.SetParaMsg(&sdk.ParaMsg{
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,

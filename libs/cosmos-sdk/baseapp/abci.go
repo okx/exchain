@@ -201,7 +201,7 @@ func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 		}
 	}()
 
-	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}, false), []byte{})
 	if isEndBlock {
 		// The feesplit is only processed at the endblock
 		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
@@ -480,7 +480,7 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			return res, shouldAddBuffer, err
 		}
 	}
-	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
+	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, isMempoolSim, from)
 	if err != nil && !isMempoolSim {
 		return sdk.SimulationResponse{}, false, sdkerrors.Wrap(err, "failed to simulate tx")
 	}

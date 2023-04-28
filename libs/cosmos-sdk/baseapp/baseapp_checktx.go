@@ -47,7 +47,7 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 
 	if abci.GetDisableCheckTx() {
 		var ctx sdk.Context
-		ctx = app.getContextForTx(mode, req.Tx)
+		ctx = app.getContextForTx(mode, req.Tx, false)
 		exTxInfo := app.GetTxInfo(ctx, tx)
 		data, _ := json.Marshal(exTxInfo)
 		app.updateCheckTxResponseNonce(tx, mode, exTxInfo.SenderNonce)
