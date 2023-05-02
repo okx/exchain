@@ -215,6 +215,10 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd.PersistentFlags().String(flagKey, "", "print only the value for this key, key must be in hex format.\n"+
 		"if specified, keyprefix, start and limit flags would be ignored")
 	cmd.PersistentFlags().String(flagKeyPrefix, "", "print values for keys with specified prefix, prefix must be in hex format.")
+	viper.BindPFlag(flagKeyPrefix, cmd.PersistentFlags().Lookup(flagKeyPrefix))
+	viper.BindPFlag(flagHex, cmd.PersistentFlags().Lookup(flagHex))
+	viper.BindPFlag(flagKey, cmd.PersistentFlags().Lookup(flagKey))
+
 	return cmd
 }
 
