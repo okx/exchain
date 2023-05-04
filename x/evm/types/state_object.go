@@ -531,6 +531,7 @@ func (so *stateObject) deepCopy(db *CommitStateDB) *stateObject {
 	copy(newStateObj.code, so.code)
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
 	newStateObj.originStorage = so.originStorage.Copy()
+	newStateObj.pendingStorage = so.pendingStorage.Copy()
 	newStateObj.suicided = so.suicided
 	newStateObj.dirtyCode = so.dirtyCode
 	newStateObj.deleted = so.deleted

@@ -32,6 +32,9 @@ func GetPreCompileABI(data []byte) evm_types.ABI {
 }
 
 func DecodePrecompileCallToWasmInput(input []byte) (wasmAddr, calldata string, err error) {
+	if !PreCompileABI.IsMatchFunction(PrecompileCallToWasm, input) {
+		return "", "", fmt.Errorf("decode precomplie call to wasm input :  input sginature is not %s", PrecompileCallToWasm)
+	}
 	unpacked, err := PreCompileABI.DecodeInputParam(PrecompileCallToWasm, input)
 	if err != nil {
 		return "", "", fmt.Errorf("decode precomplie call to wasm input unpack err :  %s", err)

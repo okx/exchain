@@ -26,12 +26,14 @@ func (csdb *CommitStateDB) ProtectStateDBEnvironment(ctx sdk.Context) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-		if obj.suicided || obj.empty() {
-			csdb.deleteStateObjectForProtect(subCtx, obj)
+		// Using deepCopy to avoid to obj change, because obj will be used in resetchange.revert
+		tempObj := obj.deepCopy(csdb)
+		if tempObj.suicided || tempObj.empty() {
+			csdb.deleteStateObjectForProtect(subCtx, tempObj)
 		} else {
-			obj.finaliseForProtect() // Prefetch slots in the background
-			obj.commitStateForProtect(subCtx)
-			csdb.updateStateObjectForProtect(subCtx, obj)
+			tempObj.finaliseForProtect() // Prefetch slots in the background
+			tempObj.commitStateForProtect(subCtx)
+			csdb.updateStateObjectForProtect(subCtx, tempObj)
 		}
 	}
 
