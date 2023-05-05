@@ -1,0 +1,45 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "wasmAddr",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "data",
+        "type": "string"
+      }
+    ],
+    "name": "callToWasm",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "response",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+  "inputs": [
+    {
+      "internalType": "string",
+      "name": "data",
+      "type": "string"
+    }
+  ],
+  "name": "queryToWasm",
+  "outputs": [
+    {
+      "internalType": "string",
+      "name": "response",
+      "type": "string"
+    }
+  ],
+  "stateMutability": "nonpayable",
+  "type": "function"
+}
+]
