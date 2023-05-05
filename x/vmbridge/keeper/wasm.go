@@ -59,6 +59,20 @@ func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	return ret, err
 }
 
+func (k Keeper) QueryToWasm(ctx sdk.Context, wasmContractAddr string, calldata []byte) ([]byte, error) {
+	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	request, err := types.GetWasmVMQueryRequest(calldata)
+	if err != nil {
+		return nil, err
+	}
+	gaslimit := k.wasmKeeper.RuntimeGasForContract(ctx)
+	queryHandler := k.wasmKeeper.NewQueryHandler(ctx, contractAddr)
+	return queryHandler.Query(*request, gaslimit)
+}
+
 // RegisterSendToEvmEncoder needs to be registered in app setup to handle custom message callbacks
 func RegisterSendToEvmEncoder(cdc *codec.ProtoCodec) *wasm.MessageEncoders {
 	return &wasm.MessageEncoders{

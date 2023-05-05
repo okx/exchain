@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	PrecompileCallToWasm = "callToWasm"
+	PrecompileCallToWasm  = "callToWasm"
+	PrecompileQueryToWasm = "queryToWasm"
 )
 
 var (
@@ -55,6 +56,28 @@ func DecodePrecompileCallToWasmInput(input []byte) (wasmAddr, calldata string, e
 
 func EncodePrecompileCallToWasmOutput(response string) ([]byte, error) {
 	return PreCompileABI.EncodeOutput(PrecompileCallToWasm, []byte(response))
+}
+
+func DecodePrecompileQueryToWasmInput(input []byte) (calldata string, err error) {
+	if !PreCompileABI.IsMatchFunction(PrecompileQueryToWasm, input) {
+		return "", fmt.Errorf("decode precomplie query to wasm input :  input sginature is not %s", PrecompileQueryToWasm)
+	}
+	unpacked, err := PreCompileABI.DecodeInputParam(PrecompileQueryToWasm, input)
+	if err != nil {
+		return "", fmt.Errorf("decode precomplie query to wasm input unpack err :  %s", err)
+	}
+	if len(unpacked) != 1 {
+		return "", fmt.Errorf("decode precomplie query to wasm input unpack err :  unpack data len expect 2 but got %v", len(unpacked))
+	}
+	calldata, ok := unpacked[0].(string)
+	if !ok {
+		return "", fmt.Errorf("decode precomplie query to wasm input unpack err : calldata is not type of string")
+	}
+	return calldata, nil
+}
+
+func EncodePrecompileQueryToWasmOutput(response string) ([]byte, error) {
+	return PreCompileABI.EncodeOutput(PrecompileQueryToWasm, []byte(response))
 }
 
 func GetMethodByIdFromCallData(calldata []byte) (*abi.Method, error) {

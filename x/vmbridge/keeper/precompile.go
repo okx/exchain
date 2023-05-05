@@ -52,6 +52,8 @@ func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context,
 	switch method.Name {
 	case types.PrecompileCallToWasm:
 		result, leftGas, err = calltoWasm(k, subCtx, caller, to, value, input)
+	case types.PrecompileQueryToWasm:
+		result, leftGas, err = querytoWasm(k, subCtx, caller, to, value, input)
 	default:
 		result, leftGas, err = nil, 0, errors.New("methodDispatch failed: unknown method")
 	}
@@ -76,6 +78,30 @@ func calltoWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value 
 	}
 
 	ret, err := k.CallToWasm(sdkCtx, sdk.AccAddress(caller.Bytes()), wasmContractAddr, sdk.NewIntFromBigInt(value), string(buff))
+	gasMeter := sdkCtx.GasMeter()
+	left := gasMeter.Limit() - gasMeter.GasConsumed()
+	if err != nil {
+		return nil, left, err
+	}
+
+	result, err := types.EncodePrecompileCallToWasmOutput(string(ret))
+	return result, left, err
+}
+
+func querytoWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value *big.Int, input []byte) ([]byte, uint64, error) {
+	if value.Sign() != 0 {
+		return nil, 0, errors.New("querytoWasm can not be send token")
+	}
+	calldata, err := types.DecodePrecompileQueryToWasmInput(input)
+	if err != nil {
+		return nil, 0, err
+	}
+	buff, err := hex.DecodeString(calldata)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	ret, err := k.QueryToWasm(sdkCtx, caller.String(), buff)
 	gasMeter := sdkCtx.GasMeter()
 	left := gasMeter.Limit() - gasMeter.GasConsumed()
 	if err != nil {

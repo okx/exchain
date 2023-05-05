@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -19,6 +20,8 @@ type WASMKeeper interface {
 	// Execute executes the contract instance
 	Execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, msg []byte, coins sdk.Coins) ([]byte, error)
 	GetParams(ctx sdk.Context) wasmtypes.Params
+	NewQueryHandler(ctx sdk.Context, contractAddress sdk.WasmAddress) wasmvmtypes.Querier
+	RuntimeGasForContract(ctx sdk.Context) uint64
 }
 
 // AccountKeeper defines the expected account keeper interface
