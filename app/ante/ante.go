@@ -63,6 +63,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		NewEthSigVerificationDecorator(),
 		NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 		NewAccountAnteDecorator(ak, evmKeeper, sk),
+		NewWrapWasmCountTXDecorator(wasmkeeper.NewCountTXDecorator(option.TXCounterStoreKey), evmKeeper),
 	)
 
 	return func(
