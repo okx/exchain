@@ -773,16 +773,7 @@ func NewOKExChainApp(
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
-
-		// Claim before ApplyEffectiveUpgrade
-		app.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS6_NAME, func(info paramstypes.UpgradeInfo) {
-			tmtypes.InitMilestoneVenus6Height(int64(info.EffectiveHeight))
-		})
-
-		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
-			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
-		}
-
+		app.InitUpgrade(ctx)
 		app.WasmKeeper.UpdateGasRegister(ctx)
 	}
 
@@ -797,6 +788,17 @@ func NewOKExChainApp(
 	trace.EnableAnalyzer(enableAnalyzer)
 
 	return app
+}
+
+func (app *OKExChainApp) InitUpgrade(ctx sdk.Context) {
+	// Claim before ApplyEffectiveUpgrade
+	app.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS6_NAME, func(info paramstypes.UpgradeInfo) {
+		tmtypes.InitMilestoneVenus6Height(int64(info.EffectiveHeight))
+	})
+
+	if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
+		tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
+	}
 }
 
 func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
