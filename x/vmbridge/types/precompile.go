@@ -56,3 +56,7 @@ func DecodePrecompileCallToWasmInput(input []byte) (wasmAddr, calldata string, e
 func EncodePrecompileCallToWasmOutput(response string) ([]byte, error) {
 	return PreCompileABI.EncodeOutput(PrecompileCallToWasm, []byte(response))
 }
+
+func GetMethodByIdFromCallData(calldata []byte) (*abi.Method, error) {
+	return PreCompileABI.GetMethodById(calldata)
+}

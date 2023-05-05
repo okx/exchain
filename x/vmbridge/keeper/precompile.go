@@ -24,10 +24,6 @@ func PrecompileHooks(k *Keeper) vm.CallToWasmByPrecompile {
 		if value.Cmp(big0) < 0 {
 			return nil, 0, errors.New("VMBridge call value is negative")
 		}
-		wasmContractAddr, calldata, err := types.DecodePrecompileCallToWasmInput(input)
-		if err != nil {
-			return nil, 0, err
-		}
 
 		if ctx.GetEVMStateDB() == nil {
 			return nil, 0, errors.New("VMBridge use context have not evm statedb")
@@ -37,25 +33,55 @@ func PrecompileHooks(k *Keeper) vm.CallToWasmByPrecompile {
 			return nil, 0, errors.New("VMBridge context's statedb is not *evmtypes.CommitStateDB ")
 		}
 		csdb.ProtectStateDBEnvironment(*sdkCtx)
-
-		buff, err := hex.DecodeString(calldata)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		subCtx, commit := sdkCtx.CacheContextWithMultiSnapShotRWSet()
-		currentGasMeter := subCtx.GasMeter()
-		gasMeter := sdk.NewGasMeter(remainGas)
-		subCtx.SetGasMeter(gasMeter)
-		ret, err := k.CallToWasm(subCtx, sdk.AccAddress(caller.Bytes()), wasmContractAddr, sdk.NewIntFromBigInt(value), string(buff))
-		left := gasMeter.Limit() - gasMeter.GasConsumed()
-		subCtx.SetGasMeter(currentGasMeter)
-		if err != nil {
-			return nil, left, err
-		}
-
-		csdb.CMChangeCommit(commit)
-		result, err := types.EncodePrecompileCallToWasmOutput(string(ret))
-		return result, left, err
+		return methodDispatch(k, csdb, *sdkCtx, caller, to, value, input, remainGas)
 	}
+}
+
+func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context, caller, to common.Address, value *big.Int, input []byte, remainGas uint64) (result []byte, leftGas uint64, err error) {
+	method, err := types.GetMethodByIdFromCallData(input)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// prepare subctx for execute cm msg
+	subCtx, commit := sdkCtx.CacheContextWithMultiSnapShotRWSet()
+	currentGasMeter := subCtx.GasMeter()
+	gasMeter := sdk.NewGasMeter(remainGas)
+	subCtx.SetGasMeter(gasMeter)
+
+	switch method.Name {
+	case types.PrecompileCallToWasm:
+		result, leftGas, err = calltoWasm(k, subCtx, caller, to, value, input)
+	default:
+		result, leftGas, err = nil, 0, errors.New("methodDispatch failed: unknown method")
+	}
+	subCtx.SetGasMeter(currentGasMeter)
+	if err != nil {
+		return result, leftGas, err
+	}
+
+	//if the result of executing cm msg if success, then update rwset to parent ctx and add cmchange to journal for reverting snapshot in the future
+	csdb.CMChangeCommit(commit)
+	return result, leftGas, nil
+}
+
+func calltoWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value *big.Int, input []byte) ([]byte, uint64, error) {
+	wasmContractAddr, calldata, err := types.DecodePrecompileCallToWasmInput(input)
+	if err != nil {
+		return nil, 0, err
+	}
+	buff, err := hex.DecodeString(calldata)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	ret, err := k.CallToWasm(sdkCtx, sdk.AccAddress(caller.Bytes()), wasmContractAddr, sdk.NewIntFromBigInt(value), string(buff))
+	gasMeter := sdkCtx.GasMeter()
+	left := gasMeter.Limit() - gasMeter.GasConsumed()
+	if err != nil {
+		return nil, left, err
+	}
+
+	result, err := types.EncodePrecompileCallToWasmOutput(string(ret))
+	return result, left, err
 }
