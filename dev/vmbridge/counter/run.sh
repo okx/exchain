@@ -1,7 +1,10 @@
 #!/bin/bash
 
+# config
+privateKey=8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17
+
 # deploy evm contract
-evm_contract=$(go run main.go utils.go --action deploy)
+evm_contract=$(go run main.go utils.go --action deploy --key $privateKey)
 echo " ========================================================== "
 echo "## deploy evm contract ##"
 echo
@@ -23,7 +26,7 @@ echo
 
 
 # query evm state
-res=$(go run main.go utils.go --action query --contract $evm_contract)
+res=$(go run main.go utils.go --action query --contract $evm_contract --key $privateKey)
 echo " ========================================================== "
 echo "## Query count in evm contarct ##"
 echo
@@ -47,7 +50,7 @@ echo
 
 
 # check evm state
-res=$(go run main.go utils.go --action query --contract $evm_contract)
+res=$(go run main.go utils.go --action query --contract $evm_contract --key $privateKey)
 echo " ========================================================== "
 echo "## Query count in evm contarct ##"
 echo
@@ -66,7 +69,7 @@ echo
 
 # evm call wasm
 
-res=$(go run main.go utils.go --action execute --contract $evm_contract --wasmContract $wasm_contract)
+res=$(go run main.go utils.go --action execute --contract $evm_contract --wasmContract $wasm_contract --key $privateKey)
 echo " ========================================================== "
 echo "## send a VM bridge tx to evm contract ##"
 echo

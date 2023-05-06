@@ -32,9 +32,9 @@ const (
 )
 
 var (
-	client                                *ethclient.Client
-	evmContract, WasmContract, deltaValue *string
-	chainID                               *big.Int
+	client                                         *ethclient.Client
+	evmContract, WasmContract, deltaValue, privKey *string
+	chainID                                        *big.Int
 )
 
 func main() {
@@ -42,6 +42,7 @@ func main() {
 	evmContract = flag.String("contract", "", "counter contract address")
 	WasmContract = flag.String("wasmContract", "", "wasm contract address")
 	deltaValue = flag.String("delta", "1", "wasm contract address")
+	privKey = flag.String("key", "", "private key")
 
 	flag.Parse()
 
@@ -58,26 +59,26 @@ func main() {
 		panic(err)
 	}
 
-	privKey := []string{
-		"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
-	}
+	// privKey := []string{
+	// 	"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
+	// }
 
-	for _, k := range privKey {
-		test := func(key string) {
+	// for _, k := range privKey {
+	test := func(key string) {
 
-			switch TestType(*actionTypeParam) {
-			case Deploy:
-				counterDeploy(k)
-			case Execute:
-				counterExecute(k, common.HexToAddress(*evmContract), common.HexToAddress(*WasmContract))
-			case Query:
-				counterQuery(k, common.HexToAddress(*evmContract))
-			default:
-				panic("action not found")
-			}
+		switch TestType(*actionTypeParam) {
+		case Deploy:
+			counterDeploy(*privKey)
+		case Execute:
+			counterExecute(*privKey, common.HexToAddress(*evmContract), common.HexToAddress(*WasmContract))
+		case Query:
+			counterQuery(*privKey, common.HexToAddress(*evmContract))
+		default:
+			panic("action not found")
 		}
-		test(k)
 	}
+	test(*privKey)
+	// }
 }
 
 func counterDeploy(privKey string) (err error) {
