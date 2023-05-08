@@ -120,9 +120,6 @@ func (m *modeHandlerBase) handleStartHeight(info *runTxInfo, height int64) error
 			fmt.Sprintf("height(%d) should be greater than start block height(%d)", height, startHeight))
 	} else {
 		info.ctx = app.getContextForTx(m.mode, info.txBytes)
-		if m.mode == runTxModeSimulate && info.mempoolSimulate {
-			info.ctx.SetMempoolSimulate(true)
-		}
 	}
 
 	return nil
