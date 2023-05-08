@@ -18,7 +18,7 @@ func (app *BaseApp) Check(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 
 func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, mempoolSimulate bool, from ...string) (sdk.GasInfo, *sdk.Result, error) {
 	if mempoolSimulate && cfg.DynamicConfig.GetEnableMempoolSimGuFactor() {
-		mempoolSimulate = false // the mempool is false is need gu factor
+		mempoolSimulate = false // the mempoolSimulate is false is need gu factor
 	}
 	info := &runTxInfo{
 		overridesBytes:  overridesBytes,
