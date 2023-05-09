@@ -124,17 +124,6 @@ func (mp ManageContractDeploymentWhitelistProposal) ValidateBasic() sdk.Error {
 	return nil
 }
 
-func isEmptyAddr(addrs []sdk.AccAddress) bool {
-	lenAddrs := len(addrs)
-	for i := 0; i < lenAddrs; i++ {
-		if addrs[i].Empty() {
-			return true
-		}
-	}
-
-	return false
-}
-
 // String returns a human readable string representation of a ManageContractDeploymentWhitelistProposal
 func (mp ManageContractDeploymentWhitelistProposal) String() string {
 	var builder strings.Builder
@@ -167,6 +156,17 @@ func isAddrDuplicated(addrs []sdk.AccAddress) bool {
 			return true
 		}
 		filter[key] = struct{}{}
+	}
+
+	return false
+}
+
+func isEmptyAddr(addrs []sdk.AccAddress) bool {
+	lenAddrs := len(addrs)
+	for i := 0; i < lenAddrs; i++ {
+		if addrs[i].Empty() {
+			return true
+		}
 	}
 
 	return false
