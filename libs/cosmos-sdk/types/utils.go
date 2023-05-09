@@ -150,3 +150,27 @@ func (e EmptyWatcher) DeleteContractBlockedList(addr interface{})               
 func (e EmptyWatcher) DeleteContractDeploymentWhitelist(addr interface{})                 {}
 func (e EmptyWatcher) Finalize()                                                          {}
 func (e EmptyWatcher) Destruct() []WatchMessage                                           { return nil }
+
+const (
+	FastQueryCloseAllTxType = 0 // 00
+	FastQueryOnlyOpenEvmTx  = 1 // 01
+	FastQueryOnlyOpenWasmTx = 2 // 10
+	FastQueryOpenAllTxType  = 3 // 11
+)
+
+func IsFastQueryOpenWithEvmTx(data int) bool {
+	if data == FastQueryOpenAllTxType || data == FastQueryOnlyOpenEvmTx {
+		return true
+	}
+	return false
+}
+func IsFastQueryOpenWithCosmosTx(data int) bool {
+	if data == FastQueryOpenAllTxType || data == FastQueryOnlyOpenWasmTx {
+		return true
+	}
+	return false
+}
+
+func IsFastQuerySupportAllTx(data int) bool {
+	return data == FastQueryOpenAllTxType
+}

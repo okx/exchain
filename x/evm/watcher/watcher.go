@@ -62,7 +62,8 @@ var (
 
 func IsWatcherEnabled() bool {
 	onceEnable.Do(func() {
-		watcherEnable = viper.GetBool(FlagFastQuery)
+		watcherEnable = sdk.IsFastQueryOpenWithEvmTx(viper.GetInt(FlagFastQuery))
+
 	})
 	return watcherEnable
 }
@@ -598,7 +599,7 @@ func filterDirtyList(datas [][]byte) [][]byte {
 	return ret
 }
 
-/////////// job
+// ///////// job
 func (w *Watcher) jobRoutine() {
 	if !w.Enabled() {
 		return

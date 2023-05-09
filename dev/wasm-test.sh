@@ -30,7 +30,7 @@ run() {
       --dynamic-gp-mode=2 \
       --consensus.timeout_commit 500ms \
       --enable-preruntx=false \
-      --fast-query=true \
+      --fast-query=3 \
       --deliver-txs-mode=2 \
       --iavl-enable-async-commit \
       --enable-gid \

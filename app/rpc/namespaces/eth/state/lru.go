@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -10,18 +11,18 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-//the default lru cache size is 1kw, that means the max memory size we needs is (32 + 32 + 4) * 10000000, about 700MB
+// the default lru cache size is 1kw, that means the max memory size we needs is (32 + 32 + 4) * 10000000, about 700MB
 var (
 	defaultLruSize int = 10000000
 	gStateLru      *lru.Cache
 	once           sync.Once
 )
 
-//redefine fast-query to avoid cycle package import
+// redefine fast-query to avoid cycle package import
 const FlagFastQuery = "fast-query"
 
 func isWatcherEnabled() bool {
-	return viper.GetBool(FlagFastQuery)
+	return sdk.IsFastQueryOpenWithEvmTx(viper.GetInt(FlagFastQuery))
 }
 
 func InstanceOfStateLru() *lru.Cache {

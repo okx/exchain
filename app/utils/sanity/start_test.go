@@ -4,6 +4,7 @@ import (
 	apptype "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/state"
 	sm "github.com/okex/exchain/libs/tendermint/state"
@@ -32,11 +33,11 @@ func getCommandNodeModeRpcPruningNothing() *cobra.Command {
 
 func getCommandFastQueryPruningNothing() *cobra.Command {
 	return getCommand([]universeFlag{
-		&boolFlag{
+		&intFlag{
 			Name:    watcher.FlagFastQuery,
-			Default: false,
+			Default: sdk.FastQueryCloseAllTxType,
 			Changed: true,
-			Value:   true,
+			Value:   sdk.FastQueryOpenAllTxType,
 		},
 		&stringFlag{
 			Name:    server.FlagPruning,
@@ -109,11 +110,11 @@ func getCommandNodeModeArchiveFastQuery() *cobra.Command {
 			Changed: true,
 			Value:   string(apptype.ArchiveNode),
 		},
-		&boolFlag{
+		&intFlag{
 			Name:    watcher.FlagFastQuery,
-			Default: false,
+			Default: sdk.FastQueryCloseAllTxType,
 			Changed: true,
-			Value:   true,
+			Value:   sdk.FastQueryOpenAllTxType,
 		},
 	})
 }

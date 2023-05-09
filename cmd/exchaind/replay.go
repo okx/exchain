@@ -192,7 +192,7 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 
 func setReplayDefaultFlag() {
 	if len(os.Args) > 1 && os.Args[1] == "replay" {
-		viper.SetDefault(watcher.FlagFastQuery, false)
+		viper.SetDefault(watcher.FlagFastQuery, sdk.FastQueryCloseAllTxType)
 		viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
 		viper.SetDefault(iavl.FlagIavlCommitAsyncNoBatch, true)
 	}

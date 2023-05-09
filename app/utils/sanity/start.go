@@ -56,14 +56,14 @@ var (
 	startDependentElems = []dependentPair{
 		{ // if infura.FlagEnable=true , watcher.FlagFastQuery must be set to true
 			config:       boolItem{name: infura.FlagEnable, expect: true},
-			reliedConfig: boolItem{name: watcher.FlagFastQuery, expect: true},
+			reliedConfig: intItem{name: watcher.FlagFastQuery, expect: sdk.FastQueryOpenAllTxType},
 		},
 	}
 	// conflicts flags
 	startConflictElems = []conflictPair{
 		// --fast-query      conflict with --pruning=nothing
 		{
-			configA: boolItem{name: watcher.FlagFastQuery, expect: true},
+			configA: intItem{name: watcher.FlagFastQuery, expect: sdk.FastQueryOpenAllTxType},
 			configB: stringItem{name: server.FlagPruning, expect: cosmost.PruningOptionNothing},
 		},
 		// --enable-preruntx conflict with --download-delta
@@ -83,7 +83,7 @@ var (
 		// --node-mode=archive(--pruning=nothing) conflicts with --fast-query
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
-			configB: boolItem{name: watcher.FlagFastQuery, expect: true},
+			configB: intItem{name: watcher.FlagFastQuery, expect: sdk.FastQueryOpenAllTxType},
 		},
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.RpcNode)},

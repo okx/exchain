@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"os"
 	"runtime/pprof"
 
@@ -341,7 +342,7 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 
 	tmtypes.DownloadDelta = viper.GetBool(tmtypes.FlagDownloadDDS)
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
-	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
+	tmtypes.FastQuery = sdk.IsFastQuerySupportAllTx(viper.GetInt(tmtypes.FlagFastQuery))
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
 	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
 	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)

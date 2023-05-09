@@ -38,6 +38,23 @@ func (b boolItem) verbose() string {
 	return fmt.Sprintf("--%v=%v", b.name, b.expect)
 }
 
+type intItem struct {
+	name   string
+	expect int
+}
+
+func (b intItem) label() string {
+	return b.name
+}
+
+func (b intItem) check() bool {
+	return viper.GetInt(b.label()) == b.expect
+}
+
+func (b intItem) verbose() string {
+	return fmt.Sprintf("--%v=%v", b.name, b.expect)
+}
+
 type stringItem struct {
 	name   string
 	expect string

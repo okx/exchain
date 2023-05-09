@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"sort"
 	"strings"
 
@@ -56,7 +57,7 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(abcitypes.FlagDisableABCIQueryMutex, true)
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
 	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
-	viper.SetDefault(watcher.FlagFastQuery, true)
+	viper.SetDefault(watcher.FlagFastQuery, sdk.FastQueryOpenAllTxType)
 	viper.SetDefault(backend.FlagApiBackendBlockLruCache, 30000)
 	viper.SetDefault(backend.FlagApiBackendTxLruCache, 100000)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
@@ -66,7 +67,7 @@ func setRpcConfig(ctx *server.Context) {
 	ctx.Logger.Info(fmt.Sprintf(
 		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
-		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, true,
+		watcher.FlagFastQuery, sdk.FastQueryOpenAllTxType, iavl.FlagIavlEnableAsyncCommit, true,
 		flags.FlagMaxOpenConnections, 20000, mempool.FlagEnablePendingPool, true,
 		server.FlagCORS, "*"))
 }
@@ -78,7 +79,7 @@ func setValidatorConfig(ctx *server.Context) {
 	viper.SetDefault(store.FlagIavlCacheSize, 10000000)
 	viper.SetDefault(server.FlagPruning, "everything")
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, false)
-	viper.SetDefault(watcher.FlagFastQuery, false)
+	viper.SetDefault(watcher.FlagFastQuery, sdk.FastQueryCloseAllTxType)
 	viper.SetDefault(appconfig.FlagMaxGasUsedPerBlock, 120000000)
 	viper.SetDefault(mempool.FlagEnablePendingPool, false)
 	viper.SetDefault(config.FlagEnablePGU, true)
@@ -86,7 +87,7 @@ func setValidatorConfig(ctx *server.Context) {
 	ctx.Logger.Info(fmt.Sprintf("Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by validator node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, appconfig.FlagDynamicGpMode, tmtypes.MinimalGpMode, iavl.FlagIavlEnableAsyncCommit, true,
 		store.FlagIavlCacheSize, 10000000, server.FlagPruning, "everything",
-		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, false, appconfig.FlagMaxGasUsedPerBlock, 120000000,
+		evmtypes.FlagEnableBloomFilter, false, watcher.FlagFastQuery, sdk.FastQueryCloseAllTxType, appconfig.FlagMaxGasUsedPerBlock, 120000000,
 		mempool.FlagEnablePendingPool, false))
 }
 
