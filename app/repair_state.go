@@ -17,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/global"
 	tmlog "github.com/okex/exchain/libs/tendermint/libs/log"
@@ -142,6 +143,8 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
+
+	repairApp.InitUpgrade(repairApp.BaseApp.NewContext(true, abci.Header{}))
 
 	rawTrieDirtyDisabledFlag := viper.GetBool(mpttypes.FlagTrieDirtyDisabled)
 	mpttypes.TrieDirtyDisabled = true
