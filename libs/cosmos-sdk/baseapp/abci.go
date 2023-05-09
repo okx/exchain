@@ -726,7 +726,7 @@ var (
 
 func enableFastQuery() bool {
 	fqOnce.Do(func() {
-		fastQuery = sdk.IsFastQuerySupportCosmosTx(viper.GetInt("fast-query"))
+		fastQuery = sdk.IsFastQuerySupportWasmTx(viper.GetInt("fast-query"))
 	})
 	return fastQuery
 }

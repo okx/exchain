@@ -21,13 +21,13 @@ var (
 // redefine fast-query to avoid cycle package import
 const FlagFastQuery = "fast-query"
 
-func isWatcherEnabled() bool {
+func isWatcherSupportEvmTx() bool {
 	return sdk.IsFastQuerySupportEvmTx(viper.GetInt(FlagFastQuery))
 }
 
 func InstanceOfStateLru() *lru.Cache {
 	once.Do(func() {
-		if isWatcherEnabled() {
+		if isWatcherSupportEvmTx() {
 			var e error = nil
 			gStateLru, e = lru.New(defaultLruSize)
 			if e != nil {

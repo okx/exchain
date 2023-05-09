@@ -164,7 +164,7 @@ func IsFastQuerySupportEvmTx(data int) bool {
 	}
 	return false
 }
-func IsFastQuerySupportCosmosTx(data int) bool {
+func IsFastQuerySupportWasmTx(data int) bool {
 	if data == FastQuerySupportAllTx || data == FastQueryOnlySupportWasmTx {
 		return true
 	}
