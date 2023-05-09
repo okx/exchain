@@ -152,25 +152,25 @@ func (e EmptyWatcher) Finalize()                                                
 func (e EmptyWatcher) Destruct() []WatchMessage                                           { return nil }
 
 const (
-	FastQueryCloseAllTxType = 0 // 00
-	FastQueryOnlyOpenEvmTx  = 1 // 01
-	FastQueryOnlyOpenWasmTx = 2 // 10
-	FastQueryOpenAllTxType  = 3 // 11
+	FastQueryDisableAllTx      = 0 // 00
+	FastQueryOnlySupportEvmTx  = 1 // 01
+	FastQueryOnlySupportWasmTx = 2 // 10
+	FastQuerySupportAllTx      = 3 // 11
 )
 
-func IsFastQueryOpenWithEvmTx(data int) bool {
-	if data == FastQueryOpenAllTxType || data == FastQueryOnlyOpenEvmTx {
+func IsFastQuerySupportEvmTx(data int) bool {
+	if data == FastQuerySupportAllTx || data == FastQueryOnlySupportEvmTx {
 		return true
 	}
 	return false
 }
-func IsFastQueryOpenWithCosmosTx(data int) bool {
-	if data == FastQueryOpenAllTxType || data == FastQueryOnlyOpenWasmTx {
+func IsFastQuerySupportCosmosTx(data int) bool {
+	if data == FastQuerySupportAllTx || data == FastQueryOnlySupportWasmTx {
 		return true
 	}
 	return false
 }
 
 func IsFastQuerySupportAllTx(data int) bool {
-	return data == FastQueryOpenAllTxType
+	return data == FastQuerySupportAllTx
 }

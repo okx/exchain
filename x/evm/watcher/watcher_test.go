@@ -63,7 +63,7 @@ func setupTest() *WatcherTestSt {
 	w := &WatcherTestSt{}
 	checkTx := false
 	chain_id := "ethermint-3"
-	viper.Set(watcher.FlagFastQuery, sdk.FastQueryOpenAllTxType)
+	viper.Set(watcher.FlagFastQuery, sdk.FastQuerySupportAllTx)
 	viper.Set(sdk.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
 
@@ -382,7 +382,7 @@ func TestDuplicateWatchMessage(t *testing.T) {
 }
 
 func TestWriteLatestMsg(t *testing.T) {
-	viper.Set(watcher.FlagFastQuery, sdk.FastQueryOpenAllTxType)
+	viper.Set(watcher.FlagFastQuery, sdk.FastQuerySupportAllTx)
 	viper.Set(sdk.FlagDBBackend, "memdb")
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
 	w.SetWatchDataManager()
@@ -476,7 +476,7 @@ func TestDeliverRealTx(t *testing.T) {
 }
 
 func TestBaiscDBOpt(t *testing.T) {
-	viper.Set(watcher.FlagFastQuery, sdk.FastQueryOpenAllTxType)
+	viper.Set(watcher.FlagFastQuery, sdk.FastQuerySupportAllTx)
 	viper.Set(sdk.FlagDBBackend, "memdb")
 	store := watcher.InstanceOfWatchStore()
 	store.Set([]byte("test01"), []byte("value01"))

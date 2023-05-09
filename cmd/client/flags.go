@@ -27,7 +27,7 @@ import (
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
-	cmd.Flags().Int(watcher.FlagFastQuery, sdk.FastQueryOpenAllTxType, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Int(watcher.FlagFastQuery, sdk.FastQuerySupportAllTx, "Enable the fast query mode for rpc queries")
 	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 10, "Set the threshold of fast query")
 	cmd.Flags().String(eth.FlagE2cWasmMsgHelperAddr, "", "Set the e2c wasm msg helper contract address")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")

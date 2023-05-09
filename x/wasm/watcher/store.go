@@ -36,7 +36,7 @@ var (
 func Enable() bool {
 	checkOnce.Do(func() {
 		checked = true
-		if value := viper.GetInt(watcher.FlagFastQuery); sdk.IsFastQueryOpenWithCosmosTx(value) {
+		if value := viper.GetInt(watcher.FlagFastQuery); sdk.IsFastQuerySupportCosmosTx(value) {
 			enableWatcher = true
 			InitDB()
 		}

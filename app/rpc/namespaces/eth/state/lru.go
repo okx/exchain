@@ -22,7 +22,7 @@ var (
 const FlagFastQuery = "fast-query"
 
 func isWatcherEnabled() bool {
-	return sdk.IsFastQueryOpenWithEvmTx(viper.GetInt(FlagFastQuery))
+	return sdk.IsFastQuerySupportEvmTx(viper.GetInt(FlagFastQuery))
 }
 
 func InstanceOfStateLru() *lru.Cache {

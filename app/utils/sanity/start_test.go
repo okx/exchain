@@ -35,9 +35,9 @@ func getCommandFastQueryPruningNothing() *cobra.Command {
 	return getCommand([]universeFlag{
 		&intFlag{
 			Name:    watcher.FlagFastQuery,
-			Default: sdk.FastQueryCloseAllTxType,
+			Default: sdk.FastQueryDisableAllTx,
 			Changed: true,
-			Value:   sdk.FastQueryOpenAllTxType,
+			Value:   sdk.FastQuerySupportAllTx,
 		},
 		&stringFlag{
 			Name:    server.FlagPruning,
@@ -112,9 +112,9 @@ func getCommandNodeModeArchiveFastQuery() *cobra.Command {
 		},
 		&intFlag{
 			Name:    watcher.FlagFastQuery,
-			Default: sdk.FastQueryCloseAllTxType,
+			Default: sdk.FastQueryDisableAllTx,
 			Changed: true,
-			Value:   sdk.FastQueryOpenAllTxType,
+			Value:   sdk.FastQuerySupportAllTx,
 		},
 	})
 }

@@ -62,7 +62,7 @@ var (
 
 func IsWatcherEnabled() bool {
 	onceEnable.Do(func() {
-		watcherEnable = sdk.IsFastQueryOpenWithEvmTx(viper.GetInt(FlagFastQuery))
+		watcherEnable = sdk.IsFastQuerySupportEvmTx(viper.GetInt(FlagFastQuery))
 
 	})
 	return watcherEnable
