@@ -839,6 +839,7 @@ func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
 }
 
 func (api *PublicEthereumAPI) getFromCallCache(key common.Hash) ([]byte, bool) {
+	return nil, false
 	if api.callCache == nil {
 		return nil, false
 	}
