@@ -28,6 +28,11 @@ func (t Treasure) ValidateBasic() error {
 	if t.Proportion.LTE(sdk.ZeroDec()) || t.Proportion.GT(sdk.OneDec()) {
 		return errors.New(fmt.Sprintf("treasure proportion should non-negative and less than one: %s", t.Proportion))
 	}
+
+	if t.Address.Empty() {
+		return errors.New(fmt.Sprintf("treasure address is nil"))
+	}
+
 	return nil
 }
 
