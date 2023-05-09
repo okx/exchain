@@ -28,13 +28,15 @@ func ParseManageTreasuresProposalJSON(cdc *codec.Codec, proposalFilePath string)
 		return
 	}
 
+	defer parseRecover(contents, &err)
+
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
 }
 
 func parseRecover(contents []byte, err *error) {
 	if r := recover(); r != nil {
-		*err = errors.New(fmt.Sprintf("Please check the file:%s\nFailed to parse the proposal json:%s",
+		*err = errors.New(fmt.Sprintf("Please check the file:\n%s\nFailed to parse the proposal json:%s",
 			string(contents), r))
 	}
 }
