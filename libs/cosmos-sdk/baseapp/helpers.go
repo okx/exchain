@@ -16,13 +16,21 @@ func (app *BaseApp) Check(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 	return info.gInfo, info.result, e
 }
 
-func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, mempoolSimulate bool, from ...string) (sdk.GasInfo, *sdk.Result, error) {
-	if mempoolSimulate && cfg.DynamicConfig.GetEnableMempoolSimGuFactor() {
-		mempoolSimulate = false // the mempoolSimulate is false is need gu factor
+func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, from ...string) (sdk.GasInfo, *sdk.Result, error) {
+	info := &runTxInfo{
+		overridesBytes: overridesBytes,
 	}
+	e := app.runtxWithInfo(info, runTxModeSimulate, txBytes, tx, height, from...)
+	return info.gInfo, info.result, e
+}
+
+func (app *BaseApp) MempoolSimulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, from ...string) (sdk.GasInfo, *sdk.Result, error) {
 	info := &runTxInfo{
 		overridesBytes:  overridesBytes,
-		mempoolSimulate: mempoolSimulate,
+		mempoolSimulate: true,
+	}
+	if cfg.DynamicConfig.GetEnableMempoolSimGuFactor() {
+		info.mempoolSimulate = false // the mempoolSimulate is false is need gu factor
 	}
 	e := app.runtxWithInfo(info, runTxModeSimulate, txBytes, tx, height, from...)
 	return info.gInfo, info.result, e

@@ -480,7 +480,16 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			return res, shouldAddBuffer, err
 		}
 	}
-	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, isMempoolSim, from)
+
+	if isMempoolSim {
+		gInfo, res, _ := app.MempoolSimulate(txBytes, tx, height, overrideBytes, from)
+		return sdk.SimulationResponse{
+			GasInfo: gInfo,
+			Result:  res,
+		}, shouldAddBuffer, nil
+	}
+
+	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
 	if err != nil && !isMempoolSim {
 		return sdk.SimulationResponse{}, false, sdkerrors.Wrap(err, "failed to simulate tx")
 	}

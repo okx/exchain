@@ -989,13 +989,13 @@ func TestSimulateTx(t *testing.T) {
 
 		if blockN != 0 {
 			// simulate a message, check gas reported
-			gInfo, result, err := app.Simulate(txBytes, tx, 0, nil, false)
+			gInfo, result, err := app.Simulate(txBytes, tx, 0, nil)
 			require.NoError(t, err)
 			require.NotNil(t, result)
 			require.Equal(t, gasConsumed, gInfo.GasUsed)
 
 			// simulate again, same result
-			gInfo, result, err = app.Simulate(txBytes, tx, 0, nil, false)
+			gInfo, result, err = app.Simulate(txBytes, tx, 0, nil)
 			require.NoError(t, err)
 			require.NotNil(t, result)
 			require.Equal(t, gasConsumed, gInfo.GasUsed)
