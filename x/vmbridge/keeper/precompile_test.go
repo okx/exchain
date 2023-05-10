@@ -497,7 +497,7 @@ func (suite *KeeperTestSuite) TestPrecompileHooks() {
 			func(ctx *sdk.Context, data *evmtypes.ResultData, contractA, contractB common.Address, wasmContract sdk.WasmAddress) {
 				suite.Require().Nil(data)
 			},
-			errors.New("codespace: sdk, code: 9"),
+			errors.New("codespace: wasm, code: 9"),
 			true,
 		},
 		{

@@ -212,7 +212,7 @@ func TestDecodePrecompileQueryToWasmInput(t *testing.T) {
 			postcheck: func(calldata string) {
 				require.Equal(t, testCalldata, calldata)
 			},
-			expectErr: "decode precomplie call to wasm input unpack err :  method callToWasm data is nil",
+			expectErr: "decode precomplie query to wasm input unpack err :  method queryToWasm data is nil",
 		},
 		{
 			name: "input add one byte",
@@ -226,7 +226,7 @@ func TestDecodePrecompileQueryToWasmInput(t *testing.T) {
 			postcheck: func(calldata string) {
 				require.Equal(t, testCalldata, calldata)
 			},
-			expectErr: "decode precomplie call to wasm input unpack err :  abi: cannot marshal in to go slice: offset 41246180337441339990308983541005712728593953418436849081514007625224398307360 would go over slice boundary (len=197)",
+			expectErr: "decode precomplie query to wasm input unpack err :  abi: cannot marshal in to go slice: offset 86015489902299205649965666741627051758092273748291497414970767656871234895904 would go over slice boundary (len=101)",
 		},
 		{
 			name: "input less one byte",
@@ -241,7 +241,7 @@ func TestDecodePrecompileQueryToWasmInput(t *testing.T) {
 			postcheck: func(calldata string) {
 				require.Equal(t, testCalldata, calldata)
 			},
-			expectErr: "decode precomplie call to wasm input unpack err :  abi: cannot marshal in to go slice: offset 41246180337441339990308983541005712728593953418436849081514007625224398307360 would go over slice boundary (len=195)",
+			expectErr: "decode precomplie query to wasm input unpack err :  abi: cannot marshal in to go slice: offset 86015489902299205649965666741627051758092273748291497414970767656871234895904 would go over slice boundary (len=99)",
 		},
 		{
 			name: "input update one byte",
@@ -256,7 +256,7 @@ func TestDecodePrecompileQueryToWasmInput(t *testing.T) {
 			postcheck: func(calldata string) {
 				require.Equal(t, testCalldata, calldata)
 			},
-			expectErr: "decode precomplie call to wasm input unpack err :  abi: cannot marshal in to go slice: offset 41246180337441339990308983541005712728593953418436849081514007625224398307360 would go over slice boundary (len=196)",
+			expectErr: "decode precomplie query to wasm input unpack err :  abi: cannot marshal in to go slice: offset 86015489902299205649965666741627051758092273748291497414970767656871234895904 would go over slice boundary (len=100)",
 		},
 	}
 
@@ -349,7 +349,7 @@ func TestGetMethodByIdFromCallData(t *testing.T) {
 				return buff
 			}(),
 			isErr:     true,
-			expectErr: "invalid call data; length should be a multiple of 32 bytes (was 97)",
+			expectErr: "the calldata length must more than 4",
 		},
 	}
 

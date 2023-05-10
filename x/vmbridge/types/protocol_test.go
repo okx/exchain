@@ -17,7 +17,7 @@ func TestGetEVMABIConfig(t *testing.T) {
 	}{
 		{
 			name:  "normal abi json",
-			data:  preCompileJson,
+			data:  abiJson,
 			isErr: false,
 		},
 		{
