@@ -50,6 +50,7 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdLibVersion(cdc, reg),
 		NewCmdListContractBlockedMethod(cdc),
 		NewCmdGetParams(cdc, reg),
+		NewCmdGetExtraParams(cdc, reg),
 		NewCmdGetAddressWhitelist(cdc, reg),
 	)
 
@@ -126,6 +127,29 @@ func NewCmdGetParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 			}
 
 			var params types.Params
+			m.GetCdc().MustUnmarshalJSON(res, &params)
+			return clientCtx.PrintOutput(params)
+		},
+	}
+	return cmd
+}
+
+func NewCmdGetExtraParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "extra-params",
+		Short: "Get wasm extra parameters on the chain",
+		Long:  "Get wasm extra parameters on the chain",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryExtraParams)
+
+			res, _, err := clientCtx.Query(route)
+			if err != nil {
+				return err
+			}
+
+			var params types.QueryExtraParams
 			m.GetCdc().MustUnmarshalJSON(res, &params)
 			return clientCtx.PrintOutput(params)
 		},
@@ -286,7 +310,7 @@ func NewCmdGetContractInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := sdk.AccAddressFromBech32(args[0])
+			_, err := sdk.WasmAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -316,7 +340,7 @@ func NewCmdListContractBlockedMethod(m *codec.CodecProxy) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc())
 
-			_, err := sdk.AccAddressFromBech32(args[0])
+			_, err := sdk.WasmAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -343,7 +367,7 @@ func NewCmdGetContractHistory(m *codec.CodecProxy, reg codectypes.InterfaceRegis
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := sdk.AccAddressFromBech32(args[0])
+			_, err := sdk.WasmAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -399,7 +423,7 @@ func newCmdGetContractStateAll(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := sdk.AccAddressFromBech32(args[0])
+			_, err := sdk.WasmAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -436,7 +460,7 @@ func newCmdGetContractStateRaw(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := sdk.AccAddressFromBech32(args[0])
+			_, err := sdk.WasmAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -474,7 +498,7 @@ func newCmdGetContractStateSmart(m *codec.CodecProxy, reg codectypes.InterfaceRe
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := sdk.AccAddressFromBech32(args[0])
+			_, err := sdk.WasmAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}

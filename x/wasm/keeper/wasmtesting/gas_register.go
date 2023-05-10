@@ -64,3 +64,11 @@ func (m MockGasRegister) FromWasmVMGas(source uint64) sdk.Gas {
 	}
 	return m.FromWasmVMGasFn(source)
 }
+
+func (m MockGasRegister) GetGasMultiplier() uint64 {
+	return 0
+}
+
+func (m *MockGasRegister) UpdateGasMultiplier(gasMultiplier uint64) bool {
+	return true
+}

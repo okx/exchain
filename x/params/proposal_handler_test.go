@@ -246,8 +246,8 @@ func (suite *ProposalHandlerSuite) TestCheckUpgradeVote() {
 	}{
 		{0, 10, false},
 		{0, 1111, false},
-		{10, 11, true},
-		{10, 10, true},
+		{10, 11, false},
+		{10, 10, false},
 		{10, 9, false},
 	}
 

@@ -543,11 +543,11 @@ package ibctesting
 //	return cap
 //}
 //
-//func (chain *TestChain) Balance(acc sdk.AccAddress, denom string) sdk.Coin {
+//func (chain *TestChain) Balance(acc sdk.WasmAddress, denom string) sdk.Coin {
 //	return chain.GetTestSupport().BankKeeper().GetBalance(chain.GetContext(), acc, denom)
 //}
 //
-//func (chain *TestChain) AllBalances(acc sdk.AccAddress) sdk.Coins {
+//func (chain *TestChain) AllBalances(acc sdk.WasmAddress) sdk.Coins {
 //	return chain.GetTestSupport().BankKeeper().GetAllBalances(chain.GetContext(), acc)
 //}
 //

@@ -86,6 +86,12 @@ pub fn execute(
             recipient,
             amount,
         } => try_send_to_erc20(deps, env,evmContract,recipient,amount,info),
+
+         ExecuteMsg::CallToEvmMsg {
+            evmaddr,
+            calldata,
+            value,
+         } => try_call_to_evm(deps, env,evmaddr,calldata,value,info),
     }
 }
 
@@ -152,6 +158,30 @@ fn try_mint_cw20(
         .add_attribute("account", recipient_address)
         .add_attribute("sender", info.sender.to_string())
         .add_attribute("amount", amount.to_string()))
+}
+
+fn try_call_to_evm(
+    deps: DepsMut,
+    _env: Env,
+    evmaddr: String,
+    calldata: String,
+    value: Uint128,
+    info: MessageInfo,
+) -> Result<Response<SendToEvmMsg>, ContractError> {
+
+    let submsg = SendToEvmMsg {
+        sender: _env.contract.address.to_string(),
+        evmaddr: evmaddr.to_string(),
+        calldata: calldata,
+        value: value,
+    };
+
+    Ok(Response::new()
+           .add_attribute("action", "call to evm")
+           .add_attribute("evmaddr", evmaddr.to_string())
+           .add_attribute("value", value.to_string())
+           .add_message(submsg)
+           .set_data(b"the result data"))
 }
 
 fn try_send_to_erc20(
@@ -236,10 +266,12 @@ fn try_transfer(
     recipient: String,
     amount: &Uint128,
 ) -> Result<Response<SendToEvmMsg>, ContractError> {
+    let result = deps.api.addr_canonicalize(recipient.as_str())?;
+
     perform_transfer(
         deps.storage,
         &info.sender,
-        &deps.api.addr_validate(recipient.as_str())?,
+        &deps.api.addr_humanize(&result).unwrap(),
         amount.u128(),
     )?;
     Ok(Response::new()
