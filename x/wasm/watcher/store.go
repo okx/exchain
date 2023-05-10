@@ -159,6 +159,9 @@ func (r *readStore) Has(key []byte) bool {
 	if _, ok := r.mp[string(key)]; ok {
 		return ok
 	}
+	if has := watchdbForSimulate.Has(key); has {
+		return has
+	}
 	return r.kv.Has(key)
 }
 

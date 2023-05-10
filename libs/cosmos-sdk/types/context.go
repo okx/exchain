@@ -413,6 +413,10 @@ func (c *Context) SetWasmKvStoreForSimulate(k KVStore) {
 	*c.wasmKvStoreForSimulate = k
 }
 
+func (c *Context) ResetWasmKvStoreForSimulate() {
+	*c.wasmKvStoreForSimulate = KVStore(nil)
+}
+
 func (c *Context) GetWatcher() IWatcher {
 	if c.watcher == nil {
 		return emptyWatcher

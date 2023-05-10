@@ -37,6 +37,7 @@ func (w *Simulator) Simulate(msgs []sdk.Msg) (*sdk.Result, error) {
 	events := sdk.EmptyEvents()
 
 	for _, msg := range msgs {
+		w.ctx.ResetWasmKvStoreForSimulate()
 		res, err := w.handler(w.ctx, msg)
 		if err != nil {
 			return nil, err
