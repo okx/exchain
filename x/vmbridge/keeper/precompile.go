@@ -43,6 +43,10 @@ func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context,
 		return nil, 0, err
 	}
 
+	params := k.wasmKeeper.GetParams(sdkCtx)
+	if !params.VmbridgeEnable {
+		return nil, 0, types.ErrVMBridgeEnable
+	}
 	// prepare subctx for execute cm msg
 	subCtx, commit := sdkCtx.CacheContextWithMultiSnapShotRWSet()
 	currentGasMeter := subCtx.GasMeter()
@@ -108,6 +112,6 @@ func querytoWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value
 		return nil, left, err
 	}
 
-	result, err := types.EncodePrecompileCallToWasmOutput(string(ret))
+	result, err := types.EncodePrecompileQueryToWasmOutput(string(ret))
 	return result, left, err
 }

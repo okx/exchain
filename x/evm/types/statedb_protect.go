@@ -34,6 +34,12 @@ func (csdb *CommitStateDB) ProtectStateDBEnvironment(ctx sdk.Context) {
 			tempObj.finaliseForProtect() // Prefetch slots in the background
 			tempObj.commitStateForProtect(subCtx)
 			csdb.updateStateObjectForProtect(subCtx, tempObj)
+
+			// Write any contract code associated with the state object
+			if tempObj.code != nil && tempObj.dirtyCode {
+				tempObj.commitCodeForProtect(subCtx)
+				tempObj.dirtyCode = false
+			}
 		}
 	}
 
@@ -148,4 +154,11 @@ func (so *stateObject) commitStateForProtect(ctx sdk.Context) {
 	}
 
 	return
+}
+
+// commitCode persists the state object's code to the KVStore.
+func (so *stateObject) commitCodeForProtect(ctx sdk.Context) {
+	store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+	store.Set(so.CodeHash(), so.code)
+	ctx.Cache().UpdateCode(so.CodeHash(), so.code, true)
 }
