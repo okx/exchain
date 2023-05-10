@@ -196,11 +196,11 @@ format:
 
 build:
 ifeq ($(OS),Windows_NT)
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind.exe ./cmd/exchaind
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli.exe ./cmd/exchaincli
+	go build -pgo=auto $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind.exe ./cmd/exchaind
+	go build -pgo=auto $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli.exe ./cmd/exchaincli
 else
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind ./cmd/exchaind
-	go build $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli ./cmd/exchaincli
+	go build -pgo=auto $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaind ./cmd/exchaind
+	go build -pgo=auto $(BUILD_FLAGS) -tags "$(build_tags)" -o build/exchaincli ./cmd/exchaincli
 endif
 
 
