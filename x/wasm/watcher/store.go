@@ -36,7 +36,7 @@ var (
 func Enable() bool {
 	checkOnce.Do(func() {
 		checked = true
-		if viper.GetBool(watcher.FlagFastQuery) {
+		if viper.GetBool(watcher.FlagFastQueryForWasm) {
 			enableWatcher = true
 			InitDB()
 		}

@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	FlagFastQuery    = "fast-query"
-	FlagFastQueryLru = "fast-lru"
-	FlagCheckWd      = "check_watchdb"
+	FlagFastQuery        = "fast-query"
+	FlagFastQueryForWasm = "wasm-fast-query"
+	FlagFastQueryLru     = "fast-lru"
+	FlagCheckWd          = "check_watchdb"
 
 	WatchDbDir  = "data"
 	WatchDBName = "watch"
