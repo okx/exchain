@@ -59,11 +59,6 @@ func main() {
 		panic(err)
 	}
 
-	// privKey := []string{
-	// 	"8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17",
-	// }
-
-	// for _, k := range privKey {
 	test := func(key string) {
 
 		switch TestType(*actionTypeParam) {
@@ -78,7 +73,6 @@ func main() {
 		}
 	}
 	test(*privKey)
-	// }
 }
 
 func counterDeploy(privKey string) (err error) {
