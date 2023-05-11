@@ -101,6 +101,9 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
 
+	gasMeter := ctx.GasMeter()
+	tmpGasMeter := sdk.GetReusableInfiniteGasMeter()
+	ctx.SetGasMeter(tmpGasMeter)
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
 		err = DeductFees(dfd.supplyKeeper, ctx, feePayerAcc, feeTx.GetFee())
@@ -108,6 +111,8 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 			return ctx, err
 		}
 	}
+	sdk.ReturnInfiniteGasMeter(tmpGasMeter)
+	ctx.SetGasMeter(gasMeter)
 
 	return next(ctx, tx, simulate)
 }
