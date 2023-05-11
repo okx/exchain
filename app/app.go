@@ -960,8 +960,8 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 		return err
 	}
 
-	if max_threads := viper.GetInt(FlagGolangMaxThreads); max_threads != 0 {
-		debug.SetMaxThreads(max_threads)
+	if maxThreads := viper.GetInt(FlagGolangMaxThreads); maxThreads != 0 {
+		debug.SetMaxThreads(maxThreads)
 	}
 
 	// set config by node mode
