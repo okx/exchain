@@ -48,7 +48,7 @@ func (suite *KeeperTestSuite) precompile_setup() (contractA, contractB common.Ad
 
 func (suite *KeeperTestSuite) TestPrecompileHooks() {
 	//contractA, contractB := suite.precompile_setup()
-	cmBridgePrecompileAddress := common.HexToAddress("0xDb327e55CA2C68b23f83a0fbe29b592702e1d4d7")
+	cmBridgePrecompileAddress := common.HexToAddress("0x0000000000000000000000000000000000000100")
 
 	testAddr := common.HexToAddress("0x09084cc9c3e579Fd4aa383D3fD6C543f7FFC36c7")
 	callWasmMsgFormat := "{\"transfer\":{\"amount\":\"%d\",\"recipient\":\"%s\"}}"
