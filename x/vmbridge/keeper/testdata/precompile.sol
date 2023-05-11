@@ -3,7 +3,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 contract ContractA {
 
-    address precomplieContarct = 0xDb327e55CA2C68b23f83a0fbe29b592702e1d4d7;
+    address precomplieContarct = 0x0000000000000000000000000000000000000100;
     uint256 public number;
     event pushLog(string data);
 
