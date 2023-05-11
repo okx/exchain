@@ -9,7 +9,7 @@ import (
 )
 
 func (csdb *CommitStateDB) ProtectStateDBEnvironment(ctx sdk.Context) {
-	subCtx, commit := ctx.CacheContextWithMultiSnapShotRWSet()
+	subCtx, commit := ctx.CacheContextWithMultiSnapshotRWSet()
 	currentGasMeter := subCtx.GasMeter()
 	infGasMeter := sdk.GetReusableInfiniteGasMeter()
 	subCtx.SetGasMeter(infGasMeter)
@@ -57,7 +57,7 @@ func (csdb *CommitStateDB) ProtectStateDBEnvironment(ctx sdk.Context) {
 	sdk.ReturnInfiniteGasMeter(infGasMeter)
 }
 
-func (csdb *CommitStateDB) CMChangeCommit(writeCacheWithRWSet func() types.MultiSnapShotWSet) {
+func (csdb *CommitStateDB) CMChangeCommit(writeCacheWithRWSet func() types.MultiSnapshotWSet) {
 	cmwSet := writeCacheWithRWSet()
 	csdb.journal.append(cmChange{&cmwSet})
 }

@@ -48,16 +48,16 @@ func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context,
 		return nil, 0, types.ErrVMBridgeEnable
 	}
 	// prepare subctx for execute cm msg
-	subCtx, commit := sdkCtx.CacheContextWithMultiSnapShotRWSet()
+	subCtx, commit := sdkCtx.CacheContextWithMultiSnapshotRWSet()
 	currentGasMeter := subCtx.GasMeter()
 	gasMeter := sdk.NewGasMeter(remainGas)
 	subCtx.SetGasMeter(gasMeter)
 
 	switch method.Name {
 	case types.PrecompileCallToWasm:
-		result, leftGas, err = calltoWasm(k, subCtx, caller, to, value, input)
+		result, leftGas, err = callToWasm(k, subCtx, caller, to, value, input)
 	case types.PrecompileQueryToWasm:
-		result, leftGas, err = querytoWasm(k, subCtx, caller, to, value, input)
+		result, leftGas, err = queryToWasm(k, subCtx, caller, to, value, input)
 	default:
 		result, leftGas, err = nil, 0, errors.New("methodDispatch failed: unknown method")
 	}
@@ -71,7 +71,7 @@ func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context,
 	return result, leftGas, nil
 }
 
-func calltoWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value *big.Int, input []byte) ([]byte, uint64, error) {
+func callToWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value *big.Int, input []byte) ([]byte, uint64, error) {
 	wasmContractAddr, calldata, err := types.DecodePrecompileCallToWasmInput(input)
 	if err != nil {
 		return nil, 0, err
@@ -92,9 +92,9 @@ func calltoWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value 
 	return result, left, err
 }
 
-func querytoWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value *big.Int, input []byte) ([]byte, uint64, error) {
+func queryToWasm(k *Keeper, sdkCtx sdk.Context, caller, to common.Address, value *big.Int, input []byte) ([]byte, uint64, error) {
 	if value.Sign() != 0 {
-		return nil, 0, errors.New("querytoWasm can not be send token")
+		return nil, 0, errors.New("queryToWasm can not be send token")
 	}
 	calldata, err := types.DecodePrecompileQueryToWasmInput(input)
 	if err != nil {

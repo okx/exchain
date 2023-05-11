@@ -134,7 +134,7 @@ type (
 	}
 
 	cmChange struct {
-		sets *types.MultiSnapShotWSet
+		sets *types.MultiSnapshotWSet
 	}
 )
 
@@ -270,7 +270,7 @@ func (ch accessListAddSlotChange) dirtied() *ethcmn.Address {
 }
 
 func (ch cmChange) revert(s *CommitStateDB) {
-	s.ctx.RevertDBWithMultiSnapShotRWSet(*ch.sets)
+	s.ctx.RevertDBWithMultiSnapshotRWSet(*ch.sets)
 }
 
 func (ch cmChange) dirtied() *ethcmn.Address {

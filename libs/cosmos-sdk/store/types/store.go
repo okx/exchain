@@ -151,8 +151,8 @@ type CacheMultiStore interface {
 	MultiStore
 	CacheManager
 	Write() // Writes operations to underlying KVStore
-	WriteGetMultiSnapShotWSet() MultiSnapShotWSet
-	RevertDBWithMultiSnapShotRWSet(set MultiSnapShotWSet)
+	WriteGetMultiSnapshotWSet() MultiSnapshotWSet
+	RevertDBWithMultiSnapshotRWSet(set MultiSnapshotWSet)
 }
 
 type CacheMultiStoreResetter interface {
@@ -261,8 +261,8 @@ type CacheKVStore interface {
 	CacheManager
 	// Writes operations to underlying KVStore
 	Write()
-	WriteWithSnapShotWSet() SnapShotWSet
-	RevertDBWithSnapShotRWSet(set SnapShotWSet)
+	WriteWithSnapshotWSet() SnapshotWSet
+	RevertDBWithSnapshotRWSet(set SnapshotWSet)
 }
 
 // Stores of MultiStore must implement CommitStore.
@@ -282,8 +282,8 @@ type CacheWrap interface {
 	CacheManager
 	// Write syncs with the underlying store.
 	Write()
-	WriteWithSnapShotWSet() SnapShotWSet
-	RevertDBWithSnapShotRWSet(set SnapShotWSet)
+	WriteWithSnapshotWSet() SnapshotWSet
+	RevertDBWithSnapshotRWSet(set SnapshotWSet)
 
 	// CacheWrap recursively wraps again.
 	CacheWrap() CacheWrap
@@ -461,29 +461,29 @@ type RevertWriteChange struct {
 	PrevValue []byte
 }
 
-type SnapShotWSet struct {
+type SnapshotWSet struct {
 	Write map[string]RevertWriteChange
 }
 
-func NewSnapShotWSet() SnapShotWSet {
-	return SnapShotWSet{
+func NewSnapShotWSet() SnapshotWSet {
+	return SnapshotWSet{
 		Write: make(map[string]RevertWriteChange),
 	}
 }
 
-type MultiSnapShotWSet struct {
-	Root   SnapShotWSet
-	Stores map[StoreKey]SnapShotWSet
+type MultiSnapshotWSet struct {
+	Root   SnapshotWSet
+	Stores map[StoreKey]SnapshotWSet
 }
 
-func NewMultiSnapShotWSet() MultiSnapShotWSet {
-	return MultiSnapShotWSet{
+func NewMultiSnapshotWSet() MultiSnapshotWSet {
+	return MultiSnapshotWSet{
 		Root:   NewSnapShotWSet(),
-		Stores: make(map[StoreKey]SnapShotWSet),
+		Stores: make(map[StoreKey]SnapshotWSet),
 	}
 }
 
-func RevertSnapShotWSet(store KVStore, set SnapShotWSet) {
+func RevertSnapshotWSet(store KVStore, set SnapshotWSet) {
 	for k, v := range set.Write {
 		if v.PrevValue == nil {
 			store.Delete([]byte(k))

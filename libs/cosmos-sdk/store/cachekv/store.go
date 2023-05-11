@@ -144,7 +144,7 @@ func (store *Store) Delete(key []byte) {
 }
 
 // Implements Cachetypes.KVStore.
-func (store *Store) WriteWithSnapShotWSet() types.SnapShotWSet {
+func (store *Store) WriteWithSnapshotWSet() types.SnapshotWSet {
 	// if parent is cachekv.Store, we can write kv more efficiently
 	if pStore, ok := store.parent.(*Store); ok {
 		return store.writeToCacheKvWithSnapShotWSet(pStore)
@@ -192,8 +192,8 @@ func (store *Store) WriteWithSnapShotWSet() types.SnapShotWSet {
 }
 
 // Implements Cachetypes.KVStore.
-func (store *Store) RevertDBWithSnapShotRWSet(set types.SnapShotWSet) {
-	types.RevertSnapShotWSet(store, set)
+func (store *Store) RevertDBWithSnapshotRWSet(set types.SnapshotWSet) {
+	types.RevertSnapshotWSet(store, set)
 }
 
 // Implements Cachetypes.KVStore.
@@ -287,7 +287,7 @@ func (store *Store) writeToCacheKv(parent *Store) {
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.
-func (store *Store) writeToCacheKvWithSnapShotWSet(parent *Store) types.SnapShotWSet {
+func (store *Store) writeToCacheKvWithSnapShotWSet(parent *Store) types.SnapshotWSet {
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 

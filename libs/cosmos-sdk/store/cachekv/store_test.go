@@ -81,16 +81,16 @@ func TestStore_WriteWithSnapShotWSet(t *testing.T) {
 	require.Equal(t, valFmt(1), mem.Get(keyFmt(1)))
 
 	// write it. should change mem
-	snapshot := st.WriteWithSnapShotWSet()
+	snapshot := st.WriteWithSnapshotWSet()
 	require.Equal(t, valFmt(2), mem.Get(keyFmt(1)))
 	require.Equal(t, valFmt(2), st.Get(keyFmt(1)))
 	require.Equal(t, 1, len(snapshot.Write))
 	require.Equal(t, snapshot.Write[string(keyFmt(1))].PrevValue, valFmt(1))
 
 	// more writes and checks
-	snapshot = st.WriteWithSnapShotWSet()
+	snapshot = st.WriteWithSnapshotWSet()
 	require.Equal(t, 0, len(snapshot.Write))
-	snapshot = st.WriteWithSnapShotWSet()
+	snapshot = st.WriteWithSnapshotWSet()
 	require.Equal(t, 0, len(snapshot.Write))
 	require.Equal(t, valFmt(2), mem.Get(keyFmt(1)))
 	require.Equal(t, valFmt(2), st.Get(keyFmt(1)))
@@ -106,7 +106,7 @@ func TestStore_WriteWithSnapShotWSet(t *testing.T) {
 	require.Equal(t, mem.Get(keyFmt(1)), valFmt(2))
 
 	// Write. should now be removed from both
-	snapshot = st.WriteWithSnapShotWSet()
+	snapshot = st.WriteWithSnapshotWSet()
 	require.Equal(t, 1, len(snapshot.Write))
 	require.Equal(t, snapshot.Write[string(keyFmt(1))].PrevValue, valFmt(2))
 	require.Empty(t, st.Get(keyFmt(1)), "Expected `key1` to be empty")
@@ -114,7 +114,7 @@ func TestStore_WriteWithSnapShotWSet(t *testing.T) {
 
 	// insert new
 	st.Set(keyFmt(1), valFmt(1))
-	snapshot = st.WriteWithSnapShotWSet()
+	snapshot = st.WriteWithSnapshotWSet()
 	require.Equal(t, 1, len(snapshot.Write))
 
 	require.Nil(t, snapshot.Write[string(keyFmt(1))].PrevValue)

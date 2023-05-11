@@ -466,18 +466,18 @@ func (c *Context) CacheContext() (cc Context, writeCache func()) {
 	return
 }
 
-func (c *Context) CacheContextWithMultiSnapShotRWSet() (cc Context, writeCacheWithRWSet func() stypes.MultiSnapShotWSet) {
+func (c *Context) CacheContextWithMultiSnapshotRWSet() (cc Context, writeCacheWithRWSet func() stypes.MultiSnapshotWSet) {
 	cms := c.MultiStore().CacheMultiStore()
 	cc = *c
 	cc.SetMultiStore(cms)
 	cc.SetEventManager(NewEventManager())
-	writeCacheWithRWSet = cms.WriteGetMultiSnapShotWSet
+	writeCacheWithRWSet = cms.WriteGetMultiSnapshotWSet
 	return
 }
 
-func (c *Context) RevertDBWithMultiSnapShotRWSet(set stypes.MultiSnapShotWSet) {
+func (c *Context) RevertDBWithMultiSnapshotRWSet(set stypes.MultiSnapshotWSet) {
 	cms := c.MultiStore().CacheMultiStore()
-	cms.RevertDBWithMultiSnapShotRWSet(set)
+	cms.RevertDBWithMultiSnapshotRWSet(set)
 	cms.Write()
 }
 

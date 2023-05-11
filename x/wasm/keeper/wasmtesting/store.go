@@ -42,19 +42,19 @@ func (m *mockCMS) Write() {
 	*m.committed = true
 }
 
-func (m *mockCMS) WriteWithSnapShotWSet() types.SnapShotWSet {
-	panic("not support WriteWithSnapShotWSet")
+func (m *mockCMS) WriteWithSnapshotWSet() types.SnapshotWSet {
+	panic("not support WriteWithSnapshotWSet")
 }
 
-func (cms *mockCMS) WriteGetMultiSnapShotWSet() types.MultiSnapShotWSet {
-	panic("not support WriteGetMultiSnapShotWSet")
+func (cms *mockCMS) WriteGetMultiSnapshotWSet() types.MultiSnapshotWSet {
+	panic("not support WriteGetMultiSnapshotWSet")
 }
 
 // Implements Cachetypes.KVStore.
-func (cms *mockCMS) RevertDBWithSnapShotRWSet(set types.SnapShotWSet) {
-	panic("not support WriteGetMultiSnapShotWSet")
+func (cms *mockCMS) RevertDBWithSnapshotRWSet(set types.SnapshotWSet) {
+	panic("not support WriteGetMultiSnapshotWSet")
 }
 
-func (cms *mockCMS) RevertDBWithMultiSnapShotRWSet(set types.MultiSnapShotWSet) {
-	panic("not support WriteGetMultiSnapShotWSet")
+func (cms *mockCMS) RevertDBWithMultiSnapshotRWSet(set types.MultiSnapshotWSet) {
+	panic("not support WriteGetMultiSnapshotWSet")
 }

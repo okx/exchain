@@ -361,7 +361,7 @@ func (suite *JournalTestSuite) TestJournal_cmchange_revert() {
 	prefixDB.Set(updateKey, []byte("1"))
 	prefixDB.Set(deleteKey, []byte("1"))
 
-	subCtx, write := suite.ctx.CacheContextWithMultiSnapShotRWSet()
+	subCtx, write := suite.ctx.CacheContextWithMultiSnapshotRWSet()
 	suite.stateDB.accountKeeper.SetAccount(subCtx, insert)
 	update.SetCoins(sdk.NewCoins(sdk.NewCoin("okt", sdk.NewDec(0))))
 	suite.stateDB.accountKeeper.SetAccount(subCtx, update)

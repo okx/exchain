@@ -43,7 +43,7 @@ func TestStore_WriteGetMultiSnapShotWSet(t *testing.T) {
 		}
 	}
 
-	snapshot := store.WriteGetMultiSnapShotWSet()
+	snapshot := store.WriteGetMultiSnapshotWSet()
 	for i := 0; i < 10; i++ {
 		if i%3 == 0 {
 			//update key
@@ -113,7 +113,7 @@ func TestStore_RevertDBWithMultiSnapShotRWSet(t *testing.T) {
 		}
 	}
 
-	snapshot := store.WriteGetMultiSnapShotWSet()
+	snapshot := store.WriteGetMultiSnapshotWSet()
 	for i := 0; i < 10; i++ {
 		if i%3 == 0 {
 			//update key
@@ -166,7 +166,7 @@ func TestStore_RevertDBWithMultiSnapShotRWSet(t *testing.T) {
 			require.Equal(t, snapshot.Stores[keys[i]].Write["1"].PrevValue, []byte("1"))
 		}
 	}
-	store.RevertDBWithMultiSnapShotRWSet(snapshot)
+	store.RevertDBWithMultiSnapshotRWSet(snapshot)
 
 	for i := 0; i < 10; i++ {
 		iter := store.GetKVStore(keys[i]).Iterator(nil, nil)
