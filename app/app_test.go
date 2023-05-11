@@ -258,7 +258,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				return txBytes
 			},
 			0,
-			159669,
+			143106,
 		},
 		{
 			"send tx for gov with error fee, failed, do not write to block",
@@ -290,7 +290,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				return txBytes
 			},
 			68007, //the status of proposal is not for this operation: failed to execute message; message index: 1
-			121641,
+			104931,
 		},
 		{
 			"send std tx for gov again with proposal id 2, success",
@@ -306,7 +306,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				return txBytes
 			},
 			0,
-			154279,
+			137569,
 		},
 	}
 
