@@ -1,0 +1,23 @@
+[package]
+name = "counter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+cosmwasm-std = "1.2.3"
+cosmwasm-schema = "1.0.0"
+thiserror = "1.0.40"
+schemars = "0.8.12"
+serde = "1.0.159"
+cw-storage-plus = "0.13.4"
+hex = "0.4"
+getrandom = { version = "0.2", features = ["js"] }
+sha3 = "0.10.6"
+
+[dev-dependencies]
+cw-multi-test = "0.13.2"
