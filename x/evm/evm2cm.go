@@ -17,8 +17,9 @@ var (
 )
 
 const (
-	sysContractABI            = `[{"inputs":[{"internalType":"string","name":"data","type":"string"}],"name":"invoke","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
+	sysContractABI            = `[{"inputs":[{"internalType":"string","name":"_data","type":"string"}],"name":"invoke","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"input","type":"string"}],"name":"query","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}]`
 	sysContractInvokeFunction = "invoke"
+	sysContractQueryFunction  = "query"
 )
 
 func init() {
@@ -28,6 +29,10 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintln("init system abi fail", err.Error()))
 	}
+}
+
+func SysABI() *types.ABI {
+	return sysABIParser
 }
 
 func RegisterHandle() {
@@ -92,4 +97,12 @@ func EncodeResultData(txHash, data []byte) ([]byte, error) {
 
 func IsMatchSystemContractFunction(data []byte) bool {
 	return sysABIParser.IsMatchFunction(sysContractInvokeFunction, data)
+}
+
+func IsMatchSystemContractQuery(data []byte) bool {
+	return sysABIParser.IsMatchFunction(sysContractQueryFunction, data)
+}
+
+func EncodeQueryOutput(data []byte) ([]byte, error) {
+	return sysABIParser.EncodeOutput(sysContractQueryFunction, data)
 }

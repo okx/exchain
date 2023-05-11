@@ -9,6 +9,7 @@ import (
 
 var (
 	cmHandles          = make(map[string]*CMHandle)
+	cmHandlesV1        = make(map[string]*CMHandleV1) // used for the type of proposal milestone
 	evmResultConverter func(txHash, data []byte) ([]byte, error)
 	evmConvertJudge    func(msg sdk.Msg) ([]byte, bool)
 	evmParamParse      func(msg sdk.Msg) ([]byte, error)
@@ -38,7 +39,33 @@ func RegisterCmHandle(msgType string, create *CMHandle) {
 	if _, dup := cmHandles[msgType]; dup {
 		panic("Register CmHandle twice for same module and func " + msgType)
 	}
+	if _, dup := cmHandlesV1[msgType]; dup {
+		panic("Register CmHandle have cmHandlesV1 in same module and func " + msgType)
+	}
 	cmHandles[msgType] = create
+}
+
+type CMHandleV1 struct {
+	fn func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error)
+}
+
+func NewCMHandleV1(fn func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error)) *CMHandleV1 {
+	return &CMHandleV1{
+		fn: fn,
+	}
+}
+
+func RegisterCmHandleV1(msgType string, create *CMHandleV1) {
+	if create == nil {
+		panic("Register CmHandleV1 is nil")
+	}
+	if _, dup := cmHandlesV1[msgType]; dup {
+		panic("Register CmHandleV1 twice for same module and func " + msgType)
+	}
+	if _, dup := cmHandles[msgType]; dup {
+		panic("Register CmHandleV1 have cmHandles in same module and func " + msgType)
+	}
+	cmHandlesV1[msgType] = create
 }
 
 func RegisterEvmResultConverter(create func(txHash, data []byte) ([]byte, error)) {
@@ -73,6 +100,9 @@ func ConvertMsg(msg sdk.Msg, height int64) (sdk.Msg, error) {
 	}
 	if cmh, ok := cmHandles[msgWrap.Name]; ok && height >= cmh.height {
 		return cmh.fn(msgWrap.Data, msg.GetSigners())
+	}
+	if cmh, ok := cmHandlesV1[msgWrap.Name]; ok {
+		return cmh.fn(msgWrap.Data, msg.GetSigners(), height)
 	}
 	return nil, fmt.Errorf("not find handle")
 }
