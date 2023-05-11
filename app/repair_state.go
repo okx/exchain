@@ -47,8 +47,6 @@ const (
 
 	FlagStartHeight       string = "start-height"
 	FlagEnableRepairState string = "enable-repair-state"
-
-	FlagGolangMaxThreads string = "golang-max-threads"
 )
 
 type repairApp struct {
