@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"github.com/okex/exchain/x/vmbridge"
@@ -956,6 +957,10 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	err := sanity.CheckStart()
 	if err != nil {
 		return err
+	}
+
+	if max_threads := viper.GetInt(FlagGolangMaxThreads); max_threads != 0 {
+		debug.SetMaxThreads(max_threads)
 	}
 
 	// set config by node mode
