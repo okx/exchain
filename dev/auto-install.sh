@@ -108,9 +108,9 @@ GetArchitecture() {
           echo "$_cputype"
           if [ "$_cputype" == "arm64" ]
           then
-            goAchive="go1.20.darwin-arm64.tar.gz"
+            goAchive="go1.20.2.darwin-arm64.tar.gz"
           else
-            goAchive="go1.20.darwin-amd64.tar.gz"
+            goAchive="go1.20.2.darwin-amd64.tar.gz"
           fi
           brew install wget
   else
