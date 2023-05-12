@@ -8,7 +8,7 @@ FROM golang:1.17.2-alpine AS build-env
 RUN apk add --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev
 
 # Set working directory for the build
-WORKDIR /go/src/github.com/okex/exchain
+WORKDIR /home/circleci/go/src/github.com/okex/exchain
 
 # Add source files
 COPY . .
