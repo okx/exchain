@@ -2,7 +2,7 @@
 # > docker build -t exchain .
 # > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.exchaind:/root/.exchaind -v ~/.exchaincli:/root/.exchaincli exchain exchaind init mynode
 # > docker run -it -p 36657:36657 -p 36656:36656 -v ~/.exchaind:/root/.exchaind -v ~/.exchaincli:/root/.exchaincli exchain exchaind start
-FROM golang:1.17.2-alpine AS build-env
+FROM golang:1.20.2-alpine AS build-env
 
 # Install minimum necessary dependencies, remove packages
 RUN apk add --no-cache curl make git libc-dev bash gcc linux-headers eudev-dev
