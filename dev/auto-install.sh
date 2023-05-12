@@ -56,7 +56,7 @@ GetArchitecture() {
           echo "echo Arch Linux detected."
           os="linux"
           deptool="ldd"
-          goAchive="go1.20.linux-amd64.tar.gz"
+          goAchive="go1.20.2.linux-amd64.tar.gz"
           libArray=("/usr/local/lib/librocksdb.so.6.27.3" "/usr/local/lib/librocksdb.so.6.27" "/usr/local/lib/librocksdb.so.6" "/usr/local/lib/librocksdb.so" "/usr/lib/librocksdb.so.6.27.3" "/usr/lib/librocksdb.so.6.27" "/usr/lib/librocksdb.so.6" "/usr/lib/librocksdb.so")
           rocksdbdep=("/usr/local/lib/pkconfig/rocksdb.pc" "/usr/local/include/rocksdb" "/usr/local/lib/librocksdb.so*" "/usr//lib/pkconfig/rocksdb.pc" "/usr/include/rocksdb" "/usr/lib/librocksdb.so*")
           case "$(getOSName)" in
