@@ -162,7 +162,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 		app.pin(trace.Refund, true, mode)
 		defer app.pin(trace.Refund, false, mode)
-		if types2.HigherThanVenus6(height) {
+		if types2.HigherThanVenus6(info.ctx.BlockHeight()) {
 			if (tx.GetType() == sdk.StdTxType && isAnteSucceed && err == nil) ||
 				tx.GetType() == sdk.EvmTxType {
 				handler.handleDeferRefund(info)
