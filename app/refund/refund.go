@@ -65,6 +65,7 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 
 	if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
 		if ctx.GetOutOfGas() {
+			ctx.GasMeter().ConsumeGas(gasLimit-gasUsed, "Refund nil")
 			return nil, nil
 		}
 	} else {
