@@ -12,5 +12,4 @@ var (
 	ErrEmptySubspace    = sdkerrors.Register(ModuleName, 4, "parameter subspace is empty")
 	ErrEmptyKey         = sdkerrors.Register(ModuleName, 5, "parameter key is empty")
 	ErrEmptyValue       = sdkerrors.Register(ModuleName, 6, "parameter value is empty")
-	ErrUpgradeNotReady  = sdkerrors.Register(ModuleName, 7, "no upgrade callback is registed")
 )
