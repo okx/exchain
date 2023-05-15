@@ -15,12 +15,12 @@ func (keeper *Keeper) ClaimReadyForUpgrade(name string, cb func(types.UpgradeInf
 	keeper.upgradeCache.ClaimReadyForUpgrade(name, cb)
 }
 
-func (keeper *Keeper) IsUpgradeEffective(ctx sdk.Context, name string) bool {
-	_, err := keeper.GetEffectiveUpgradeInfo(ctx, name)
+func (keeper *Keeper) isUpgradeEffective(ctx sdk.Context, name string) bool {
+	_, err := keeper.getEffectiveUpgradeInfo(ctx, name)
 	return err == nil
 }
 
-func (keeper *Keeper) GetEffectiveUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
+func (keeper *Keeper) getEffectiveUpgradeInfo(ctx sdk.Context, name string) (types.UpgradeInfo, error) {
 	info, err := keeper.readUpgradeInfo(ctx, name)
 	if err != nil {
 		return types.UpgradeInfo{}, err

@@ -66,7 +66,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.UpgradeProposal) (uint64, sdk.Error) {
 	// confirm height is the height proposal is confirmed.
 	// confirmed is not become effective. Becoming effective will happen at
-	// the next block of confirm block. see `storeEffectiveUpgrade` and `IsUpgradeEffective`
+	// the next block of confirm block. see `storeEffectiveUpgrade` and `isUpgradeEffective`
 	confirmHeight := proposal.ExpectHeight - 1
 	if proposal.ExpectHeight == 0 {
 		// if height is not specified, this upgrade will become effective
