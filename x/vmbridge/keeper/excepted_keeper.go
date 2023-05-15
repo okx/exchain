@@ -14,6 +14,8 @@ type EVMKeeper interface {
 	GenerateCSDBParams() evmtypes.CommitStateDBParams
 	GetParams(ctx sdk.Context) evmtypes.Params
 	GetCallToCM() vm.CallToWasmByPrecompile
+	AddInnerTx(...interface{})
+	AddContract(...interface{})
 }
 
 type WASMKeeper interface {

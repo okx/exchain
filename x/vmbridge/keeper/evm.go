@@ -222,10 +222,14 @@ func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.A
 	}
 
 	st.SetCallToCM(k.evmKeeper.GetCallToCM())
-	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
 	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
-		//TODO maybe add innertx
-		//k.addEVMInnerTx(ethTxHash.Hex(), innertxs, contracts)
+		if innertxs != nil {
+			k.evmKeeper.AddInnerTx(ethTxHash.Hex(), innertxs)
+		}
+		if contracts != nil {
+			k.evmKeeper.AddContract(contracts)
+		}
 	}
 	if err != nil {
 		return nil, nil, err
