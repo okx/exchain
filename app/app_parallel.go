@@ -12,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
@@ -124,7 +125,9 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			if stdTx, ok := tx.(*auth.StdTx); ok && len(stdTx.Msgs) == 1 { // only support one message
 				if msg, ok := stdTx.Msgs[0].(interface{ CalFromAndToForPara() (string, string) }); ok {
 					from, to = msg.CalFromAndToForPara()
-					supportPara = true
+					if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+						supportPara = true
+					}
 				}
 			}
 
