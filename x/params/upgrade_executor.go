@@ -2,8 +2,6 @@ package params
 
 import (
 	"fmt"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"math"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -45,9 +43,11 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		// that probably means program's version is too low.
 		// To avoid status machine broken, we panic.
 		errMsg := fmt.Sprintf("there's a upgrade proposal named '%s' has been take effective, "+
-			"and the upgrade is incompatible, but your binary seems not ready for this upgrade. ", proposal.Name)
+			"and the upgrade is incompatible, but your binary seems not ready for this upgrade. current height: %d, confirm height %d", proposal.Name, curHeight, confirmHeight)
 		k.Logger(ctx).Error(errMsg)
-		return sdkerrors.Wrap(sdkparams.ErrUpgradeNotReady, fmt.Sprintf("upgrade proposal name: %s", proposal.Name))
+		// here must return nil but not an error, if an error is returned, the proposal won't be deleted
+		// from the waiting queue in gov keeper, result in this function is called endlessly in every block end.
+		return nil
 	}
 
 	storedInfo, err := storeEffectiveUpgrade(ctx, k, proposal, effectiveHeight)
