@@ -27,7 +27,6 @@ var (
 	ErrEmptySubspace           = types.ErrEmptySubspace
 	ErrEmptyKey                = types.ErrEmptyKey
 	ErrEmptyValue              = types.ErrEmptyValue
-	ErrUpgradeNotReady         = types.ErrUpgradeNotReady
 	NewParameterChangeProposal = types.NewParameterChangeProposal
 	NewParamChange             = types.NewParamChange
 	ValidateChanges            = types.ValidateChanges
