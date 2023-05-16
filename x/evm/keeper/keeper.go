@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"math/big"
 	"sync"
 
@@ -85,6 +86,7 @@ type Keeper struct {
 
 	heightCache *lru.Cache // Cache for the most recent block heights
 	hashCache   *lru.Cache // Cache for the most recent block hash
+	callToCM    vm.CallToWasmByPrecompile
 }
 
 type chainConfigInfo struct {
@@ -509,4 +511,12 @@ func (k *Keeper) CallEvmHooks(ctx sdk.Context, st *types.StateTransition, receip
 func (k *Keeper) AddHeightHashToCache(height int64, hash string) {
 	k.heightCache.Add(hash, height)
 	k.hashCache.Add(height, hash)
+}
+
+func (k *Keeper) SetCallToCM(callToCM vm.CallToWasmByPrecompile) {
+	k.callToCM = callToCM
+}
+
+func (k *Keeper) GetCallToCM() vm.CallToWasmByPrecompile {
+	return k.callToCM
 }
