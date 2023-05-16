@@ -64,7 +64,7 @@ package keeper
 //}
 //
 //type addressQuery struct {
-//	Address sdk.AccAddress `json:"address"`
+//	Address sdk.WasmAddress `json:"address"`
 //}
 //
 //type BalanceResponse struct {
@@ -85,7 +85,7 @@ package keeper
 //	TokenSupply  string         `json:"token_supply"`
 //	StakedTokens sdk.Coin       `json:"staked_tokens"`
 //	NominalValue sdk.Dec        `json:"nominal_value"`
-//	Owner        sdk.AccAddress `json:"owner"`
+//	Owner        sdk.WasmAddress `json:"owner"`
 //	Validator    sdk.ValAddress `json:"validator"`
 //	ExitTax      sdk.Dec        `json:"exit_tax"`
 //	// MinWithdrawl is uint128 encoded as a string (use sdk.Int?)
@@ -154,8 +154,8 @@ package keeper
 //
 //type initInfo struct {
 //	valAddr      sdk.ValAddress
-//	creator      sdk.AccAddress
-//	contractAddr sdk.AccAddress
+//	creator      sdk.WasmAddress
+//	contractAddr sdk.WasmAddress
 //
 //	ctx            sdk.Context
 //	accKeeper      authkeeper.AccountKeeper
@@ -484,7 +484,7 @@ package keeper
 //	mustParse(t, reflectRes.Data, &allValidatorsRes)
 //	require.Len(t, allValidatorsRes.Validators, 1)
 //	valInfo := allValidatorsRes.Validators[0]
-//	// Note: this ValAddress not AccAddress, may change with #264
+//	// Note: this ValAddress not WasmAddress, may change with #264
 //	require.Equal(t, valAddr.String(), valInfo.Address)
 //	require.Contains(t, valInfo.Commission, "0.100")
 //	require.Contains(t, valInfo.MaxCommission, "0.200")
@@ -505,7 +505,7 @@ package keeper
 //	mustParse(t, reflectRes.Data, &validatorRes)
 //	require.NotNil(t, validatorRes.Validator)
 //	valInfo = *validatorRes.Validator
-//	// Note: this ValAddress not AccAddress, may change with #264
+//	// Note: this ValAddress not WasmAddress, may change with #264
 //	require.Equal(t, valAddr.String(), valInfo.Address)
 //	require.Contains(t, valInfo.Commission, "0.100")
 //	require.Contains(t, valInfo.MaxCommission, "0.200")
@@ -542,7 +542,7 @@ package keeper
 //	mustParse(t, reflectRes.Data, &allDelegationsRes)
 //	require.Len(t, allDelegationsRes.Delegations, 1)
 //	delInfo := allDelegationsRes.Delegations[0]
-//	// Note: this ValAddress not AccAddress, may change with #264
+//	// Note: this ValAddress not WasmAddress, may change with #264
 //	require.Equal(t, valAddr.String(), delInfo.Validator)
 //	// note this is not bob (who staked to the contract), but the contract itself
 //	require.Equal(t, contractAddr.String(), delInfo.Delegator)
@@ -566,7 +566,7 @@ package keeper
 //	mustParse(t, reflectRes.Data, &delegationRes)
 //	assert.NotEmpty(t, delegationRes.Delegation)
 //	delInfo2 := delegationRes.Delegation
-//	// Note: this ValAddress not AccAddress, may change with #264
+//	// Note: this ValAddress not WasmAddress, may change with #264
 //	require.Equal(t, valAddr.String(), delInfo2.Validator)
 //	// note this is not bob (who staked to the contract), but the contract itself
 //	require.Equal(t, contractAddr.String(), delInfo2.Delegator)
@@ -632,7 +632,7 @@ package keeper
 //	mustParse(t, raw, &res)
 //	assert.NotEmpty(t, res.Delegation)
 //	delInfo := res.Delegation
-//	// Note: this ValAddress not AccAddress, may change with #264
+//	// Note: this ValAddress not WasmAddress, may change with #264
 //	require.Equal(t, valAddr.String(), delInfo.Validator)
 //	// note this is not bob (who staked to the contract), but the contract itself
 //	require.Equal(t, contractAddr.String(), delInfo.Delegator)
@@ -702,7 +702,7 @@ package keeper
 //	distKeeper.AllocateTokensToValidator(ctx, vali, payout)
 //}
 //
-//func assertBalance(t *testing.T, ctx sdk.Context, keeper Keeper, contract sdk.AccAddress, addr sdk.AccAddress, expected string) {
+//func assertBalance(t *testing.T, ctx sdk.Context, keeper Keeper, contract sdk.WasmAddress, addr sdk.WasmAddress, expected string) {
 //	query := StakingQueryMsg{
 //		Balance: &addressQuery{
 //			Address: addr,
@@ -718,7 +718,7 @@ package keeper
 //	assert.Equal(t, expected, balance.Balance)
 //}
 //
-//func assertClaims(t *testing.T, ctx sdk.Context, keeper Keeper, contract sdk.AccAddress, addr sdk.AccAddress, expected string) {
+//func assertClaims(t *testing.T, ctx sdk.Context, keeper Keeper, contract sdk.WasmAddress, addr sdk.WasmAddress, expected string) {
 //	query := StakingQueryMsg{
 //		Claims: &addressQuery{
 //			Address: addr,
@@ -734,7 +734,7 @@ package keeper
 //	assert.Equal(t, expected, claims.Claims)
 //}
 //
-//func assertSupply(t *testing.T, ctx sdk.Context, keeper Keeper, contract sdk.AccAddress, expectedIssued string, expectedBonded sdk.Coin) {
+//func assertSupply(t *testing.T, ctx sdk.Context, keeper Keeper, contract sdk.WasmAddress, expectedIssued string, expectedBonded sdk.Coin) {
 //	query := StakingQueryMsg{Investment: &struct{}{}}
 //	queryBz, err := json.Marshal(query)
 //	require.NoError(t, err)

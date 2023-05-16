@@ -3,10 +3,10 @@ package wasmtesting
 import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 type MockCoinTransferrer struct {
-	TransferCoinsFn func(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+	TransferCoinsFn func(ctx sdk.Context, fromAddr sdk.WasmAddress, toAddr sdk.WasmAddress, amt sdk.Coins) error
 }
 
-func (m *MockCoinTransferrer) TransferCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
+func (m *MockCoinTransferrer) TransferCoins(ctx sdk.Context, fromAddr sdk.WasmAddress, toAddr sdk.WasmAddress, amt sdk.Coins) error {
 	if m.TransferCoinsFn == nil {
 		panic("not expected to be called")
 	}

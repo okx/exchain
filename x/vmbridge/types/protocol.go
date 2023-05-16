@@ -16,12 +16,20 @@ const (
 
 	SendToEvmSubMsgName = "send-to-evm"
 	EvmCalledMethodName = "mintERC20"
+
+	CallToWasmEventName = "__OKCCallToWasm"
+
+	WasmEvent2EvmMsgName = "call-to-wasm"
 )
 
 var (
-	// SendToWasmEventName represent the signature of
-	// `event __SendToWasmEventName(string wasmAddr,string recipient, string amount)`
+	// SendToWasmEvent represent the signature of
+	// `event __SendToWasm(string wasmAddr,string recipient, string amount)`
 	SendToWasmEvent abi.Event
+
+	// CallToWasmEvent represent the signature of
+	// `event __OKCCallToWasm(string wasmAddr,uint256 value, string calldata)`
+	CallToWasmEvent abi.Event
 
 	EvmABI abi.ABI
 	//go:embed abi.json
@@ -29,7 +37,7 @@ var (
 )
 
 func init() {
-	EvmABI, SendToWasmEvent = GetEVMABIConfig(abiJson)
+	EvmABI, SendToWasmEvent, CallToWasmEvent = GetEVMABIConfig(abiJson)
 }
 
 type MintCW20Method struct {
@@ -48,10 +56,6 @@ func GetMintCW20Input(amount, recipient string) ([]byte, error) {
 		Method: method,
 	}
 	return json.Marshal(input)
-}
-
-type MintERC20Method struct {
-	ABI abi.ABI
 }
 
 func GetMintERC20Input(callerAddr string, recipient common.Address, amount *big.Int) ([]byte, error) {
@@ -73,7 +77,7 @@ func GetMintERC20Output(data []byte) (bool, error) {
 	return result[0].(bool), nil
 }
 
-func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event) {
+func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event, abi.Event) {
 	ret, err := abi.JSON(bytes.NewReader(data))
 	if err != nil {
 		panic(fmt.Errorf("json decode failed: %s", err.Error()))
@@ -82,5 +86,9 @@ func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event) {
 	if !ok {
 		panic(fmt.Errorf("abi must have event %s,%s,%s", SendToWasmEvent, ret, string(data)))
 	}
-	return ret, event
+	callToWasmEvent, ok := ret.Events[CallToWasmEventName]
+	if !ok {
+		panic(fmt.Errorf("abi must have event %s,%s,%s", CallToWasmEvent, ret, string(data)))
+	}
+	return ret, event, callToWasmEvent
 }

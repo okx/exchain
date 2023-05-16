@@ -285,7 +285,7 @@ func (tx *StdTx) GetSender(_ sdk.Context) string {
 }
 
 func (tx *StdTx) GetNonce() uint64 {
-	return 0
+	return tx.Nonce
 }
 
 //__________________________________________________________

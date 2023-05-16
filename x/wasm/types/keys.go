@@ -32,9 +32,11 @@ var (
 	PinnedCodeIndexPrefix                          = []byte{0x07}
 	TXCounterPrefix                                = []byte{0x08}
 	ContractMethodBlockedListPrefix                = []byte{0x10}
+	GasFactorPrefix                                = []byte{0x11}
 
-	KeyLastCodeID     = append(SequenceKeyPrefix, []byte("lastCodeId")...)
-	KeyLastInstanceID = append(SequenceKeyPrefix, []byte("lastContractId")...)
+	KeyLastCodeID      = append(SequenceKeyPrefix, []byte("lastCodeId")...)
+	KeyLastInstanceID  = append(SequenceKeyPrefix, []byte("lastContractId")...)
+	KeyGasFactorPrefix = append(GasFactorPrefix, []byte("gasFactor")...)
 )
 
 // GetCodeKey constructs the key for retreiving the ID for the WASM code
@@ -44,18 +46,18 @@ func GetCodeKey(codeID uint64) []byte {
 }
 
 // GetContractAddressKey returns the key for the WASM contract instance
-func GetContractAddressKey(addr sdk.AccAddress) []byte {
+func GetContractAddressKey(addr sdk.WasmAddress) []byte {
 	return append(ContractKeyPrefix, addr...)
 }
 
 // GetContractStorePrefix returns the store prefix for the WASM contract instance
-func GetContractStorePrefix(addr sdk.AccAddress) []byte {
+func GetContractStorePrefix(addr sdk.WasmAddress) []byte {
 	return append(ContractStorePrefix, addr...)
 }
 
 // GetContractByCreatedSecondaryIndexKey returns the key for the secondary index:
 // `<prefix><codeID><created/last-migrated><contractAddr>`
-func GetContractByCreatedSecondaryIndexKey(contractAddr sdk.AccAddress, c ContractCodeHistoryEntry) []byte {
+func GetContractByCreatedSecondaryIndexKey(contractAddr sdk.WasmAddress, c ContractCodeHistoryEntry) []byte {
 	prefix := GetContractByCodeIDSecondaryIndexPrefix(c.CodeID)
 	prefixLen := len(prefix)
 	contractAddrLen := len(contractAddr)
@@ -77,7 +79,7 @@ func GetContractByCodeIDSecondaryIndexPrefix(codeID uint64) []byte {
 }
 
 // GetContractCodeHistoryElementKey returns the key a contract code history entry: `<prefix><contractAddr><position>`
-func GetContractCodeHistoryElementKey(contractAddr sdk.AccAddress, pos uint64) []byte {
+func GetContractCodeHistoryElementKey(contractAddr sdk.WasmAddress, pos uint64) []byte {
 	prefix := GetContractCodeHistoryElementPrefix(contractAddr)
 	prefixLen := len(prefix)
 	r := make([]byte, prefixLen+8)
@@ -87,7 +89,7 @@ func GetContractCodeHistoryElementKey(contractAddr sdk.AccAddress, pos uint64) [
 }
 
 // GetContractCodeHistoryElementPrefix returns the key prefix for a contract code history entry: `<prefix><contractAddr>`
-func GetContractCodeHistoryElementPrefix(contractAddr sdk.AccAddress) []byte {
+func GetContractCodeHistoryElementPrefix(contractAddr sdk.WasmAddress) []byte {
 	prefixLen := len(ContractCodeHistoryElementPrefix)
 	contractAddrLen := len(contractAddr)
 	r := make([]byte, prefixLen+contractAddrLen)

@@ -1,4 +1,20 @@
-package keeper
+package keeper_test
+
+import (
+	"github.com/okex/exchain/x/wasm"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"testing"
+	"time"
+
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/wasm/types"
+	"github.com/stretchr/testify/suite"
+)
 
 //import (
 //	"bytes"
@@ -77,8 +93,8 @@ package keeper
 //	)
 //
 //	var (
-//		oneAddress   sdk.AccAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
-//		otherAddress sdk.AccAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
+//		oneAddress   sdk.WasmAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
+//		otherAddress sdk.WasmAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
 //	)
 //	src := types.InstantiateContractProposalFixture(func(p *types.InstantiateContractProposal) {
 //		p.CodeID = firstCodeID
@@ -98,7 +114,7 @@ package keeper
 //	require.NoError(t, err)
 //
 //	// then
-//	contractAddr, err := sdk.AccAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+//	contractAddr, err := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 //	require.NoError(t, err)
 //
 //	cInfo := wasmKeeper.GetContractInfo(ctx, contractAddr)
@@ -139,7 +155,7 @@ package keeper
 //		wasmCode),
 //	)
 //
-//	var oneAddress sdk.AccAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
+//	var oneAddress sdk.WasmAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
 //
 //	// test invalid admin address
 //	src := types.InstantiateContractProposalFixture(func(p *types.InstantiateContractProposal) {
@@ -170,7 +186,7 @@ package keeper
 //	require.NoError(t, err)
 //
 //	// then
-//	contractAddr, err := sdk.AccAddressFromBech32("cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr")
+//	contractAddr, err := sdk.WasmAddressFromBech32("0x5A8D648DEE57b2fc90D98DC17fa887159b69638b")
 //	require.NoError(t, err)
 //
 //	cInfo := wasmKeeper.GetContractInfo(ctx, contractAddr)
@@ -211,8 +227,8 @@ package keeper
 //	require.NoError(t, wasmKeeper.importCode(ctx, 2, codeInfoFixture, wasmCode))
 //
 //	var (
-//		anyAddress   sdk.AccAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
-//		otherAddress sdk.AccAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
+//		anyAddress   sdk.WasmAddress = bytes.Repeat([]byte{0x1}, types.ContractAddrLen)
+//		otherAddress sdk.WasmAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
 //		contractAddr                = BuildContractAddress(1, 1)
 //	)
 //
@@ -226,7 +242,7 @@ package keeper
 //	require.NoError(t, wasmKeeper.importContract(ctx, contractAddr, &contractInfoFixture, []types.Model{m}))
 //
 //	migMsg := struct {
-//		Verifier sdk.AccAddress `json:"verifier"`
+//		Verifier sdk.WasmAddress `json:"verifier"`
 //	}{Verifier: otherAddress}
 //	migMsgBz, err := json.Marshal(migMsg)
 //	require.NoError(t, err)
@@ -391,7 +407,7 @@ package keeper
 //
 //func TestAdminProposals(t *testing.T) {
 //	var (
-//		otherAddress sdk.AccAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
+//		otherAddress sdk.WasmAddress = bytes.Repeat([]byte{0x2}, types.ContractAddrLen)
 //		contractAddr                = BuildContractAddress(1, 1)
 //	)
 //	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
@@ -400,7 +416,7 @@ package keeper
 //	specs := map[string]struct {
 //		state       types.ContractInfo
 //		srcProposal govtypes.Content
-//		expAdmin    sdk.AccAddress
+//		expAdmin    sdk.WasmAddress
 //	}{
 //		"update with different admin": {
 //			state: types.ContractInfoFixture(),
@@ -481,7 +497,7 @@ package keeper
 //
 //	var (
 //		legacyAmino                           = keepers.EncodingConfig.Amino
-//		myAddress              sdk.AccAddress = make([]byte, types.ContractAddrLen)
+//		myAddress              sdk.WasmAddress = make([]byte, types.ContractAddrLen)
 //		oneAddressAccessConfig                = types.AccessTypeOnlyAddress.With(myAddress)
 //	)
 //
@@ -756,7 +772,7 @@ package keeper
 //		CreateFn:      wasmtesting.NoOpCreateFn,
 //		AnalyzeCodeFn: wasmtesting.WithoutIBCAnalyzeFn,
 //	}
-//	anyAddress, err := sdk.AccAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
+//	anyAddress, err := sdk.WasmAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
 //	require.NoError(t, err)
 //
 //	withAddressAccessConfig := types.AccessTypeOnlyAddress.With(anyAddress)
@@ -841,3 +857,79 @@ package keeper
 //		})
 //	}
 //}
+
+func (suite *ProposalTestSuite) SetupTest() {
+	checkTx := false
+
+	suite.app = app.Setup(checkTx)
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.wasmHandler = keeper.NewWasmProposalHandler(&suite.app.WasmKeeper, wasm.NecessaryProposals)
+	suite.codec = codec.New()
+}
+
+func TestSuite(t *testing.T) {
+	suite.Run(t, new(ProposalTestSuite))
+}
+
+type ProposalTestSuite struct {
+	suite.Suite
+
+	ctx         sdk.Context
+	wasmHandler govtypes.Handler
+	app         *app.OKExChainApp
+	codec       *codec.Codec
+}
+
+func (suite *ProposalTestSuite) TestModifyNextBlockUpdateProposal() {
+	suite.ctx.SetBlockHeight(1000)
+
+	proposal := types.ExtraProposal{
+		Title:       types.ActionModifyGasFactor,
+		Description: "Description",
+		Action:      types.ActionModifyGasFactor,
+		Extra:       "",
+	}
+
+	govProposal := govtypes.Proposal{
+		Content: &proposal,
+	}
+
+	testCases := []struct {
+		msg         string
+		extra       string
+		gasFactor   uint64
+		expectError error
+	}{
+		{"1", "", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:")},
+		{"1", "{}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, decimal string cannot be empty")},
+		{"1", "{\"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"\"}")},
+		{"1", "{\"df\", \"\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"df\", \"\"}")},
+		{"1", "{\"factor\":19.7}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"factor\":19.7}")},
+		{"1", "{\"factor\":19}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse json error, expect like {\"factor\":\"14\"}, but get:{\"factor\":19}")},
+		{"1", "{\"factor\": \"adfasd\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, failed to set decimal string: adfasd000000000000000000")},
+		{"1", "{\"factor\": \"-1\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, expect factor positive and 18 precision, but get -1")},
+		{"2", "{\"factor\": \"0\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, expect factor positive and 18 precision, but get 0")},
+		{"3", "{\"factor\": \"0.0000000000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, invalid precision; max: 18, got: 25")},
+		{"4", "{\"factor\": \"0.000000000000000001\"}", keeper.DefaultGasMultiplier, types.ErrCodeInvalidGasFactor},
+		{"4", "{\"factor\":\"19.7a\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, failed to set decimal string: 197a0000000000000000")},
+		{"4", "{\"factor\":\"a19.7\"}", keeper.DefaultGasMultiplier, types.ErrExtraProposalParams("parse factor error, failed to set decimal string: a19700000000000000000")},
+		{"4", "{\"factor\": \"10000000\"}", (uint64(types.MaxGasFactor)) * keeper.BaseGasMultiplier, nil},
+		{"4", "{\"factor\":\"19.7\"}", 197 * keeper.BaseGasMultiplier / 10, nil},
+	}
+
+	tmtypes.UnittestOnlySetMilestoneEarthHeight(-1)
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			proposal.Extra = tc.extra
+			govProposal.Content = &proposal
+
+			err := suite.wasmHandler(suite.ctx, &govProposal)
+			suite.app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{ChainID: "exchain-67", Height: 1, Time: time.Now()}})
+			suite.Require().Equal(tc.expectError, err)
+
+			gasFactor := suite.app.WasmKeeper.GetGasFactor(suite.ctx)
+			suite.Require().Equal(tc.gasFactor, gasFactor)
+		})
+	}
+}

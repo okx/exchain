@@ -18,10 +18,11 @@ var _ types.IBCContractKeeper = (*Keeper)(nil)
 // See https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
 func (k Keeper) OnOpenChannel(
 	ctx sdk.Context,
-	contractAddr sdk.AccAddress,
+	contractAccAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCChannelOpenMsg,
 ) (string, error) {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-open-channel")
+	contractAddr := sdk.AccToAWasmddress(contractAccAddr)
 	version := ""
 	_, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
@@ -54,9 +55,10 @@ func (k Keeper) OnOpenChannel(
 // See https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
 func (k Keeper) OnConnectChannel(
 	ctx sdk.Context,
-	contractAddr sdk.AccAddress,
+	contractAccAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCChannelConnectMsg,
 ) error {
+	contractAddr := sdk.AccToAWasmddress(contractAccAddr)
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-connect-channel")
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
@@ -73,7 +75,7 @@ func (k Keeper) OnConnectChannel(
 		return sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	}
 
-	return k.handleIBCBasicContractResponse(ctx, contractAddr, contractInfo.IBCPortID, res)
+	return k.handleIBCBasicContractResponse(ctx, contractAccAddr, contractInfo.IBCPortID, res)
 }
 
 // OnCloseChannel calls the contract to let it know the IBC channel is closed.
@@ -84,11 +86,11 @@ func (k Keeper) OnConnectChannel(
 // See https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#channel-lifecycle-management
 func (k Keeper) OnCloseChannel(
 	ctx sdk.Context,
-	contractAddr sdk.AccAddress,
+	contractAccAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCChannelCloseMsg,
 ) error {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-close-channel")
-
+	contractAddr := sdk.AccToAWasmddress(contractAccAddr)
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
 		return err
@@ -104,7 +106,7 @@ func (k Keeper) OnCloseChannel(
 		return sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	}
 
-	return k.handleIBCBasicContractResponse(ctx, contractAddr, contractInfo.IBCPortID, res)
+	return k.handleIBCBasicContractResponse(ctx, contractAccAddr, contractInfo.IBCPortID, res)
 }
 
 // OnRecvPacket calls the contract to process the incoming IBC packet. The contract fully owns the data processing and
@@ -115,9 +117,10 @@ func (k Keeper) OnCloseChannel(
 // For more information see: https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#packet-flow--handling
 func (k Keeper) OnRecvPacket(
 	ctx sdk.Context,
-	contractAddr sdk.AccAddress,
+	contractAccAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCPacketReceiveMsg,
 ) ([]byte, error) {
+	contractAddr := sdk.AccToAWasmddress(contractAccAddr)
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-recv-packet")
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
@@ -149,9 +152,10 @@ func (k Keeper) OnRecvPacket(
 // For more information see: https://github.com/okex/exchain/libs/ics/tree/master/spec/ics-004-channel-and-packet-semantics#packet-flow--handling
 func (k Keeper) OnAckPacket(
 	ctx sdk.Context,
-	contractAddr sdk.AccAddress,
+	contractAccAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCPacketAckMsg,
 ) error {
+	contractAddr := sdk.AccToAWasmddress(contractAccAddr)
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-ack-packet")
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
@@ -167,7 +171,7 @@ func (k Keeper) OnAckPacket(
 	if execErr != nil {
 		return sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	}
-	return k.handleIBCBasicContractResponse(ctx, contractAddr, contractInfo.IBCPortID, res)
+	return k.handleIBCBasicContractResponse(ctx, contractAccAddr, contractInfo.IBCPortID, res)
 }
 
 // OnTimeoutPacket calls the contract to let it know the packet was never received on the destination chain within
@@ -175,11 +179,11 @@ func (k Keeper) OnAckPacket(
 // The contract should handle this on the application level and undo the original operation
 func (k Keeper) OnTimeoutPacket(
 	ctx sdk.Context,
-	contractAddr sdk.AccAddress,
+	contractAccAddr sdk.AccAddress,
 	msg wasmvmtypes.IBCPacketTimeoutMsg,
 ) error {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "ibc-timeout-packet")
-
+	contractAddr := sdk.AccToAWasmddress(contractAccAddr)
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
 		return err
@@ -195,10 +199,10 @@ func (k Keeper) OnTimeoutPacket(
 		return sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	}
 
-	return k.handleIBCBasicContractResponse(ctx, contractAddr, contractInfo.IBCPortID, res)
+	return k.handleIBCBasicContractResponse(ctx, contractAccAddr, contractInfo.IBCPortID, res)
 }
 
 func (k Keeper) handleIBCBasicContractResponse(ctx sdk.Context, addr sdk.AccAddress, id string, res *wasmvmtypes.IBCBasicResponse) error {
-	_, err := k.handleContractResponse(ctx, addr, id, res.Messages, res.Attributes, nil, res.Events)
+	_, err := k.handleContractResponse(ctx, sdk.AccToAWasmddress(addr), id, res.Messages, res.Attributes, nil, res.Events)
 	return err
 }

@@ -341,18 +341,6 @@ func (s ClearAdminJSONReq) GetDeposit() sdk.Coins {
 func (s ClearAdminJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
-func ClearContractAdminProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
-	return govrest.ProposalRESTHandler{
-		SubRoute: "wasm_clear_admin",
-		Handler: func(w http.ResponseWriter, r *http.Request) {
-			var req ClearAdminJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
-				return
-			}
-			toStdTxResponse(cliCtx, w, req)
-		},
-	}
-}
 
 type PinCodeJSONReq struct {
 	BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
@@ -505,12 +493,12 @@ type wasmProposalData interface {
 }
 
 func toStdTxResponse(cliCtx clientCtx.CLIContext, w http.ResponseWriter, data wasmProposalData) {
-	proposerAddr, err := sdk.AccAddressFromBech32(data.GetProposer())
+	proposerAddr, err := sdk.WasmAddressFromBech32(data.GetProposer())
 	if err != nil {
 		rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	msg := govtypes.NewMsgSubmitProposal(data.Content(), data.GetDeposit(), proposerAddr)
+	msg := govtypes.NewMsgSubmitProposal(data.Content(), data.GetDeposit(), sdk.WasmToAccAddress(proposerAddr))
 	//if err != nil {
 	//	rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 	//	return

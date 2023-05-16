@@ -90,8 +90,8 @@ func TestCreateInvalidWasmCode(t *testing.T) {
 
 func TestCreateStoresInstantiatePermission(t *testing.T) {
 	var (
-		deposit                = sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
-		myAddr  sdk.AccAddress = bytes.Repeat([]byte{1}, types.SDKAddrLen)
+		deposit                 = sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
+		myAddr  sdk.WasmAddress = bytes.Repeat([]byte{1}, types.SDKAddrLen)
 	)
 
 	specs := map[string]struct {
@@ -394,11 +394,11 @@ func TestInstantiate(t *testing.T) {
 	ctx.SetEventManager(em)
 	gotContractAddr, _, err := keepers.ContractKeeper.Instantiate(ctx, codeID, creator, nil, initMsgBz, "demo contract 1", nil)
 	require.NoError(t, err)
-	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", gotContractAddr.String())
+	require.Equal(t, "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b", gotContractAddr.String())
 
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x16d87), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x16a7f), gasAfter-gasBefore)
 	}
 
 	// ensure it is stored properly
@@ -439,7 +439,7 @@ func TestInstantiateWithDeposit(t *testing.T) {
 	require.NoError(t, err)
 
 	specs := map[string]struct {
-		srcActor sdk.AccAddress
+		srcActor sdk.WasmAddress
 		expError bool
 		fundAddr bool
 	}{
@@ -452,7 +452,7 @@ func TestInstantiateWithDeposit(t *testing.T) {
 			expError: true,
 		},
 		"blocked address": {
-			srcActor: authtypes.NewModuleAddress(authtypes.FeeCollectorName),
+			srcActor: sdk.AccToAWasmddress(authtypes.NewModuleAddress(authtypes.FeeCollectorName)),
 			fundAddr: true,
 			expError: false,
 		},
@@ -476,7 +476,7 @@ func TestInstantiateWithDeposit(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			balances := bankKeeper.GetCoins(ctx, addr)
+			balances := bankKeeper.GetCoins(ctx, sdk.WasmToAccAddress(addr))
 			assert.Equal(t, deposit, balances)
 		})
 	}
@@ -499,7 +499,7 @@ func TestInstantiateWithPermissions(t *testing.T) {
 
 	specs := map[string]struct {
 		srcPermission types.AccessConfig
-		srcActor      sdk.AccAddress
+		srcActor      sdk.WasmAddress
 		expError      *sdkerrors.Error
 	}{
 		"default": {
@@ -595,20 +595,20 @@ func TestExecute(t *testing.T) {
 
 	addr, _, err := keepers.ContractKeeper.Instantiate(ctx, contractID, creator, nil, initMsgBz, "demo contract 3", deposit)
 	require.NoError(t, err)
-	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", addr.String())
+	require.Equal(t, "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b", addr.String())
 
 	// ensure bob doesn't exist
-	bobAcct := accKeeper.GetAccount(ctx, bob)
+	bobAcct := accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(bob))
 	require.Nil(t, bobAcct)
 
 	// ensure funder has reduced balance
-	creatorAcct := accKeeper.GetAccount(ctx, creator)
+	creatorAcct := accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(creator))
 	require.NotNil(t, creatorAcct)
 	// we started at 2*deposit, should have spent one above
 	assert.Equal(t, deposit, bankKeeper.GetCoins(ctx, creatorAcct.GetAddress()))
 
 	// ensure contract has updated balance
-	contractAcct := accKeeper.GetAccount(ctx, addr)
+	contractAcct := accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(addr))
 	require.NotNil(t, contractAcct)
 	assert.Equal(t, deposit, bankKeeper.GetCoins(ctx, contractAcct.GetAddress()))
 
@@ -634,16 +634,16 @@ func TestExecute(t *testing.T) {
 	// make sure gas is properly deducted from ctx
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x19c71), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x199c9), gasAfter-gasBefore)
 	}
 	// ensure bob now exists and got both payments released
-	bobAcct = accKeeper.GetAccount(ctx, bob)
+	bobAcct = accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(bob))
 	require.NotNil(t, bobAcct)
 	balance := bankKeeper.GetCoins(ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
-	contractAcct = accKeeper.GetAccount(ctx, addr)
+	contractAcct = accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(addr))
 	require.NotNil(t, contractAcct)
 	assert.Equal(t, sdk.Coins{}.String(), bankKeeper.GetCoins(ctx, contractAcct.GetAddress()).String())
 
@@ -669,8 +669,8 @@ func TestExecuteWithDeposit(t *testing.T) {
 	}
 
 	specs := map[string]struct {
-		srcActor      sdk.AccAddress
-		beneficiary   sdk.AccAddress
+		srcActor      sdk.WasmAddress
+		beneficiary   sdk.WasmAddress
 		newBankParams *bankParams
 		expError      bool
 		fundAddr      bool
@@ -686,7 +686,7 @@ func TestExecuteWithDeposit(t *testing.T) {
 			expError:    true,
 		},
 		"blocked address as actor": {
-			srcActor:    blockedAddr,
+			srcActor:    sdk.AccToAWasmddress(blockedAddr),
 			fundAddr:    true,
 			beneficiary: fred,
 			expError:    false,
@@ -701,7 +701,7 @@ func TestExecuteWithDeposit(t *testing.T) {
 		"blocked address as beneficiary": {
 			srcActor:    bob,
 			fundAddr:    true,
-			beneficiary: blockedAddr,
+			beneficiary: sdk.AccToAWasmddress(blockedAddr),
 			expError:    true,
 		},
 	}
@@ -734,7 +734,7 @@ func TestExecuteWithDeposit(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			balances := bankKeeper.GetCoins(ctx, spec.beneficiary)
+			balances := bankKeeper.GetCoins(ctx, sdk.WasmToAccAddress(spec.beneficiary))
 			assert.Equal(t, deposit, balances)
 		})
 	}
@@ -888,20 +888,20 @@ func TestMigrate(t *testing.T) {
 	}.GetBytes(t)
 
 	migMsg := struct {
-		Verifier sdk.AccAddress `json:"verifier"`
+		Verifier sdk.WasmAddress `json:"verifier"`
 	}{Verifier: newVerifierAddr}
 	migMsgBz, err := json.Marshal(migMsg)
 	require.NoError(t, err)
 
 	specs := map[string]struct {
-		admin                sdk.AccAddress
-		overrideContractAddr sdk.AccAddress
-		caller               sdk.AccAddress
+		admin                sdk.WasmAddress
+		overrideContractAddr sdk.WasmAddress
+		caller               sdk.WasmAddress
 		fromCodeID           uint64
 		toCodeID             uint64
 		migrateMsg           []byte
 		expErr               *sdkerrors.Error
-		expVerifier          sdk.AccAddress
+		expVerifier          sdk.WasmAddress
 		expIBCPort           bool
 		initMsg              []byte
 	}{
@@ -1149,7 +1149,7 @@ func TestMigrateWithDispatchedMessage(t *testing.T) {
 	require.Len(t, m, 0)
 
 	// and all deposit tokens sent to myPayoutAddr
-	balance := keepers.BankKeeper.GetCoins(ctx, myPayoutAddr)
+	balance := keepers.BankKeeper.GetCoins(ctx, sdk.WasmToAccAddress(myPayoutAddr))
 	assert.Equal(t, deposit, balance)
 }
 
@@ -1168,15 +1168,15 @@ func TestIterateContractsByCode(t *testing.T) {
 	require.NoError(t, err)
 	specs := map[string]struct {
 		codeID uint64
-		exp    []sdk.AccAddress
+		exp    []sdk.WasmAddress
 	}{
 		"multiple results": {
 			codeID: example1.CodeID,
-			exp:    []sdk.AccAddress{example1.Contract, contractAddr3},
+			exp:    []sdk.WasmAddress{example1.Contract, contractAddr3},
 		},
 		"single results": {
 			codeID: example2.CodeID,
-			exp:    []sdk.AccAddress{example2.Contract},
+			exp:    []sdk.WasmAddress{example2.Contract},
 		},
 		"empty results": {
 			codeID: 99999,
@@ -1184,8 +1184,8 @@ func TestIterateContractsByCode(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			var gotAddr []sdk.AccAddress
-			k.IterateContractsByCode(ctx, spec.codeID, func(address sdk.AccAddress) bool {
+			var gotAddr []sdk.WasmAddress
+			k.IterateContractsByCode(ctx, spec.codeID, func(address sdk.WasmAddress) bool {
 				gotAddr = append(gotAddr, address)
 				return false
 			})
@@ -1210,14 +1210,14 @@ func TestIterateContractsByCodeWithMigration(t *testing.T) {
 	require.NoError(t, err)
 
 	// when
-	var gotAddr []sdk.AccAddress
-	k.IterateContractsByCode(ctx, example2.CodeID, func(address sdk.AccAddress) bool {
+	var gotAddr []sdk.WasmAddress
+	k.IterateContractsByCode(ctx, example2.CodeID, func(address sdk.WasmAddress) bool {
 		gotAddr = append(gotAddr, address)
 		return false
 	})
 
 	// then
-	exp := []sdk.AccAddress{example2.Contract, example1.Contract}
+	exp := []sdk.WasmAddress{example2.Contract, example1.Contract}
 	assert.Equal(t, exp, gotAddr)
 }
 
@@ -1258,11 +1258,11 @@ func TestSudo(t *testing.T) {
 	require.NoError(t, err)
 	addr, _, err := keepers.ContractKeeper.Instantiate(ctx, contractID, creator, nil, initMsgBz, "demo contract 3", deposit)
 	require.NoError(t, err)
-	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", addr.String())
+	require.Equal(t, "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b", addr.String())
 
 	// the community is broke
 	_, _, community := keyPubAddr()
-	comAcct := accKeeper.GetAccount(ctx, community)
+	comAcct := accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(community))
 	require.Nil(t, comAcct)
 
 	// now the community wants to get paid via sudo
@@ -1287,7 +1287,7 @@ func TestSudo(t *testing.T) {
 	require.NoError(t, err)
 
 	// ensure community now exists and got paid
-	comAcct = accKeeper.GetAccount(ctx, community)
+	comAcct = accKeeper.GetAccount(ctx, sdk.WasmToAccAddress(community))
 	require.NotNil(t, comAcct)
 	balance := bankKeeper.GetCoins(ctx, comAcct.GetAddress())
 	assert.Equal(t, sdk.Coins{sdk.NewInt64Coin("denom", 76543)}, balance)
@@ -1343,10 +1343,10 @@ func TestUpdateContractAdmin(t *testing.T) {
 	initMsgBz, err := json.Marshal(initMsg)
 	require.NoError(t, err)
 	specs := map[string]struct {
-		instAdmin            sdk.AccAddress
-		newAdmin             sdk.AccAddress
-		overrideContractAddr sdk.AccAddress
-		caller               sdk.AccAddress
+		instAdmin            sdk.WasmAddress
+		newAdmin             sdk.WasmAddress
+		overrideContractAddr sdk.WasmAddress
+		caller               sdk.WasmAddress
 		expErr               *sdkerrors.Error
 	}{
 		"all good with admin set": {
@@ -1411,9 +1411,9 @@ func TestClearContractAdmin(t *testing.T) {
 	initMsgBz, err := json.Marshal(initMsg)
 	require.NoError(t, err)
 	specs := map[string]struct {
-		instAdmin            sdk.AccAddress
-		overrideContractAddr sdk.AccAddress
-		caller               sdk.AccAddress
+		instAdmin            sdk.WasmAddress
+		overrideContractAddr sdk.WasmAddress
+		caller               sdk.WasmAddress
 		expErr               *sdkerrors.Error
 	}{
 		"all good when called by proper admin": {
@@ -1607,7 +1607,7 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 		"submessage overwrites result when set": {
 			srcData: []byte("otherData"),
 			setup: func(m *wasmtesting.MockMsgDispatcher) {
-				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
+				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.WasmAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
 					return []byte("mySubMsgData"), nil
 				}
 			},
@@ -1618,7 +1618,7 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 		"submessage overwrites result when empty": {
 			srcData: []byte("otherData"),
 			setup: func(m *wasmtesting.MockMsgDispatcher) {
-				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
+				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.WasmAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
 					return []byte(""), nil
 				}
 			},
@@ -1629,7 +1629,7 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 		"submessage do not overwrite result when nil": {
 			srcData: []byte("otherData"),
 			setup: func(m *wasmtesting.MockMsgDispatcher) {
-				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
+				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.WasmAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
 					return nil, nil
 				}
 			},
@@ -1639,7 +1639,7 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 		},
 		"submessage error aborts process": {
 			setup: func(m *wasmtesting.MockMsgDispatcher) {
-				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
+				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.WasmAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
 					return nil, errors.New("test - ignore")
 				}
 			},
@@ -1647,7 +1647,7 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 		},
 		"message emit non message events": {
 			setup: func(m *wasmtesting.MockMsgDispatcher) {
-				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
+				m.DispatchSubmessagesFn = func(ctx sdk.Context, contractAddr sdk.WasmAddress, ibcPort string, msgs []wasmvmtypes.SubMsg) ([]byte, error) {
 					ctx.EventManager().EmitEvent(sdk.NewEvent("myEvent"))
 					return nil, nil
 				}
@@ -1756,7 +1756,7 @@ func TestQueryIsolation(t *testing.T) {
 	wasmtesting.MakeInstantiable(&mock)
 	example := SeedNewContractInstance(t, ctx, keepers, &mock)
 	WithQueryHandlerDecorator(func(other WasmVMQueryHandler) WasmVMQueryHandler {
-		return WasmVMQueryHandlerFn(func(ctx sdk.Context, caller sdk.AccAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
+		return WasmVMQueryHandlerFn(func(ctx sdk.Context, caller sdk.WasmAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
 			if request.Custom == nil {
 				return other.HandleQuery(ctx, caller, request)
 			}
@@ -1792,12 +1792,12 @@ func TestBuildContractAddress(t *testing.T) {
 		"initial contract": {
 			srcCodeID:     1,
 			srcInstanceID: 1,
-			expectedAddr:  "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr",
+			expectedAddr:  "0x5A8D648DEE57b2fc90D98DC17fa887159b69638b",
 		},
 		"demo value": {
 			srcCodeID:     1,
 			srcInstanceID: 100,
-			expectedAddr:  "cosmos1mujpjkwhut9yjw4xueyugc02evfv46y0dtmnz4lh8xxkkdapym9stu5qm8",
+			expectedAddr:  "0xc461Eacb12cae88f6Af73157f7398d6B37A126cb",
 		},
 		"both below max": {
 			srcCodeID:     math.MaxUint32 - 1,
@@ -1810,19 +1810,19 @@ func TestBuildContractAddress(t *testing.T) {
 		"codeID > max u32": {
 			srcCodeID:     math.MaxUint32 + 1,
 			srcInstanceID: 17,
-			expectedAddr:  "cosmos1673hrexz4h6s0ft04l96ygq667djzh2nsr335kstjp49x5dk6rpsf5t0le",
+			expectedAddr:  "0xA2201ad79B215d5380e31a5A0b906a5351B6d0c3",
 		},
 		"instanceID > max u32": {
 			srcCodeID:     22,
 			srcInstanceID: math.MaxUint32 + 1,
-			expectedAddr:  "cosmos10q3pgfvmeyy0veekgtqhxujxkhz0vm9zmalqgc7evrhj68q3l62qrdfg4m",
+			expectedAddr:  "0x737246b5C4F66Ca2DF7E0463d960eF2D1c11fE94",
 		},
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
 			gotAddr := BuildContractAddress(spec.srcCodeID, spec.srcInstanceID)
 			require.NotNil(t, gotAddr)
-			assert.Nil(t, sdk.VerifyAddressFormat(gotAddr))
+			assert.Nil(t, sdk.WasmVerifyAddress(gotAddr))
 			if len(spec.expectedAddr) > 0 {
 				require.Equal(t, spec.expectedAddr, gotAddr.String())
 			}

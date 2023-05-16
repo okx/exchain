@@ -10,10 +10,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/x/gov"
 	govcli "github.com/okex/exchain/x/gov/client/cli"
+	utils2 "github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -123,4 +125,59 @@ func ProposalUpdateWASMContractMethodBlockedListCmd(cdcP *codec.CodecProxy, reg 
 	cmd.Flags().Bool(isDelete, false, "True to delete methods and default to add")
 
 	return cmd
+}
+
+// GetCmdExtraProposal implements a command handler for submitting extra proposal transaction
+func GetCmdExtraProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return &cobra.Command{
+		Use:   "wasm-extra [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a proposal for wasm extra.",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a proposal for wasm extra along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+Example:
+$ %s tx gov submit-proposal wasm-extra <path/to/proposal.json> --from=<key_or_address>
+Where proposal.json contains like these:
+# modify wasm gas factor
+{
+    "title":"modify wasm gas factor",
+    "description":"modify wasm gas factor",
+    "action": "GasFactor",
+    "extra": "{\"factor\":\"14\"}",
+    "deposit":[
+        {
+            "denom":"%s",
+            "amount":"100.000000000000000000"
+        }
+    ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposalJson, err := utils2.ParseExtraProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			proposal := types.ExtraProposal{
+				Title:       proposalJson.Title,
+				Description: proposalJson.Description,
+				Action:      proposalJson.Action,
+				Extra:       proposalJson.Extra,
+			}
+
+			if err := proposal.ValidateBasic(); err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(&proposal, proposalJson.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
 }

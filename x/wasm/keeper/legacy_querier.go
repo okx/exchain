@@ -21,6 +21,7 @@ const (
 	QueryContractHistory           = "contract-history"
 	QueryListContractBlockedMethod = "list-contract-blocked-method"
 	QueryParams                    = "params"
+	QueryExtraParams               = "extra-params"
 )
 
 const (
@@ -38,7 +39,7 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 		)
 		switch path[0] {
 		case QueryGetContract:
-			addr, addrErr := sdk.AccAddressFromBech32(path[1])
+			addr, addrErr := sdk.WasmAddressFromBech32(path[1])
 			if addrErr != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, addrErr.Error())
 			}
@@ -63,19 +64,21 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 		case QueryListCode:
 			rsp, err = queryCodeList(ctx, keeper)
 		case QueryContractHistory:
-			contractAddr, addrErr := sdk.AccAddressFromBech32(path[1])
+			contractAddr, addrErr := sdk.WasmAddressFromBech32(path[1])
 			if addrErr != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, addrErr.Error())
 			}
 			rsp, err = queryContractHistory(ctx, contractAddr, keeper)
 		case QueryListContractBlockedMethod:
-			contractAddr, addrErr := sdk.AccAddressFromBech32(path[1])
+			contractAddr, addrErr := sdk.WasmAddressFromBech32(path[1])
 			if addrErr != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, addrErr.Error())
 			}
 			rsp = queryListContractBlockedMethod(ctx, contractAddr, keeper)
 		case QueryParams:
 			rsp = queryParams(ctx, keeper)
+		case QueryExtraParams:
+			rsp = queryExtraParams(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown data query endpoint")
 		}
@@ -94,7 +97,7 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 }
 
 func queryContractState(ctx sdk.Context, bech, queryMethod string, data []byte, gasLimit sdk.Gas, keeper types.ViewKeeper) (json.RawMessage, error) {
-	contractAddr, err := sdk.AccAddressFromBech32(bech)
+	contractAddr, err := sdk.WasmAddressFromBech32(bech)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, bech)
 	}
@@ -144,7 +147,7 @@ func queryCodeList(ctx sdk.Context, keeper types.ViewKeeper) ([]types.CodeInfoRe
 	return info, nil
 }
 
-func queryContractHistory(ctx sdk.Context, contractAddr sdk.AccAddress, keeper types.ViewKeeper) ([]types.ContractCodeHistoryEntry, error) {
+func queryContractHistory(ctx sdk.Context, contractAddr sdk.WasmAddress, keeper types.ViewKeeper) ([]types.ContractCodeHistoryEntry, error) {
 	history := keeper.GetContractHistory(ctx, contractAddr)
 	// redact response
 	for i := range history {
@@ -155,19 +158,26 @@ func queryContractHistory(ctx sdk.Context, contractAddr sdk.AccAddress, keeper t
 
 func queryContractListByCode(ctx sdk.Context, codeID uint64, keeper types.ViewKeeper) []string {
 	var contracts []string
-	keeper.IterateContractsByCode(ctx, codeID, func(addr sdk.AccAddress) bool {
+	keeper.IterateContractsByCode(ctx, codeID, func(addr sdk.WasmAddress) bool {
 		contracts = append(contracts, addr.String())
 		return false
 	})
 	return contracts
 }
 
-func queryListContractBlockedMethod(ctx sdk.Context, contractAddr sdk.AccAddress, keeper types.ViewKeeper) *types.ContractMethods {
+func queryListContractBlockedMethod(ctx sdk.Context, contractAddr sdk.WasmAddress, keeper types.ViewKeeper) *types.ContractMethods {
 	cmbl := keeper.GetContractMethodBlockedList(ctx, contractAddr.String())
 	return cmbl
 }
 
 func queryParams(ctx sdk.Context, keeper types.ViewKeeper) *types.Params {
 	params := keeper.GetParams(ctx)
+	return &params
+}
+
+func queryExtraParams(ctx sdk.Context, keeper types.ViewKeeper) *types.QueryExtraParams {
+	params := types.QueryExtraParams{
+		GasFactor: strconv.FormatUint(keeper.GetGasFactor(ctx), 10),
+	}
 	return &params
 }

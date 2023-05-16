@@ -25,7 +25,7 @@ package keeper
 //	const myContractGas = 40
 //
 //	specs := map[string]struct {
-//		contractAddr sdk.AccAddress
+//		contractAddr sdk.WasmAddress
 //		contractGas  sdk.Gas
 //		contractErr  error
 //		expGas       uint64
@@ -95,7 +95,7 @@ package keeper
 //	const myContractGas = 40
 //
 //	specs := map[string]struct {
-//		contractAddr       sdk.AccAddress
+//		contractAddr       sdk.WasmAddress
 //		contractResp       *wasmvmtypes.IBCBasicResponse
 //		contractErr        error
 //		overwriteMessenger *wasmtesting.MockMessageHandler
@@ -206,7 +206,7 @@ package keeper
 //	const myContractGas = 40
 //
 //	specs := map[string]struct {
-//		contractAddr       sdk.AccAddress
+//		contractAddr       sdk.WasmAddress
 //		contractResp       *wasmvmtypes.IBCBasicResponse
 //		contractErr        error
 //		overwriteMessenger *wasmtesting.MockMessageHandler
@@ -317,7 +317,7 @@ package keeper
 //	const storageCosts = sdk.Gas(2903)
 //
 //	specs := map[string]struct {
-//		contractAddr       sdk.AccAddress
+//		contractAddr       sdk.WasmAddress
 //		contractResp       *wasmvmtypes.IBCReceiveResponse
 //		contractErr        error
 //		overwriteMessenger *wasmtesting.MockMessageHandler
@@ -478,7 +478,7 @@ package keeper
 //	const myContractGas = 40
 //
 //	specs := map[string]struct {
-//		contractAddr       sdk.AccAddress
+//		contractAddr       sdk.WasmAddress
 //		contractResp       *wasmvmtypes.IBCBasicResponse
 //		contractErr        error
 //		overwriteMessenger *wasmtesting.MockMessageHandler
@@ -583,7 +583,7 @@ package keeper
 //	const myContractGas = 40
 //
 //	specs := map[string]struct {
-//		contractAddr       sdk.AccAddress
+//		contractAddr       sdk.WasmAddress
 //		contractResp       *wasmvmtypes.IBCBasicResponse
 //		contractErr        error
 //		overwriteMessenger *wasmtesting.MockMessageHandler

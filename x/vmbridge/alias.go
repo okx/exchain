@@ -9,9 +9,11 @@ var (
 	RegisterMsgServer         = types.RegisterMsgServer
 	NewMsgServerImpl          = keeper.NewMsgServerImpl
 	NewSendToWasmEventHandler = keeper.NewSendToWasmEventHandler
+	NewCallToWasmEventHandler = keeper.NewCallToWasmEventHandler
 	RegisterSendToEvmEncoder  = keeper.RegisterSendToEvmEncoder
 	NewKeeper                 = keeper.NewKeeper
 	RegisterInterface         = types.RegisterInterface
+	PrecompileHooks           = keeper.PrecompileHooks
 )
 
 type (

@@ -1,6 +1,7 @@
 package rest
 
 import (
+	ttypes "github.com/okex/exchain/libs/tendermint/types"
 	"io/ioutil"
 	"net/http"
 
@@ -11,8 +12,9 @@ import (
 
 // BroadcastReq defines a tx broadcasting request.
 type BroadcastReq struct {
-	Tx   types.StdTx `json:"tx" yaml:"tx"`
-	Mode string      `json:"mode" yaml:"mode"`
+	Tx    types.StdTx `json:"tx" yaml:"tx"`
+	Mode  string      `json:"mode" yaml:"mode"`
+	Nonce uint64      `json:"nonce" yaml:"nonce"`
 }
 
 // BroadcastTxRequest implements a tx broadcasting handler that is responsible
@@ -38,6 +40,17 @@ func BroadcastTxRequest(cliCtx context.CLIContext) http.HandlerFunc {
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		if req.Nonce != 0 {
+			wcmt := &ttypes.WrapCMTx{
+				Tx:    txBytes,
+				Nonce: req.Nonce,
+			}
+			data, err := cliCtx.Codec.MarshalJSON(wcmt)
+			if err == nil {
+				txBytes = data
+			}
 		}
 
 		cliCtx = cliCtx.WithBroadcastMode(req.Mode)

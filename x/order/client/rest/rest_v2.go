@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	ttypes "github.com/okex/exchain/libs/tendermint/types"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -61,8 +62,9 @@ func depthBookHandlerV2(cliCtx context.CLIContext) http.HandlerFunc {
 
 // BroadcastReq defines a tx broadcasting request.
 type BroadcastReq struct {
-	Tx   auth.StdTx `json:"tx"`
-	Mode string     `json:"mode"`
+	Tx    auth.StdTx `json:"tx"`
+	Mode  string     `json:"mode"`
+	Nonce uint64     `json:"nonce"`
 }
 
 type placeCancelOrderResponse struct {
@@ -97,6 +99,17 @@ func broadcastPlaceOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		if req.Nonce != 0 {
+			wcmt := &ttypes.WrapCMTx{
+				Tx:    txBytes,
+				Nonce: req.Nonce,
+			}
+			data, err := cliCtx.Codec.MarshalJSON(wcmt)
+			if err == nil {
+				txBytes = data
+			}
 		}
 
 		cliCtx = cliCtx.WithBroadcastMode(req.Mode)
@@ -148,6 +161,17 @@ func broadcastCancelOrderRequest(cliCtx context.CLIContext) http.HandlerFunc {
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+
+		if req.Nonce != 0 {
+			wcmt := &ttypes.WrapCMTx{
+				Tx:    txBytes,
+				Nonce: req.Nonce,
+			}
+			data, err := cliCtx.Codec.MarshalJSON(wcmt)
+			if err == nil {
+				txBytes = data
+			}
 		}
 
 		cliCtx = cliCtx.WithBroadcastMode(req.Mode)

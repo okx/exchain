@@ -42,6 +42,7 @@ func handleGasRefund(info *runTxInfo, cacheTxCtxFunc CacheTxContextFunc, gasRefu
 		gasRefundCtx, info.msCache = cacheTxCtxFunc(info.ctx, info.txBytes)
 	}
 
+	gasRefundCtx.SetOutOfGas(info.outOfGas)
 	refund, err := gasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
 		panic(err)

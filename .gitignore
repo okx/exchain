@@ -80,3 +80,6 @@ result.txt
 ethermint
 _cache_evm
 dump.rdb
+dev/wasm/vmbridge-erc20/.cargo
+dev/wasm/vmbridge-erc20/artifacts
+dev/wasm/vmbridge-erc20/target

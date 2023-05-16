@@ -3,6 +3,9 @@ package types
 import (
 	"bytes"
 	"context"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -167,8 +170,8 @@ func TestCodeInfoValidateBasic(t *testing.T) {
 //}
 //
 //func TestContractInfoMarshalUnmarshal(t *testing.T) {
-//	var myAddr sdk.AccAddress = rand.Bytes(ContractAddrLen)
-//	var myOtherAddr sdk.AccAddress = rand.Bytes(ContractAddrLen)
+//	var myAddr sdk.WasmAddress = rand.Bytes(ContractAddrLen)
+//	var myOtherAddr sdk.WasmAddress = rand.Bytes(ContractAddrLen)
 //	anyPos := AbsoluteTxPosition{BlockHeight: 1, TxIndex: 2}
 //
 //	anyTime := time.Now().UTC()
@@ -289,7 +292,7 @@ func TestNewEnv(t *testing.T) {
 	myTime := time.Unix(0, 1619700924259075000)
 	ctx := (&sdk.Context{}).SetChainID("testing").SetContext(context.Background())
 	t.Logf("++ unix: %d", myTime.UnixNano())
-	var myContractAddr sdk.AccAddress = randBytes(ContractAddrLen)
+	var myContractAddr sdk.WasmAddress = randBytes(SDKAddrLen)
 	specs := map[string]struct {
 		srcCtx sdk.Context
 		exp    wasmvmtypes.Env
@@ -335,7 +338,7 @@ func TestVerifyAddressLen(t *testing.T) {
 		expErr bool
 	}{
 		"valid contract address": {
-			src: bytes.Repeat([]byte{1}, 32),
+			src: bytes.Repeat([]byte{1}, 20),
 		},
 		"valid legacy address": {
 			src: bytes.Repeat([]byte{1}, 20),
@@ -345,7 +348,7 @@ func TestVerifyAddressLen(t *testing.T) {
 			expErr: true,
 		},
 		"address too short for contract": {
-			src:    bytes.Repeat([]byte{1}, 31),
+			src:    bytes.Repeat([]byte{1}, 19),
 			expErr: true,
 		},
 		"address too long for legacy": {
@@ -353,7 +356,7 @@ func TestVerifyAddressLen(t *testing.T) {
 			expErr: true,
 		},
 		"address too long for contract": {
-			src:    bytes.Repeat([]byte{1}, 33),
+			src:    bytes.Repeat([]byte{1}, 21),
 			expErr: true,
 		},
 	}
@@ -448,4 +451,89 @@ func TestAccesConfigSubset(t *testing.T) {
 			require.Equal(t, spec.isSubSet, subset)
 		})
 	}
+}
+
+func TestConvertAccessConfig(t *testing.T) {
+	ex1, eth1 := generateAddress(1)
+	ex2, eth2 := generateAddress(1)
+
+	testcase := []struct {
+		name   string
+		config AccessConfig
+		expect AccessConfig
+		isErr  bool
+	}{
+		{
+			name:   "nobody",
+			config: AccessConfig{Permission: AccessTypeNobody},
+			expect: AccessConfig{Permission: AccessTypeNobody},
+			isErr:  false,
+		},
+		{
+			name:   "everybody",
+			config: AccessConfig{Permission: AccessTypeEverybody},
+			expect: AccessConfig{Permission: AccessTypeEverybody},
+			isErr:  false,
+		},
+		{
+			name:   "only 1 ethaddr",
+			config: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String()}, ",")},
+			expect: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String()}, ",")},
+			isErr:  false,
+		},
+		{
+			name:   "only 2 ethaddr",
+			config: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String(), eth2.String()}, ",")},
+			expect: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String(), eth2.String()}, ",")},
+			isErr:  false,
+		},
+		{
+			name:   "only 1 exaddr",
+			config: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{ex1.String()}, ",")},
+			expect: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String()}, ",")},
+			isErr:  false,
+		},
+		{
+			name:   "only 2 exaddr",
+			config: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{ex1.String(), ex2.String()}, ",")},
+			expect: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String(), eth2.String()}, ",")},
+			isErr:  false,
+		},
+		{
+			name:   "only 1 exaddr 1 ethaddr",
+			config: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String(), ex2.String()}, ",")},
+			expect: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String(), eth2.String()}, ",")},
+			isErr:  false,
+		},
+		{
+			name:   "only 1 exaddr 1 erraddr",
+			config: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{eth1.String(), "erraddr"}, ",")},
+			expect: AccessConfig{},
+			isErr:  true,
+		},
+		{
+			name:   "only  1 erraddr",
+			config: AccessConfig{Permission: AccessTypeOnlyAddress, Address: strings.Join([]string{"erraddr"}, ",")},
+			expect: AccessConfig{},
+			isErr:  true,
+		},
+	}
+
+	for _, tc := range testcase {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := ConvertAccessConfig(tc.config)
+			if tc.isErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expect, result)
+			}
+
+		})
+	}
+}
+
+func generateAddress(seed int64) (sdk.AccAddress, common.Address) {
+	buff := crypto.Keccak256Hash(big.NewInt(seed).Bytes()).Bytes()[:20]
+	return sdk.AccAddress(buff), common.BytesToAddress(buff)
 }

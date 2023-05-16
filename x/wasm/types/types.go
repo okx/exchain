@@ -17,10 +17,10 @@ const (
 	defaultSmartQueryGasLimit uint64 = 3_000_000
 	defaultContractDebugMode         = false
 
-	// ContractAddrLen defines a valid address length for contracts
-	ContractAddrLen = 32
 	// SDKAddrLen defines a valid address length that was used in sdk address generation
 	SDKAddrLen = 20
+
+	ContractIndex = 12
 )
 
 func (m Model) ValidateBasic() error {
@@ -34,7 +34,7 @@ func (c CodeInfo) ValidateBasic() error {
 	if len(c.CodeHash) == 0 {
 		return sdkerrors.Wrap(ErrEmpty, "code hash")
 	}
-	if _, err := sdk.AccAddressFromBech32(c.Creator); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(c.Creator); err != nil {
 		return sdkerrors.Wrap(err, "creator")
 	}
 	if err := c.InstantiateConfig.ValidateBasic(); err != nil {
@@ -44,7 +44,7 @@ func (c CodeInfo) ValidateBasic() error {
 }
 
 // NewCodeInfo fills a new CodeInfo struct
-func NewCodeInfo(codeHash []byte, creator sdk.AccAddress, instantiatePermission AccessConfig) CodeInfo {
+func NewCodeInfo(codeHash []byte, creator sdk.WasmAddress, instantiatePermission AccessConfig) CodeInfo {
 	return CodeInfo{
 		CodeHash:          codeHash,
 		Creator:           creator.String(),
@@ -55,7 +55,7 @@ func NewCodeInfo(codeHash []byte, creator sdk.AccAddress, instantiatePermission 
 var AllCodeHistoryTypes = []ContractCodeHistoryOperationType{ContractCodeHistoryOperationTypeGenesis, ContractCodeHistoryOperationTypeInit, ContractCodeHistoryOperationTypeMigrate}
 
 // NewContractInfo creates a new instance of a given WASM contract info
-func NewContractInfo(codeID uint64, creator, admin sdk.AccAddress, label string, createdAt *AbsoluteTxPosition) ContractInfo {
+func NewContractInfo(codeID uint64, creator, admin sdk.WasmAddress, label string, createdAt *AbsoluteTxPosition) ContractInfo {
 	var adminAddr string
 	if !admin.Empty() {
 		adminAddr = admin.String()
@@ -81,11 +81,11 @@ func (c *ContractInfo) ValidateBasic() error {
 	if c.CodeID == 0 {
 		return sdkerrors.Wrap(ErrEmpty, "code id")
 	}
-	if _, err := sdk.AccAddressFromBech32(c.Creator); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(c.Creator); err != nil {
 		return sdkerrors.Wrap(err, "creator")
 	}
 	if len(c.Admin) != 0 {
-		if _, err := sdk.AccAddressFromBech32(c.Admin); err != nil {
+		if _, err := sdk.WasmAddressFromBech32(c.Admin); err != nil {
 			return sdkerrors.Wrap(err, "admin")
 		}
 	}
@@ -181,12 +181,12 @@ func (c *ContractInfo) ResetFromGenesis(ctx sdk.Context) ContractCodeHistoryEntr
 	}
 }
 
-// AdminAddr convert into sdk.AccAddress or nil when not set
-func (c *ContractInfo) AdminAddr() sdk.AccAddress {
+// AdminAddr convert into sdk.WasmAddress or nil when not set
+func (c *ContractInfo) AdminAddr() sdk.WasmAddress {
 	if c.Admin == "" {
 		return nil
 	}
-	admin, err := sdk.AccAddressFromBech32(c.Admin)
+	admin, err := sdk.WasmAddressFromBech32(c.Admin)
 	if err != nil { // should never happen
 		panic(err.Error())
 	}
@@ -254,7 +254,7 @@ func (a *AbsoluteTxPosition) Bytes() []byte {
 }
 
 // NewEnv initializes the environment for a contract instance
-func NewEnv(ctx sdk.Context, contractAddr sdk.AccAddress) wasmvmtypes.Env {
+func NewEnv(ctx sdk.Context, contractAddr sdk.WasmAddress) wasmvmtypes.Env {
 	// safety checks before casting below
 	if ctx.BlockHeight() < 0 {
 		panic("Block height must never be negative")
@@ -281,7 +281,7 @@ func NewEnv(ctx sdk.Context, contractAddr sdk.AccAddress) wasmvmtypes.Env {
 }
 
 // NewInfo initializes the MessageInfo for a contract instance
-func NewInfo(creator sdk.AccAddress, deposit sdk.CoinAdapters) wasmvmtypes.MessageInfo {
+func NewInfo(creator sdk.WasmAddress, deposit sdk.CoinAdapters) wasmvmtypes.MessageInfo {
 	return wasmvmtypes.MessageInfo{
 		Sender: creator.String(),
 		Funds:  NewWasmCoins(deposit),
@@ -325,7 +325,7 @@ func DefaultWasmConfig() WasmConfig {
 // VerifyAddressLen ensures that the address matches the expected length
 func VerifyAddressLen() func(addr []byte) error {
 	return func(addr []byte) error {
-		if len(addr) != ContractAddrLen && len(addr) != SDKAddrLen {
+		if len(addr) != SDKAddrLen {
 			return sdkerrors.ErrInvalidAddress
 		}
 		return nil
@@ -363,4 +363,21 @@ func (a AccessConfig) IsSubset(superSet AccessConfig) bool {
 	default:
 		return false
 	}
+}
+
+func ConvertAccessConfig(config AccessConfig) (AccessConfig, error) {
+	if config.Permission == AccessTypeOnlyAddress {
+		addrs := strings.Split(config.Address, ",")
+		whiteAdresses := make([]string, len(addrs))
+		length := len(addrs)
+		for i := 0; i < length; i++ {
+			addr, err := sdk.WasmAddressFromBech32(addrs[i])
+			if err != nil {
+				return config, err
+			}
+			whiteAdresses[i] = addr.String()
+		}
+		config.Address = strings.Join(whiteAdresses, ",")
+	}
+	return config, nil
 }

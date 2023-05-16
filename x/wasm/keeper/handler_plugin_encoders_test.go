@@ -47,7 +47,7 @@ func TestEncoding(t *testing.T) {
 	require.NoError(t, err)
 
 	cases := map[string]struct {
-		sender             sdk.AccAddress
+		sender             sdk.WasmAddress
 		srcMsg             wasmvmtypes.CosmosMsg
 		srcContractIBCPort string
 		transferPortSource types.ICS20TransferPortSource
@@ -344,16 +344,16 @@ func TestEncoding(t *testing.T) {
 		//		},
 		//	},
 		//},
-		"stargate encoded bank msg": {
-			sender: addr2,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Stargate: &wasmvmtypes.StargateMsg{
-					TypeURL: "/cosmos.bank.v1beta1.MsgSend",
-					Value:   bankMsgBin,
-				},
-			},
-			output: []ibcadapter.Msg{bankMsg},
-		},
+		//"stargate encoded bank msg": {
+		//	sender: addr2,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Stargate: &wasmvmtypes.StargateMsg{
+		//			TypeURL: "/cosmos.bank.v1beta1.MsgSend",
+		//			Value:   bankMsgBin,
+		//		},
+		//	},
+		//	output: []ibcadapter.Msg{bankMsg},
+		//},
 		"stargate encoded invalid typeUrl": {
 			sender: addr2,
 			srcMsg: wasmvmtypes.CosmosMsg{

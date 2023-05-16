@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/proxy"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
 )
 
 type Simulator struct {
@@ -29,12 +30,14 @@ func NewWasmSimulator() simulator.Simulator {
 	}
 }
 
-func (w *Simulator) Simulate(msgs []sdk.Msg) (*sdk.Result, error) {
+func (w *Simulator) Simulate(msgs []sdk.Msg, ms sdk.CacheMultiStore) (*sdk.Result, error) {
 	//wasm Result has no Logs
 	data := make([]byte, 0, len(msgs))
 	events := sdk.EmptyEvents()
 
 	for _, msg := range msgs {
+		w.ctx.ResetWasmKvStoreForSimulate()
+		w.ctx.SetMultiStore(ms)
 		res, err := w.handler(w.ctx, msg)
 		if err != nil {
 			return nil, err
@@ -50,6 +53,14 @@ func (w *Simulator) Simulate(msgs []sdk.Msg) (*sdk.Result, error) {
 
 func (w *Simulator) Context() *sdk.Context {
 	return &w.ctx
+}
+
+func (w *Simulator) Release() {
+	if !watcher.Enable() {
+		return
+	}
+	proxy.PutBackStorePool(w.ctx.MultiStore().(sdk.CacheMultiStore))
+	w.k.Cleanup()
 }
 
 func NewProxyKeeper() keeper.Keeper {
@@ -72,7 +83,7 @@ func NewProxyKeeper() keeper.Keeper {
 	queryRouter := baseapp.NewGRPCQueryRouter()
 	queryRouter.SetInterfaceRegistry(interfaceReg)
 
-	k := keeper.NewSimulateKeeper(codec.NewCodecProxy(protoCdc, cdc), sdk.NewKVStoreKey(StoreKey), ss, akp, bkp, nil, pkp, ckp, nil, msgRouter, queryRouter, WasmDir(), WasmConfig(), SupportedFeatures)
+	k := keeper.NewSimulateKeeper(codec.NewCodecProxy(protoCdc, cdc), ss, akp, bkp, nil, pkp, ckp, nil, msgRouter, queryRouter, WasmDir(), WasmConfig(), SupportedFeatures)
 	types.RegisterMsgServer(msgRouter, keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(k)))
 	types.RegisterQueryServer(queryRouter, NewQuerier(&k))
 	bank.RegisterBankMsgServer(msgRouter, bank.NewMsgServerImpl(bkp))

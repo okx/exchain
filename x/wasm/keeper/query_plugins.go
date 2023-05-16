@@ -20,11 +20,11 @@ import (
 type QueryHandler struct {
 	Ctx         sdk.Context
 	Plugins     WasmVMQueryHandler
-	Caller      sdk.AccAddress
+	Caller      sdk.WasmAddress
 	gasRegister GasRegister
 }
 
-func NewQueryHandler(ctx sdk.Context, vmQueryHandler WasmVMQueryHandler, caller sdk.AccAddress, gasRegister GasRegister) QueryHandler {
+func NewQueryHandler(ctx sdk.Context, vmQueryHandler WasmVMQueryHandler, caller sdk.WasmAddress, gasRegister GasRegister) QueryHandler {
 	return QueryHandler{
 		Ctx:         ctx,
 		Plugins:     vmQueryHandler,
@@ -78,20 +78,20 @@ type CustomQuerier func(ctx sdk.Context, request json.RawMessage) ([]byte, error
 type QueryPlugins struct {
 	Bank   func(ctx sdk.Context, request *wasmvmtypes.BankQuery) ([]byte, error)
 	Custom CustomQuerier
-	//IBC      func(ctx sdk.Context, caller sdk.AccAddress, request *wasmvmtypes.IBCQuery) ([]byte, error)
+	//IBC      func(ctx sdk.Context, caller sdk.WasmAddress, request *wasmvmtypes.IBCQuery) ([]byte, error)
 	//Staking  func(ctx sdk.Context, request *wasmvmtypes.StakingQuery) ([]byte, error)
 	Stargate func(ctx sdk.Context, request *wasmvmtypes.StargateQuery) ([]byte, error)
 	Wasm     func(ctx sdk.Context, request *wasmvmtypes.WasmQuery) ([]byte, error)
 }
 
 type contractMetaDataSource interface {
-	GetContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress) *types.ContractInfo
+	GetContractInfo(ctx sdk.Context, contractAddress sdk.WasmAddress) *types.ContractInfo
 }
 
 type wasmQueryKeeper interface {
 	contractMetaDataSource
-	QueryRaw(ctx sdk.Context, contractAddress sdk.AccAddress, key []byte) []byte
-	QuerySmart(ctx sdk.Context, contractAddr sdk.AccAddress, req []byte) ([]byte, error)
+	QueryRaw(ctx sdk.Context, contractAddress sdk.WasmAddress, key []byte) []byte
+	QuerySmart(ctx sdk.Context, contractAddr sdk.WasmAddress, req []byte) ([]byte, error)
 	IsPinnedCode(ctx sdk.Context, codeID uint64) bool
 }
 
@@ -140,7 +140,7 @@ func (e QueryPlugins) Merge(o *QueryPlugins) QueryPlugins {
 }
 
 // HandleQuery executes the requested query
-func (e QueryPlugins) HandleQuery(ctx sdk.Context, caller sdk.AccAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
+func (e QueryPlugins) HandleQuery(ctx sdk.Context, caller sdk.WasmAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
 	// do the query
 	if request.Bank != nil {
 		return e.Bank(ctx, request.Bank)
@@ -166,11 +166,11 @@ func (e QueryPlugins) HandleQuery(ctx sdk.Context, caller sdk.AccAddress, reques
 func BankQuerier(bankKeeper types.BankViewKeeper) func(ctx sdk.Context, request *wasmvmtypes.BankQuery) ([]byte, error) {
 	return func(ctx sdk.Context, request *wasmvmtypes.BankQuery) ([]byte, error) {
 		if request.AllBalances != nil {
-			addr, err := sdk.AccAddressFromBech32(request.AllBalances.Address)
+			addr, err := sdk.WasmAddressFromBech32(request.AllBalances.Address)
 			if err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.AllBalances.Address)
 			}
-			coins := bankKeeper.GetAllBalances(ctx, addr)
+			coins := bankKeeper.GetAllBalances(ctx, sdk.WasmToAccAddress(addr))
 			adapters := sdk.CoinsToCoinAdapters(coins)
 			res := wasmvmtypes.AllBalancesResponse{
 				Amount: ConvertSdkCoinsToWasmCoins(adapters),
@@ -178,11 +178,11 @@ func BankQuerier(bankKeeper types.BankViewKeeper) func(ctx sdk.Context, request 
 			return json.Marshal(res)
 		}
 		if request.Balance != nil {
-			addr, err := sdk.AccAddressFromBech32(request.Balance.Address)
+			addr, err := sdk.WasmAddressFromBech32(request.Balance.Address)
 			if err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Balance.Address)
 			}
-			coin := bankKeeper.GetBalance(ctx, addr, request.Balance.Denom)
+			coin := bankKeeper.GetBalance(ctx, sdk.WasmToAccAddress(addr), request.Balance.Denom)
 			adapter := sdk.CoinToCoinAdapter(coin)
 			res := wasmvmtypes.BalanceResponse{
 				Amount: ConvertSdkCoinToWasmCoin(adapter),
@@ -197,8 +197,8 @@ func NoCustomQuerier(sdk.Context, json.RawMessage) ([]byte, error) {
 	return nil, wasmvmtypes.UnsupportedRequest{Kind: "custom"}
 }
 
-func IBCQuerier(wasm contractMetaDataSource, channelKeeper types.ChannelKeeper) func(ctx sdk.Context, caller sdk.AccAddress, request *wasmvmtypes.IBCQuery) ([]byte, error) {
-	return func(ctx sdk.Context, caller sdk.AccAddress, request *wasmvmtypes.IBCQuery) ([]byte, error) {
+func IBCQuerier(wasm contractMetaDataSource, channelKeeper types.ChannelKeeper) func(ctx sdk.Context, caller sdk.WasmAddress, request *wasmvmtypes.IBCQuery) ([]byte, error) {
+	return func(ctx sdk.Context, caller sdk.WasmAddress, request *wasmvmtypes.IBCQuery) ([]byte, error) {
 		if request.PortID != nil {
 			contractInfo := wasm.GetContractInfo(ctx, caller)
 			res := wasmvmtypes.PortIDResponse{
@@ -347,11 +347,11 @@ func StakingQuerier(keeper types.StakingKeeper, distKeeper types.DistributionKee
 			return json.Marshal(res)
 		}
 		if request.AllDelegations != nil {
-			delegator, err := sdk.AccAddressFromBech32(request.AllDelegations.Delegator)
+			delegator, err := sdk.WasmAddressFromBech32(request.AllDelegations.Delegator)
 			if err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.AllDelegations.Delegator)
 			}
-			sdkDels := keeper.GetAllDelegatorDelegations(ctx, delegator)
+			sdkDels := keeper.GetAllDelegatorDelegations(ctx, sdk.WasmToAccAddress(delegator))
 			delegations, err := sdkToDelegations(ctx, keeper, sdkDels)
 			if err != nil {
 				return nil, err
@@ -362,7 +362,7 @@ func StakingQuerier(keeper types.StakingKeeper, distKeeper types.DistributionKee
 			return json.Marshal(res)
 		}
 		if request.Delegation != nil {
-			delegator, err := sdk.AccAddressFromBech32(request.Delegation.Delegator)
+			delegator, err := sdk.WasmAddressFromBech32(request.Delegation.Delegator)
 			if err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Delegation.Delegator)
 			}
@@ -372,7 +372,7 @@ func StakingQuerier(keeper types.StakingKeeper, distKeeper types.DistributionKee
 			}
 
 			var res wasmvmtypes.DelegationResponse
-			d, found := keeper.GetDelegation(ctx, delegator, validator)
+			d, found := keeper.GetDelegation(ctx, sdk.WasmToAccAddress(delegator), validator)
 			if found {
 				res.Delegation, err = sdkToFullDelegation(ctx, keeper, distKeeper, d)
 				if err != nil {
@@ -390,7 +390,7 @@ func sdkToDelegations(ctx sdk.Context, keeper types.StakingKeeper, delegations [
 	bondDenom := keeper.BondDenom(ctx)
 
 	for i, d := range delegations {
-		delAddr, err := sdk.AccAddressFromBech32(d.DelegatorAddress.String())
+		delAddr, err := sdk.WasmAddressFromBech32(d.DelegatorAddress.String())
 		if err != nil {
 			return nil, sdkerrors.Wrap(err, "delegator address")
 		}
@@ -417,7 +417,7 @@ func sdkToDelegations(ctx sdk.Context, keeper types.StakingKeeper, delegations [
 }
 
 func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper types.DistributionKeeper, delegation stakingtypes.Delegation) (*wasmvmtypes.FullDelegation, error) {
-	delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress.String())
+	delAddr, err := sdk.WasmAddressFromBech32(delegation.DelegatorAddress.String())
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "delegator address")
 	}
@@ -440,7 +440,7 @@ func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper
 	// otherwise, it can redelegate the full amount
 	// (there are cases of partial funds redelegated, but this is a start)
 	redelegateCoins := wasmvmtypes.NewCoin(0, bondDenom)
-	if !keeper.HasReceivingRedelegation(ctx, delAddr, valAddr) {
+	if !keeper.HasReceivingRedelegation(ctx, sdk.WasmToAccAddress(delAddr), valAddr) {
 		redelegateCoins = delegationCoins
 	}
 
@@ -491,7 +491,7 @@ func WasmQuerier(k wasmQueryKeeper) func(ctx sdk.Context, request *wasmvmtypes.W
 	return func(ctx sdk.Context, request *wasmvmtypes.WasmQuery) ([]byte, error) {
 		switch {
 		case request.Smart != nil:
-			addr, err := sdk.AccAddressFromBech32(request.Smart.ContractAddr)
+			addr, err := sdk.WasmAddressFromBech32(request.Smart.ContractAddr)
 			if err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Smart.ContractAddr)
 			}
@@ -501,13 +501,13 @@ func WasmQuerier(k wasmQueryKeeper) func(ctx sdk.Context, request *wasmvmtypes.W
 			}
 			return k.QuerySmart(ctx, addr, msg)
 		case request.Raw != nil:
-			addr, err := sdk.AccAddressFromBech32(request.Raw.ContractAddr)
+			addr, err := sdk.WasmAddressFromBech32(request.Raw.ContractAddr)
 			if err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Raw.ContractAddr)
 			}
 			return k.QueryRaw(ctx, addr, request.Raw.Key), nil
 		case request.ContractInfo != nil:
-			addr, err := sdk.AccAddressFromBech32(request.ContractInfo.ContractAddr)
+			addr, err := sdk.WasmAddressFromBech32(request.ContractInfo.ContractAddr)
 			if err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.ContractInfo.ContractAddr)
 			}
@@ -549,9 +549,9 @@ func ConvertSdkCoinToWasmCoin(coin sdk.CoinAdapter) wasmvmtypes.Coin {
 var _ WasmVMQueryHandler = WasmVMQueryHandlerFn(nil)
 
 // WasmVMQueryHandlerFn is a helper to construct a function based query handler.
-type WasmVMQueryHandlerFn func(ctx sdk.Context, caller sdk.AccAddress, request wasmvmtypes.QueryRequest) ([]byte, error)
+type WasmVMQueryHandlerFn func(ctx sdk.Context, caller sdk.WasmAddress, request wasmvmtypes.QueryRequest) ([]byte, error)
 
 // HandleQuery delegates call into wrapped WasmVMQueryHandlerFn
-func (w WasmVMQueryHandlerFn) HandleQuery(ctx sdk.Context, caller sdk.AccAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
+func (w WasmVMQueryHandlerFn) HandleQuery(ctx sdk.Context, caller sdk.WasmAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
 	return w(ctx, caller, request)
 }

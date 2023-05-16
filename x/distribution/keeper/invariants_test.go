@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -45,10 +46,14 @@ func getTestInvariantParams() []testInvariantParam {
 }
 
 func TestInvariants(t *testing.T) {
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	valOpAddrs, _, _ := GetTestAddrs()
 	tests := getTestInvariantParams()
 	for _, test := range tests {
 		ctx, ak, keeper, sk, supplyKeeper := CreateTestInputDefault(t, false, 1000)
+		prposal := types.NewChangeDistributionTypeProposal("change distribution type", "", types.DistributionTypeOnChain)
+		require.NoError(t, HandleChangeDistributionTypeProposal(ctx, keeper, prposal))
+
 		acc := supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 		err := acc.SetCoins(test.totalCommission)
 		require.NoError(t, err)

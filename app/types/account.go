@@ -226,13 +226,9 @@ type ethermintAccountPretty struct {
 
 // MarshalYAML returns the YAML representation of an account.
 func (acc EthAccount) MarshalYAML() (interface{}, error) {
-	ethAddress := ""
-	if !sdk.IsWasmAddress(acc.Address) {
-		ethAddress = acc.EthAddress().String()
-	}
 	alias := ethermintAccountPretty{
 		Address:       acc.Address,
-		EthAddress:    ethAddress,
+		EthAddress:    acc.EthAddress().String(),
 		Coins:         acc.Coins,
 		AccountNumber: acc.AccountNumber,
 		Sequence:      acc.Sequence,
@@ -261,9 +257,7 @@ func (acc EthAccount) MarshalJSON() ([]byte, error) {
 	var ethAddress = ""
 
 	if acc.BaseAccount != nil && acc.Address != nil {
-		if !sdk.IsWasmAddress(acc.Address) {
-			ethAddress = acc.EthAddress().String()
-		}
+		ethAddress = acc.EthAddress().String()
 	}
 
 	alias := ethermintAccountPretty{

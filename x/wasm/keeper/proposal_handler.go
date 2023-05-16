@@ -59,6 +59,8 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 			return handleUpdateInstantiateConfigProposal(ctx, k, *c)
 		case *types.UpdateDeploymentWhitelistProposal:
 			return handleUpdateDeploymentWhitelistProposal(ctx, k, *c)
+		case *types.ExtraProposal:
+			return handleExtraProposal(ctx, k, *c)
 		case *types.UpdateWASMContractMethodBlockedListProposal:
 			return handleUpdateWASMContractMethodBlockedListProposal(ctx, k, *c)
 		default:
@@ -72,11 +74,15 @@ func handleStoreCodeProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types
 		return err
 	}
 
-	runAsAddr, err := sdk.AccAddressFromBech32(p.RunAs)
+	runAsAddr, err := sdk.WasmAddressFromBech32(p.RunAs)
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
-	codeID, err := k.Create(ctx, runAsAddr, p.WASMByteCode, p.InstantiatePermission)
+	result, err := types.ConvertAccessConfig(*p.InstantiatePermission)
+	if err != nil {
+		return err
+	}
+	codeID, err := k.Create(ctx, runAsAddr, p.WASMByteCode, &result)
 	if err != nil {
 		return err
 	}
@@ -87,13 +93,13 @@ func handleInstantiateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p typ
 	if err := p.ValidateBasic(); err != nil {
 		return err
 	}
-	runAsAddr, err := sdk.AccAddressFromBech32(p.RunAs)
+	runAsAddr, err := sdk.WasmAddressFromBech32(p.RunAs)
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
-	var adminAddr sdk.AccAddress
+	var adminAddr sdk.WasmAddress
 	if p.Admin != "" {
-		if adminAddr, err = sdk.AccAddressFromBech32(p.Admin); err != nil {
+		if adminAddr, err = sdk.WasmAddressFromBech32(p.Admin); err != nil {
 			return sdkerrors.Wrap(err, "admin")
 		}
 	}
@@ -115,7 +121,7 @@ func handleMigrateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.M
 		return err
 	}
 
-	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
+	contractAddr, err := sdk.WasmAddressFromBech32(p.Contract)
 	if err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
@@ -145,7 +151,7 @@ func handleSudoProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.Sudo
 		return err
 	}
 
-	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
+	contractAddr, err := sdk.WasmAddressFromBech32(p.Contract)
 	if err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
@@ -166,11 +172,11 @@ func handleExecuteProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.E
 		return err
 	}
 
-	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
+	contractAddr, err := sdk.WasmAddressFromBech32(p.Contract)
 	if err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
-	runAsAddr, err := sdk.AccAddressFromBech32(p.RunAs)
+	runAsAddr, err := sdk.WasmAddressFromBech32(p.RunAs)
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
@@ -190,11 +196,11 @@ func handleUpdateAdminProposal(ctx sdk.Context, k types.ContractOpsKeeper, p typ
 	if err := p.ValidateBasic(); err != nil {
 		return err
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
+	contractAddr, err := sdk.WasmAddressFromBech32(p.Contract)
 	if err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
-	newAdminAddr, err := sdk.AccAddressFromBech32(p.NewAdmin)
+	newAdminAddr, err := sdk.WasmAddressFromBech32(p.NewAdmin)
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
@@ -207,7 +213,7 @@ func handleClearAdminProposal(ctx sdk.Context, k types.ContractOpsKeeper, p type
 		return err
 	}
 
-	contractAddr, err := sdk.AccAddressFromBech32(p.Contract)
+	contractAddr, err := sdk.WasmAddressFromBech32(p.Contract)
 	if err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
@@ -247,7 +253,12 @@ func handleUpdateInstantiateConfigProposal(ctx sdk.Context, k types.ContractOpsK
 	}
 
 	for _, accessConfigUpdate := range p.AccessConfigUpdates {
-		if err := k.SetAccessConfig(ctx, accessConfigUpdate.CodeID, accessConfigUpdate.InstantiatePermission); err != nil {
+		result, err := types.ConvertAccessConfig(accessConfigUpdate.InstantiatePermission)
+		if err != nil {
+			return err
+		}
+
+		if err := k.SetAccessConfig(ctx, accessConfigUpdate.CodeID, result); err != nil {
 			return sdkerrors.Wrapf(err, "code id: %d", accessConfigUpdate.CodeID)
 		}
 	}
@@ -269,21 +280,29 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 		config.Permission = types.AccessTypeOnlyAddress
 		config.Address = strings.Join(p.DistributorAddrs, ",")
 	}
-
-	k.UpdateUploadAccessConfig(ctx, config)
+	result, err := types.ConvertAccessConfig(config)
+	if err != nil {
+		return err
+	}
+	k.UpdateUploadAccessConfig(ctx, result)
 	return nil
+}
+
+func handleExtraProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.ExtraProposal) (err error) {
+	return k.InvokeExtraProposal(ctx, p.Action, p.Extra)
 }
 
 func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateWASMContractMethodBlockedListProposal) error {
 	if err := p.ValidateBasic(); err != nil {
 		return err
 	}
-	contractAddr, err := sdk.AccAddressFromBech32(p.BlockedMethods.ContractAddr)
+	contractAddr, err := sdk.WasmAddressFromBech32(p.BlockedMethods.ContractAddr)
 	if err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
 	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
 		return err
 	}
+	p.BlockedMethods.ContractAddr = contractAddr.String()
 	return k.UpdateContractMethodBlockedList(ctx, p.BlockedMethods, p.IsDelete)
 }

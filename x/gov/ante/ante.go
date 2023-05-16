@@ -11,6 +11,7 @@ import (
 	"github.com/okex/exchain/x/params"
 	paramstypes "github.com/okex/exchain/x/params/types"
 	stakingkeeper "github.com/okex/exchain/x/staking"
+	wasmtypes "github.com/okex/exchain/x/wasm/types"
 )
 
 type AnteDecorator struct {
@@ -49,6 +50,10 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 			case paramstypes.UpgradeProposal:
 				if err := ad.pk.CheckMsgSubmitProposal(ctx, msg); err != nil {
 					return ctx, err
+				}
+			case *wasmtypes.ExtraProposal:
+				if !ad.sk.IsValidator(ctx, msg.Proposer) {
+					return ctx, wasmtypes.ErrProposerMustBeValidator
 				}
 			}
 		}

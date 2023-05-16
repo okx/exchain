@@ -12,13 +12,13 @@ import (
 
 var ModelFuzzers = []interface{}{FuzzAddr, FuzzAddrString, FuzzAbsoluteTxPosition, FuzzContractInfo, FuzzStateModel, FuzzAccessType, FuzzAccessConfig, FuzzContractCodeHistory}
 
-func FuzzAddr(m *sdk.AccAddress, c fuzz.Continue) {
+func FuzzAddr(m *sdk.WasmAddress, c fuzz.Continue) {
 	*m = make([]byte, 20)
 	c.Read(*m)
 }
 
 func FuzzAddrString(m *string, c fuzz.Continue) {
-	var x sdk.AccAddress
+	var x sdk.WasmAddress
 	FuzzAddr(&x, c)
 	*m = x.String()
 }
@@ -70,7 +70,7 @@ func FuzzAccessType(m *types.AccessType, c fuzz.Continue) {
 
 func FuzzAccessConfig(m *types.AccessConfig, c fuzz.Continue) {
 	FuzzAccessType(&m.Permission, c)
-	var add sdk.AccAddress
+	var add sdk.WasmAddress
 	FuzzAddr(&add, c)
 	*m = m.Permission.With(add)
 }

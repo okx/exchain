@@ -47,6 +47,11 @@ pub enum ExecuteMsg {
         evmContract: String,
         recipient: String,
         amount: Uint128,
+    },
+    CallToEvm {
+        evmContract: String,
+        calldata: String,
+        value: Uint128,
     }
 }
 
@@ -65,6 +70,22 @@ impl Into<CosmosMsg<SendToEvmMsg>> for SendToEvmMsg {
     }
 }
 impl CustomMsg for SendToEvmMsg {}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+pub struct CallToEvmMsg {
+    pub sender: String,
+    pub evmaddr: String,
+    pub calldata: String,
+    pub value: Uint128,
+
+}
+impl Into<CosmosMsg<CallToEvmMsg>> for CallToEvmMsg {
+    fn into(self) -> CosmosMsg<CallToEvmMsg> {
+        CosmosMsg::Custom(self)
+    }
+}
+impl CustomMsg for CallToEvmMsg {}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]

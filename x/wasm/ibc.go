@@ -67,7 +67,7 @@ func (i IBCHandler) OnChanOpenInit(
 			},
 		},
 	}
-	_, err = i.keeper.OnOpenChannel(ctx, contractAddr, msg)
+	_, err = i.keeper.OnOpenChannel(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +112,7 @@ func (i IBCHandler) OnChanOpenTryV3(
 	}
 
 	// Allow contracts to return a version (or default to counterpartyVersion if unset)
-	version, err := i.keeper.OnOpenChannel(ctx, contractAddr, msg)
+	version, err := i.keeper.OnOpenChannel(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +162,7 @@ func (i IBCHandler) OnChanOpenAckV3(
 			CounterpartyVersion: counterpartyVersion,
 		},
 	}
-	return i.keeper.OnConnectChannel(ctx, contractAddr, msg)
+	return i.keeper.OnConnectChannel(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 }
 
 // OnChanOpenConfirm implements the IBCModule interface
@@ -180,7 +180,7 @@ func (i IBCHandler) OnChanOpenConfirm(ctx sdk.Context, portID, channelID string)
 			Channel: toWasmVMChannel(portID, channelID, channelInfo),
 		},
 	}
-	return i.keeper.OnConnectChannel(ctx, contractAddr, msg)
+	return i.keeper.OnConnectChannel(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 }
 
 // OnChanCloseInit implements the IBCModule interface
@@ -197,7 +197,7 @@ func (i IBCHandler) OnChanCloseInit(ctx sdk.Context, portID, channelID string) e
 	msg := wasmvmtypes.IBCChannelCloseMsg{
 		CloseInit: &wasmvmtypes.IBCCloseInit{Channel: toWasmVMChannel(portID, channelID, channelInfo)},
 	}
-	err = i.keeper.OnCloseChannel(ctx, contractAddr, msg)
+	err = i.keeper.OnCloseChannel(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (i IBCHandler) OnChanCloseConfirm(ctx sdk.Context, portID, channelID string
 	msg := wasmvmtypes.IBCChannelCloseMsg{
 		CloseConfirm: &wasmvmtypes.IBCCloseConfirm{Channel: toWasmVMChannel(portID, channelID, channelInfo)},
 	}
-	err = i.keeper.OnCloseChannel(ctx, contractAddr, msg)
+	err = i.keeper.OnCloseChannel(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 	if err != nil {
 		return err
 	}
@@ -251,7 +251,7 @@ func (i IBCHandler) OnRecvPacket(
 		return channeltypes.NewErrorAcknowledgement(sdkerrors.Wrapf(err, "contract port id").Error())
 	}
 	msg := wasmvmtypes.IBCPacketReceiveMsg{Packet: newIBCPacket(packet), Relayer: relayer.String()}
-	ack, err := i.keeper.OnRecvPacket(ctx, contractAddr, msg)
+	ack, err := i.keeper.OnRecvPacket(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 	if err != nil {
 		return channeltypes.NewErrorAcknowledgement(err.Error())
 	}
@@ -282,7 +282,7 @@ func (i IBCHandler) OnAcknowledgementPacket(
 		return sdkerrors.Wrapf(err, "contract port id")
 	}
 
-	err = i.keeper.OnAckPacket(ctx, contractAddr, wasmvmtypes.IBCPacketAckMsg{
+	err = i.keeper.OnAckPacket(ctx, sdk.WasmToAccAddress(contractAddr), wasmvmtypes.IBCPacketAckMsg{
 		Acknowledgement: wasmvmtypes.IBCAcknowledgement{Data: acknowledgement},
 		OriginalPacket:  newIBCPacket(packet),
 		Relayer:         relayer.String(),
@@ -300,7 +300,7 @@ func (i IBCHandler) OnTimeoutPacket(ctx sdk.Context, packet channeltypes.Packet,
 		return sdkerrors.Wrapf(err, "contract port id")
 	}
 	msg := wasmvmtypes.IBCPacketTimeoutMsg{Packet: newIBCPacket(packet), Relayer: relayer.String()}
-	err = i.keeper.OnTimeoutPacket(ctx, contractAddr, msg)
+	err = i.keeper.OnTimeoutPacket(ctx, sdk.WasmToAccAddress(contractAddr), msg)
 	if err != nil {
 		return sdkerrors.Wrap(err, "on timeout")
 	}

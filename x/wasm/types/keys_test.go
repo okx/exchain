@@ -39,17 +39,6 @@ func TestGetContractCodeHistoryElementPrefix(t *testing.T) {
 		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
 	}
 	assert.Equal(t, exp, got)
-
-	addr = bytes.Repeat([]byte{4}, ContractAddrLen)
-	got = GetContractCodeHistoryElementPrefix(addr)
-	exp = []byte{
-		5,                            // prefix
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // address 32 bytes
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-		4, 4,
-	}
-	assert.Equal(t, exp, got)
 }
 
 func TestGetContractByCreatedSecondaryIndexKey(t *testing.T) {
@@ -66,22 +55,8 @@ func TestGetContractByCreatedSecondaryIndexKey(t *testing.T) {
 		0, 0, 0, 0, 0, 0, 0, 1, // codeID
 		1, 0, 0, 0, 0, 0, 0, 2, // height
 		1, 0, 0, 0, 0, 0, 0, 3, // index
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // address 32 bytes
+		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // address 20 bytes
 		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-	}
-	assert.Equal(t, exp, got)
-
-	addr = bytes.Repeat([]byte{4}, ContractAddrLen)
-	got = GetContractByCreatedSecondaryIndexKey(addr, e)
-	exp = []byte{
-		6,                      // prefix
-		0, 0, 0, 0, 0, 0, 0, 1, // codeID
-		1, 0, 0, 0, 0, 0, 0, 2, // height
-		1, 0, 0, 0, 0, 0, 0, 3, // index
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // address 32 bytes
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-		4, 4,
 	}
 	assert.Equal(t, exp, got)
 }

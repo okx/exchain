@@ -9,16 +9,18 @@ option (gogoproto.goproto_getters_all) = false;
 
 // Msg defines the wasm Msg service.
 service Msg {
-  // StoreCode to submit Wasm code to the system
+  // SendToEvmEvent to exchange cw20 to erc20
   rpc SendToEvmEvent(MsgSendToEvm) returns (MsgSendToEvmResponse);
+  // CallToEvmEvent to call to evm contract
+  rpc CallToEvmEvent(MsgCallToEvm) returns (MsgCallToEvmResponse);
 }
 
 // MsgStoreCode submit Wasm code to the system
 message MsgSendToEvm {
   // Sender is the that actor that signed the messages
-  string sender = 1;
-  string contract = 2;
-  string recipient = 3;
+  string sender = 1 [(gogoproto.jsontag) = "sender"];
+  string contract = 2 [(gogoproto.jsontag) = "contract"];
+  string recipient = 3 [(gogoproto.jsontag) = "recipient"];
   string amount = 4 [(gogoproto.customtype) = "Int", (gogoproto.nullable) = false];
 
 }
@@ -26,4 +28,18 @@ message MsgSendToEvm {
 message MsgSendToEvmResponse {
   // CodeID is the reference to the stored WASM code
   bool success = 1;
+}
+
+// MsgStoreCode submit Wasm code to the system
+message MsgCallToEvm {
+  // Sender is the that actor that signed the messages
+  string sender = 1 [(gogoproto.jsontag) = "sender"];
+  string evmaddr = 2 [(gogoproto.jsontag) = "evmaddr"];
+  string calldata = 3 [(gogoproto.jsontag) = "calldata"];
+  string value = 4 [(gogoproto.customtype) = "Int", (gogoproto.nullable) = false];
+}
+// MsgStoreCodeResponse returns store result data.
+message MsgCallToEvmResponse {
+  // CodeID is the reference to the stored WASM code
+  string response = 1 [(gogoproto.jsontag) = "response"];
 }

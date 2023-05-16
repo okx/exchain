@@ -263,7 +263,12 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			txInfo.wtx = msg.Wtx
 			txInfo.checkType = abci.CheckTxType_WrappedCheck
 		}
-		// broadcasting happens from go routines per peer
+	case *WrapCMTxMessage:
+		tx = msg.Wtx.GetTx()
+		if _, isInWhiteList := memR.nodeKeyWhitelist[string(src.ID())]; isInWhiteList && msg.From != "" {
+			txInfo.from = msg.From
+		}
+		txInfo.wrapCMTx = msg.Wtx
 	default:
 		memR.Logger.Error(fmt.Sprintf("Unknown message type %v", reflect.TypeOf(msg)))
 		return
@@ -351,6 +356,14 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						Wtx: wtx,
 					}
 				}
+			} else if memTx.isWrapCMTx {
+				wmsg := &WrapCMTxMessage{Wtx: &types.WrapCMTx{Tx: memTx.tx, Nonce: memTx.wrapCMNonce}}
+				if isInWhiteList {
+					wmsg.From = memTx.from
+				} else {
+					wmsg.From = ""
+				}
+				msg = wmsg
 			} else {
 				txMsg := txMessageDeocdePool.Get().(*TxMessage)
 				txMsg.Tx = memTx.tx
@@ -398,6 +411,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Message)(nil), nil)
 	cdc.RegisterConcrete(&TxMessage{}, "tendermint/mempool/TxMessage", nil)
 	cdc.RegisterConcrete(&WtxMessage{}, "tendermint/mempool/WtxMessage", nil)
+	cdc.RegisterConcrete(&WrapCMTxMessage{}, "tendermint/mempool/WrapTxMessage", nil)
 
 	cdc.RegisterConcreteMarshaller("tendermint/mempool/TxMessage", func(codec *amino.Codec, i interface{}) ([]byte, error) {
 		txmp, ok := i.(*TxMessage)
@@ -651,4 +665,18 @@ func (memR *Reactor) wrapTx(tx types.Tx, from string) (*WrappedTx, error) {
 	}
 	wtx.Signature = sig
 	return wtx, nil
+}
+
+func GetRealTxFromWrapCMTx(data types.Tx) types.Tx {
+	wtx := &types.WrapCMTx{}
+	err := cdc.UnmarshalJSON(data, &wtx)
+	if err == nil {
+		return wtx.Tx
+	}
+	return data
+}
+
+type WrapCMTxMessage struct {
+	Wtx  *types.WrapCMTx `json:"wtx"`
+	From string          `json:"from"`
 }

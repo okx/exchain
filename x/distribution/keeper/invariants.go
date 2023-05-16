@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking/exported"
@@ -72,18 +72,22 @@ func CanWithdrawInvariant(k Keeper) sdk.Invariant {
 // is consistent with the sum of accumulated commissions
 func ModuleAccountInvariant(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
-		var accumulatedCommission sdk.SysCoins
-		k.IterateValidatorAccumulatedCommissions(ctx,
-			func(_ sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
-				accumulatedCommission = accumulatedCommission.Add(commission...)
+		if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) || !k.CheckInitExistedValidatorFlag(ctx) {
+			return "", false
+		}
+
+		var accumulatedOutstanding sdk.SysCoins
+		k.IterateValidatorOutstandingRewards(ctx,
+			func(_ sdk.ValAddress, reward types.ValidatorOutstandingRewards) (stop bool) {
+				accumulatedOutstanding = accumulatedOutstanding.Add(reward...)
 				return false
 			})
 		communityPool := k.GetFeePoolCommunityCoins(ctx)
 		macc := k.GetDistributionAccount(ctx)
-		broken := !macc.GetCoins().IsEqual(communityPool.Add(accumulatedCommission...))
+		broken := !macc.GetCoins().IsEqual(communityPool.Add(accumulatedOutstanding...))
 		return sdk.FormatInvariant(types.ModuleName, "ModuleAccount coins",
 			fmt.Sprintf("\texpected distribution ModuleAccount coins:     %s\n"+
 				"\tacutal distribution ModuleAccount coins: %s\n",
-				accumulatedCommission, macc.GetCoins())), broken
+				accumulatedOutstanding, macc.GetCoins())), broken
 	}
 }

@@ -83,9 +83,9 @@ exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst de
 exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
 exchaincli keys add --recover admin18 -m "lazy cause kite fence gravity regret visa fuel tone clerk motor rent" -y
 
-captain=$(exchaincli keys show captain -a)
-admin18=$(exchaincli keys show admin18 -a)
-admin17=$(exchaincli keys show admin17 -a)
+captain=$(exchaincli keys show captain | jq -r '.eth_address')
+admin18=$(exchaincli keys show admin18 | jq -r '.eth_address')
+admin17=$(exchaincli keys show admin17 | jq -r '.eth_address')
 proposal_deposit="100okt"
 
 if [[ $CHAIN_ID == "exchain-64" ]];

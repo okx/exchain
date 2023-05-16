@@ -135,7 +135,7 @@ package wasm_test
 //type player struct {
 //	t            *testing.T
 //	chain        *wasmibctesting.TestChain
-//	contractAddr sdk.AccAddress
+//	contractAddr sdk.WasmAddress
 //	actor        string // either ping or pong
 //	execCalls    int    // number of calls to Execute method (checkTx + deliverTx)
 //}

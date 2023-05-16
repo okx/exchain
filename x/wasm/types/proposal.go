@@ -25,6 +25,9 @@ const (
 	ProposalTypeUpdateInstantiateConfig             ProposalType = "UpdateInstantiateConfig"
 	ProposalTypeUpdateDeploymentWhitelist           ProposalType = "UpdateDeploymentWhitelist"
 	ProposalTypeUpdateWasmContractMethodBlockedList ProposalType = "UpdateWasmContractMethodBlockedList"
+	ProposalTypeExtra                               ProposalType = "WasmExtra"
+
+	ActionModifyGasFactor = "GasFactor"
 )
 
 // DisableAllProposals contains no wasm gov types.
@@ -44,6 +47,7 @@ var EnableAllProposals = []ProposalType{
 	ProposalTypeUpdateInstantiateConfig,
 	ProposalTypeUpdateDeploymentWhitelist,
 	ProposalTypeUpdateWasmContractMethodBlockedList,
+	ProposalTypeExtra,
 }
 
 // NecessaryProposals contains necessary wasm gov types as keys.
@@ -55,6 +59,7 @@ var NecessaryProposals = []ProposalType{
 	ProposalTypeUnpinCodes,
 	ProposalTypeUpdateDeploymentWhitelist,
 	ProposalTypeUpdateWasmContractMethodBlockedList,
+	ProposalTypeExtra,
 }
 
 // ConvertToProposals maps each key to a ProposalType and returns a typed list.
@@ -88,6 +93,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateInstantiateConfig))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateDeploymentWhitelist))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateWasmContractMethodBlockedList))
+	govtypes.RegisterProposalType(string(ProposalTypeExtra))
 	govtypes.RegisterProposalTypeCodec(&StoreCodeProposal{}, "wasm/StoreCodeProposal")
 	govtypes.RegisterProposalTypeCodec(&InstantiateContractProposal{}, "wasm/InstantiateContractProposal")
 	govtypes.RegisterProposalTypeCodec(&MigrateContractProposal{}, "wasm/MigrateContractProposal")
@@ -100,6 +106,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalTypeCodec(&UpdateInstantiateConfigProposal{}, "wasm/UpdateInstantiateConfigProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateDeploymentWhitelistProposal{}, "wasm/UpdateDeploymentWhitelistProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateWASMContractMethodBlockedListProposal{}, "wasm/UpdateWASMContractMethodBlockedListProposal")
+	govtypes.RegisterProposalTypeCodec(&ExtraProposal{}, "wasm/ExtraProposal")
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -119,7 +126,7 @@ func (p StoreCodeProposal) ValidateBasic() error {
 	if err := validateProposalCommons(p.Title, p.Description); err != nil {
 		return err
 	}
-	if _, err := sdk.AccAddressFromBech32(p.RunAs); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.RunAs); err != nil {
 		return sdkerrors.Wrap(err, "run as")
 	}
 
@@ -181,7 +188,7 @@ func (p InstantiateContractProposal) ValidateBasic() error {
 	if err := validateProposalCommons(p.Title, p.Description); err != nil {
 		return err
 	}
-	if _, err := sdk.AccAddressFromBech32(p.RunAs); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.RunAs); err != nil {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "run as")
 	}
 
@@ -198,7 +205,7 @@ func (p InstantiateContractProposal) ValidateBasic() error {
 	}
 
 	if len(p.Admin) != 0 {
-		if _, err := sdk.AccAddressFromBech32(p.Admin); err != nil {
+		if _, err := sdk.WasmAddressFromBech32(p.Admin); err != nil {
 			return err
 		}
 	}
@@ -265,7 +272,7 @@ func (p MigrateContractProposal) ValidateBasic() error {
 	if p.CodeID == 0 {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "code_id is required")
 	}
-	if _, err := sdk.AccAddressFromBech32(p.Contract); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.Contract); err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
 	if err := p.Msg.ValidateBasic(); err != nil {
@@ -319,7 +326,7 @@ func (p SudoContractProposal) ValidateBasic() error {
 	if err := validateProposalCommons(p.Title, p.Description); err != nil {
 		return err
 	}
-	if _, err := sdk.AccAddressFromBech32(p.Contract); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.Contract); err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
 	if err := p.Msg.ValidateBasic(); err != nil {
@@ -370,10 +377,10 @@ func (p ExecuteContractProposal) ValidateBasic() error {
 	if err := validateProposalCommons(p.Title, p.Description); err != nil {
 		return err
 	}
-	if _, err := sdk.AccAddressFromBech32(p.Contract); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.Contract); err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
-	if _, err := sdk.AccAddressFromBech32(p.RunAs); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.RunAs); err != nil {
 		return sdkerrors.Wrap(err, "run as")
 	}
 	if !p.Funds.IsValid() {
@@ -433,10 +440,10 @@ func (p UpdateAdminProposal) ValidateBasic() error {
 	if err := validateProposalCommons(p.Title, p.Description); err != nil {
 		return err
 	}
-	if _, err := sdk.AccAddressFromBech32(p.Contract); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.Contract); err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
-	if _, err := sdk.AccAddressFromBech32(p.NewAdmin); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.NewAdmin); err != nil {
 		return sdkerrors.Wrap(err, "new admin")
 	}
 	return nil
@@ -469,7 +476,7 @@ func (p ClearAdminProposal) ValidateBasic() error {
 	if err := validateProposalCommons(p.Title, p.Description); err != nil {
 		return err
 	}
-	if _, err := sdk.AccAddressFromBech32(p.Contract); err != nil {
+	if _, err := sdk.WasmAddressFromBech32(p.Contract); err != nil {
 		return sdkerrors.Wrap(err, "contract")
 	}
 	return nil

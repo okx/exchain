@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -26,12 +27,12 @@ var AllAccessTypes = []AccessType{
 	AccessTypeEverybody,
 }
 
-func (a AccessType) With(addr sdk.AccAddress) AccessConfig {
+func (a AccessType) With(addr sdk.WasmAddress) AccessConfig {
 	switch a {
 	case AccessTypeNobody:
 		return AllowNobody
 	case AccessTypeOnlyAddress:
-		if err := sdk.VerifyAddressFormat(addr); err != nil {
+		if err := sdk.WasmVerifyAddress(addr); err != nil {
 			panic(err)
 		}
 		return AccessConfig{Permission: AccessTypeOnlyAddress, Address: addr.String()}
@@ -93,11 +94,17 @@ func ParamKeyTable() paramtypes.KeyTable {
 
 // DefaultParams returns default wasm parameters
 func DefaultParams() Params {
+	uploadAccess := AllowNobody
+	vmBridge := false
+	if types.IsPrivateNet() {
+		uploadAccess = AllowEverybody
+		vmBridge = true
+	}
 	return Params{
-		CodeUploadAccess:             AllowNobody,
+		CodeUploadAccess:             uploadAccess,
 		InstantiateDefaultPermission: AccessTypeEverybody,
 		UseContractBlockedList:       true,
-		VmbridgeEnable:               false,
+		VmbridgeEnable:               vmBridge,
 	}
 }
 
@@ -181,7 +188,7 @@ func (a AccessConfig) ValidateBasic() error {
 		return nil
 	case AccessTypeOnlyAddress:
 		for _, addr := range strings.Split(a.Address, ",") {
-			if _, err := sdk.AccAddressFromBech32(addr); err != nil {
+			if _, err := sdk.WasmAddressFromBech32(addr); err != nil {
 				return err
 			}
 		}
@@ -190,7 +197,7 @@ func (a AccessConfig) ValidateBasic() error {
 	return sdkerrors.Wrapf(ErrInvalid, "unknown type: %q", a.Permission)
 }
 
-func (a AccessConfig) Allowed(actor sdk.AccAddress) bool {
+func (a AccessConfig) Allowed(actor sdk.WasmAddress) bool {
 	switch a.Permission {
 	case AccessTypeNobody:
 		return false

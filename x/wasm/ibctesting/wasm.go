@@ -27,7 +27,7 @@ package ibctesting
 //// This method can be called to prepare the store with some valid CodeInfo and ContractInfo. The returned
 //// Address is the contract address for this instance. Test should make use of this data and/or use NewIBCContractMockWasmer
 //// for using a contract mock in Go.
-//func (chain *TestChain) SeedNewContractInstance() sdk.AccAddress {
+//func (chain *TestChain) SeedNewContractInstance() sdk.WasmAddress {
 //	pInstResp := chain.StoreCode(append(wasmIdent, rand.Bytes(10)...))
 //	codeID := pInstResp.CodeID
 //
@@ -67,7 +67,7 @@ package ibctesting
 //	return pInstResp
 //}
 //
-//func (chain *TestChain) InstantiateContract(codeID uint64, initMsg []byte) sdk.AccAddress {
+//func (chain *TestChain) InstantiateContract(codeID uint64, initMsg []byte) sdk.WasmAddress {
 //	instantiateMsg := &types.MsgInstantiateContract{
 //		Sender: chain.SenderAccount.GetAddress().String(),
 //		Admin:  chain.SenderAccount.GetAddress().String(),
@@ -84,7 +84,7 @@ package ibctesting
 //
 //	var pExecResp types.MsgInstantiateContractResponse
 //	require.NoError(chain.t, pExecResp.Unmarshal(protoResult.Data[0].Data))
-//	a, err := sdk.AccAddressFromBech32(pExecResp.Address)
+//	a, err := sdk.WasmAddressFromBech32(pExecResp.Address)
 //	require.NoError(chain.t, err)
 //	return a
 //}
@@ -134,7 +134,7 @@ package ibctesting
 //}
 //
 //// ContractInfo is a helper function to returns the ContractInfo for the given contract address
-//func (chain *TestChain) ContractInfo(contractAddr sdk.AccAddress) *types.ContractInfo {
+//func (chain *TestChain) ContractInfo(contractAddr sdk.WasmAddress) *types.ContractInfo {
 //	type testSupporter interface {
 //		TestSupport() *wasmd.TestSupport
 //	}

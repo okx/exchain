@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"sync"
 	"time"
 
@@ -49,9 +50,14 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	//	txCount            uint32
-	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	watcher        *TxWatcher
-	feesplitInfo   *FeeSplitInfo
+
+	wasmKvStoreForSimulate *KVStore
+	overridesBytes         []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	watcher                *TxWatcher
+	feesplitInfo           *FeeSplitInfo
+
+	statedb  vm.StateDB
+	outOfGas bool
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -100,6 +106,10 @@ func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache {
 	return c.cache
+}
+
+func (c *Context) WasmKvStoreForSimulate() KVStore {
+	return *c.wasmKvStoreForSimulate
 }
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
@@ -181,26 +191,31 @@ func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
 }
 
-////TxCount
-//func (c *Context) TxCount() uint32 {
-//	return c.txCount
-//}
+// //TxCount
+//
+//	func (c *Context) TxCount() uint32 {
+//		return c.txCount
+//	}
+var (
+	nilKvStore = KVStore(nil)
+)
 
 // NewContext create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
 	return Context{
-		ctx:          context.Background(),
-		ms:           ms,
-		header:       &header,
-		chainID:      header.ChainID,
-		checkTx:      isCheckTx,
-		logger:       logger,
-		gasMeter:     stypes.NewInfiniteGasMeter(),
-		minGasPrice:  DecCoins{},
-		eventManager: NewEventManager(),
-		watcher:      &TxWatcher{EmptyWatcher{}},
+		ctx:                    context.Background(),
+		ms:                     ms,
+		header:                 &header,
+		chainID:                header.ChainID,
+		checkTx:                isCheckTx,
+		logger:                 logger,
+		gasMeter:               stypes.NewInfiniteGasMeter(),
+		minGasPrice:            DecCoins{},
+		eventManager:           NewEventManager(),
+		watcher:                &TxWatcher{EmptyWatcher{}},
+		wasmKvStoreForSimulate: &nilKvStore,
 	}
 }
 
@@ -398,11 +413,27 @@ func (c *Context) SetWatcher(w IWatcher) {
 	c.watcher.IWatcher = w
 }
 
+func (c *Context) SetWasmKvStoreForSimulate(k KVStore) {
+	*c.wasmKvStoreForSimulate = k
+}
+
+func (c *Context) ResetWasmKvStoreForSimulate() {
+	*c.wasmKvStoreForSimulate = KVStore(nil)
+}
+
 func (c *Context) GetWatcher() IWatcher {
 	if c.watcher == nil {
 		return emptyWatcher
 	}
 	return c.watcher.IWatcher
+}
+
+func (c *Context) GetEVMStateDB() vm.StateDB {
+	return c.statedb
+}
+
+func (c *Context) SetEVMStateDB(db vm.StateDB) {
+	c.statedb = db
 }
 
 //func (c *Context) SetTxCount(count uint32) *Context {
@@ -452,6 +483,21 @@ func (c *Context) CacheContext() (cc Context, writeCache func()) {
 	cc.SetEventManager(NewEventManager())
 	writeCache = cms.Write
 	return
+}
+
+func (c *Context) CacheContextWithMultiSnapshotRWSet() (cc Context, writeCacheWithRWSet func() stypes.MultiSnapshotWSet) {
+	cms := c.MultiStore().CacheMultiStore()
+	cc = *c
+	cc.SetMultiStore(cms)
+	cc.SetEventManager(NewEventManager())
+	writeCacheWithRWSet = cms.WriteGetMultiSnapshotWSet
+	return
+}
+
+func (c *Context) RevertDBWithMultiSnapshotRWSet(set stypes.MultiSnapshotWSet) {
+	cms := c.MultiStore().CacheMultiStore()
+	cms.RevertDBWithMultiSnapshotRWSet(set)
+	cms.Write()
 }
 
 func (c Context) WithBlockTime(newTime time.Time) Context {
@@ -515,6 +561,14 @@ func (c Context) WithValue(key, value interface{}) Context {
 //	ctx.Value(key)
 func (c Context) Value(key interface{}) interface{} {
 	return c.ctx.Value(key)
+}
+
+func (c *Context) SetOutOfGas(v bool) {
+	c.outOfGas = v
+}
+
+func (c *Context) GetOutOfGas() bool {
+	return c.outOfGas
 }
 
 type AccountCache struct {

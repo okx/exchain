@@ -222,3 +222,10 @@ func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler) {
 func (app *BaseApp) SetTmClient(client client.Client) {
 	app.tmClient = client
 }
+
+func (app *BaseApp) SetUpdateCMTxNonceHandler(handler sdk.UpdateCMTxNonceHandler) {
+	if app.sealed {
+		panic("SetUpdateCMTxNonceHandler() on sealed BaseApp")
+	}
+	app.updateCMTxNonceHandler = handler
+}

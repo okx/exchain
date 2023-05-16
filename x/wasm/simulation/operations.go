@@ -34,8 +34,8 @@ package simulation
 //type WasmKeeper interface {
 //	GetParams(ctx sdk.Context) types.Params
 //	IterateCodeInfos(ctx sdk.Context, cb func(uint64, types.CodeInfo) bool)
-//	IterateContractInfo(ctx sdk.Context, cb func(sdk.AccAddress, types.ContractInfo) bool)
-//	QuerySmart(ctx sdk.Context, contractAddr sdk.AccAddress, req []byte) ([]byte, error)
+//	IterateContractInfo(ctx sdk.Context, cb func(sdk.WasmAddress, types.ContractInfo) bool)
+//	QuerySmart(ctx sdk.Context, contractAddr sdk.WasmAddress, req []byte) ([]byte, error)
 //	PeekAutoIncrementID(ctx sdk.Context, lastIDKey []byte) uint64
 //}
 //type BankKeeper interface {
@@ -223,13 +223,13 @@ package simulation
 //}
 //
 //// MsgExecuteContractSelector returns contract address to be used in simulations
-//type MsgExecuteContractSelector = func(ctx sdk.Context, wasmKeeper WasmKeeper) sdk.AccAddress
+//type MsgExecuteContractSelector = func(ctx sdk.Context, wasmKeeper WasmKeeper) sdk.WasmAddress
 //
 //// MsgExecutePayloader extension point to modify msg with custom payload
 //type MsgExecutePayloader func(msg *types.MsgExecuteContract) error
 //
 //// MsgExecuteSenderSelector extension point that returns the sender address
-//type MsgExecuteSenderSelector func(wasmKeeper WasmKeeper, ctx sdk.Context, contractAddr sdk.AccAddress, accs []simtypes.Account) (simtypes.Account, error)
+//type MsgExecuteSenderSelector func(wasmKeeper WasmKeeper, ctx sdk.Context, contractAddr sdk.WasmAddress, accs []simtypes.Account) (simtypes.Account, error)
 //
 //// SimulateMsgExecuteContract create a execute message a reflect contract instance
 //func SimulateMsgExecuteContract(
@@ -294,9 +294,9 @@ package simulation
 //}
 //
 //// DefaultSimulationExecuteContractSelector picks the first contract address
-//func DefaultSimulationExecuteContractSelector(ctx sdk.Context, wasmKeeper WasmKeeper) sdk.AccAddress {
-//	var r sdk.AccAddress
-//	wasmKeeper.IterateContractInfo(ctx, func(address sdk.AccAddress, info types.ContractInfo) bool {
+//func DefaultSimulationExecuteContractSelector(ctx sdk.Context, wasmKeeper WasmKeeper) sdk.WasmAddress {
+//	var r sdk.WasmAddress
+//	wasmKeeper.IterateContractInfo(ctx, func(address sdk.WasmAddress, info types.ContractInfo) bool {
 //		r = address
 //		return true
 //	})
@@ -304,7 +304,7 @@ package simulation
 //}
 //
 //// DefaultSimulationExecuteSenderSelector queries reflect contract for owner address and selects accounts
-//func DefaultSimulationExecuteSenderSelector(wasmKeeper WasmKeeper, ctx sdk.Context, contractAddr sdk.AccAddress, accs []simtypes.Account) (simtypes.Account, error) {
+//func DefaultSimulationExecuteSenderSelector(wasmKeeper WasmKeeper, ctx sdk.Context, contractAddr sdk.WasmAddress, accs []simtypes.Account) (simtypes.Account, error) {
 //	var none simtypes.Account
 //	bz, err := json.Marshal(testdata.ReflectQueryMsg{Owner: &struct{}{}})
 //	if err != nil {
@@ -318,7 +318,7 @@ package simulation
 //	if err := json.Unmarshal(got, &ownerRes); err != nil || ownerRes.Owner == "" {
 //		return none, sdkerrors.Wrap(err, "parse smart query response")
 //	}
-//	ownerAddr, err := sdk.AccAddressFromBech32(ownerRes.Owner)
+//	ownerAddr, err := sdk.WasmAddressFromBech32(ownerRes.Owner)
 //	if err != nil {
 //		return none, sdkerrors.Wrap(err, "parse contract owner address")
 //	}

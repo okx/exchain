@@ -1284,6 +1284,10 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 	csdb.txIndex = txi
 }
 
+func (csdb *CommitStateDB) SetTransactionHash(thash ethcmn.Hash) {
+	csdb.thash = thash
+}
+
 // CreateAccount explicitly creates a state object. If a state object with the
 // address already exists the balance is carried over to the new account.
 //

@@ -11,6 +11,7 @@ protoc_gen_gocosmos() {
   go get github.com/regen-network/cosmos-proto/protoc-gen-gocosmos@latest 2>/dev/null
 }
 
+# please use follow note to generate file proto.go
 #protoc_gen_gocosmos
 #go install github.com/regen-network/cosmos-proto/protoc-gen-gocosmos@v1.3.3-alpha.regen.1
 #go install github.com/gogo/protobuf/gogoproto
