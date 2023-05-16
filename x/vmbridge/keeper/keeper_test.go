@@ -65,6 +65,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, suite.addr)
 	err := acc.SetCoins(initCoin)
 	suite.Require().NoError(err)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	suite.app.WasmKeeper.SetParams(suite.ctx, wasmtypes.TestParams())
 	evmParams := evmtypes.DefaultParams()
@@ -144,4 +145,40 @@ func (suite *KeeperTestSuite) SetAccountCoins(addr sdk.AccAddress, value sdk.Int
 	err := acc.SetCoins(sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, value.Int64())))
 	suite.Require().NoError(err)
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+}
+
+func (suite *KeeperTestSuite) deployEvmContract(code string) common.Address {
+	freeCallBytescode := common.Hex2Bytes(code)
+	_, contract, err := suite.app.VMBridgeKeeper.CallEvm(suite.ctx, common.BytesToAddress(suite.addr), nil, big.NewInt(0), freeCallBytescode)
+	suite.Require().NoError(err)
+	return contract.ContractAddress
+}
+
+func (suite *KeeperTestSuite) deployWasmContract(filename string, initMsg []byte) sdk.WasmAddress {
+	wasmcode, err := ioutil.ReadFile(fmt.Sprintf("./testdata/%s", filename))
+	suite.Require().NoError(err)
+
+	codeid, err := suite.app.WasmPermissionKeeper.Create(suite.ctx, sdk.AccToAWasmddress(suite.addr), wasmcode, nil)
+	suite.Require().NoError(err)
+
+	//initMsg := []byte(fmt.Sprintf("{\"decimals\":10,\"initial_balances\":[{\"address\":\"%s\",\"amount\":\"100000000\"}],\"name\":\"my test token\", \"symbol\":\"MTT\"}", suite.addr.String()))
+	contract, _, err := suite.app.WasmPermissionKeeper.Instantiate(suite.ctx, codeid, sdk.AccToAWasmddress(suite.addr), sdk.AccToAWasmddress(suite.addr), initMsg, "label", sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)})
+	suite.Require().NoError(err)
+	return contract
+}
+
+func (suite *KeeperTestSuite) executeWasmContract(ctx sdk.Context, caller, wasmContract sdk.WasmAddress, msg []byte, amount sdk.Coins) []byte {
+	ret, err := suite.app.WasmPermissionKeeper.Execute(ctx, wasmContract, caller, msg, amount)
+	suite.Require().NoError(err)
+	return ret
+}
+func (suite *KeeperTestSuite) queryEvmContract(ctx sdk.Context, addr common.Address, calldata []byte) ([]byte, error) {
+	_, contract, err := suite.app.VMBridgeKeeper.CallEvm(ctx, common.BytesToAddress(suite.addr), &addr, big.NewInt(0), calldata)
+	return contract.Ret, err
+}
+
+func (suite *KeeperTestSuite) queryWasmContract(caller string, calldata []byte) ([]byte, error) {
+	subCtx, _ := suite.ctx.CacheContext()
+	result, err := suite.app.VMBridgeKeeper.QueryToWasm(subCtx, caller, calldata)
+	return result, err
 }

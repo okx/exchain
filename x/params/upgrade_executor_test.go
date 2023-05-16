@@ -279,33 +279,31 @@ func (suite *UpgradeInfoStoreSuite) TestCheckUpgradeVote() {
 
 func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
 	tests := []struct {
-		expectHeight          uint64
-		currentHeight         uint64
-		claimReady            bool
-		expectPanic           bool
-		expect1stExecuteError bool
-		expectHitError        bool
+		expectHeight  uint64
+		currentHeight uint64
+		claimReady    bool
+		expectError   bool
 	}{
 		{ // expect height is not zero but less than current height
-			expectHeight: 10, currentHeight: 10, claimReady: false, expectPanic: true, expect1stExecuteError: false,
+			expectHeight: 10, currentHeight: 10, claimReady: false, expectError: true,
 		},
 		{ // expect height is not zero but only greater than current height 1; and not claim ready
-			expectHeight: 21, currentHeight: 20, claimReady: false, expectPanic: true,
+			expectHeight: 21, currentHeight: 20, claimReady: false, expectError: true,
 		},
 		{ // expect height is not zero and greater than current height; but not claim ready
-			expectHeight: 32, currentHeight: 30, claimReady: false, expectPanic: true, expect1stExecuteError: false,
+			expectHeight: 32, currentHeight: 30, claimReady: false, expectError: true,
 		},
 		{ // everything's ok: expect height is not zero and greater than current height; and claim ready
-			expectHeight: 42, currentHeight: 40, claimReady: true, expectPanic: false, expect1stExecuteError: false, expectHitError: false,
+			expectHeight: 42, currentHeight: 40, claimReady: true, expectError: false,
 		},
 		{ // everything's ok: expect height is zero and claim ready
-			expectHeight: 0, currentHeight: 50, claimReady: true, expectPanic: false, expect1stExecuteError: false, expectHitError: false,
+			expectHeight: 0, currentHeight: 50, claimReady: true, expectError: false,
 		},
 		{ // everything's ok: expect height is not zero and equal to current height; and claim ready
-			expectHeight: 60, currentHeight: 60, claimReady: true, expectPanic: false, expect1stExecuteError: false, expectHitError: false,
+			expectHeight: 60, currentHeight: 60, claimReady: true, expectError: false,
 		},
 		{ // everything's ok: expect height is not zero and less than current height; and claim ready
-			expectHeight: 70, currentHeight: 72, claimReady: true, expectPanic: false, expect1stExecuteError: false, expectHitError: false,
+			expectHeight: 70, currentHeight: 72, claimReady: true, expectError: false,
 		},
 	}
 
@@ -336,17 +334,9 @@ func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
 			})
 		}
 
-		if tt.expectPanic && confirmHeight <= tt.currentHeight {
-			suite.Panics(func() { _ = handler(ctx, proposal) })
-			continue
-		}
-
 		// execute proposal
 		err := handler(ctx, proposal)
-		if tt.expect1stExecuteError {
-			suite.Error(err)
-			continue
-		}
+		suite.NoError(err)
 
 		if confirmHeight > tt.currentHeight {
 			// proposal is inserted to gov waiting queue, execute it
@@ -362,16 +352,12 @@ func (suite *UpgradeInfoStoreSuite) TestHandleUpgradeProposal() {
 			suite.Equal(expectInfo, info)
 
 			ctx := suite.Context(int64(confirmHeight))
-			if tt.expectPanic {
-				suite.Panics(func() { _ = suite.govKeeper.HitHeight(ctx, confirmHeight, suite.T()) })
-				continue
-			}
 			err = suite.govKeeper.HitHeight(ctx, confirmHeight, suite.T())
-			if tt.expectHitError {
-				suite.Error(err)
-				continue
-			}
 			suite.NoError(err)
+		}
+
+		if tt.expectError {
+			continue
 		}
 
 		// now proposal must be executed
