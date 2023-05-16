@@ -144,6 +144,59 @@ func (store *Store) Delete(key []byte) {
 }
 
 // Implements Cachetypes.KVStore.
+func (store *Store) WriteWithSnapshotWSet() types.SnapshotWSet {
+	// if parent is cachekv.Store, we can write kv more efficiently
+	if pStore, ok := store.parent.(*Store); ok {
+		return store.writeToCacheKvWithSnapShotWSet(pStore)
+	}
+
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	// We need a copy of all of the keys.
+	// Not the best, but probably not a bottleneck depending.
+	keys := make([]string, len(store.dirty))
+	index := 0
+	for key, _ := range store.dirty {
+		keys[index] = key
+		index++
+
+	}
+
+	sort.Strings(keys)
+	store.preWrite(keys)
+
+	store.StartTiming()
+
+	swset := types.NewSnapShotWSet()
+	// TODO: Consider allowing usage of Batch, which would allow the write to
+	// at least happen atomically.
+	for _, key := range keys {
+		//set prevalue
+		swset.Write[key] = types.RevertWriteChange{PrevValue: store.parent.Get([]byte(key))}
+		cacheValue := store.dirty[key]
+		switch {
+		case cacheValue.deleted:
+			store.parent.Delete([]byte(key))
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+		default:
+			store.parent.Set([]byte(key), cacheValue.value)
+		}
+	}
+
+	// Clear the cache
+	store.clearCache()
+	store.EndTiming(trace.FlushCache)
+	return swset
+}
+
+// Implements Cachetypes.KVStore.
+func (store *Store) RevertDBWithSnapshotRWSet(set types.SnapshotWSet) {
+	types.RevertSnapshotWSet(store, set)
+}
+
+// Implements Cachetypes.KVStore.
 func (store *Store) Write() {
 	// if parent is cachekv.Store, we can write kv more efficiently
 	if pStore, ok := store.parent.(*Store); ok {
@@ -231,6 +284,31 @@ func (store *Store) writeToCacheKv(parent *Store) {
 
 	// Clear the cache
 	store.clearCache()
+}
+
+// writeToCacheKv will write cached kv to the parent Store, then clear the cache.
+func (store *Store) writeToCacheKvWithSnapShotWSet(parent *Store) types.SnapshotWSet {
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
+
+	// TODO: Consider allowing usage of Batch, which would allow the write to
+	// at least happen atomically.
+	swset := types.NewSnapShotWSet()
+	for key, cacheValue := range store.dirty {
+		swset.Write[key] = types.RevertWriteChange{PrevValue: store.parent.Get([]byte(key))}
+		switch {
+		case cacheValue.deleted:
+			parent.Delete(amino.StrToBytes(key))
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+		default:
+			parent.Set(amino.StrToBytes(key), cacheValue.value)
+		}
+	}
+
+	// Clear the cache
+	store.clearCache()
+	return swset
 }
 
 func (store *Store) clearCache() {

@@ -100,7 +100,8 @@ func (h CallToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address,
 	if err != nil {
 		return err
 	}
-	return h.Keeper.CallToWasm(ctx, caller, wasmAddr, value, string(buff))
+	_, err = h.Keeper.CallToWasm(ctx, caller, wasmAddr, value, string(buff))
+	return err
 }
 
 // wasm call evm for erc20 exchange cw20,
@@ -220,6 +221,7 @@ func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.A
 		TraceTxLog:   false,
 	}
 
+	st.SetCallToCM(k.evmKeeper.GetCallToCM())
 	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
 	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
 		//TODO maybe add innertx
