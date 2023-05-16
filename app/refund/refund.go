@@ -63,8 +63,16 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 		return nil, nil
 	}
 
-	if tx.GetType() == sdk.StdTxType && ctx.GetOutOfGas() {
-		return nil, nil
+	if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+		if ctx.GetOutOfGas() {
+			ctx.GasMeter().SetGas(ctx.GasMeter().Limit())
+			currentGasMeter.SetGas(gasLimit)
+			return nil, nil
+		}
+	} else {
+		if tx.GetType() == sdk.StdTxType && ctx.GetOutOfGas() {
+			return nil, nil
+		}
 	}
 
 	feeTx, ok := tx.(ante.FeeTx)
