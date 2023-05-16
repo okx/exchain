@@ -167,7 +167,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 				tx.GetType() == sdk.EvmTxType {
 				handler.handleDeferRefund(info)
 			} else {
-				info.ctx.GasMeter().ConsumeGas(info.ctx.GasMeter().Limit()-info.ctx.GasMeter().GasConsumed(), "Refund nil")
+				info.ctx.GasMeter().SetGas(info.ctx.GasMeter().Limit())
 			}
 		} else {
 			handler.handleDeferRefund(info)
