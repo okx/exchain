@@ -54,6 +54,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 	st.Simulate = ctx.IsCheckTx()
 	st.TraceTx = ctx.IsTraceTx()
 	st.TraceTxLog = ctx.IsTraceTxLog()
+	st.SetCallToCM(k.GetCallToCM())
 
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) && ctx.IsDeliver() {
 		st.Csdb = k.EvmStateDb.WithContext(*ctx)
