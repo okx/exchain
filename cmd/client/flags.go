@@ -27,6 +27,7 @@ import (
 
 func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagFastQuery, true, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Bool(watcher.FlagFastQueryForWasm, false, "Enable the fast query mode for wasm tx")
 	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 10, "Set the threshold of fast query")
 	cmd.Flags().String(eth.FlagE2cWasmMsgHelperAddr, "", "Set the e2c wasm msg helper contract address")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
@@ -120,6 +121,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+
+	cmd.Flags().Int(app.FlagGolangMaxThreads, 0, "Maximum number of golang threads")
 
 	cmd.Flags().Int64(config.FlagCommitGapOffset, 0, "Offset to stagger ac ahead of proposal")
 	cmd.Flags().MarkHidden(config.FlagCommitGapOffset)

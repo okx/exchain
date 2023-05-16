@@ -576,7 +576,7 @@ func (suite *KeeperTestSuite) TestKeeper_CallToWasm() {
 			suite.SetupTest()
 			reset()
 			tc.malleate()
-			err := suite.keeper.CallToWasm(suite.ctx, caller, wasmContractAddr, value, calldata)
+			_, err := suite.keeper.CallToWasm(suite.ctx, caller, wasmContractAddr, value, calldata)
 			if tc.error != nil {
 				suite.Require().EqualError(err, tc.error.Error())
 			} else {
