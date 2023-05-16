@@ -151,6 +151,8 @@ type CacheMultiStore interface {
 	MultiStore
 	CacheManager
 	Write() // Writes operations to underlying KVStore
+	WriteGetMultiSnapshotWSet() MultiSnapshotWSet
+	RevertDBWithMultiSnapshotRWSet(set MultiSnapshotWSet)
 }
 
 type CacheMultiStoreResetter interface {
@@ -259,6 +261,8 @@ type CacheKVStore interface {
 	CacheManager
 	// Writes operations to underlying KVStore
 	Write()
+	WriteWithSnapshotWSet() SnapshotWSet
+	RevertDBWithSnapshotRWSet(set SnapshotWSet)
 }
 
 // Stores of MultiStore must implement CommitStore.
@@ -278,6 +282,8 @@ type CacheWrap interface {
 	CacheManager
 	// Write syncs with the underlying store.
 	Write()
+	WriteWithSnapshotWSet() SnapshotWSet
+	RevertDBWithSnapshotRWSet(set SnapshotWSet)
 
 	// CacheWrap recursively wraps again.
 	CacheWrap() CacheWrap
@@ -445,6 +451,44 @@ func ClearMsRWSet(m MsRWSet) {
 		}
 		for kk := range v.Write {
 			delete(v.Write, kk)
+		}
+	}
+}
+
+// value == nil, add new key
+// value != nil, update or delete key
+type RevertWriteChange struct {
+	PrevValue []byte
+}
+
+type SnapshotWSet struct {
+	Write map[string]RevertWriteChange
+}
+
+func NewSnapShotWSet() SnapshotWSet {
+	return SnapshotWSet{
+		Write: make(map[string]RevertWriteChange),
+	}
+}
+
+type MultiSnapshotWSet struct {
+	Root   SnapshotWSet
+	Stores map[StoreKey]SnapshotWSet
+}
+
+func NewMultiSnapshotWSet() MultiSnapshotWSet {
+	return MultiSnapshotWSet{
+		Root:   NewSnapShotWSet(),
+		Stores: make(map[StoreKey]SnapshotWSet),
+	}
+}
+
+func RevertSnapshotWSet(store KVStore, set SnapshotWSet) {
+	for k, v := range set.Write {
+		if v.PrevValue == nil {
+			store.Delete([]byte(k))
+		} else {
+			store.Set([]byte(k), v.PrevValue)
 		}
 	}
 }
