@@ -42,21 +42,35 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	return err
 }
 
-func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractAddr string, value sdk.Int, calldata string) error {
+func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractAddr string, value sdk.Int, calldata string) ([]byte, error) {
 	if value.IsNegative() {
-		return types.ErrAmountNegative
+		return nil, types.ErrAmountNegative
 	}
 
 	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), []byte(calldata), coins)
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
 	}
-	return err
+	return ret, err
+}
+
+func (k Keeper) QueryToWasm(ctx sdk.Context, wasmContractAddr string, calldata []byte) ([]byte, error) {
+	contractAddr, err := sdk.WasmAddressFromBech32(wasmContractAddr)
+	if err != nil {
+		return nil, err
+	}
+	request, err := types.GetWasmVMQueryRequest(calldata)
+	if err != nil {
+		return nil, err
+	}
+	gaslimit := k.wasmKeeper.RuntimeGasForContract(ctx)
+	queryHandler := k.wasmKeeper.NewQueryHandler(ctx, contractAddr)
+	return queryHandler.Query(*request, gaslimit)
 }
 
 // RegisterSendToEvmEncoder needs to be registered in app setup to handle custom message callbacks
