@@ -34,6 +34,7 @@ type IDynamicConfig interface {
 	GetDynamicGpMaxTxNum() int64
 	GetDynamicGpMaxGasUsed() int64
 	GetGasLimitBuffer() uint64
+	GetEnableMempoolSimGuFactor() bool
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -189,4 +190,8 @@ func (d MockDynamicConfig) GetDynamicGpMaxGasUsed() int64 {
 
 func (d MockDynamicConfig) GetGasLimitBuffer() uint64 {
 	return 0
+}
+
+func (d MockDynamicConfig) GetEnableMempoolSimGuFactor() bool {
+	return false
 }

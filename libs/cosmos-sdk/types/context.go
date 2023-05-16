@@ -58,6 +58,7 @@ type Context struct {
 
 	statedb  vm.StateDB
 	outOfGas bool
+  mempoolSimulate bool // if mempoolSimulate = true, then is mempool simulate tx
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -561,6 +562,14 @@ func (c Context) WithValue(key, value interface{}) Context {
 //	ctx.Value(key)
 func (c Context) Value(key interface{}) interface{} {
 	return c.ctx.Value(key)
+}
+
+func (c *Context) SetMempoolSimulate(v bool) {
+	c.mempoolSimulate = v
+}
+
+func (c *Context) IsMempoolSimulate() bool {
+	return c.mempoolSimulate
 }
 
 func (c *Context) SetOutOfGas(v bool) {
