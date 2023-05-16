@@ -108,5 +108,5 @@ type Subspace interface {
 }
 
 type DBAdapter interface {
-	NewStore(gasMeter sdk.GasMeter, parent sdk.KVStore, prefix []byte) sdk.KVStore
+	NewStore(ctx sdk.Context, storeKey sdk.StoreKey, prefix []byte) sdk.KVStore
 }
