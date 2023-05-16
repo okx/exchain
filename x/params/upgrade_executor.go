@@ -43,11 +43,11 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		// that probably means program's version is too low.
 		// To avoid status machine broken, we panic.
 		errMsg := fmt.Sprintf("there's a upgrade proposal named '%s' has been take effective, "+
-			"and the upgrade is incompatible, but your binary seems not ready for this upgrade. "+
-			"To avoid state machine broken, the program is panic. "+
-			"Using the latest version binary and re-run it to avoid this panic.", proposal.Name)
+			"and the upgrade is incompatible, but your binary seems not ready for this upgrade. current height: %d, confirm height %d", proposal.Name, curHeight, confirmHeight)
 		k.Logger(ctx).Error(errMsg)
-		panic(errMsg)
+		// here must return nil but not an error, if an error is returned, the proposal won't be deleted
+		// from the waiting queue in gov keeper, result in this function is called endlessly in every block end.
+		return nil
 	}
 
 	storedInfo, err := storeEffectiveUpgrade(ctx, k, proposal, effectiveHeight)
@@ -66,7 +66,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.UpgradeProposal) (uint64, sdk.Error) {
 	// confirm height is the height proposal is confirmed.
 	// confirmed is not become effective. Becoming effective will happen at
-	// the next block of confirm block. see `storeEffectiveUpgrade` and `IsUpgradeEffective`
+	// the next block of confirm block. see `storeEffectiveUpgrade` and `isUpgradeEffective`
 	confirmHeight := proposal.ExpectHeight - 1
 	if proposal.ExpectHeight == 0 {
 		// if height is not specified, this upgrade will become effective

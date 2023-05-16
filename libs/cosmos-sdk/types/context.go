@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"sync"
 	"time"
 
@@ -49,11 +50,14 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	//	txCount            uint32
+
+	wasmKvStoreForSimulate *KVStore
 	overridesBytes         []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 	watcher                *TxWatcher
 	feesplitInfo           *FeeSplitInfo
-	outOfGas               bool
-	wasmKvStoreForSimulate *KVStore
+
+	statedb  vm.StateDB
+	outOfGas bool
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -424,6 +428,14 @@ func (c *Context) GetWatcher() IWatcher {
 	return c.watcher.IWatcher
 }
 
+func (c *Context) GetEVMStateDB() vm.StateDB {
+	return c.statedb
+}
+
+func (c *Context) SetEVMStateDB(db vm.StateDB) {
+	c.statedb = db
+}
+
 //func (c *Context) SetTxCount(count uint32) *Context {
 //	c.txCount = count
 //	return c
@@ -471,6 +483,21 @@ func (c *Context) CacheContext() (cc Context, writeCache func()) {
 	cc.SetEventManager(NewEventManager())
 	writeCache = cms.Write
 	return
+}
+
+func (c *Context) CacheContextWithMultiSnapshotRWSet() (cc Context, writeCacheWithRWSet func() stypes.MultiSnapshotWSet) {
+	cms := c.MultiStore().CacheMultiStore()
+	cc = *c
+	cc.SetMultiStore(cms)
+	cc.SetEventManager(NewEventManager())
+	writeCacheWithRWSet = cms.WriteGetMultiSnapshotWSet
+	return
+}
+
+func (c *Context) RevertDBWithMultiSnapshotRWSet(set stypes.MultiSnapshotWSet) {
+	cms := c.MultiStore().CacheMultiStore()
+	cms.RevertDBWithMultiSnapshotRWSet(set)
+	cms.Write()
 }
 
 func (c Context) WithBlockTime(newTime time.Time) Context {
