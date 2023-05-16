@@ -405,11 +405,10 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	// to keep the stracktrace.
 	case sdk.ErrorOutOfGas:
 		info.outOfGas = true
-		info.ctx.GasMeter().SetGas(info.ctx.GasMeter().Limit())
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrOutOfGas, fmt.Sprintf(
 				"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
-				rType.Descriptor, info.gasWanted, info.ctx.GasMeter().GasConsumed(),
+				rType.Descriptor, info.gasWanted, info.gasWanted,
 			),
 		)
 
