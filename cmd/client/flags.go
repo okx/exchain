@@ -122,6 +122,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 
+	cmd.Flags().Int(app.FlagGolangMaxThreads, 0, "Maximum number of golang threads")
+
 	cmd.Flags().Int64(config.FlagCommitGapOffset, 0, "Offset to stagger ac ahead of proposal")
 	cmd.Flags().MarkHidden(config.FlagCommitGapOffset)
 
