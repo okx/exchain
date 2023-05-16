@@ -15,7 +15,7 @@ func (keeper *Keeper) ClaimReadyForUpgrade(name string, cb func(types.UpgradeInf
 	keeper.upgradeCache.ClaimReadyForUpgrade(name, cb)
 }
 
-func (keeper *Keeper) IsUpgradeEffective(ctx sdk.Context, name string) bool {
+func (keeper *Keeper) isUpgradeEffective(ctx sdk.Context, name string) bool {
 	_, err := keeper.GetEffectiveUpgradeInfo(ctx, name)
 	return err == nil
 }
