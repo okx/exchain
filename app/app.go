@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"github.com/okex/exchain/x/vmbridge"
@@ -217,7 +218,8 @@ var (
 		icatypes.ModuleName:         nil,
 	}
 
-	onceLog sync.Once
+	onceLog              sync.Once
+	FlagGolangMaxThreads string = "golang-max-threads"
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -611,7 +613,7 @@ func NewOKExChainApp(
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
 	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
-
+	app.EvmKeeper.SetCallToCM(vmbridge.PrecompileHooks(app.VMBridgeKeeper))
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
 		evm.NewMultiEvmHooks(
@@ -956,6 +958,10 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	err := sanity.CheckStart()
 	if err != nil {
 		return err
+	}
+
+	if maxThreads := viper.GetInt(FlagGolangMaxThreads); maxThreads != 0 {
+		debug.SetMaxThreads(maxThreads)
 	}
 
 	// set config by node mode

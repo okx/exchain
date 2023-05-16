@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -156,5 +157,81 @@ func TestIsMatchFunction(t *testing.T) {
 
 	for _, ts := range testcases {
 		abis.IsMatchFunction(ts.method, ts.sign)
+	}
+}
+
+func TestABI_GetMethodById(t *testing.T) {
+	abistr := `[{"inputs":[{"internalType":"string","name":"data","type":"string"}],"name":"invoke","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
+	abis, err := NewABI(abistr)
+	require.NoError(t, err)
+
+	testcases := []struct {
+		method  string
+		sign    []byte
+		fnCheck func(method *abi.Method, err2 error)
+	}{
+		{
+			method: "invoke normal",
+			sign: func() []byte {
+				buff, err := abis.ABI.Pack("invoke", "testdata")
+				require.NoError(t, err)
+				return buff
+			}(),
+			fnCheck: func(method *abi.Method, err2 error) {
+				require.NoError(t, err2)
+			},
+		},
+		{
+			method: "invoke sign empty",
+			sign: func() []byte {
+				return nil
+			}(),
+			fnCheck: func(method *abi.Method, err2 error) {
+				require.Error(t, err2)
+			},
+		},
+		{
+			method: "invoke sign method is not invoke",
+			sign: func() []byte {
+				buff, err := abis.ABI.Pack("invoke", "testdata")
+				require.NoError(t, err)
+				buff[0] += 0x1
+				return buff
+			}(),
+			fnCheck: func(method *abi.Method, err2 error) {
+				require.Error(t, err2)
+			},
+		},
+		{
+			method: "invoke sign data is err",
+			sign: func() []byte {
+				buff, err := abis.ABI.Pack("invoke", "testdata")
+				require.NoError(t, err)
+				length := len(buff)
+
+				buff = buff[:length-1]
+				return buff
+			}(),
+			fnCheck: func(method *abi.Method, err2 error) {
+				require.Error(t, err2)
+			},
+		},
+		{
+			method: "invoke sign data is less than 4",
+			sign: func() []byte {
+				buff, err := abis.ABI.Pack("invoke", "testdata")
+				require.NoError(t, err)
+
+				buff = buff[:3]
+				return buff
+			}(),
+			fnCheck: func(method *abi.Method, err2 error) {
+				require.Error(t, err2)
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ts.fnCheck(abis.GetMethodById(ts.sign))
 	}
 }
