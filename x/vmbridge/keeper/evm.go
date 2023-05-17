@@ -223,7 +223,9 @@ func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.A
 	}
 
 	st.SetCallToCM(k.evmKeeper.GetCallToCM())
+	addVMBridgeInnertx(ctx, k.evmKeeper, callerAddr.String(), to.String(), VMBRIDGE_START_INNERTX, value)
 	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
+	addVMBridgeInnertx(ctx, k.evmKeeper, callerAddr.String(), to.String(), VMBRIDGE_END_INNERTX, value)
 	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
 		if innertxs != nil {
 			k.evmKeeper.AddInnerTx(ethTxHash.Hex(), innertxs)
