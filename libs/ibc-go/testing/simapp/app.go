@@ -832,7 +832,9 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			if stdTx, ok := tx.(*auth.StdTx); ok && len(stdTx.Msgs) == 1 { // only support one message
 				if msg, ok := stdTx.Msgs[0].(interface{ CalFromAndToForPara() (string, string) }); ok {
 					from, to = msg.CalFromAndToForPara()
-					supportPara = true
+					if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+						supportPara = true
+					}
 				}
 			}
 		}
