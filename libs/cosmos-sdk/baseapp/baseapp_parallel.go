@@ -754,6 +754,10 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	if txSize > cap(pm.resultCh) {
 		pm.resultCh = make(chan int, txSize)
 	}
+	// clear resultCh when init a new block
+	for len(pm.resultCh) > 0 {
+		<-pm.resultCh
+	}
 
 	pm.txByteMpCosmosIndex = make(map[string]int, 0)
 	pm.nextTxInGroup = make(map[int]int)
