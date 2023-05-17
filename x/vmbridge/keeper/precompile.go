@@ -62,6 +62,7 @@ func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context,
 		result, leftGas, err = nil, 0, errors.New("methodDispatch failed: unknown method")
 	}
 	subCtx.SetGasMeter(currentGasMeter)
+	sdkCtx.EventManager().EmitEvents(subCtx.EventManager().Events())
 	if err != nil {
 		return result, leftGas, err
 	}

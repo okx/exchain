@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
@@ -231,6 +232,28 @@ func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.A
 			k.evmKeeper.AddContract(contracts)
 		}
 	}
+	attributes := make([]sdk.Attribute, 0)
+	if err != nil {
+		attribute := sdk.NewAttribute(types.AttributeResult, err.Error())
+		attributes = append(attributes, attribute)
+	} else {
+		buff, err := json.Marshal(resultData)
+		if err != nil {
+			attribute := sdk.NewAttribute(types.AttributeResult, err.Error())
+			attributes = append(attributes, attribute)
+		} else {
+			attribute := sdk.NewAttribute(types.AttributeResult, string(buff))
+			attributes = append(attributes, attribute)
+		}
+
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeWasmCallEvm,
+			attributes...,
+		),
+	)
 	if err != nil {
 		return nil, nil, err
 	}
