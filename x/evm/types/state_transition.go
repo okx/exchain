@@ -40,6 +40,7 @@ type StateTransition struct {
 	Simulate   bool // i.e CheckTx execution
 	TraceTx    bool // reexcute tx or its predesessors
 	TraceTxLog bool // trace tx for its evm logs (predesessors are set to false)
+	callToCM   vm.CallToWasmByPrecompile
 }
 
 // GasInfo returns the gas limit, gas consumed and gas refunded from the EVM transition
@@ -101,10 +102,12 @@ func (st *StateTransition) newEVM(
 		Difficulty:  big.NewInt(0), // unused. Only required in PoW context
 		GasLimit:    gasLimit,
 	}
-
+	ctx.SetEVMStateDB(st.Csdb)
 	txCtx := vm.TxContext{
-		Origin:   st.Sender,
-		GasPrice: gasPrice,
+		Origin:    st.Sender,
+		GasPrice:  gasPrice,
+		OKContext: &ctx,
+		CallToCM:  st.GetCallToCM(),
 	}
 
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
@@ -251,7 +254,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		contractAddressStr := EthAddressToString(&contractAddress)
 		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
 		gasConsumed = gasLimit - leftOverGas
-		if !csdb.GuFactor.IsNegative() {
+		if !ctx.IsMempoolSimulate() && !csdb.GuFactor.IsNegative() {
 			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 		}
 		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
@@ -291,7 +294,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
 		gasConsumed = gasLimit - leftOverGas
-		if !csdb.GuFactor.IsNegative() {
+		if !ctx.IsMempoolSimulate() && !csdb.GuFactor.IsNegative() {
 			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 		}
 		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
@@ -457,4 +460,12 @@ func integratePreimage(csdb *CommitStateDB, traceLogs []byte) ([]byte, error) {
 	}
 	traceLogsMap["preimage"] = preimageMap
 	return json.Marshal(traceLogsMap)
+}
+
+func (st *StateTransition) SetCallToCM(callToCM vm.CallToWasmByPrecompile) {
+	st.callToCM = callToCM
+}
+
+func (st StateTransition) GetCallToCM() vm.CallToWasmByPrecompile {
+	return st.callToCM
 }

@@ -116,7 +116,7 @@ func (suite *UpgradeKeeperSuite) TestUpgradeEffective() {
 		}
 
 		suite.Equal(tt.expectEffective, isUpgradeEffective(ctx, expectInfo))
-		isEffective := suite.paramsKeeper.IsUpgradeEffective(ctx, expectInfo.Name)
+		isEffective := suite.paramsKeeper.isUpgradeEffective(ctx, expectInfo.Name)
 		info, err := suite.paramsKeeper.GetEffectiveUpgradeInfo(ctx, expectInfo.Name)
 		if tt.isStore {
 			suite.Equal(tt.expectEffective, isEffective)
