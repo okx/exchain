@@ -17,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
@@ -361,6 +362,12 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				block:    block,
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
+			}
+
+			if block.Height == 20816284 {
+				index := viper.GetInt("lifeitxindex")
+				fmt.Println("@@@@@@@@@@lifei#####runAbci", index)
+				block.Txs = block.Txs[:index]
 			}
 			mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
 			switch mode {
