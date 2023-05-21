@@ -50,7 +50,7 @@ const (
 	pruneHeightsKey       = "s/pruneheights"
 	versionsKey           = "s/versions"
 	commitInfoKeyFmt      = "s/%d" // s/<version>
-	maxPruneHeightsLength = 100
+	maxPruneHeightsLength = 100000000
 )
 
 // Store is composed of many CommitStores. Name contrasts with
