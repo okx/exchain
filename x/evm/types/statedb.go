@@ -466,6 +466,7 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
+		fmt.Println("csdb SetState", "addr", addr.String(), "key", key.String(), "value", value.String())
 		so.SetState(csdb.db, key, value)
 	}
 }
@@ -812,7 +813,9 @@ func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcm
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.GetState(csdb.db, hash)
+		state := so.GetState(csdb.db, hash)
+		fmt.Println("csdb GetState", "addr", addr.String(), "key", hash.String(), "value", state.String())
+		return state
 	}
 
 	return ethcmn.Hash{}
