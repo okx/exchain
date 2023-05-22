@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	ethcmm "github.com/ethereum/go-ethereum/common"
@@ -78,6 +79,16 @@ func (msg MsgStoreCode) GetSigners() []sdk.AccAddress {
 		panic(err.Error())
 	}
 	return []sdk.AccAddress{sdk.WasmToAccAddress(senderAddr)}
+}
+
+func (msg MsgStoreCode) FnSignatureInfo() (string, int, error) {
+	codeLen := len(msg.WASMByteCode)
+	var err error
+	if codeLen <= 0 {
+		err = fmt.Errorf("wasm byte code length is 0")
+	}
+
+	return msg.Type(), codeLen, err
 }
 
 func (msg MsgInstantiateContract) Route() string {
@@ -163,6 +174,35 @@ func (msg MsgExecuteContract) GetSigners() []sdk.AccAddress {
 		panic(err.Error())
 	}
 	return []sdk.AccAddress{sdk.WasmToAccAddress(senderAddr)}
+}
+
+func (msg MsgExecuteContract) FnSignatureInfo() (string, int, error) {
+	if err := msg.Msg.ValidateBasic(); err != nil {
+		return "", 0, fmt.Errorf("failed to validate msg:%v", err)
+	}
+
+	var v interface{}
+	json.Unmarshal(msg.Msg, &v)
+	data := v.(map[string]interface{})
+	if len(data) != 1 {
+		return "", 0, fmt.Errorf("failed to check msg method:%s", string(msg.Msg.Bytes()))
+	}
+
+	method := ""
+	for k, _ := range data {
+		method = k
+		break
+	}
+
+	if len(method) <= 0 {
+		return "", 0, fmt.Errorf("msg has not method:%s", string(msg.Msg.Bytes()))
+	}
+
+	var builder strings.Builder
+	builder.WriteString(msg.Contract)
+	builder.WriteString(method)
+
+	return builder.String(), 0, nil
 }
 
 func (msg MsgMigrateContract) Route() string {
