@@ -128,7 +128,7 @@ func (so *stateObject) commitStateForProtect(ctx sdk.Context) {
 			continue
 		}
 		so.originStorage[key] = value
-
+		fmt.Println("commitStateForProtect", "addr", so.Address().String(), "key", ethcmn.BytesToHash(key.Bytes()), "value", ethcmn.BytesToAddress(value.Bytes()))
 		prefixKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 		if (value == ethcmn.Hash{}) {
 			store.Delete(prefixKey.Bytes())

@@ -2,7 +2,6 @@ package cachekv
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -275,12 +274,10 @@ func (store *Store) writeToCacheKv(parent *Store) {
 	for key, cacheValue := range store.dirty {
 		switch {
 		case cacheValue.deleted:
-			fmt.Println("writeToCacheKv", "delete", key)
 			parent.Delete(amino.StrToBytes(key))
 		case cacheValue.value == nil:
 			// Skip, it already doesn't exist in parent.
 		default:
-			fmt.Println("writeToCacheKv", "set", key, fmt.Sprintf("%x", cacheValue.value))
 			parent.Set(amino.StrToBytes(key), cacheValue.value)
 		}
 	}
