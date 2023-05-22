@@ -129,10 +129,16 @@ func runIterationFast(b *testing.B, t *iavl.MutableTree, expectedSize int) {
 	}
 }
 
-func runIterationSlow(b *testing.B, t *iavl.MutableTree, expectedSize int) {
-	for i := 0; i < b.N; i++ {
+func runIterationSlow(b *testing.B, t *iavl.MutableTree, expectedSize int, keys [][]byte) {
+	for i := 1; i <= b.N; i++ {
 		itr := iavl.NewIterator(nil, nil, false, t.ImmutableTree) // create slow iterator directly
 		iterate(b, itr, expectedSize)
+		//for _, v := range keys {
+		//	//tempKey = v
+		//	getData(b, expectedSize, v, t)
+		//	break
+		//}
+
 		itr.Close()
 	}
 }
@@ -148,7 +154,22 @@ func iterate(b *testing.B, itr db.Iterator, expectedSize int) {
 	if g, w := len(keyValuePairs), expectedSize; g != w {
 		b.Errorf("iteration count mismatch: got=%d, want=%d", g, w)
 	} else {
-		b.Logf("completed %d iterations", len(keyValuePairs))
+		//b.Logf("completed %d iterations", len(keyValuePairs))
+	}
+}
+
+func getData(b *testing.B, expectedSize int, key []byte, t *iavl.MutableTree) {
+	b.StartTimer()
+	keyValuePairs := make([][][]byte, 0, expectedSize)
+	for i := 0; i < expectedSize; i++ {
+		tempValue := t.ImmutableTree.Get(key)
+		keyValuePairs = append(keyValuePairs, [][]byte{key, tempValue})
+	}
+	b.StopTimer()
+	if g, w := len(keyValuePairs), expectedSize; g != w {
+		b.Errorf("iteration count mismatch: got=%d, want=%d", g, w)
+	} else {
+		//b.Logf("completed %d iterations", len(keyValuePairs))
 	}
 }
 
@@ -351,46 +372,46 @@ func runSuite(b *testing.B, d db.DB, initSize, blockSize, keyLen, dataLen int) {
 	fmt.Printf("Init Tree took %0.2f MB\n", used)
 
 	b.ResetTimer()
-	b.Run("query-no-in-tree-guarantee-fast", func(sub *testing.B) {
-		sub.ReportAllocs()
-		runQueriesFast(sub, t, keyLen)
-	})
-	b.Run("query-no-in-tree-guarantee-slow", func(sub *testing.B) {
-		sub.ReportAllocs()
-		runQueriesSlow(sub, t, keyLen)
-	})
-	//
-	b.Run("query-hits-fast", func(sub *testing.B) {
-		sub.ReportAllocs()
-		runKnownQueriesFast(sub, t, keys)
-	})
-	b.Run("query-hits-slow", func(sub *testing.B) {
-		sub.ReportAllocs()
-		runKnownQueriesSlow(sub, t, keys)
-	})
+	//b.Run("query-no-in-tree-guarantee-fast", func(sub *testing.B) {
+	//	sub.ReportAllocs()
+	//	runQueriesFast(sub, t, keyLen)
+	//})
+	//b.Run("query-no-in-tree-guarantee-slow", func(sub *testing.B) {
+	//	sub.ReportAllocs()
+	//	runQueriesSlow(sub, t, keyLen)
+	//})
+	////
+	//b.Run("query-hits-fast", func(sub *testing.B) {
+	//	sub.ReportAllocs()
+	//	runKnownQueriesFast(sub, t, keys)
+	//})
+	//b.Run("query-hits-slow", func(sub *testing.B) {
+	//	sub.ReportAllocs()
+	//	runKnownQueriesSlow(sub, t, keys)
+	//})
 	//
 	// Iterations for BenchmarkLevelDBLargeData timeout bencher in CI so
 	// we must skip them.
 	if b.Name() != "BenchmarkLevelDBLargeData" {
-		b.Run("iteration-fast", func(sub *testing.B) {
-			sub.ReportAllocs()
-			runIterationFast(sub, t, initSize)
-		})
+		//b.Run("iteration-fast", func(sub *testing.B) {
+		//	sub.ReportAllocs()
+		//	runIterationFast(sub, t, initSize)
+		//})
 		b.Run("iteration-slow", func(sub *testing.B) {
 			sub.ReportAllocs()
-			runIterationSlow(sub, t, initSize)
+			runIterationSlow(sub, t, initSize, keys)
 		})
 	}
 	//
 
-	b.Run("update", func(sub *testing.B) {
-		sub.ReportAllocs()
-		t = runUpdate(sub, t, dataLen, blockSize, keys)
-	})
-	b.Run("block", func(sub *testing.B) {
-		sub.ReportAllocs()
-		t = runBlock(sub, t, keyLen, dataLen, blockSize, keys)
-	})
+	//b.Run("update", func(sub *testing.B) {
+	//	sub.ReportAllocs()
+	//	t = runUpdate(sub, t, dataLen, blockSize, keys)
+	//})
+	//b.Run("block", func(sub *testing.B) {
+	//	sub.ReportAllocs()
+	//	t = runBlock(sub, t, keyLen, dataLen, blockSize, keys)
+	//})
 
 	// both of these edit size of the tree too much
 	// need to run with their own tree
@@ -405,4 +426,11 @@ func runSuite(b *testing.B, d db.DB, initSize, blockSize, keyLen, dataLen int) {
 	// 	sub.ResetTimer()
 	// 	runDelete(sub, dt, blockSize, dkeys)
 	// })
+}
+
+func BenchmarkLevelDBTest(b *testing.B) {
+	benchmarks := []benchmark{
+		{"goleveldb", 10000, 5, 16, 40},
+	}
+	runBenchmarks(b, benchmarks)
 }
