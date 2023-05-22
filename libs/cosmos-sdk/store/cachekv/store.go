@@ -146,10 +146,10 @@ func (store *Store) Delete(key []byte) {
 
 // Implements Cachetypes.KVStore.
 func (store *Store) WriteWithSnapshotWSet() types.SnapshotWSet {
-	//// if parent is cachekv.Store, we can write kv more efficiently
-	//if pStore, ok := store.parent.(*Store); ok {
-	//	return store.writeToCacheKvWithSnapShotWSet(pStore)
-	//}
+	// if parent is cachekv.Store, we can write kv more efficiently
+	if pStore, ok := store.parent.(*Store); ok {
+		return store.writeToCacheKvWithSnapShotWSet(pStore)
+	}
 
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
