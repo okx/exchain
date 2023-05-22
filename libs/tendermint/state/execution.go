@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -494,6 +495,8 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 			// Blocks may include invalid txs.
 			txRes := r.DeliverTx
 			if txRes.Code == abci.CodeTypeOK {
+				buff, _ := json.Marshal(txRes)
+				logger.Error("tx", "index", txIndex, "data", string(buff))
 				validTxs++
 			} else {
 				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
