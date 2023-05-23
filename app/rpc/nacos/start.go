@@ -54,6 +54,10 @@ func StartNacosClient(logger log.Logger, urls string, namespace string, name str
 		Metadata: map[string]string{
 			"preserved.register.source": "GO",
 			"app_registry_tag":          strconv.FormatInt(time.Now().Unix(), 10),
+			"okts.region.servfor":       "All",
+			"okts.pod.name":             "okcoin-aircraft-tradetask-7c76c6bf44-bd4zj",
+			"okts.lane.id":              "base-okex-test",
+			"okts.lane.servfor":         "forked-okx-test-ff1",
 		},
 	})
 	if err != nil {
