@@ -52,13 +52,10 @@ func TestUpgradeKeeper(t *testing.T) {
 
 func (suite *UpgradeKeeperSuite) TestReadUpgradeInfo() {
 	tests := []struct {
-		existAtCache bool
 		existAtStore bool
 	}{
-		{true, true},
-		{true, false},
-		{false, true},
-		{false, false},
+		{true},
+		{false},
 	}
 
 	ctx := suite.Context(20)
@@ -70,23 +67,16 @@ func (suite *UpgradeKeeperSuite) TestReadUpgradeInfo() {
 			EffectiveHeight: uint64(i),
 			Status:          UpgradeStatusPreparing,
 		}
-		if tt.existAtCache {
-			cache.writeUpgradeInfo(expectInfo)
-		}
 		if tt.existAtStore {
 			suite.NoError(writeUpgradeInfoToStore(ctx, expectInfo, false, suite.storeKey, suite.cdc, suite.logger))
 		}
 
 		info, err := cache.ReadUpgradeInfo(ctx, expectInfo.Name)
-		if !tt.existAtCache && !tt.existAtStore {
+		if !tt.existAtStore {
 			suite.Error(err)
 			continue
 		}
-		if tt.existAtStore {
-			info, exist := cache.readUpgradeInfo(expectInfo.Name)
-			suite.True(exist)
-			suite.Equal(expectInfo, info)
-		}
+		suite.NoError(err)
 		suite.Equal(expectInfo, info)
 	}
 }
@@ -129,10 +119,6 @@ func (suite *UpgradeKeeperSuite) TestWriteUpgradeInfo() {
 
 		info, err := cache.ReadUpgradeInfo(ctx, name)
 		suite.NoError(err)
-		suite.Equal(expectInfo2, info)
-
-		info, exist := cache.readUpgradeInfo(name)
-		suite.True(exist)
 		suite.Equal(expectInfo2, info)
 	}
 }

@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"regexp"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -18,6 +19,18 @@ func (app *BaseApp) Check(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, from ...string) (sdk.GasInfo, *sdk.Result, error) {
 	info := &runTxInfo{
 		overridesBytes: overridesBytes,
+	}
+	e := app.runtxWithInfo(info, runTxModeSimulate, txBytes, tx, height, from...)
+	return info.gInfo, info.result, e
+}
+
+func (app *BaseApp) MempoolSimulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, from ...string) (sdk.GasInfo, *sdk.Result, error) {
+	info := &runTxInfo{
+		overridesBytes:  overridesBytes,
+		mempoolSimulate: true,
+	}
+	if cfg.DynamicConfig.GetEnableMempoolSimGuFactor() {
+		info.mempoolSimulate = false // the mempoolSimulate is false is need gu factor
 	}
 	e := app.runtxWithInfo(info, runTxModeSimulate, txBytes, tx, height, from...)
 	return info.gInfo, info.result, e
