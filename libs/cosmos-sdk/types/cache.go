@@ -77,7 +77,6 @@ type Cache struct {
 }
 
 func initCacheParam() {
-	UseCache = viper.GetBool(FlagMultiCache)
 	UseCache = false
 
 	if data := viper.GetInt(MaxAccInMultiCache); data != 0 {
