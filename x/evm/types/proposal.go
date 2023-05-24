@@ -117,6 +117,10 @@ func (mp ManageContractDeploymentWhitelistProposal) ValidateBasic() sdk.Error {
 		return ErrDuplicatedAddr
 	}
 
+	if isEmptyAddr(mp.DistributorAddrs) {
+		return ErrEmptyAddr
+	}
+
 	return nil
 }
 
@@ -152,6 +156,17 @@ func isAddrDuplicated(addrs []sdk.AccAddress) bool {
 			return true
 		}
 		filter[key] = struct{}{}
+	}
+
+	return false
+}
+
+func isEmptyAddr(addrs []sdk.AccAddress) bool {
+	lenAddrs := len(addrs)
+	for i := 0; i < lenAddrs; i++ {
+		if addrs[i].Empty() {
+			return true
+		}
 	}
 
 	return false
@@ -228,6 +243,10 @@ func (mp ManageContractBlockedListProposal) ValidateBasic() sdk.Error {
 
 	if isAddrDuplicated(mp.ContractAddrs) {
 		return ErrDuplicatedAddr
+	}
+
+	if isEmptyAddr(mp.ContractAddrs) {
+		return ErrEmptyAddr
 	}
 
 	return nil

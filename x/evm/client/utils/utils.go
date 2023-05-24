@@ -1,11 +1,13 @@
 package utils
 
 import (
-	"github.com/okex/exchain/x/evm/types"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/evm/types"
+	"github.com/pkg/errors"
 )
 
 type (
@@ -75,6 +77,8 @@ func ParseManageContractDeploymentWhitelistProposalJSON(cdc *codec.Codec, propos
 		return
 	}
 
+	defer parseRecover(contents, &err)
+
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
 }
@@ -86,6 +90,8 @@ func ParseManageContractBlockedListProposalJSON(cdc *codec.Codec, proposalFilePa
 	if err != nil {
 		return
 	}
+
+	defer parseRecover(contents, &err)
 
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
@@ -99,6 +105,8 @@ func ParseManageContractMethodBlockedListProposalJSON(cdc *codec.Codec, proposal
 		return
 	}
 
+	defer parseRecover(contents, &err)
+
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
 }
@@ -110,6 +118,8 @@ func ParseManageSysContractAddressProposalJSON(cdc *codec.Codec, proposalFilePat
 	if err != nil {
 		return
 	}
+
+	defer parseRecover(contents, &err)
 
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
@@ -123,6 +133,15 @@ func ParseManageContractBytecodeProposalJSON(cdc *codec.Codec, proposalFilePath 
 		return
 	}
 
+	defer parseRecover(contents, &err)
+
 	cdc.MustUnmarshalJSON(contents, &proposal)
 	return
+}
+
+func parseRecover(contents []byte, err *error) {
+	if r := recover(); r != nil {
+		*err = errors.New(fmt.Sprintf("Please check the file:\n%s\nFailed to parse the proposal json:%s",
+			string(contents), r))
+	}
 }

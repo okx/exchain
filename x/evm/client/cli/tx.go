@@ -247,7 +247,7 @@ Where proposal.json contains:
 {
   "title":"Update system contract address",
   "description":"Will change the system contract address",
-  "contract_addresses": "0x1033796B018B2bf0Fc9CB88c0793b2F275eDB624",
+  "contract_address": "0x1033796B018B2bf0Fc9CB88c0793b2F275eDB624",
   "is_added":true,
   "deposit": [
     {
