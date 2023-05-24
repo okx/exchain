@@ -52,7 +52,7 @@ func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context,
 	currentGasMeter := subCtx.GasMeter()
 	gasMeter := sdk.NewGasMeter(remainGas)
 	subCtx.SetGasMeter(gasMeter)
-
+	addVMBridgeInnertx(subCtx, k.evmKeeper, caller.String(), to.String(), VMBRIDGE_START_INNERTX, value)
 	switch method.Name {
 	case types.PrecompileCallToWasm:
 		result, leftGas, err = callToWasm(k, subCtx, caller, to, value, input)
@@ -61,7 +61,9 @@ func methodDispatch(k *Keeper, csdb *evmtypes.CommitStateDB, sdkCtx sdk.Context,
 	default:
 		result, leftGas, err = nil, 0, errors.New("methodDispatch failed: unknown method")
 	}
+	addVMBridgeInnertx(subCtx, k.evmKeeper, caller.String(), to.String(), VMBRIDGE_END_INNERTX, value)
 	subCtx.SetGasMeter(currentGasMeter)
+	sdkCtx.EventManager().EmitEvents(subCtx.EventManager().Events())
 	if err != nil {
 		return result, leftGas, err
 	}
