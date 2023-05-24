@@ -2,9 +2,15 @@ package baseapp_test
 
 import (
 	"encoding/json"
+	"math/big"
+	"reflect"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/stretchr/testify/require"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	types3 "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
@@ -16,10 +22,6 @@ import (
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
 	types4 "github.com/okex/exchain/x/token/types"
-	"github.com/stretchr/testify/require"
-	"math/big"
-	"reflect"
-	"testing"
 )
 
 type Env struct {
