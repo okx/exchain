@@ -1442,7 +1442,11 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 		return nil, err
 	}
 	err = cdc.UnmarshalBinaryBare(res.Value, &simuRes)
-	fmt.Println("hash", hex.EncodeToString(tx.Hash(mem.Height())), "log:", simuRes.Result.Log)
+	var log string
+	if simuRes.Result != nil {
+		log = simuRes.Result.Log
+	}
+	fmt.Println("hash", hex.EncodeToString(tx.Hash(mem.Height())), "log:", log, "gasWanted", simuRes.GasWanted, "gasUsed", simuRes.GasUsed)
 	return &simuRes, err
 }
 
