@@ -2,6 +2,7 @@ package keeper
 
 import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -14,6 +15,9 @@ type EVMKeeper interface {
 	GenerateCSDBParams() evmtypes.CommitStateDBParams
 	GetParams(ctx sdk.Context) evmtypes.Params
 	GetCallToCM() vm.CallToWasmByPrecompile
+	GetBlockHash() ethcmn.Hash
+	AddInnerTx(...interface{})
+	AddContract(...interface{})
 }
 
 type WASMKeeper interface {

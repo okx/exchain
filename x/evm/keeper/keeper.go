@@ -520,3 +520,7 @@ func (k *Keeper) SetCallToCM(callToCM vm.CallToWasmByPrecompile) {
 func (k *Keeper) GetCallToCM() vm.CallToWasmByPrecompile {
 	return k.callToCM
 }
+
+func (k *Keeper) GetBlockHash() ethcmn.Hash {
+	return k.Bhash
+}
