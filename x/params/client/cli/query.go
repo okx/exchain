@@ -75,7 +75,7 @@ $ exchaincli query params gasconfig
 
 			var params types.GasConfig
 			cdc.MustUnmarshalJSON(bz, &params)
-			return cliCtx.PrintOutput(params)
+			return cliCtx.PrintOutput(params.GasConfig)
 		},
 	}
 }

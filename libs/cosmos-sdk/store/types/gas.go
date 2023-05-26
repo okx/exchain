@@ -189,13 +189,13 @@ func (g *infiniteGasMeter) IsOutOfGas() bool {
 
 // GasConfig defines gas cost for each operation on KVStores
 type GasConfig struct {
-	HasCost          Gas
-	DeleteCost       Gas
-	ReadCostFlat     Gas
-	ReadCostPerByte  Gas
-	WriteCostFlat    Gas
-	WriteCostPerByte Gas
-	IterNextCostFlat Gas
+	HasCost          Gas `json:"hasCost"`
+	DeleteCost       Gas `json:"deleteCost"`
+	ReadCostFlat     Gas `json:"readCostFlat"`
+	ReadCostPerByte  Gas `json:"readCostPerByte"`
+	WriteCostFlat    Gas `json:"writeCostFlat"`
+	WriteCostPerByte Gas `json:"writeCostPerByte"`
+	IterNextCostFlat Gas `json:"iterNextCostFlat"`
 }
 
 // KVGasConfig returns a default gas config for KVStores.
@@ -212,10 +212,10 @@ func TransientGasConfig() GasConfig {
 func UpdateGlobalGasConfig(gc *GasConfig) {
 	mut.Lock()
 	defer mut.Unlock()
-	gGasConfig = CheckGasConfig(gc)
+	gGasConfig = gc
 }
 
-func CheckGasConfig(gc *GasConfig) *GasConfig {
+func CheckGasConfig(gc *GasConfig) {
 	if gc.HasCost == 0 {
 		gc.HasCost = defaultHasCost
 	}
@@ -237,7 +237,6 @@ func CheckGasConfig(gc *GasConfig) *GasConfig {
 	if gc.IterNextCostFlat == 0 {
 		gc.IterNextCostFlat = defaultIterNextCostFlat
 	}
-	return gc
 }
 
 func GetGlobalGasConfig() GasConfig {

@@ -95,7 +95,7 @@ killbyname() {
 init() {
   killbyname ${BIN_NAME}
 
-  (cd ${OKCHAIN_TOP} && make install VenusHeight=1)
+  (cd /Volumes/E/project/github.com/okex/exchain && make install Venus1Height=1 Venus2Height=1 EarthHeight=1 Venus3Height=1)
 
   rm -rf cache
 

@@ -14,13 +14,7 @@ const (
 
 // GasConfig is the struct of the parameters in this module
 type GasConfig struct {
-	HasCost          uint64 `json:"hasCost"`
-	DeleteCost       uint64 `json:"deleteCost"`
-	ReadCostFlat     uint64 `json:"readCostFlat"`
-	ReadCostPerByte  uint64 `json:"readCostPerByte"`
-	WriteCostFlat    uint64 `json:"writeCostFlat"`
-	WriteCostPerByte uint64 `json:"writeCostPerByte"`
-	IterNextCostFlat uint64 `json:"iterNextCostFlat"`
+	stypes.GasConfig
 }
 
 func (p GasConfig) String() string {
@@ -47,17 +41,5 @@ func (p *GasConfig) ParamSetPairs() subspace.ParamSetPairs {
 		{[]byte(stypes.GasWriteCostFlatDesc), &p.WriteCostFlat, common.ValidateUint64Positive("gas write cost flat")},
 		{[]byte(stypes.GasWritePerByteDesc), &p.WriteCostPerByte, common.ValidateUint64Positive("gas write cost per byte")},
 		{[]byte(stypes.GasIterNextCostFlatDesc), &p.IterNextCostFlat, common.ValidateUint64Positive("gas iter next cost flat")},
-	}
-}
-
-func GasConfigFmt(gc *GasConfig) *stypes.GasConfig {
-	return &stypes.GasConfig{
-		HasCost:          gc.HasCost,
-		DeleteCost:       gc.DeleteCost,
-		ReadCostFlat:     gc.ReadCostFlat,
-		ReadCostPerByte:  gc.ReadCostPerByte,
-		WriteCostFlat:    gc.WriteCostFlat,
-		WriteCostPerByte: gc.WriteCostPerByte,
-		IterNextCostFlat: gc.IterNextCostFlat,
 	}
 }

@@ -75,13 +75,13 @@ func (keeper Keeper) GetParams(ctx sdk.Context) types.Params {
 
 func (keeper Keeper) GetGasConfig(ctx sdk.Context) *stypes.GasConfig {
 	params := keeper.getGasConfig(ctx)
-	return types.GasConfigFmt(&params)
+	return &params.GasConfig
 }
 
 func (keeper Keeper) getGasConfig(ctx sdk.Context) (params types.GasConfig) {
 	for _, pair := range params.ParamSetPairs() {
 		keeper.paramSpace.GetIfExists(ctx, pair.Key, pair.Value)
 	}
-	//CheckGasConfig
+	stypes.CheckGasConfig(&params.GasConfig)
 	return
 }
