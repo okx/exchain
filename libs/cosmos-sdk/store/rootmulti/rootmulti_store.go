@@ -50,7 +50,7 @@ const (
 	pruneHeightsKey       = "s/pruneheights"
 	versionsKey           = "s/versions"
 	commitInfoKeyFmt      = "s/%d" // s/<version>
-	maxPruneHeightsLength = 100000000
+	maxPruneHeightsLength = 100
 )
 
 // Store is composed of many CommitStores. Name contrasts with
@@ -468,7 +468,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if len(rs.pruneHeights) > maxPruneHeightsLength {
 		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, "+
 			"need to prune them with command "+
-			"<exchaind data prune-compact all --home your_exchaind_home_directory> before running exchaind",
+			"<exchaind data prune-compact clear-prune-heights --home your_exchaind_home_directory> before running exchaind",
 			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
 	return nil
@@ -641,7 +641,9 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 			rs.pruneStores()
 		}
 
-		rs.versions = append(rs.versions, version)
+		if len(rs.versions) == 0 || version > rs.versions[len(rs.versions)-1] {
+			rs.versions = append(rs.versions, version)
+		}
 	}
 	persist.GetStatistics().Accumulate(trace.CommitStores, tsCommitStores)
 
