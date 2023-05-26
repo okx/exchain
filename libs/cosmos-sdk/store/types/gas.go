@@ -244,3 +244,15 @@ func GetGlobalGasConfig() GasConfig {
 	defer mut.RUnlock()
 	return *gGasConfig
 }
+
+func GetDefaultGasConfig() *GasConfig {
+	return &GasConfig{
+		HasCost:          defaultHasCost,
+		DeleteCost:       defaultDeleteCost,
+		ReadCostFlat:     defaultReadCostFlat,
+		ReadCostPerByte:  defaultReadCostPerByte,
+		WriteCostFlat:    defaultWriteCostFlat,
+		WriteCostPerByte: defaultWriteCostPerByte,
+		IterNextCostFlat: defaultIterNextCostFlat,
+	}
+}
