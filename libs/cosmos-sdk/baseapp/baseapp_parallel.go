@@ -137,6 +137,11 @@ func (app *BaseApp) calGroup() {
 			app.parallelTxManage.putResult(index, &executeResult{paraMsg: &sdk.ParaMsg{}, msIsNil: true})
 		}
 
+		if !tx.isEvm && tx.supportPara {
+			// means wasm tx
+			para.haveCosmosTxInBlock = true
+		}
+
 		if !tx.isEvm {
 			para.txByteMpCosmosIndex[string(para.txs[index])] = para.cosmosTxIndexInBlock
 			para.cosmosTxIndexInBlock++
