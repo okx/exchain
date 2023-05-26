@@ -2,6 +2,7 @@ package types
 
 import (
 	"math"
+	"sync"
 )
 
 // Gas consumption descriptors.
@@ -14,6 +15,27 @@ const (
 	GasReadCostFlatDesc     = "ReadFlat"
 	GasHasDesc              = "Has"
 	GasDeleteDesc           = "Delete"
+
+	defaultHasCost          = 1000
+	defaultDeleteCost       = 1000
+	defaultReadCostFlat     = 1000
+	defaultReadCostPerByte  = 3
+	defaultWriteCostFlat    = 2000
+	defaultWriteCostPerByte = 30
+	defaultIterNextCostFlat = 30
+)
+
+var (
+	gGasConfig = &GasConfig{
+		HasCost:          defaultHasCost,
+		DeleteCost:       defaultDeleteCost,
+		ReadCostFlat:     defaultReadCostFlat,
+		ReadCostPerByte:  defaultReadCostPerByte,
+		WriteCostFlat:    defaultWriteCostFlat,
+		WriteCostPerByte: defaultWriteCostPerByte,
+		IterNextCostFlat: defaultIterNextCostFlat,
+	}
+	mut = &sync.RWMutex{}
 )
 
 // Gas measured by the SDK
@@ -178,19 +200,48 @@ type GasConfig struct {
 
 // KVGasConfig returns a default gas config for KVStores.
 func KVGasConfig() GasConfig {
-	return GasConfig{
-		HasCost:          1000,
-		DeleteCost:       1000,
-		ReadCostFlat:     1000,
-		ReadCostPerByte:  3,
-		WriteCostFlat:    2000,
-		WriteCostPerByte: 30,
-		IterNextCostFlat: 30,
-	}
+	return GetGlobalGasConfig()
 }
 
 // TransientGasConfig returns a default gas config for TransientStores.
 func TransientGasConfig() GasConfig {
 	// TODO: define gasconfig for transient stores
 	return KVGasConfig()
+}
+
+func UpdateGlobalGasConfig(gc *GasConfig) {
+	mut.Lock()
+	defer mut.Unlock()
+	gGasConfig = CheckGasConfig(gc)
+}
+
+func CheckGasConfig(gc *GasConfig) *GasConfig {
+	if gc.HasCost == 0 {
+		gc.HasCost = defaultHasCost
+	}
+	if gc.DeleteCost == 0 {
+		gc.DeleteCost = defaultDeleteCost
+	}
+	if gc.ReadCostFlat == 0 {
+		gc.ReadCostFlat = defaultReadCostFlat
+	}
+	if gc.ReadCostPerByte == 0 {
+		gc.ReadCostPerByte = defaultReadCostPerByte
+	}
+	if gc.WriteCostFlat == 0 {
+		gc.WriteCostFlat = defaultWriteCostFlat
+	}
+	if gc.WriteCostPerByte == 0 {
+		gc.WriteCostPerByte = defaultWriteCostPerByte
+	}
+	if gc.IterNextCostFlat == 0 {
+		gc.IterNextCostFlat = defaultIterNextCostFlat
+	}
+	return gc
+}
+
+func GetGlobalGasConfig() GasConfig {
+	mut.RLock()
+	defer mut.RUnlock()
+	return *gGasConfig
 }

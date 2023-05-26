@@ -21,7 +21,6 @@ func ParamKeyTable() sdkparams.KeyTable {
 	kt.RegisterParamSet(&Params{})
 	kt.RegisterParamSet(&GasConfig{})
 	return kt
-	//return sdkparams.NewKeyTable().RegisterParamSet(&Params{})
 }
 
 // Params is the struct of the parameters in this module

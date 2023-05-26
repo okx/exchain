@@ -229,3 +229,10 @@ func (app *BaseApp) SetUpdateCMTxNonceHandler(handler sdk.UpdateCMTxNonceHandler
 	}
 	app.updateCMTxNonceHandler = handler
 }
+
+func (app *BaseApp) SetGetGasConfigHandler(handler sdk.GetGasConfigHandler) {
+	if app.sealed {
+		panic("SetGetGasConfigHandler() on sealed BaseApp")
+	}
+	app.getGasConfigHandler = handler
+}

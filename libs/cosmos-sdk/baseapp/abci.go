@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"os"
 	"sort"
 	"strconv"
@@ -156,6 +157,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewGasMeter(maxGas)
 	} else {
 		gasMeter = sdk.NewInfiniteGasMeter()
+	}
+
+	if app.getGasConfigHandler != nil {
+		stypes.UpdateGlobalGasConfig(app.getGasConfigHandler(app.deliverState.ctx))
 	}
 
 	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
