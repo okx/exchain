@@ -106,3 +106,9 @@ func (d LimitSimulationGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 	}
 	return next(ctx, tx, simulate)
 }
+
+func UpdateTxCount(ctx sdk.Context, storeKey sdk.StoreKey, txCount int) {
+	store := ctx.KVStore(storeKey)
+	currentHeight := ctx.BlockHeight()
+	store.Set(types.TXCounterPrefix, encodeHeightCounter(currentHeight, uint32(txCount+1)))
+}

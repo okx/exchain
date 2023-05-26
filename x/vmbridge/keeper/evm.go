@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
@@ -220,13 +221,42 @@ func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.A
 		TraceTx:      false,
 		TraceTxLog:   false,
 	}
+	st.Csdb.Prepare(ethTxHash, k.evmKeeper.GetBlockHash(), 0)
 
 	st.SetCallToCM(k.evmKeeper.GetCallToCM())
-	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
+	addVMBridgeInnertx(ctx, k.evmKeeper, callerAddr.String(), to, VMBRIDGE_START_INNERTX, value)
+	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
+	addVMBridgeInnertx(ctx, k.evmKeeper, callerAddr.String(), to, VMBRIDGE_END_INNERTX, value)
 	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
-		//TODO maybe add innertx
-		//k.addEVMInnerTx(ethTxHash.Hex(), innertxs, contracts)
+		if innertxs != nil {
+			k.evmKeeper.AddInnerTx(ethTxHash.Hex(), innertxs)
+		}
+		if contracts != nil {
+			k.evmKeeper.AddContract(contracts)
+		}
 	}
+	attributes := make([]sdk.Attribute, 0)
+	if err != nil {
+		attribute := sdk.NewAttribute(types.AttributeResult, err.Error())
+		attributes = append(attributes, attribute)
+	} else {
+		buff, err := json.Marshal(resultData)
+		if err != nil {
+			attribute := sdk.NewAttribute(types.AttributeResult, err.Error())
+			attributes = append(attributes, attribute)
+		} else {
+			attribute := sdk.NewAttribute(types.AttributeResult, string(buff))
+			attributes = append(attributes, attribute)
+		}
+
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeWasmCallEvm,
+			attributes...,
+		),
+	)
 	if err != nil {
 		return nil, nil, err
 	}

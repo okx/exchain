@@ -223,7 +223,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, senderStr, "", "", "", st.Amount, nil)
+	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, senderStr, "", "", "", st.Amount, nil, st.Payload)
 
 	// create contract or execute call
 	switch contractCreation {
