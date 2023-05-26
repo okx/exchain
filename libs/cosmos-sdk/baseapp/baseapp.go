@@ -50,7 +50,7 @@ const (
 	LatestSimulateTxHeight = 0
 
 	// SimulationGasLimit gas limit of Simulation, limit only stdTx, especially wasm stdTx
-	SimulationGasLimit = 50000000
+	SimulationGasLimit = 8000000000
 )
 
 var (

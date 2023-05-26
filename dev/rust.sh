@@ -1,6 +1,6 @@
 set -x
 
-cd /Users/oker/workspace/github/wasm-native/wasm-native-code/wasmy-counter/
+cd /Users/oker/workspace/github/wasm-native/wasm-native-code/keccak-test/
 rm -rf depend/*
 cp -rf /Users/oker/workspace/github/cosmwasm/packages/* depend/
 

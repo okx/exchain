@@ -437,7 +437,7 @@ func TestWriteLatestMsg(t *testing.T) {
 		EnableCall:                        false,
 		EnableContractDeploymentWhitelist: false,
 		EnableContractBlockedList:         false,
-		MaxGasLimitPerTx:                  30000000,
+		MaxGasLimitPerTx:                  8000000000,
 	}
 	err = ParamsDeepEqual(expectedParams, p)
 	require.NoError(t, err)

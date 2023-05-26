@@ -28,7 +28,7 @@ const (
 	Query   = TestType("query")
 
 	GasPrice int64  = 1000000000 // 1 gwei
-	GasLimit uint64 = 30000000
+	GasLimit uint64 = 8000000000
 )
 
 var (

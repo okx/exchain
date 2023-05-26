@@ -3,6 +3,7 @@ package keeper
 import (
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -33,8 +34,13 @@ func humanAddress(canon []byte) (string, uint64, error) {
 }
 
 func canonicalAddress(human string) ([]byte, uint64, error) {
-	bz, err := sdk.WasmAddressFromBech32(human)
-	return bz, costCanonical, err
+	if human == "nil" {
+		return []byte{0}, 0, nil
+	}
+
+	digestHash := crypto.Keccak256([]byte(human))
+
+	return digestHash, 0, nil
 }
 
 var cosmwasmAPI = wasmvm.GoAPI{

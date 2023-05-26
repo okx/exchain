@@ -16,7 +16,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-const maxGasLimitPerTx = 30000000
+const maxGasLimitPerTx = 8000000000
 
 var (
 	callAddr                  = "0x2B2641734D81a6B93C9aE1Ee6290258FB6666921"

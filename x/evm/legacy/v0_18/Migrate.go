@@ -17,7 +17,7 @@ func Migrate(oldGenState v0_16.GenesisState) GenesisState {
 		ExtraEIPs:                         oldGenState.Params.ExtraEIPs,
 		EnableContractDeploymentWhitelist: true,
 		EnableContractBlockedList:         true,
-		MaxGasLimitPerTx:                  30000000,
+		MaxGasLimitPerTx:                  8000000000,
 	}
 
 	return GenesisState{
