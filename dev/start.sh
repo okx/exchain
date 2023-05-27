@@ -21,7 +21,7 @@ killbyname() {
 
 
 run() {
-    LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info
+    LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info,pgu:info
 #--mempool.enable_delete_min_gp_tx false \
 #    exchaind start --pruning=nothing --rpc.unsafe \
     nohup exchaind start --rpc.unsafe \
@@ -29,11 +29,13 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --dynamic-gp-mode=2 \
-      --consensus.timeout_commit 2000ms \
+      --consensus.timeout_commit 3800ms \
+      --config.enable-dynamic=true \
+      --config.apollo="http://35.74.21.211:8080|okbchain|okbclocal" \
       --enable-preruntx=1 \
       --iavl-enable-async-commit \
       --enable-gid \
-      --fast-query=true \
+      --fast-query=false \
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
       --commit-gap-height 3 \
