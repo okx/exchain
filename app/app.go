@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"github.com/okex/exchain/x/vmbridge"
@@ -104,6 +105,7 @@ import (
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	paramstypes "github.com/okex/exchain/x/params/types"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
@@ -216,7 +218,8 @@ var (
 		icatypes.ModuleName:         nil,
 	}
 
-	onceLog sync.Once
+	onceLog              sync.Once
+	FlagGolangMaxThreads string = "golang-max-threads"
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -610,7 +613,7 @@ func NewOKExChainApp(
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
 	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
-
+	app.EvmKeeper.SetCallToCM(vmbridge.PrecompileHooks(app.VMBridgeKeeper))
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
 		evm.NewMultiEvmHooks(
@@ -753,6 +756,7 @@ func NewOKExChainApp(
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
+	app.SetUpdateWasmTxCount(fixCosmosTxCountInWasmForParallelTx(app.WasmHandler.TXCounterStoreKey))
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
@@ -772,11 +776,7 @@ func NewOKExChainApp(
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
-
-		if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
-			tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
-		}
-
+		app.InitUpgrade(ctx)
 		app.WasmKeeper.UpdateGasRegister(ctx)
 	}
 
@@ -791,6 +791,17 @@ func NewOKExChainApp(
 	trace.EnableAnalyzer(enableAnalyzer)
 
 	return app
+}
+
+func (app *OKExChainApp) InitUpgrade(ctx sdk.Context) {
+	// Claim before ApplyEffectiveUpgrade
+	app.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS6_NAME, func(info paramstypes.UpgradeInfo) {
+		tmtypes.InitMilestoneVenus6Height(int64(info.EffectiveHeight))
+	})
+
+	if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
+		tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
+	}
 }
 
 func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
@@ -948,6 +959,10 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	err := sanity.CheckStart()
 	if err != nil {
 		return err
+	}
+
+	if maxThreads := viper.GetInt(FlagGolangMaxThreads); maxThreads != 0 {
+		debug.SetMaxThreads(maxThreads)
 	}
 
 	// set config by node mode

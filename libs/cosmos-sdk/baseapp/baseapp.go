@@ -48,6 +48,9 @@ const (
 	// LatestSimulateTxHeight is the height to simulate tx based on the state of latest block height
 	// only for runTxModeSimulate
 	LatestSimulateTxHeight = 0
+
+	// SimulationGasLimit gas limit of Simulation, limit only stdTx, especially wasm stdTx
+	SimulationGasLimit = 50000000
 )
 
 var (
@@ -149,6 +152,7 @@ type BaseApp struct { // nolint: maligned
 
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
+	updateCosmosTxCount          sdk.UpdateCosmosTxCount
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
@@ -694,6 +698,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx.SetParaMsg(&sdk.ParaMsg{
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+			CosmosIndexInBlock:  app.parallelTxManage.txByteMpCosmosIndex[string(txBytes)],
 		})
 		ctx.SetTxBytes(txBytes)
 		ctx.ResetWatcher()

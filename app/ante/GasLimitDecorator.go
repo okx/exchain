@@ -13,6 +13,7 @@ type EVMKeeper interface {
 	innertx.InnerTxKeeper
 	GetParams(ctx sdk.Context) evmtypes.Params
 	IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool
+	IsMatchSysContractAddress(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
 // NewWasmGasLimitDecorator creates a new WasmGasLimitDecorator.

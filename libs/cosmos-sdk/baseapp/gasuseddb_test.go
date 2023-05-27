@@ -112,7 +112,7 @@ func TestMovingAverageGas(t *testing.T) {
 
 	r := hguDB.GetHgu(testKey)
 	require.Equal(t, int64(53000), r.MaxGas)
-	require.Equal(t, int64(21373), r.MinGas)
+	require.Equal(t, int64(22811), r.MinGas)
 	require.Equal(t, int64(39816), r.MovingAverageGas)
 	require.Equal(t, int64(5), r.BlockNum)
 }

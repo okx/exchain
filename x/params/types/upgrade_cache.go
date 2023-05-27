@@ -12,7 +12,6 @@ import (
 
 var (
 	upgradeInfoPreifx = []byte("upgrade")
-	readyPrefix       = []byte("readyUpgrade")
 )
 
 type UpgradeCache struct {
@@ -20,10 +19,8 @@ type UpgradeCache struct {
 	logger   log.Logger
 	cdc      *codec.Codec
 
-	readyLock        sync.Mutex
-	upgradeReadyMap  map[string][]func(UpgradeInfo)
-	infoLock         sync.Mutex
-	upgradeInfoCache map[string]UpgradeInfo
+	readyLock       sync.Mutex
+	upgradeReadyMap map[string][]func(UpgradeInfo)
 }
 
 func NewUpgreadeCache(storeKey *sdk.KVStoreKey, logger log.Logger, cdc *codec.Codec) *UpgradeCache {
@@ -32,26 +29,12 @@ func NewUpgreadeCache(storeKey *sdk.KVStoreKey, logger log.Logger, cdc *codec.Co
 		logger:   logger,
 		cdc:      cdc,
 
-		upgradeReadyMap:  make(map[string][]func(UpgradeInfo)),
-		upgradeInfoCache: make(map[string]UpgradeInfo),
+		upgradeReadyMap: make(map[string][]func(UpgradeInfo)),
 	}
 }
 
 func (uc *UpgradeCache) ReadUpgradeInfo(ctx sdk.Context, name string) (UpgradeInfo, error) {
-	if ctx.UseParamCache() {
-		info, exist := uc.readUpgradeInfo(name)
-		if exist {
-			return info, nil
-		}
-	}
-
-	info, err := readUpgradeInfoFromStore(ctx, name, uc.storeKey, uc.cdc)
-	if err != nil {
-		return info, err
-	}
-
-	uc.writeUpgradeInfo(info)
-	return info, nil
+	return readUpgradeInfoFromStore(ctx, name, uc.storeKey, uc.cdc)
 }
 
 func (uc *UpgradeCache) ClaimReadyForUpgrade(name string, cb func(UpgradeInfo)) {
@@ -63,14 +46,7 @@ func (uc *UpgradeCache) QueryReadyForUpgrade(name string) ([]func(UpgradeInfo), 
 }
 
 func (uc *UpgradeCache) WriteUpgradeInfo(ctx sdk.Context, info UpgradeInfo, forceCover bool) sdk.Error {
-	if err := writeUpgradeInfoToStore(ctx, info, forceCover, uc.storeKey, uc.cdc, uc.logger); err != nil {
-		return err
-	}
-
-	// store is updated, remove the info from cache so
-	// makeing ReadUpgradeInfo to re-read from store.
-	uc.removeUpgradeInfo(info.Name)
-	return nil
+	return writeUpgradeInfoToStore(ctx, info, forceCover, uc.storeKey, uc.cdc, uc.logger)
 }
 
 func (uc *UpgradeCache) IsUpgradeExist(ctx sdk.Context, name string) bool {
@@ -95,28 +71,6 @@ func (uc *UpgradeCache) IterateAllUpgradeInfo(ctx sdk.Context, cb func(info Upgr
 	}
 
 	return nil
-}
-
-func (uc *UpgradeCache) readUpgradeInfo(name string) (UpgradeInfo, bool) {
-	uc.infoLock.Lock()
-	defer uc.infoLock.Unlock()
-
-	info, ok := uc.upgradeInfoCache[name]
-	return info, ok
-}
-
-func (uc *UpgradeCache) removeUpgradeInfo(name string) {
-	uc.infoLock.Lock()
-	defer uc.infoLock.Unlock()
-
-	delete(uc.upgradeInfoCache, name)
-}
-
-func (uc *UpgradeCache) writeUpgradeInfo(info UpgradeInfo) {
-	uc.infoLock.Lock()
-	defer uc.infoLock.Unlock()
-
-	uc.upgradeInfoCache[info.Name] = info
 }
 
 func (uc *UpgradeCache) readClaim(name string) ([]func(UpgradeInfo), bool) {
@@ -170,19 +124,4 @@ func writeUpgradeInfoToStore(ctx sdk.Context, info UpgradeInfo, forceCover bool,
 
 func getUpgradeStore(ctx sdk.Context, skey *sdk.KVStoreKey) sdk.KVStore {
 	return prefix.NewStore(ctx.KVStore(skey), upgradeInfoPreifx)
-}
-
-func readReadyFromStore(ctx sdk.Context, name string, skey *sdk.KVStoreKey) ([]byte, bool) {
-	store := getReadyStore(ctx, skey)
-	data := store.Get([]byte(name))
-	return data, len(data) != 0
-}
-
-func writeReadyToStore(ctx sdk.Context, name string, skey *sdk.KVStoreKey) {
-	store := getReadyStore(ctx, skey)
-	store.Set([]byte(name), []byte(name))
-}
-
-func getReadyStore(ctx sdk.Context, skey *sdk.KVStoreKey) sdk.KVStore {
-	return prefix.NewStore(ctx.KVStore(skey), readyPrefix)
 }

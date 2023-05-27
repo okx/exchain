@@ -103,6 +103,18 @@ type CListMempool struct {
 	rmPendingTxChan chan types.EventDataRmPendingTx
 
 	gpo *Oracle
+
+	info pguInfo
+}
+
+type pguInfo struct {
+	txCount int64
+	gasUsed int64
+}
+
+func (p *pguInfo) reset() {
+	p.txCount = 0
+	p.gasUsed = 0
 }
 
 var _ Mempool = &CListMempool{}
@@ -341,6 +353,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	defer mem.updateMtx.RUnlock()
 
 	var err error
+
 	if mem.preCheck != nil {
 		if err = mem.preCheck(tx); err != nil {
 			return ErrPreCheck{err}
@@ -851,8 +864,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
-		trace.GetElapsedInfo().AddInfo(trace.SimTx, fmt.Sprintf("%d:%d", mem.Height()+1, simCount))
-		trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, fmt.Sprintf("%d:%d", mem.Height()+1, simGas))
+		mem.info.txCount = simCount
+		mem.info.gasUsed = simGas
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
@@ -983,6 +996,9 @@ func (mem *CListMempool) Update(
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
 	}
+	trace.GetElapsedInfo().AddInfo(trace.SimTx, fmt.Sprintf("%d", mem.info.txCount))
+	trace.GetElapsedInfo().AddInfo(trace.SimGasUsed, fmt.Sprintf("%d", mem.info.gasUsed))
+	mem.info.reset()
 
 	// Set height
 	atomic.StoreInt64(&mem.height, height)
@@ -1450,11 +1466,8 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 		mem.logger.Error("simulateTx", "error", err, "txHash", memTx.tx.Hash(mem.Height()))
 		return
 	}
-
+	atomic.StoreInt64(&memTx.gasWanted, gas)
 	atomic.AddUint32(&memTx.isSim, 1)
-	if gas < atomic.LoadInt64(&memTx.gasWanted) {
-		atomic.StoreInt64(&memTx.gasWanted, gas)
-	}
 }
 
 func (mem *CListMempool) deleteMinGPTxOnlyFull() {

@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -22,7 +23,12 @@ func (sud SetUpContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 	// all transactions must implement GasTx
 	gasTx := tx
 
-	SetGasMeter(simulate, &ctx, gasTx.GetGas())
+	if simulate {
+		ctx.SetGasMeter(sdk.NewGasMeter(baseapp.SimulationGasLimit))
+	} else {
+		SetGasMeter(simulate, &ctx, gasTx.GetGas())
+	}
+
 	newCtx = ctx
 
 	// Decorator will catch an OutOfGasPanic caused in the next antehandler
