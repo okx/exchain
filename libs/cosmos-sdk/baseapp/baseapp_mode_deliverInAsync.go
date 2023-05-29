@@ -14,14 +14,13 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 		return
 	}
 	var gasRefundCtx sdk.Context
-	gasRefundCtx.SetOutOfGas(info.outOfGas)
 	gasRefundCtx = info.runMsgCtx
 	if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg
 		info.msCache = app.parallelTxManage.chainMultiStores.GetStoreWithParent(info.msCacheAnte)
 		gasRefundCtx = info.ctx
 		gasRefundCtx.SetMultiStore(info.msCache)
 	}
-
+	gasRefundCtx.SetOutOfGas(info.outOfGas)
 	refundGas, err := app.GasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
 		panic(err)

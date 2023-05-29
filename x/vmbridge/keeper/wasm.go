@@ -36,9 +36,18 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	}
 
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), input, sdk.Coins{})
+	var attribute sdk.Attribute
 	if err != nil {
-		k.Logger().Error("wasm return", string(ret))
+		attribute = sdk.NewAttribute(types.AttributeResult, err.Error())
+	} else {
+		attribute = sdk.NewAttribute(types.AttributeResult, string(ret))
 	}
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeEvmSendWasm,
+			attribute,
+		),
+	)
 	return err
 }
 
@@ -53,9 +62,18 @@ func (k Keeper) CallToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	}
 	coins := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(value.BigInt(), sdk.Precision)))
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, sdk.AccToAWasmddress(caller), []byte(calldata), coins)
+	var attribute sdk.Attribute
 	if err != nil {
-		k.Logger().Error("wasm return", string(ret))
+		attribute = sdk.NewAttribute(types.AttributeResult, err.Error())
+	} else {
+		attribute = sdk.NewAttribute(types.AttributeResult, string(ret))
 	}
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeEvmCallWasm,
+			attribute,
+		),
+	)
 	return ret, err
 }
 

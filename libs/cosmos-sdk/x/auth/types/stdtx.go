@@ -268,8 +268,33 @@ func (tx *StdTx) GetGasPrice() *big.Int {
 	return tx.Fee.GasPrices()[0].Amount.BigInt()
 }
 
+type WasmMsgChecker interface {
+	FnSignatureInfo() (string, int, error)
+}
+
 func (tx *StdTx) GetTxFnSignatureInfo() ([]byte, int) {
-	return nil, 0
+	// hgu can't be right simulated with many Msgs.
+	if len(tx.Msgs) != 1 {
+		return nil, 0
+	}
+
+	fnSign := ""
+	deploySize := 0
+	for _, msg := range tx.Msgs {
+		v, ok := msg.(WasmMsgChecker)
+		if !ok {
+			break
+		}
+		fn, size, err := v.FnSignatureInfo()
+		if err != nil || len(fn) <= 0 {
+			break
+		}
+
+		deploySize = size
+		fnSign = fn
+		break
+	}
+	return []byte(fnSign), deploySize
 }
 
 func (tx *StdTx) GetFrom() string {
