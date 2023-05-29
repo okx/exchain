@@ -82,8 +82,18 @@ else
   ROCKSDB_VERSION=0
 endif
 
+system=$(shell $(shell pwd)/libs/scripts/system.sh)
+ifeq ($(system),alpine)
+  LINK_STATICALLY=true
+else
+  ifeq ($(LINK_STATICALLY),true)
+      $(error your system is $(system) which can not be complied statically. please set LINK_STATICALLY=false)
+  endif
+endif
+
 ifeq ($(LINK_STATICALLY),true)
-	build_tags += muslc
+  build_tags += muslc
+  dummy := $(shell $(shell pwd)/libs/scripts/wasm_static_install.sh)
 endif
 
 build_tags += $(BUILD_TAGS)
@@ -118,7 +128,7 @@ ifeq ($(MAKECMDGOALS),testnet)
 endif
 
 ifeq ($(LINK_STATICALLY),true)
-	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
+  ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
 endif
 
 ifeq ($(OKCMALLOC),tcmalloc)
