@@ -85,6 +85,8 @@ type Store struct {
 var (
 	_ types.CommitMultiStore = (*Store)(nil)
 	_ types.Queryable        = (*Store)(nil)
+
+	IgPruneHeightsLen = false
 )
 
 // NewStore returns a reference to a new Store object with the provided DB. The
@@ -465,10 +467,11 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if rs.logger != nil {
 		rs.logger.Info("loadVersion info", "pruned heights length", len(rs.pruneHeights), "versions", len(rs.versions))
 	}
-	if len(rs.pruneHeights) > maxPruneHeightsLength {
+
+	if !IgPruneHeightsLen && len(rs.pruneHeights) > maxPruneHeightsLength {
 		return fmt.Errorf("Pruned heights length <%d> exceeds <%d>, "+
 			"need to prune them with command "+
-			"<exchaind data prune-compact clear-prune-heights --home your_exchaind_home_directory> before running exchaind",
+			"<exchaind data prune-compact state --home your_exchaind_home_directory> before running exchaind",
 			len(rs.pruneHeights), maxPruneHeightsLength)
 	}
 	return nil
