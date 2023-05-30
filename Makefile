@@ -71,6 +71,15 @@ endif
 
 build_tags = netgo
 
+system=$(shell $(shell pwd)/libs/scripts/system.sh)
+ifeq ($(system),alpine)
+  LINK_STATICALLY=true
+else
+  ifeq ($(LINK_STATICALLY),true)
+      $(error your system is $(system) which can not be complied statically. please set LINK_STATICALLY=false)
+  endif
+endif
+
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
@@ -82,14 +91,6 @@ else
   ROCKSDB_VERSION=0
 endif
 
-system=$(shell $(shell pwd)/libs/scripts/system.sh)
-ifeq ($(system),alpine)
-  LINK_STATICALLY=true
-else
-  ifeq ($(LINK_STATICALLY),true)
-      $(error your system is $(system) which can not be complied statically. please set LINK_STATICALLY=false)
-  endif
-endif
 
 ifeq ($(LINK_STATICALLY),true)
   build_tags += muslc
