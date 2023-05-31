@@ -1,7 +1,5 @@
 #!/bin/sh
 #set -e
-GO_VERSION=$1
-ROCKSDB_VERSION=$2
 
 get_distribution() {
   lsb_dist=""
