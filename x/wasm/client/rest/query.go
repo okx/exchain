@@ -171,12 +171,18 @@ func queryCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			},
 		)
 
+		if isErrNotFound(err) {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "code not found")
+			return
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
 		if res == nil {
-			rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
+			rest.WriteErrorResponse(w, http.StatusNotFound, "code not found")
 			return
 		}
 
@@ -256,6 +262,12 @@ func queryContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 				Address: mux.Vars(r)["contractAddr"],
 			},
 		)
+
+		if isErrNotFound(err) {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
+			return
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -297,10 +309,16 @@ func queryCodeContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			},
 		)
 
+		if isErrNotFound(err) {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
+			return
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
 		if codeRes == nil {
 			rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
 			return
@@ -329,6 +347,12 @@ func queryContractBlockedMethodsHandlerFn(cliCtx clientCtx.CLIContext) http.Hand
 
 		route := fmt.Sprintf("custom/%s/%s/%s", types.QuerierRoute, keeper.QueryListContractBlockedMethod, addr.String())
 		res, height, err := cliCtx.Query(route)
+
+		if isErrNotFound(err) {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "methods not found")
+			return
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -380,6 +404,11 @@ func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 			}
 		}
 
+		if isErrNotFound(err) {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "state not found")
+			return
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -410,6 +439,11 @@ func queryContractStateRawHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 				QueryData: queryData,
 			},
 		)
+
+		if isErrNotFound(err) {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "state not found")
+			return
+		}
 
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -447,6 +481,11 @@ func queryContractStateSmartHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerF
 				QueryData: queryData,
 			},
 		)
+
+		if isErrNotFound(err) {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "state not found")
+			return
+		}
 
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
@@ -531,4 +570,11 @@ func (a *argumentDecoder) DecodeString(s string) ([]byte, error) {
 	default:
 		return a.dec(s)
 	}
+}
+
+func isErrNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "not found")
 }
