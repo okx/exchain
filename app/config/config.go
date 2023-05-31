@@ -389,7 +389,8 @@ func (c *OecConfig) format() string {
 	enable-analyzer: %v
     iavl-commit-async-no-batch: %v
     enable-mempool-sim-gu-factor: %v
-	active-view-change: %v`, system.ChainName,
+	active-view-change: %v
+	max_subscription_clients: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -420,6 +421,7 @@ func (c *OecConfig) format() string {
 		c.GetIavlAcNoBatch(),
 		c.GetEnableMempoolSimGuFactor(),
 		c.GetActiveVC(),
+		c.GetMaxSubscriptionClients(),
 	)
 }
 

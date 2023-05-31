@@ -201,3 +201,10 @@ func (d MockDynamicConfig) GetEnableMempoolSimGuFactor() bool {
 func (d MockDynamicConfig) GetMaxSubscriptionClients() int {
 	return d.maxSubscriptionClients
 }
+
+func (d *MockDynamicConfig) SetMaxSubscriptionClients(value int) {
+	if value < 0 {
+		return
+	}
+	d.maxSubscriptionClients = value
+}
