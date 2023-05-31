@@ -124,6 +124,8 @@ type OecConfig struct {
 	commitGapOffset int64
 	// enable mempool sim gu factor
 	enableMempoolSimGuFactor bool
+
+	maxSubscriptionClients int
 }
 
 const (
@@ -162,6 +164,7 @@ const (
 	FlagDebugGcInterval            = "debug.gc-interval"
 	FlagCommitGapOffset            = "commit-gap-offset"
 	FlagEnableMempoolSimGuFactor   = "enable-mem-sim-gu-factor"
+	FlagMaxSubscriptionClients     = "max-subscription-clients"
 )
 
 var (
@@ -312,6 +315,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
 	c.SetEnableMempoolSimGuFactor(viper.GetBool(FlagEnableMempoolSimGuFactor))
+	c.SetMaxSubscriptionClients(viper.GetInt(FlagMaxSubscriptionClients))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -670,6 +674,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetEnableMempoolSimGuFactor(r)
+	case FlagMaxSubscriptionClients:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetMaxSubscriptionClients(r)
 	}
 
 }
@@ -1094,4 +1104,15 @@ func (c *OecConfig) SetEnableMempoolSimGuFactor(v bool) {
 
 func (c *OecConfig) GetEnableMempoolSimGuFactor() bool {
 	return c.enableMempoolSimGuFactor
+}
+
+func (c *OecConfig) SetMaxSubscriptionClients(v int) {
+	if v < 0 {
+		v = 0
+	}
+	c.maxSubscriptionClients = v
+}
+
+func (c *OecConfig) GetMaxSubscriptionClients() int {
+	return c.maxSubscriptionClients
 }
