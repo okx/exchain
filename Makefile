@@ -73,6 +73,9 @@ build_tags = netgo
 
 system=$(shell $(shell pwd)/libs/scripts/system.sh)
 ifeq ($(system),alpine)
+  ifeq ($(LINK_STATICALLY),false)
+      $(warning Your system is alpine. It must be compiled statically. Now we start compile statically.)
+  endif
   LINK_STATICALLY=true
 else
   ifeq ($(LINK_STATICALLY),true)
