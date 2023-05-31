@@ -8,7 +8,7 @@ import (
 	"sort"
 )
 
-//Treasure is the struct which has address and proportion of mint reward.
+// Treasure is the struct which has address and proportion of mint reward.
 type Treasure struct {
 	//Treasure Address
 	Address sdk.AccAddress `json:"address" yaml:"address"`
@@ -28,6 +28,11 @@ func (t Treasure) ValidateBasic() error {
 	if t.Proportion.LTE(sdk.ZeroDec()) || t.Proportion.GT(sdk.OneDec()) {
 		return errors.New(fmt.Sprintf("treasure proportion should non-negative and less than one: %s", t.Proportion))
 	}
+
+	if t.Address.Empty() {
+		return errors.New(fmt.Sprintf("treasure address is nil"))
+	}
+
 	return nil
 }
 
