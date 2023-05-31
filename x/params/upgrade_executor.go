@@ -5,7 +5,6 @@ import (
 	"math"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/common"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/params/types"
@@ -35,6 +34,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		_ = storeWaitingUpgrade(ctx, k, proposal, effectiveHeight) // ignore error
 		return nil
 	}
+	defer k.gk.RemoveFromWaitingProposalQueue(ctx, confirmHeight, proposalID)
 
 	// proposal will be confirmed right now, check if ready.
 	cbs, ready := k.queryReadyForUpgrade(proposal.Name)
@@ -43,11 +43,11 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 		// that probably means program's version is too low.
 		// To avoid status machine broken, we panic.
 		errMsg := fmt.Sprintf("there's a upgrade proposal named '%s' has been take effective, "+
-			"and the upgrade is incompatible, but your binary seems not ready for this upgrade. "+
-			"To avoid state machine broken, the program is panic. "+
-			"Using the latest version binary and re-run it to avoid this panic.", proposal.Name)
+			"and the upgrade is incompatible, but your binary seems not ready for this upgrade. current height: %d, confirm height %d", proposal.Name, curHeight, confirmHeight)
 		k.Logger(ctx).Error(errMsg)
-		panic(errMsg)
+		// here must return nil but not an error, if an error is returned, the proposal won't be deleted
+		// from the waiting queue in gov keeper, result in this function is called endlessly in every block end.
+		return nil
 	}
 
 	storedInfo, err := storeEffectiveUpgrade(ctx, k, proposal, effectiveHeight)
@@ -66,7 +66,7 @@ func handleUpgradeProposal(ctx sdk.Context, k *Keeper, proposalID uint64, propos
 func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.UpgradeProposal) (uint64, sdk.Error) {
 	// confirm height is the height proposal is confirmed.
 	// confirmed is not become effective. Becoming effective will happen at
-	// the next block of confirm block. see `storeEffectiveUpgrade` and `IsUpgradeEffective`
+	// the next block of confirm block. see `storeEffectiveUpgrade` and `isUpgradeEffective`
 	confirmHeight := proposal.ExpectHeight - 1
 	if proposal.ExpectHeight == 0 {
 		// if height is not specified, this upgrade will become effective
@@ -77,11 +77,8 @@ func getUpgradeProposalConfirmHeight(currentHeight uint64, proposal types.Upgrad
 
 	if confirmHeight < currentHeight {
 		// if it's too late to make the proposal become effective at the height which we expected,
-		// refuse to effective this proposal
-		return 0, sdkerrors.New(DefaultCodespace, types.BaseParamsError,
-			fmt.Sprintf("current height '%d' has exceed "+
-				"the expect height '%d' of upgrade proposal '%s'",
-				currentHeight, proposal.ExpectHeight, proposal.Name))
+		// make the upgrade effective at next block (just like height is not specified).
+		confirmHeight = currentHeight
 	}
 	return confirmHeight, nil
 }
@@ -146,15 +143,6 @@ func checkUpgradeValidEffectiveHeight(ctx sdk.Context, k *Keeper, effectiveHeigh
 	return nil
 }
 
-func checkUpgradeVote(ctx sdk.Context, proposalID uint64, proposal types.UpgradeProposal, _ govtypes.Vote) (string, sdk.Error) {
-	curHeight := uint64(ctx.BlockHeight())
-
-	if proposal.ExpectHeight != 0 && proposal.ExpectHeight <= curHeight {
-		return "", sdkerrors.New(DefaultCodespace, types.BaseParamsError,
-			fmt.Sprintf("can not vote： current height '%d' has exceed "+
-				"the expect height '%d' of upgrade proposal '%s'(proposal id '%d')",
-				curHeight, proposal.ExpectHeight, proposal.Name, proposalID))
-	}
-
+func checkUpgradeVote(_ sdk.Context, _ uint64, _ types.UpgradeProposal, _ govtypes.Vote) (string, sdk.Error) {
 	return "", nil
 }

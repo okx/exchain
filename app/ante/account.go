@@ -2,6 +2,7 @@ package ante
 
 import (
 	"bytes"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -153,14 +155,17 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 
 func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
 	gasLimit := msgEthTx.GetGas()
-	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
-	if err != nil {
-		return sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
-	}
 
-	// intrinsic gas verification during CheckTx
-	if ctx.IsCheckTx() && gasLimit < gas {
-		return sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+	if shouldIntrinsicGas(ek, ctx, msgEthTx) {
+		gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
+		if err != nil {
+			return sdkerrors.Wrap(err, "failed to compute intrinsic gas cost")
+		}
+
+		// intrinsic gas verification during CheckTx
+		if ctx.IsCheckTx() && gasLimit < gas {
+			return sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "intrinsic gas too low: %d < %d", gasLimit, gas)
+		}
 	}
 
 	// Charge sender for gas up to limit
@@ -243,7 +248,9 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		msgEthTx.SetFrom(ctx.From())
 		address = msgEthTx.AccountAddress()
 	}
-
+	if ctx.IsCheckTx() && !address.Empty() && msgEthTx.From == "" {
+		msgEthTx.SetFrom(common.BytesToAddress(address.Bytes()).String())
+	}
 	if !simulate {
 		if address.Empty() {
 			panic("sender address cannot be empty")

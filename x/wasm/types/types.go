@@ -7,6 +7,7 @@ import (
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/gogo/protobuf/proto"
+
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -274,8 +275,12 @@ func NewEnv(ctx sdk.Context, contractAddr sdk.WasmAddress) wasmvmtypes.Env {
 			Address: contractAddr.String(),
 		},
 	}
-	if txCounter, ok := TXCounter(ctx); ok {
-		env.Transaction = &wasmvmtypes.TransactionInfo{Index: txCounter}
+	if ctx.ParaMsg() != nil {
+		env.Transaction = &wasmvmtypes.TransactionInfo{Index: uint32(ctx.ParaMsg().CosmosIndexInBlock)}
+	} else {
+		if txCounter, ok := TXCounter(ctx); ok {
+			env.Transaction = &wasmvmtypes.TransactionInfo{Index: txCounter}
+		}
 	}
 	return env
 }

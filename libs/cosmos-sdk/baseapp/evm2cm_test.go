@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -108,6 +109,155 @@ func TestRegisterCmHandle_ConvertMsg(t *testing.T) {
 			NewCMHandle(func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
 				return nil, nil
 			}, ts.setHeight))
+	}
+
+	// check
+	for _, ts := range testcases {
+		RegisterEvmParamParse(func(msg sdk.Msg) ([]byte, error) {
+			mw := &MsgWrapper{
+				Name: ts.module + ts.funcName,
+				Data: []byte("123"),
+			}
+			v, err := json.Marshal(mw)
+			require.NoError(t, err)
+			return v, nil
+		})
+		_, err := ConvertMsg(testMsg{}, ts.blockHeight)
+		require.Equal(t, ts.success, err == nil)
+	}
+}
+
+func TestRegisterCmHandleV1_ConvertMsg(t *testing.T) {
+	testcases := []struct {
+		module      string
+		funcName    string
+		blockHeight int64
+		setHeight   int64
+		success     bool
+		handle      *CMHandleV1
+	}{
+		{
+			module:      "module11",
+			funcName:    "test1",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 0 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+		{
+			module:      "module11",
+			funcName:    "test2",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 0 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+		{
+			module:      "module13",
+			funcName:    "test1",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 0 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+		{
+			module:      "module14",
+			funcName:    "test1",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 0 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+		{
+			module:      "module14",
+			funcName:    "test2",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 0 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+		{
+			module:      "module14",
+			funcName:    "test3",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 0 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+
+		// error
+		{
+			module:      "module15",
+			funcName:    "test1",
+			blockHeight: 4,
+			setHeight:   5,
+			success:     false,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 5 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+		{
+			module:      "module15",
+			funcName:    "test2",
+			blockHeight: 5,
+			setHeight:   5,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 5 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+		{
+			module:      "module15",
+			funcName:    "test3",
+			blockHeight: 6,
+			setHeight:   5,
+			success:     true,
+			handle: NewCMHandleV1(func(data []byte, signers []sdk.AccAddress, height int64) (sdk.Msg, error) {
+				if height >= 5 {
+					return nil, nil
+				}
+				return nil, fmt.Errorf("test error")
+			}),
+		},
+	}
+	for _, ts := range testcases {
+		RegisterCmHandleV1(ts.module+ts.funcName, ts.handle)
 	}
 
 	// check

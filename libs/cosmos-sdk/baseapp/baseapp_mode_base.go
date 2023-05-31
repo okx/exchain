@@ -100,7 +100,7 @@ type modeHandlerSimulate struct {
 	*modeHandlerBase
 }
 
-//modeHandlerTrace derived from modeHandlerDeliver
+// modeHandlerTrace derived from modeHandlerDeliver
 type modeHandlerTrace struct {
 	*modeHandlerDeliver
 }
@@ -164,15 +164,15 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	return
 }
 
-//=============================
+// =============================
 // 4. handleDeferGasConsumed
 func (m *modeHandlerBase) handleDeferGasConsumed(*runTxInfo) {}
 
-//====================================================================
+// ====================================================================
 // 5. handleDeferRefund
 func (m *modeHandlerBase) handleDeferRefund(*runTxInfo) {}
 
-//===========================================================================================
+// ===========================================================================================
 // other members
 func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter")
