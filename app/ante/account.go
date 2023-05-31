@@ -2,10 +2,11 @@ package ante
 
 import (
 	"bytes"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strconv"
 	"strings"
+
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
@@ -153,7 +154,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 	return ctx, nil
 }
 
-func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
+func ethGasConsume(ek EVMKeeper, sk types.SupplyKeeper, ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool) error {
 	gasLimit := msgEthTx.GetGas()
 
 	if shouldIntrinsicGas(ek, ctx, msgEthTx) {
@@ -182,10 +183,10 @@ func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Con
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = auth.DeductFees(sk, *ctx, acc, feeAmt)
+		err := auth.DeductFees(sk, *ctx, acc, feeAmt)
 		if !ctx.IsCheckTx() {
 			toAcc := sk.GetModuleAddress(types.FeeCollectorName)
-			ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, feeAmt, err)
+			ek.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, feeAmt, err)
 		}
 		if err != nil {
 			return err
@@ -195,6 +196,25 @@ func ethGasConsume(ik innertx.InnerTxKeeper, sk types.SupplyKeeper, ctx *sdk.Con
 	// Set gas meter after ante handler to ignore gaskv costs
 	auth.SetGasMeter(simulate, ctx, gasLimit)
 	return nil
+}
+
+func shouldIntrinsicGas(ek EVMKeeper, ctx *sdk.Context, msgEthTx *evmtypes.MsgEthereumTx) bool {
+	if !tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+		return true
+	} else { // e2c tx no need ethcore check gas than Venus6
+		return !IsE2CTx(ek, ctx, msgEthTx)
+	}
+}
+
+func IsE2CTx(ek EVMKeeper, ctx *sdk.Context, msgEthTx *evmtypes.MsgEthereumTx) bool {
+	currentGasmeter := ctx.GasMeter()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	defer ctx.SetGasMeter(currentGasmeter)
+	toAddr, ok := evm.EvmConvertJudge(msgEthTx)
+	if ok && len(toAddr) != 0 && ek.IsMatchSysContractAddress(*ctx, toAddr) {
+		return true
+	}
+	return false
 }
 
 func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress sdk.AccAddress, ak auth.AccountKeeper, acc exported.Account) {
