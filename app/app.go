@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"io"
 	"os"
 	"runtime/debug"
@@ -51,6 +50,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"

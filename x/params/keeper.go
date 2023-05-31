@@ -2,9 +2,9 @@ package params
 
 import (
 	"fmt"
-	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"

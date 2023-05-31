@@ -3,7 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"os"
 	"sort"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -186,7 +186,7 @@ func (app *BaseApp) UpdateGlobalGasConfig(ctx sdk.Context) {
 	if ctx.IsCheckTx() || ctx.IsTraceTx() {
 		return
 	}
-	stypes.UpdateGlobalGasConfig(app.getGasConfigHandler(app.deliverState.ctx))
+	stypes.UpdateGlobalGasConfig(app.getGasConfigHandler(ctx))
 }
 
 func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
