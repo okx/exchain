@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc/backend"
 	cosmos_context "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -149,6 +150,7 @@ func (suite *RPCTestSuite) SetupTest() {
 	viper.Set(flags.FlagKeyringBackend, "test")
 
 	viper.Set(rpc.FlagPersonalAPI, true)
+	viper.Set(config.FlagMaxSubscriptionClients, 100)
 
 	senderPv := suite.chain.SenderAccountPVBZ()
 	genesisAcc = suite.chain.SenderAccount().GetAddress()
