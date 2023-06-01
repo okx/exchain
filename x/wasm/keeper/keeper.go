@@ -125,6 +125,8 @@ func NewKeeper(
 	}
 	watcher.SetWatchDataManager()
 	wasmStorageKey = storeKey
+	*wasmAccountKeeper = accountKeeper
+	*WasmbankKeeper = bankKeeper
 	k := newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, defaultAdapter{}, opts...)
 	accountKeeper.SetObserverKeeper(k)
 
@@ -132,7 +134,11 @@ func NewKeeper(
 }
 
 var (
-	wasmStorageKey = sdk.StoreKey(sdk.NewKVStoreKey("wasm")) // need reset by NewKeeper
+	nilAccountKeeper  = types.AccountKeeper(nil)
+	nilBankKeeper     = types.BankKeeper(nil)
+	wasmStorageKey    = sdk.StoreKey(sdk.NewKVStoreKey("wasm")) // need reset by NewKeeper
+	wasmAccountKeeper = &nilAccountKeeper                       //need reset by NewKeeper
+	WasmbankKeeper    = &nilBankKeeper
 )
 
 func NewSimulateKeeper(
@@ -151,7 +157,7 @@ func NewSimulateKeeper(
 	supportedFeatures string,
 	opts ...Option,
 ) Keeper {
-	return newKeeper(cdc, wasmStorageKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, watcher.Adapter{}, opts...)
+	return newKeeper(cdc, wasmStorageKey, paramSpace, *wasmAccountKeeper, *WasmbankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, watcher.Adapter{}, opts...)
 }
 
 func newKeeper(cdc *codec.CodecProxy,
