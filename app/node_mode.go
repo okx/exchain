@@ -65,7 +65,7 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(mempool.FlagEnablePendingPool, true)
 	viper.SetDefault(server.FlagCORS, "*")
 	ctx.Logger.Info(fmt.Sprintf(
-		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
+		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
 		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, true,
 		flags.FlagMaxOpenConnections, 20000, flags.FlagMaxBodyBytes, flags.DefaultRPCNodeMaxBodyBytes, mempool.FlagEnablePendingPool, true,
