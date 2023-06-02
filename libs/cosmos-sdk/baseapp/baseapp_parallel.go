@@ -706,7 +706,6 @@ func (pm *parallelTxManager) addBlockCacheToChainCache() {
 }
 
 var (
-	feeAccountKey, _  = hex.DecodeString("01f1829676db577682e944fc3493d451b67ff3e29f")
 	wasmTxCountKey, _ = hex.DecodeString("08")
 )
 
@@ -716,7 +715,6 @@ func (pm *parallelTxManager) isConflict(e *executeResult) bool {
 	}
 	for storeKey, rw := range e.rwSet {
 		delete(rw.Read, string(feeAccountKeyInStore))
-		delete(rw.Read, string(feeAccountKey))
 		delete(rw.Read, string(wasmTxCountKey))
 
 		for key, value := range rw.Read {
