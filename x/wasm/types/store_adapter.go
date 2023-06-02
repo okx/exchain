@@ -4,6 +4,7 @@ import (
 	"fmt"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	"time"
 	//"github.com/okex/exchain/libs/cosmos-sdk/types"
 	//dbm "github.com/tendermint/tm-db"
 )
@@ -17,7 +18,11 @@ func NewStoreAdapter(parent types.KVStore) StoreAdapter {
 }
 
 func (sa StoreAdapter) Get(key []byte) []byte {
-	return sa.parent.Get(key)
+	types.WasmGetCnt++
+	ts := time.Now()
+	aa := sa.parent.Get(key)
+	types.WasmGetTime += time.Now().Sub(ts)
+	return aa
 }
 
 func (sa StoreAdapter) Set(key, value []byte) {
