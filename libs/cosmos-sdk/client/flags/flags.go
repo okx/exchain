@@ -82,8 +82,7 @@ const (
 	FlagTimeoutHeight = "timeout-height"
 	FlagCountTotal    = "count-total"
 
-	DefaultMaxBodyBytes        = 1000 * 1000
-	DefaultRPCNodeMaxBodyBytes = 1000 * 1000 * 2
+	DefaultMaxBodyBytes = 1000 * 1000
 )
 
 // LineBreak can be included in a command list to provide a blank line
