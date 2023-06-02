@@ -83,7 +83,7 @@ const (
 	FlagCountTotal    = "count-total"
 
 	DefaultMaxBodyBytes        = 1000 * 1000
-	DefaultRPCNodeMaxBodyBytes = 1000 * 1000 * 10
+	DefaultRPCNodeMaxBodyBytes = 1000 * 1000 * 2
 )
 
 // LineBreak can be included in a command list to provide a blank line
