@@ -5,10 +5,12 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	core_grpc "github.com/okex/exchain/libs/tendermint/rpc/grpc"
 	rpctest "github.com/okex/exchain/libs/tendermint/rpc/test"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -24,6 +26,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestBroadcastTx(t *testing.T) {
+	setMocConfig(100)
 	res, err := rpctest.GetGRPCClient().BroadcastTx(
 		context.Background(),
 		&core_grpc.RequestBroadcastTx{Tx: []byte("this is a tx")},
@@ -31,4 +34,11 @@ func TestBroadcastTx(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 0, res.CheckTx.Code)
 	require.EqualValues(t, 0, res.DeliverTx.Code)
+}
+
+func setMocConfig(clientNum int) {
+	moc := cfg.MockDynamicConfig{}
+	moc.SetMaxSubscriptionClients(100)
+
+	cfg.SetDynamicConfig(moc)
 }
