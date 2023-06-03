@@ -69,7 +69,7 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 	}
 	var ethTxs []*watcher.Transaction
 	gasUsed := big.NewInt(0)
-	if txsLimit > 0 && len(block.Txs) <= txsLimit {
+	if txsLimit == 0 || len(block.Txs) <= txsLimit {
 		gasUsed, ethTxs, err = EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
 		if err != nil {
 			return nil, err
