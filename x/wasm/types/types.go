@@ -11,6 +11,7 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 const (
@@ -280,7 +281,7 @@ func NewEnv(ctx sdk.Context, contractAddr sdk.WasmAddress) wasmvmtypes.Env {
 	} else {
 		if txCounter, ok := TXCounter(ctx); ok {
 			env.Transaction = &wasmvmtypes.TransactionInfo{Index: txCounter}
-		} else {
+		} else if types.HigherThanVenus6(ctx.BlockHeight()) {
 			// fix smb caused by vm-bridge tx
 			// more detail see https://github.com/okx/oec/issues/2190
 			env.Transaction = &wasmvmtypes.TransactionInfo{Index: 0}
