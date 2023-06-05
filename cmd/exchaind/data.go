@@ -310,6 +310,8 @@ func getPruneBlockParams(blockStoreDB dbm.DB) (baseHeight, retainHeight int64) {
 }
 
 func getPruneAppParams(appDB dbm.DB) (retainHeight int64) {
+	rootmulti.IgPruneHeightsLen = true
+
 	rs := initAppStore(appDB)
 	latestV := rs.GetLatestVersion()
 
