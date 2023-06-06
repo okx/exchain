@@ -383,3 +383,85 @@ func BenchmarkEthHashStringer(b *testing.B) {
 		}
 	})
 }
+
+// ForEachStorage iterates over each storage items, all invoke the provided
+// callback on each key, value pair.
+func (csdb *CommitStateDB) ForEachStorageForTest(ctx sdk.Context, stateobj StateObject, cb func(key, value ethcmn.Hash) (stop bool)) error {
+	obj := stateobj.(*stateObject)
+	store := ctx.KVStore(csdb.storeKey)
+	prefix := AddressStoragePrefix(obj.Address())
+	iterator := sdk.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		key := ethcmn.BytesToHash(iterator.Key())
+		value := ethcmn.BytesToHash(iterator.Value())
+
+		if value, dirty := obj.dirtyStorage[key]; dirty {
+			if cb(key, value) {
+				break
+			}
+			continue
+		}
+
+		// check if iteration stops
+		if cb(key, value) {
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func (csdb *CommitStateDB) DeepCopyForTest(src *CommitStateDB) *CommitStateDB {
+
+	newStateObjDirty := map[ethcmn.Address]struct{}{}
+	for k, v := range src.stateObjectsDirty {
+		newStateObjDirty[k] = v
+	}
+
+	newStateObjPending := map[ethcmn.Address]struct{}{}
+	for k, v := range src.stateObjectsPending {
+		newStateObjPending[k] = v
+	}
+
+	newStateObj := make(map[ethcmn.Address]*stateObject, 0)
+	for k, v := range src.stateObjects {
+		newStateObj[k] = v.deepCopy(csdb)
+	}
+
+	dst := &CommitStateDB{
+		stateObjectsDirty:   newStateObjDirty,
+		stateObjectsPending: newStateObjPending,
+		stateObjects:        newStateObj,
+	}
+	return dst
+}
+
+func (csdb *CommitStateDB) EqualForTest(dst *CommitStateDB) bool {
+	if len(csdb.stateObjectsDirty) != len(dst.stateObjectsDirty) {
+		return false
+	}
+
+	if len(csdb.stateObjectsPending) != len(dst.stateObjectsPending) {
+		return false
+	}
+	if len(csdb.stateObjects) != len(dst.stateObjects) {
+		return false
+	}
+
+	for k, _ := range csdb.stateObjects {
+		temp := dst.stateObjects[k]
+		temp1 := dst.stateObjects[k]
+		if temp.account.String() != temp1.account.String() {
+			return false
+		}
+		temp.account = nil
+
+		temp1.account = nil
+		if temp != temp1 {
+			return false
+		}
+	}
+	return true
+}

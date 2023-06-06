@@ -199,7 +199,7 @@ func (suite *KeeperTestSuite) TestSendPacket() {
 		{"channel capability not found", func() {
 			suite.coordinator.Setup(path)
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, timeoutHeight, disabledTimeoutTimestamp)
-			channelCap = capabilitytypes.NewCapability(5)
+			channelCap = capabilitytypes.NewCapability(10)
 		}, false},
 	}
 

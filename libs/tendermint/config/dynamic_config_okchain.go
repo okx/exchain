@@ -33,6 +33,9 @@ type IDynamicConfig interface {
 	GetDynamicGpMode() int
 	GetDynamicGpMaxTxNum() int64
 	GetDynamicGpMaxGasUsed() int64
+	GetGasLimitBuffer() uint64
+	GetEnableMempoolSimGuFactor() bool
+	GetMaxSubscriptionClients() int
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -42,10 +45,11 @@ func SetDynamicConfig(c IDynamicConfig) {
 }
 
 type MockDynamicConfig struct {
-	enableDeleteMinGPTx bool
-	dynamicGpMode       int
-	dynamicGpMaxTxNum   int64
-	dynamicGpMaxGasUsed int64
+	enableDeleteMinGPTx    bool
+	dynamicGpMode          int
+	dynamicGpMaxTxNum      int64
+	dynamicGpMaxGasUsed    int64
+	maxSubscriptionClients int
 }
 
 func (d MockDynamicConfig) GetMempoolRecheck() bool {
@@ -184,4 +188,23 @@ func (d *MockDynamicConfig) SetDynamicGpMaxGasUsed(value int64) {
 
 func (d MockDynamicConfig) GetDynamicGpMaxGasUsed() int64 {
 	return d.dynamicGpMaxGasUsed
+}
+
+func (d MockDynamicConfig) GetGasLimitBuffer() uint64 {
+	return 0
+}
+
+func (d MockDynamicConfig) GetEnableMempoolSimGuFactor() bool {
+	return false
+}
+
+func (d MockDynamicConfig) GetMaxSubscriptionClients() int {
+	return d.maxSubscriptionClients
+}
+
+func (d *MockDynamicConfig) SetMaxSubscriptionClients(value int) {
+	if value < 0 {
+		return
+	}
+	d.maxSubscriptionClients = value
 }

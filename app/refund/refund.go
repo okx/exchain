@@ -5,14 +5,14 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/refund"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
@@ -63,8 +63,16 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 		return nil, nil
 	}
 
-	if tx.GetType() == sdk.StdTxType && ctx.GetOutOfGas() {
-		return nil, nil
+	if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+		if ctx.GetOutOfGas() {
+			ctx.GasMeter().SetGas(ctx.GasMeter().Limit())
+			currentGasMeter.SetGas(gasLimit)
+			return nil, nil
+		}
+	} else {
+		if tx.GetType() == sdk.StdTxType && ctx.GetOutOfGas() {
+			return nil, nil
+		}
 	}
 
 	feeTx, ok := tx.(ante.FeeTx)
@@ -81,10 +89,9 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := calculateRefundFees(gasUsed, gas, fees)
-	newCoins := feePayerAcc.GetCoins().Add(gasFees...)
 
 	// set coins and record innertx
-	err = feePayerAcc.SetCoins(newCoins)
+	err = refund.RefundFees(sk, ctx, feePayerAcc.GetAddress(), gasFees)
 	if !ctx.IsCheckTx() {
 		fromAddr := sk.GetModuleAddress(types.FeeCollectorName)
 		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, feePayerAcc.GetAddress(), innertx.CosmosCallType, innertx.SendCallName, gasFees, err)
@@ -92,7 +99,6 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	if err != nil {
 		return nil, err
 	}
-	ak.SetAccount(ctx, feePayerAcc)
 
 	return gasFees, nil
 }
