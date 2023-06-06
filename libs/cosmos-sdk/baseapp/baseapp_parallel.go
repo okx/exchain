@@ -25,6 +25,7 @@ type extraDataForTx struct {
 	supportPara bool
 	fee         sdk.Coins
 	isEvm       bool
+	isE2C       bool
 	from        string
 	to          string
 	stdTx       sdk.Tx
@@ -68,11 +69,12 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 					app.blockDataCache.SetTx(txBytes, tx)
 				}
 
-				coin, isEvm, s, toAddr, _, supportPara := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+				coin, isEvm, isE2C, s, toAddr, _, supportPara := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 				para.extraTxsInfo[index] = &extraDataForTx{
 					supportPara: supportPara,
 					fee:         coin,
 					isEvm:       isEvm,
+					isE2C:       isE2C,
 					from:        s,
 					to:          toAddr,
 					stdTx:       tx,
@@ -137,12 +139,12 @@ func (app *BaseApp) calGroup() {
 			app.parallelTxManage.putResult(index, &executeResult{paraMsg: &sdk.ParaMsg{}, msIsNil: true})
 		}
 
-		if !tx.isEvm && tx.supportPara {
-			// means wasm tx
+		if (!tx.isEvm && tx.supportPara) || tx.isE2C {
+			// means wasm or e2c tx
 			para.haveCosmosTxInBlock = true
 		}
 
-		if !tx.isEvm {
+		if !tx.isEvm || tx.isE2C {
 			para.txByteMpCosmosIndex[string(para.txs[index])] = para.cosmosTxIndexInBlock
 			para.cosmosTxIndexInBlock++
 		}
