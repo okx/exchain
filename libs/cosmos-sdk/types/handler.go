@@ -27,6 +27,8 @@ type UpdateCMTxNonceHandler func(tx Tx, nonce uint64)
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit []*FeeSplitInfo) error
 type UpdateCosmosTxCount func(ctx Context, txCount int)
 
+type GetFeeCollectorInfo func(ctx Context, onlyGetFeeCollectorStoreKey bool) (Coins, []byte)
+
 type GetGasConfigHandler func(ctx Context) *stypes.GasConfig
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
