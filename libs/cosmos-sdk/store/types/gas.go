@@ -215,7 +215,7 @@ func UpdateGlobalGasConfig(gc *GasConfig) {
 	gGasConfig = gc
 }
 
-func CheckGasConfig(gc *GasConfig) {
+func AsDefaultGasConfig(gc *GasConfig) {
 	if gc.HasCost == 0 {
 		gc.HasCost = defaultHasCost
 	}
