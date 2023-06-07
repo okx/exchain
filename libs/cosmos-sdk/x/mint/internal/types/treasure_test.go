@@ -20,6 +20,7 @@ func TestValidateBasic(t *testing.T) {
 	treasure1 := NewTreasure(sdk.AccAddress([]byte{0x01}), sdk.NewDecWithPrec(1, 2))
 	treasure2 := NewTreasure(sdk.AccAddress([]byte{0x02}), sdk.NewDecWithPrec(1, 2))
 	treasure3 := NewTreasure(sdk.AccAddress([]byte{0x03}), sdk.NewDecWithPrec(1, 2))
+	treasure4 := NewTreasure(nil, sdk.NewDecWithPrec(1, 2))
 
 	//success treasures
 	treasures := []Treasure{*treasure1, *treasure2, *treasure3}
@@ -65,6 +66,11 @@ func TestValidateBasic(t *testing.T) {
 	err = ValidateTreasures(treasures)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "the sum of treasure proportion should non-negative and less than one")
+
+	// err treasures has empty address
+	treasures = []Treasure{*treasure1, *treasure2, *treasure3, *treasure4}
+	err = ValidateTreasures(treasures)
+	require.Error(t, err)
 }
 
 func TestSortTreasures(t *testing.T) {

@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -51,4 +52,17 @@ func (a *ABI) EncodeOutput(methodName string, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("method %s is not exist in abi", methodName)
 	}
 	return method.Outputs.PackValues([]interface{}{string(data)})
+}
+
+func (a *ABI) GetMethodById(calldata []byte) (*abi.Method, error) {
+	if len(calldata) < 4 {
+		return nil, errors.New("the calldata length must more than 4")
+	}
+	sigdata := calldata[:4]
+	argdata := calldata[4:]
+	if len(argdata)%32 != 0 {
+		return nil, fmt.Errorf("invalid call data; length should be a multiple of 32 bytes (was %d)", len(argdata))
+	}
+
+	return a.MethodById(sigdata)
 }

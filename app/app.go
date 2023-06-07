@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"github.com/okex/exchain/x/vmbridge"
@@ -49,6 +50,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -217,7 +219,8 @@ var (
 		icatypes.ModuleName:         nil,
 	}
 
-	onceLog sync.Once
+	onceLog              sync.Once
+	FlagGolangMaxThreads string = "golang-max-threads"
 )
 
 var _ simapp.App = (*OKExChainApp)(nil)
@@ -611,7 +614,7 @@ func NewOKExChainApp(
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
 	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper, app.BankKeeper)
-
+	app.EvmKeeper.SetCallToCM(vmbridge.PrecompileHooks(app.VMBridgeKeeper))
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
 		evm.NewMultiEvmHooks(
@@ -754,14 +757,17 @@ func NewOKExChainApp(
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
+	app.SetUpdateWasmTxCount(fixCosmosTxCountInWasmForParallelTx(app.WasmHandler.TXCounterStoreKey))
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetGetFeeCollectorInfo(getFeeCollectorInfo(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
-	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.EvmKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 	app.SetUpdateCMTxNonceHandler(NewUpdateCMTxNonceHandler())
+	app.SetGetGasConfigHandler(NewGetGasConfigHandler(app.ParamsKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -958,6 +964,10 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 		return err
 	}
 
+	if maxThreads := viper.GetInt(FlagGolangMaxThreads); maxThreads != 0 {
+		debug.SetMaxThreads(maxThreads)
+	}
+
 	// set config by node mode
 	err = setNodeConfig(ctx)
 	if err != nil {
@@ -1030,5 +1040,11 @@ func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
 		if ok && nonce != 0 {
 			stdtx.Nonce = nonce
 		}
+	}
+}
+
+func NewGetGasConfigHandler(pk params.Keeper) sdk.GetGasConfigHandler {
+	return func(ctx sdk.Context) *stypes.GasConfig {
+		return pk.GetGasConfig(ctx)
 	}
 }

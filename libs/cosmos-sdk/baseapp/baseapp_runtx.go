@@ -34,7 +34,8 @@ type runTxInfo struct {
 	reusableCacheMultiStore sdk.CacheMultiStore
 	overridesBytes          []byte
 
-	outOfGas bool
+	outOfGas        bool
+	mempoolSimulate bool // for judge this sim is from mempool
 }
 
 func (info *runTxInfo) GetCacheMultiStore() (sdk.CacheMultiStore, bool) {
@@ -88,12 +89,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(trace.ValTxMsgs, true, mode)
-
-	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
-		// should update the balance of FeeCollector's account when run non-evm tx
-		// which uses non-infiniteGasMeter during AnteHandleChain
-		app.updateFeeCollectorAccount(false)
-	}
 
 	//init info context
 	err = handler.handleStartHeight(info, height)
@@ -162,10 +157,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 		app.pin(trace.Refund, true, mode)
 		defer app.pin(trace.Refund, false, mode)
-		if types2.HigherThanVenus6(height) {
+		if types2.HigherThanVenus6(info.ctx.BlockHeight()) {
 			if (tx.GetType() == sdk.StdTxType && isAnteSucceed && err == nil) ||
 				tx.GetType() == sdk.EvmTxType {
 				handler.handleDeferRefund(info)
+			} else {
+				info.ctx.GasMeter().SetGas(info.ctx.GasMeter().Limit())
 			}
 		} else {
 			handler.handleDeferRefund(info)
@@ -192,11 +189,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 	}
 	app.pin(trace.RunAnte, false, mode)
-
-	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
-		fee := app.getTxFeeHandler(tx)
-		app.UpdateFeeCollector(fee, true)
-	}
 
 	isAnteSucceed = true
 	app.pin(trace.RunMsg, true, mode)
@@ -406,7 +398,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrOutOfGas, fmt.Sprintf(
 				"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
-				rType.Descriptor, info.gasWanted, info.ctx.GasMeter().GasConsumed(),
+				rType.Descriptor, info.gasWanted, info.gasWanted,
 			),
 		)
 
@@ -437,7 +429,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) *executeResult {
 		return asyncExe
 	}
 
-	if !txStatus.isEvm {
+	if !txStatus.supportPara {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil,
 			blockHeight, sdk.EmptyWatcher{}, nil, app.parallelTxManage, nil)
 		return asyncExe

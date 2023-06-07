@@ -2,31 +2,35 @@ package baseapp
 
 import (
 	"bytes"
+	"encoding/hex"
 	"runtime"
 	"sync"
-
-	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/viper"
 )
 
 var (
-	maxTxResultInChan           = 20000
+	maxTxResultInChan           = 200000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
+
+	feeAccountKeyInStore = make([]byte, 0)
 )
 
 type extraDataForTx struct {
-	fee       sdk.Coins
-	isEvm     bool
-	from      string
-	to        string
-	stdTx     sdk.Tx
-	decodeErr error
+	supportPara bool
+	fee         sdk.Coins
+	isEvm       bool
+	isE2C       bool
+	from        string
+	to          string
+	stdTx       sdk.Tx
+	decodeErr   error
 }
 
 type txWithIndex struct {
@@ -66,13 +70,15 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 					app.blockDataCache.SetTx(txBytes, tx)
 				}
 
-				coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+				coin, isEvm, isE2C, s, toAddr, _, supportPara := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 				para.extraTxsInfo[index] = &extraDataForTx{
-					fee:   coin,
-					isEvm: isEvm,
-					from:  s,
-					to:    toAddr,
-					stdTx: tx,
+					supportPara: supportPara,
+					fee:         coin,
+					isEvm:       isEvm,
+					isE2C:       isE2C,
+					from:        s,
+					to:          toAddr,
+					stdTx:       tx,
 				}
 				wg.Done()
 			}
@@ -125,19 +131,30 @@ func (app *BaseApp) calGroup() {
 	para := app.parallelTxManage
 
 	rootAddr = make(map[string]string, 0)
+	para.cosmosTxIndexInBlock = 0
 	for index, tx := range para.extraTxsInfo {
-		if tx.isEvm { //evmTx
+		if tx.supportPara { //evmTx & wasmTx
 			Union(tx.from, tx.to)
 		} else {
 			para.haveCosmosTxInBlock = true
 			app.parallelTxManage.putResult(index, &executeResult{paraMsg: &sdk.ParaMsg{}, msIsNil: true})
+		}
+
+		if (!tx.isEvm && tx.supportPara) || tx.isE2C {
+			// means wasm or e2c tx
+			para.haveCosmosTxInBlock = true
+		}
+
+		if !tx.isEvm || tx.isE2C {
+			para.txByteMpCosmosIndex[string(para.txs[index])] = para.cosmosTxIndexInBlock
+			para.cosmosTxIndexInBlock++
 		}
 	}
 
 	addrToID := make(map[string]int, 0)
 
 	for index, txInfo := range para.extraTxsInfo {
-		if !txInfo.isEvm {
+		if !txInfo.supportPara {
 			continue
 		}
 		rootAddr := Find(txInfo.from)
@@ -171,6 +188,10 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 
 	if txSize == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
+	}
+
+	if len(feeAccountKeyInStore) == 0 {
+		_, feeAccountKeyInStore = app.getFeeCollectorInfoHandler(app.deliverState.ctx, true)
 	}
 
 	pm := app.parallelTxManage
@@ -229,7 +250,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 				rerunIdx++
 				isReRun = true
 				// conflict rerun tx
-				if !pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
+				if !pm.extraTxsInfo[pm.upComingTxIndex].supportPara {
 					app.fixFeeCollector()
 				}
 				res = app.deliverTxWithCache(pm.upComingTxIndex)
@@ -247,6 +268,21 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.blockGasMeterMu.Unlock()
 
 			pm.SetCurrentIndex(pm.upComingTxIndex, res)
+
+			if !res.msIsNil {
+				// update fee collector balance
+				if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
+					// evm:fee-refund
+					pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
+				} else {
+					// non-evm:reload fee collector balance
+					ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+					ctx.SetMultiStore(app.parallelTxManage.cms)
+					pm.currTxFee, _ = app.getFeeCollectorInfoHandler(ctx, false)
+				}
+
+			}
+
 			currentGas += uint64(res.resp.GasUsed)
 
 			if isReRun {
@@ -284,10 +320,19 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	pm.alreadyEnd = true
 	pm.stop <- struct{}{}
 
-	// fix logs
-	app.feeChanged = true
+	// update fee collector balance
 	app.feeCollector = app.parallelTxManage.currTxFee
+
+	// fix logs
 	receiptsLogs := app.endParallelTxs(pm.txSize)
+
+	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	ctx.SetMultiStore(app.parallelTxManage.cms)
+
+	if app.parallelTxManage.haveCosmosTxInBlock {
+		app.updateCosmosTxCount(ctx, app.parallelTxManage.cosmosTxIndexInBlock-1)
+	}
+
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result
 			pm.deliverTxs[index].Data = v
@@ -334,8 +379,8 @@ func (app *BaseApp) endParallelTxs(txSize int) [][]byte {
 	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
-//we reuse the nonce that changed by the last async call
-//if last ante handler has been failed, we need rerun it ? or not?
+// we reuse the nonce that changed by the last async call
+// if last ante handler has been failed, we need rerun it ? or not?
 func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	app.parallelTxManage.currentRerunIndex = txIndex
 	defer func() {
@@ -418,14 +463,16 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 }
 
 type parallelTxManager struct {
-	blockHeight         int64
-	groupTasks          []*groupTask
-	blockGasMeterMu     sync.Mutex
-	haveCosmosTxInBlock bool
-	isAsyncDeliverTx    bool
-	txs                 [][]byte
-	txSize              int
-	alreadyEnd          bool
+	blockHeight          int64
+	groupTasks           []*groupTask
+	blockGasMeterMu      sync.Mutex
+	haveCosmosTxInBlock  bool
+	isAsyncDeliverTx     bool
+	txs                  [][]byte
+	txSize               int
+	alreadyEnd           bool
+	cosmosTxIndexInBlock int
+	txByteMpCosmosIndex  map[string]int
 
 	resultCh chan int
 	resultCb func(data int)
@@ -668,11 +715,17 @@ func (pm *parallelTxManager) addBlockCacheToChainCache() {
 	pm.blockMultiStores.Clear()
 }
 
+var (
+	wasmTxCountKey, _ = hex.DecodeString("08")
+)
+
 func (pm *parallelTxManager) isConflict(e *executeResult) bool {
 	if e.msIsNil {
 		return true //TODO fix later
 	}
 	for storeKey, rw := range e.rwSet {
+		delete(rw.Read, string(feeAccountKeyInStore))
+		delete(rw.Read, string(wasmTxCountKey))
 
 		for key, value := range rw.Read {
 			if data, ok := pm.conflictCheck[storeKey].Write[key]; ok {
@@ -731,7 +784,12 @@ func (pm *parallelTxManager) init(txs [][]byte, blockHeight int64, deliverStateM
 	if txSize > cap(pm.resultCh) {
 		pm.resultCh = make(chan int, txSize)
 	}
+	// clear resultCh when init a new block
+	for len(pm.resultCh) > 0 {
+		<-pm.resultCh
+	}
 
+	pm.txByteMpCosmosIndex = make(map[string]int, 0)
 	pm.nextTxInGroup = make(map[int]int)
 
 	pm.extraTxsInfo = make([]*extraDataForTx, txSize)
@@ -781,5 +839,5 @@ func (pm *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 			pm.conflictCheck[storeKey].Write[key] = value
 		}
 	}
-	pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[txIndex].fee.Sub(pm.finalResult[txIndex].paraMsg.RefundFee)...)
+
 }

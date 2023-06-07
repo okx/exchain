@@ -545,3 +545,100 @@ func TestMsgJsonSignBytes(t *testing.T) {
 		})
 	}
 }
+
+func TestMsgStoreCodeFnSignatureInfo(t *testing.T) {
+	cases := map[string]struct {
+		msg MsgStoreCode
+		len int
+		err error
+	}{
+		"normal": {
+			msg: MsgStoreCode{
+				Sender:       sdk.WasmAddress(make([]byte, 20)).String(),
+				WASMByteCode: []byte("foo"),
+			},
+			len: 3,
+			err: nil,
+		},
+		"empty": {
+			msg: MsgStoreCode{
+				Sender:       sdk.WasmAddress(make([]byte, 20)).String(),
+				WASMByteCode: []byte(""),
+			},
+			len: 0,
+			err: fmt.Errorf("wasm byte code length is 0"),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			name, lenFn, err := tc.msg.FnSignatureInfo()
+			require.Equal(t, name, "store-code")
+			require.Equal(t, lenFn, tc.len)
+			require.Equal(t, err, tc.err)
+		})
+	}
+}
+
+func TestMsgExecuteContractFnSignatureInfo(t *testing.T) {
+	cases := map[string]struct {
+		msg  MsgExecuteContract
+		name string
+		err  error
+	}{
+		"normal": {
+			msg: MsgExecuteContract{
+				Sender:   sdk.WasmAddress(make([]byte, 20)).String(),
+				Contract: sdk.WasmAddress(make([]byte, 20)).String(),
+				Msg:      []byte("{\"press\":{\"ascending\":true}}"),
+			},
+			name: "0x0000000000000000000000000000000000000000press",
+			err:  nil,
+		},
+		"empty msg name": {
+			msg: MsgExecuteContract{
+				Sender:   sdk.WasmAddress(make([]byte, 20)).String(),
+				Contract: sdk.WasmAddress(make([]byte, 20)).String(),
+				Msg:      []byte("{\"\":{\"ascending\":true}}"),
+			},
+			name: "",
+			err:  fmt.Errorf("msg has not method:{\"\":{\"ascending\":true}}"),
+		},
+		"validate msg": {
+			msg: MsgExecuteContract{
+				Sender:   sdk.WasmAddress(make([]byte, 20)).String(),
+				Contract: sdk.WasmAddress(make([]byte, 20)).String(),
+				Msg:      []byte("sdfasdf"),
+			},
+			name: "",
+			err:  fmt.Errorf("failed to validate msg:invalid"),
+		},
+		"check msg method, 0": {
+			msg: MsgExecuteContract{
+				Sender:   sdk.WasmAddress(make([]byte, 20)).String(),
+				Contract: sdk.WasmAddress(make([]byte, 20)).String(),
+				Msg:      []byte("{}"),
+			},
+			name: "",
+			err:  fmt.Errorf("failed to check msg method:{}"),
+		},
+		"check msg method, 1": {
+			msg: MsgExecuteContract{
+				Sender:   sdk.WasmAddress(make([]byte, 20)).String(),
+				Contract: sdk.WasmAddress(make([]byte, 20)).String(),
+				Msg:      []byte("{\"press\":{\"ascending\":true},\"hello\":{\"ascending\":true}}"),
+			},
+			name: "",
+			err:  fmt.Errorf("failed to check msg method:{\"press\":{\"ascending\":true},\"hello\":{\"ascending\":true}}"),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			name, lenFn, err := tc.msg.FnSignatureInfo()
+			require.Equal(t, tc.name, name)
+			require.Equal(t, lenFn, 0)
+			require.Equal(t, tc.err, err)
+		})
+	}
+}
