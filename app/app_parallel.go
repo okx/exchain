@@ -18,12 +18,23 @@ import (
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 )
 
+func getFeeCollectorInfo(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorInfo {
+	return func(ctx sdk.Context, onlyGetFeeCollectorStoreKey bool) (sdk.Coins, []byte) {
+		if onlyGetFeeCollectorStoreKey {
+			return sdk.Coins{}, auth.AddressStoreKey(sk.GetModuleAddress(auth.FeeCollectorName))
+		}
+		return bk.GetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName)), nil
+	}
+}
+
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
-		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
-		if err != nil {
-			return err
+		if !balance.Empty() {
+			err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+			if err != nil {
+				return err
+			}
 		}
 
 		// split fee
@@ -32,7 +43,7 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 			feesplits, sortAddrs := groupByAddrAndSortFeeSplits(txFeesplit)
 			for _, addr := range sortAddrs {
 				acc := sdk.MustAccAddressFromBech32(addr)
-				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
+				err := sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
 				if err != nil {
 					return err
 				}
