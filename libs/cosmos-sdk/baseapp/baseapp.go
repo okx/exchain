@@ -151,7 +151,9 @@ type BaseApp struct { // nolint: maligned
 	fauxMerkleMode bool             // if true, IAVL MountStores uses MountStoresDB for simulation speed.
 
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
+	getFeeCollectorInfoHandler   sdk.GetFeeCollectorInfo
 	logFix                       sdk.LogFix
+	updateCosmosTxCount          sdk.UpdateCosmosTxCount
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
@@ -204,7 +206,6 @@ type BaseApp struct { // nolint: maligned
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	feeCollector          sdk.Coins
-	feeChanged            bool // used to judge whether should update the fee-collector account
 	FeeSplitCollector     []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache
@@ -697,6 +698,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx.SetParaMsg(&sdk.ParaMsg{
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+			CosmosIndexInBlock:  app.parallelTxManage.txByteMpCosmosIndex[string(txBytes)],
 		})
 		ctx.SetTxBytes(txBytes)
 		ctx.ResetWatcher()

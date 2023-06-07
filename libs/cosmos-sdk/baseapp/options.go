@@ -170,11 +170,22 @@ func (app *BaseApp) SetUpdateFeeCollectorAccHandler(handler sdk.UpdateFeeCollect
 	app.updateFeeCollectorAccHandler = handler
 }
 
+func (app *BaseApp) SetGetFeeCollectorInfo(handle sdk.GetFeeCollectorInfo) {
+	if app.sealed {
+		panic("SetGetFeeCollectorBalance() on sealed BaseApp")
+	}
+	app.getFeeCollectorInfoHandler = handle
+}
+
 func (app *BaseApp) SetParallelTxLogHandlers(fixLog sdk.LogFix) {
 	if app.sealed {
 		panic("SetPallTxLogHandler() on sealed BaseApp")
 	}
 	app.logFix = fixLog
+}
+
+func (app *BaseApp) SetUpdateWasmTxCount(d sdk.UpdateCosmosTxCount) {
+	app.updateCosmosTxCount = d
 }
 
 func (app *BaseApp) SetEvmWatcherCollector(collector sdk.EvmWatcherCollector) {
