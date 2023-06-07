@@ -54,7 +54,7 @@ install_linux() {
   $sh_c "cd rocksdb && make uninstall"
   $sh_c "cd rocksdb && make clean PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make uninstall PREFIX=/usr LIBDIR=/usr/lib"
-  $sh_c "cd rocksdb && make -j${num_proc} DISABLE_JEMALLOC=1 shared_lib PREFIX=/usr LIBDIR=/usr/lib"
+  $sh_c "cd rocksdb && ROCKSDB_DISABLE_TCMALLOC=1 make -j${num_proc} DISABLE_JEMALLOC=1 shared_lib PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make install-shared PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "ldconfig"
 }
@@ -64,7 +64,7 @@ install_macos(){
   $sh_c "cd rocksdb && git checkout ${VERSION}"
   $sh_c "cd rocksdb && make clean"
   $sh_c "cd rocksdb && make uninstall DEBUG_LEVEL=0"
-  $sh_c "cd rocksdb && make -j${num_proc} shared_lib EXTRA_CXXFLAGS='-Wno-deprecated-copy -Wno-unused-but-set-variable'"
+  $sh_c "cd rocksdb && ROCKSDB_DISABLE_TCMALLOC=1 make -j${num_proc} DISABLE_JEMALLOC=1 shared_lib EXTRA_CXXFLAGS='-Wno-deprecated-copy -Wno-unused-but-set-variable'"
   $sh_c "cd rocksdb && make install-shared"
 }
 
