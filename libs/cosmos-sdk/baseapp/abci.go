@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -158,6 +159,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
+	if app.getGasConfigHandler != nil {
+		app.UpdateGlobalGasConfig(app.deliverState.ctx)
+	}
+
 	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
@@ -174,6 +179,13 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 
 	return res
+}
+
+func (app *BaseApp) UpdateGlobalGasConfig(ctx sdk.Context) {
+	if ctx.IsCheckTx() || ctx.IsTraceTx() {
+		return
+	}
+	stypes.UpdateGlobalGasConfig(app.getGasConfigHandler(ctx))
 }
 
 func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {

@@ -22,6 +22,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	queryCmd.AddCommand(flags.GetCommands(
 		GetCmdQueryParams(queryRoute, cdc),
 		GetCmdQueryUpgrade(queryRoute, cdc),
+		GetCmdQueryGasConfig(queryRoute, cdc),
 	)...)
 
 	return queryCmd
@@ -49,6 +50,32 @@ $ exchaincli query params params
 			var params types.Params
 			cdc.MustUnmarshalJSON(bz, &params)
 			return cliCtx.PrintOutput(params)
+		},
+	}
+}
+
+// GetCmdQueryParams implements the query params command.
+func GetCmdQueryGasConfig(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "gasconfig",
+		Short: "Query parameters of gasconfig",
+		Long: strings.TrimSpace(`Query parameters of gasconfig:
+
+$ exchaincli query params gasconfig
+`),
+		Args: cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryGasConfig)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var params types.GasConfig
+			cdc.MustUnmarshalJSON(bz, &params)
+			return cliCtx.PrintOutput(params.GasConfig)
 		},
 	}
 }
