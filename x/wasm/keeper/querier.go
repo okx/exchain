@@ -331,17 +331,14 @@ func (q grpcQuerier) PinnedCodes(c context.Context, req *types.QueryPinnedCodesR
 }
 
 func (q grpcQuerier) UnwrapSDKContext(c context.Context) sdk.Context {
-	if watcher.Enable() {
-		return proxy.MakeContext(q.storeKey)
-	}
 	return sdk.UnwrapSDKContext(c)
 }
 
 func (q grpcQuerier) PrefixStore(c context.Context, pre []byte) sdk.KVStore {
-	if watcher.Enable() {
-		return watcher.NewReadStore(pre, nil)
-	}
 	ctx := sdk.UnwrapSDKContext(c)
+	if watcher.Enable() {
+		return watcher.NewReadStore(ctx.GetWasmSimulateCache(), prefix.NewStore(ctx.KVStore(q.storeKey), pre))
+	}
 	return prefix.NewStore(ctx.KVStore(q.storeKey), pre)
 
 }

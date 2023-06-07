@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/json"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"io"
 	"log"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -106,13 +106,10 @@ func DeleteAccount(addr sdk.WasmAddress) {
 	}
 }
 
-func NewReadStore(pre []byte, store sdk.KVStore) sdk.KVStore {
+func NewReadStore(mp map[string][]byte, store sdk.KVStore) sdk.KVStore {
 	rs := &readStore{
-		mp: make(map[string][]byte, 0),
+		mp: mp,
 		kv: store,
-	}
-	if len(pre) != 0 {
-		return prefix.NewStore(rs, pre)
 	}
 	return rs
 }
@@ -120,11 +117,11 @@ func NewReadStore(pre []byte, store sdk.KVStore) sdk.KVStore {
 type Adapter struct{}
 
 func (a Adapter) NewStore(ctx sdk.Context, storeKey sdk.StoreKey, pre []byte) sdk.KVStore {
-	if ctx.WasmKvStoreForSimulate() != nil {
-		return ctx.WasmKvStoreForSimulate()
+	s := NewReadStore(ctx.GetWasmSimulateCache(), ctx.KVStore(storeKey))
+	if len(pre) != 0 {
+		s = prefix.NewStore(s, pre)
 	}
-	s := NewReadStore(pre, ctx.KVStore(storeKey))
-	ctx.SetWasmKvStoreForSimulate(s)
+
 	return s
 }
 

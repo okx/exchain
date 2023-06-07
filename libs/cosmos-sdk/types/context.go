@@ -51,14 +51,14 @@ type Context struct {
 	paraMsg            *ParaMsg
 	//	txCount            uint32
 
-	wasmKvStoreForSimulate *KVStore
-	overridesBytes         []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	watcher                *TxWatcher
-	feesplitInfo           *FeeSplitInfo
+	wasmSimulateCache map[string][]byte
+	overridesBytes    []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	watcher           *TxWatcher
+	feesplitInfo      *FeeSplitInfo
 
-	statedb  vm.StateDB
-	outOfGas bool
-  mempoolSimulate bool // if mempoolSimulate = true, then is mempool simulate tx
+	statedb         vm.StateDB
+	outOfGas        bool
+	mempoolSimulate bool // if mempoolSimulate = true, then is mempool simulate tx
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -109,9 +109,6 @@ func (c *Context) Cache() *Cache {
 	return c.cache
 }
 
-func (c *Context) WasmKvStoreForSimulate() KVStore {
-	return *c.wasmKvStoreForSimulate
-}
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
@@ -192,31 +189,21 @@ func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
 }
 
-// //TxCount
-//
-//	func (c *Context) TxCount() uint32 {
-//		return c.txCount
-//	}
-var (
-	nilKvStore = KVStore(nil)
-)
-
 // NewContext create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
 	return Context{
-		ctx:                    context.Background(),
-		ms:                     ms,
-		header:                 &header,
-		chainID:                header.ChainID,
-		checkTx:                isCheckTx,
-		logger:                 logger,
-		gasMeter:               stypes.NewInfiniteGasMeter(),
-		minGasPrice:            DecCoins{},
-		eventManager:           NewEventManager(),
-		watcher:                &TxWatcher{EmptyWatcher{}},
-		wasmKvStoreForSimulate: &nilKvStore,
+		ctx:          context.Background(),
+		ms:           ms,
+		header:       &header,
+		chainID:      header.ChainID,
+		checkTx:      isCheckTx,
+		logger:       logger,
+		gasMeter:     stypes.NewInfiniteGasMeter(),
+		minGasPrice:  DecCoins{},
+		eventManager: NewEventManager(),
+		watcher:      &TxWatcher{EmptyWatcher{}},
 	}
 }
 
@@ -414,12 +401,22 @@ func (c *Context) SetWatcher(w IWatcher) {
 	c.watcher.IWatcher = w
 }
 
-func (c *Context) SetWasmKvStoreForSimulate(k KVStore) {
-	*c.wasmKvStoreForSimulate = k
+func (c *Context) SetWasmSimulateCache() {
+	c.wasmSimulateCache = getWasmCacheMap()
+}
+func (c *Context) GetWasmSimulateCache() map[string][]byte {
+	if c.wasmSimulateCache == nil {
+		c.wasmSimulateCache = getWasmCacheMap()
+		return c.wasmSimulateCache
+	}
+	return c.wasmSimulateCache
 }
 
-func (c *Context) ResetWasmKvStoreForSimulate() {
-	*c.wasmKvStoreForSimulate = KVStore(nil)
+func (c *Context) MoveWasmSimulateCacheToPool() {
+	for k, _ := range c.wasmSimulateCache {
+		delete(c.wasmSimulateCache, k)
+	}
+	putBackWasmCacheMap(c.wasmSimulateCache)
 }
 
 func (c *Context) GetWatcher() IWatcher {
