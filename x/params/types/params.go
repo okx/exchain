@@ -17,7 +17,10 @@ const (
 
 // ParamKeyTable returns the key declaration for parameters
 func ParamKeyTable() sdkparams.KeyTable {
-	return sdkparams.NewKeyTable().RegisterParamSet(&Params{})
+	kt := sdkparams.NewKeyTable()
+	kt.RegisterParamSet(&Params{})
+	kt.RegisterParamSet(&GasConfig{})
+	return kt
 }
 
 // Params is the struct of the parameters in this module

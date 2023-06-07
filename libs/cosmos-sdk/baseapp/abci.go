@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -158,6 +159,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
+	if app.getGasConfigHandler != nil {
+		app.UpdateGlobalGasConfig(app.deliverState.ctx)
+	}
+
 	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
@@ -169,28 +174,22 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
-	app.feeCollector = sdk.Coins{}
-	app.feeChanged = false
+	app.feeCollector = nil
 	// clean FeeSplitCollector
 	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 
 	return res
 }
 
-func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
-	if fee.IsZero() {
+func (app *BaseApp) UpdateGlobalGasConfig(ctx sdk.Context) {
+	if ctx.IsCheckTx() || ctx.IsTraceTx() {
 		return
 	}
-	app.feeChanged = true
-	if add {
-		app.feeCollector = app.feeCollector.Add(fee...)
-	} else {
-		app.feeCollector = app.feeCollector.Sub(fee)
-	}
+	stypes.UpdateGlobalGasConfig(app.getGasConfigHandler(ctx))
 }
 
 func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
-	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
+	if app.updateFeeCollectorAccHandler == nil {
 		return
 	}
 

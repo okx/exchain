@@ -2,9 +2,6 @@ package simapp
 
 import (
 	"fmt"
-
-	evm2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/evm"
-
 	"io"
 	"math/big"
 	"os"
@@ -13,49 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
-
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/fee"
-
-	ica2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/ica"
-
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
-
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-
-	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
-
-	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
-
-	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-
-	ibccommon "github.com/okex/exchain/libs/ibc-go/modules/core/common"
-
-	icamauthtypes "github.com/okex/exchain/x/icamauth/types"
-
-	icacontrollertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
-	icahosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
-
 	"github.com/spf13/viper"
-
-	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-
-	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
-
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
-
-	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
-	icahostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
-	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
-	ibcfeekeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
-	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/x/icamauth"
-	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
-	"github.com/okex/exchain/x/wasm"
-	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -76,6 +33,7 @@ import (
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
@@ -87,18 +45,38 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
+	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
+	icacontrollertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
+	icahostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
+	icahosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
+	ibcfeekeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
+	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibccommon "github.com/okex/exchain/libs/ibc-go/modules/core/common"
+	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
+	evm2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/evm"
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/fee"
+	ica2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/ica"
 	staking2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/staking"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -120,13 +98,18 @@ import (
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/icamauth"
+	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
+	icamauthtypes "github.com/okex/exchain/x/icamauth/types"
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	paramsclient "github.com/okex/exchain/x/params/client"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/wasm"
 	wasmclient "github.com/okex/exchain/x/wasm/client"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 )
 
 func init() {
@@ -765,8 +748,9 @@ func NewSimApp(
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
 	app.SetUpdateWasmTxCount(fixCosmosTxCountInWasmForParallelTx(app.WasmHandler.TXCounterStoreKey))
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper.Keeper))
+	app.SetGetFeeCollectorInfo(getFeeCollectorInfo(app.BankKeeper, app.SupplyKeeper.Keeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
-	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.EvmKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(func(...sdk.IWatcher) {})
@@ -792,7 +776,19 @@ func NewSimApp(
 
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
-		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+		if !balance.Empty() {
+			return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+		}
+		return nil
+	}
+}
+
+func getFeeCollectorInfo(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorInfo {
+	return func(ctx sdk.Context, onlyGetFeeCollectorStoreKey bool) (sdk.Coins, []byte) {
+		if onlyGetFeeCollectorStoreKey {
+			return sdk.Coins{}, auth.AddressStoreKey(sk.GetModuleAddress(auth.FeeCollectorName))
+		}
+		return bk.GetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName)), nil
 	}
 }
 
@@ -812,10 +808,16 @@ func evmTxVerifySigHandler(chainID string, blockHeight int64, evmTx *evmtypes.Ms
 	}
 	return nil
 }
-func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string, err error, supportPara bool) {
+
+func getTxFeeAndFromHandler(ek ante.EVMKeeper) sdk.GetTxFeeAndFromHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, isE2C bool, from string, to string, err error, supportPara bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
+			supportPara = true
+			if ante.IsE2CTx(ek, &ctx, evmTx) {
+				isE2C = true
+				// supportPara = false
+			}
 			err = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			if err != nil {
 				return

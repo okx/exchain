@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 )
 
 // Uint wraps integer with 256 bit range bound
@@ -226,4 +227,20 @@ func RelativePow(x Uint, n Uint, b Uint) (z Uint) {
 		n = n.Quo(NewUint(2))
 	}
 	return z
+}
+
+var (
+	storePool = sync.Pool{
+		New: func() interface{} {
+			return make(map[string][]byte)
+		},
+	}
+)
+
+func putBackWasmCacheMap(d map[string][]byte) {
+	storePool.Put(d)
+}
+
+func getWasmCacheMap() map[string][]byte {
+	return storePool.Get().(map[string][]byte)
 }
