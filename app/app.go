@@ -50,6 +50,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -766,6 +767,7 @@ func NewOKExChainApp(
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 	app.SetUpdateCMTxNonceHandler(NewUpdateCMTxNonceHandler())
+	app.SetGetGasConfigHandler(NewGetGasConfigHandler(app.ParamsKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -1038,5 +1040,11 @@ func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
 		if ok && nonce != 0 {
 			stdtx.Nonce = nonce
 		}
+	}
+}
+
+func NewGetGasConfigHandler(pk params.Keeper) sdk.GetGasConfigHandler {
+	return func(ctx sdk.Context) *stypes.GasConfig {
+		return pk.GetGasConfig(ctx)
 	}
 }
