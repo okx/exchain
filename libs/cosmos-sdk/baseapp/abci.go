@@ -230,7 +230,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	cnt := 0
 	if app.deliverState.ctx.BlockHeight() == 1602 {
 		app.deliverState.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isDelete bool, storeKey stypes.StoreKey) bool {
-			fmt.Println("dirty-", hex.EncodeToString([]byte(key)), hex.EncodeToString(value))
+			if hex.EncodeToString([]byte(key)) == "01f1829676db577682e944fc3493d451b67ff3e29f" {
+				fmt.Println("dirty-", hex.EncodeToString([]byte(key)), hex.EncodeToString(value))
+			}
 			cnt++
 			return true
 		}, nil)
