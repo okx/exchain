@@ -236,6 +236,7 @@ func iaviewerReadNodeCmd(ctx *iaviewerContext) *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().String(flagNodeHash, "", "print only the value for this hash, key must be in hex format.")
+	viper.BindPFlag(flagNodeHash, cmd.PersistentFlags().Lookup(flagNodeHash))
 	return cmd
 }
 
@@ -322,6 +323,8 @@ func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 	}
 	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
 	cmd.PersistentFlags().String(flagKeyPrefix, "", "diff values for keys with specified prefix, prefix must be in hex format.")
+	viper.BindPFlag(flagHex, cmd.PersistentFlags().Lookup(flagHex))
+	viper.BindPFlag(flagKeyPrefix, cmd.PersistentFlags().Lookup(flagKeyPrefix))
 	return cmd
 }
 
