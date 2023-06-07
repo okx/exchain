@@ -6,25 +6,27 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/spf13/viper"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/viper"
 )
 
 var (
 	maxTxResultInChan           = 200000
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
 	multiCacheListClearInterval = int64(100)
+
+	feeAccountKeyInStore = make([]byte, 0)
 )
 
 type extraDataForTx struct {
 	supportPara bool
 	fee         sdk.Coins
 	isEvm       bool
+	isE2C       bool
 	from        string
 	to          string
 	stdTx       sdk.Tx
@@ -68,11 +70,12 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 					app.blockDataCache.SetTx(txBytes, tx)
 				}
 
-				coin, isEvm, s, toAddr, _, supportPara := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+				coin, isEvm, isE2C, s, toAddr, _, supportPara := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 				para.extraTxsInfo[index] = &extraDataForTx{
 					supportPara: supportPara,
 					fee:         coin,
 					isEvm:       isEvm,
+					isE2C:       isE2C,
 					from:        s,
 					to:          toAddr,
 					stdTx:       tx,
@@ -137,7 +140,12 @@ func (app *BaseApp) calGroup() {
 			app.parallelTxManage.putResult(index, &executeResult{paraMsg: &sdk.ParaMsg{}, msIsNil: true})
 		}
 
-		if !tx.isEvm {
+		if (!tx.isEvm && tx.supportPara) || tx.isE2C {
+			// means wasm or e2c tx
+			para.haveCosmosTxInBlock = true
+		}
+
+		if !tx.isEvm || tx.isE2C {
 			para.txByteMpCosmosIndex[string(para.txs[index])] = para.cosmosTxIndexInBlock
 			para.cosmosTxIndexInBlock++
 		}
@@ -180,6 +188,10 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 
 	if txSize == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
+	}
+
+	if len(feeAccountKeyInStore) == 0 {
+		_, feeAccountKeyInStore = app.getFeeCollectorInfoHandler(app.deliverState.ctx, true)
 	}
 
 	pm := app.parallelTxManage
@@ -256,6 +268,21 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.blockGasMeterMu.Unlock()
 
 			pm.SetCurrentIndex(pm.upComingTxIndex, res)
+
+			if !res.msIsNil {
+				// update fee collector balance
+				if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
+					// evm:fee-refund
+					pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
+				} else {
+					// non-evm:reload fee collector balance
+					ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+					ctx.SetMultiStore(app.parallelTxManage.cms)
+					pm.currTxFee, _ = app.getFeeCollectorInfoHandler(ctx, false)
+				}
+
+			}
+
 			currentGas += uint64(res.resp.GasUsed)
 
 			if isReRun {
@@ -293,15 +320,19 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	pm.alreadyEnd = true
 	pm.stop <- struct{}{}
 
-	// fix logs
-	app.feeChanged = true
+	// update fee collector balance
 	app.feeCollector = app.parallelTxManage.currTxFee
+
+	// fix logs
 	receiptsLogs := app.endParallelTxs(pm.txSize)
 
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 	ctx.SetMultiStore(app.parallelTxManage.cms)
 
-	app.updateCosmosTxCount(ctx, app.parallelTxManage.cosmosTxIndexInBlock-1)
+	if app.parallelTxManage.haveCosmosTxInBlock {
+		app.updateCosmosTxCount(ctx, app.parallelTxManage.cosmosTxIndexInBlock-1)
+	}
+
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result
 			pm.deliverTxs[index].Data = v
@@ -685,7 +716,6 @@ func (pm *parallelTxManager) addBlockCacheToChainCache() {
 }
 
 var (
-	feeAccountKey, _  = hex.DecodeString("01f1829676db577682e944fc3493d451b67ff3e29f")
 	wasmTxCountKey, _ = hex.DecodeString("08")
 )
 
@@ -694,7 +724,7 @@ func (pm *parallelTxManager) isConflict(e *executeResult) bool {
 		return true //TODO fix later
 	}
 	for storeKey, rw := range e.rwSet {
-		delete(rw.Read, string(feeAccountKey))
+		delete(rw.Read, string(feeAccountKeyInStore))
 		delete(rw.Read, string(wasmTxCountKey))
 
 		for key, value := range rw.Read {
@@ -809,5 +839,5 @@ func (pm *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 			pm.conflictCheck[storeKey].Write[key] = value
 		}
 	}
-	pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[txIndex].fee.Sub(pm.finalResult[txIndex].paraMsg.RefundFee)...)
+
 }
