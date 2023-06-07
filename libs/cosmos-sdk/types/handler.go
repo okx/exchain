@@ -33,7 +33,7 @@ type GetGasConfigHandler func(ctx Context) *stypes.GasConfig
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
 type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins, isDelete bool)
-type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error, bool)
+type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, bool, string, string, error, bool)
 type GetTxFeeHandler func(tx Tx) Coins
 
 type CustomizeOnStop func(ctx Context) error
