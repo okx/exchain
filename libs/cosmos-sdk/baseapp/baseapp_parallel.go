@@ -3,6 +3,7 @@ package baseapp
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"runtime"
 	"sync"
 
@@ -271,15 +272,17 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 			if !res.msIsNil {
 				// update fee collector balance
-				if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
-					// evm:fee-refund
-					pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
-				} else {
-					// non-evm:reload fee collector balance
-					ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-					ctx.SetMultiStore(app.parallelTxManage.cms)
-					pm.currTxFee, _ = app.getFeeCollectorInfoHandler(ctx, false)
-				}
+				//if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
+				// evm:fee-refund
+				pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
+				//fmt.Println("-------is EVM")
+				//} else {
+				// non-evm:reload fee collector balance
+				//ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+				//ctx.SetMultiStore(app.parallelTxManage.cms)
+				//pm.currTxFee, _ = app.getFeeCollectorInfoHandler(ctx, false)
+				fmt.Println("not evm", pm.currTxFee.String())
+				//}
 
 			}
 
@@ -322,6 +325,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	// update fee collector balance
 	app.feeCollector = app.parallelTxManage.currTxFee
+	fmt.Println("app....", app.feeCollector)
 
 	// fix logs
 	receiptsLogs := app.endParallelTxs(pm.txSize)
