@@ -3,7 +3,6 @@ package baseapp
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"runtime"
 	"sync"
 
@@ -281,7 +280,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 				//ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 				//ctx.SetMultiStore(app.parallelTxManage.cms)
 				//pm.currTxFee, _ = app.getFeeCollectorInfoHandler(ctx, false)
-				fmt.Println("not evm", pm.currTxFee.String())
+				//fmt.Println("not evm", pm.currTxFee.String())
 				//}
 
 			}
@@ -325,7 +324,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	// update fee collector balance
 	app.feeCollector = app.parallelTxManage.currTxFee
-	fmt.Println("app....", app.feeCollector)
+	//fmt.Println("app....", app.feeCollector)
 
 	// fix logs
 	receiptsLogs := app.endParallelTxs(pm.txSize)
