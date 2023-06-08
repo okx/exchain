@@ -6,12 +6,13 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -270,17 +271,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			pm.SetCurrentIndex(pm.upComingTxIndex, res)
 
 			if !res.msIsNil {
-				// update fee collector balance
-				if pm.extraTxsInfo[pm.upComingTxIndex].isEvm {
-					// evm:fee-refund
-					pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
-				} else {
-					// non-evm:reload fee collector balance
-					ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-					ctx.SetMultiStore(app.parallelTxManage.cms)
-					pm.currTxFee, _ = app.getFeeCollectorInfoHandler(ctx, false)
-				}
-
+				pm.currTxFee = pm.currTxFee.Add(pm.extraTxsInfo[pm.upComingTxIndex].fee.Sub(pm.finalResult[pm.upComingTxIndex].paraMsg.RefundFee)...)
 			}
 
 			currentGas += uint64(res.resp.GasUsed)
