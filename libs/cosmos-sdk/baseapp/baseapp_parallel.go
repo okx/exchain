@@ -714,6 +714,11 @@ func (pm *parallelTxManager) isConflict(e *executeResult) bool {
 	if e.msIsNil {
 		return true //TODO fix later
 	}
+
+	if e.paraMsg.InvalidExecute {
+		return true
+	}
+
 	for storeKey, rw := range e.rwSet {
 		delete(rw.Read, string(feeAccountKeyInStore))
 		delete(rw.Read, string(wasmTxCountKey))
