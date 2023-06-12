@@ -612,6 +612,10 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 
 func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, newCodeID uint64, msg []byte, authZ AuthorizationPolicy) ([]byte, error) {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "migrate")
+	// This method does not support parallel execution.
+	if ctx.ParaMsg() != nil {
+		ctx.ParaMsg().InvalidExecute = true
+	}
 	migrateSetupCosts := k.gasRegister.InstantiateContractCosts(k.IsPinnedCode(ctx, newCodeID), len(msg))
 	ctx.GasMeter().ConsumeGas(migrateSetupCosts, "Loading CosmWasm module: migrate")
 
@@ -784,6 +788,10 @@ func (k Keeper) IterateContractsByCode(ctx sdk.Context, codeID uint64, cb func(a
 }
 
 func (k Keeper) setContractAdmin(ctx sdk.Context, contractAddress, caller, newAdmin sdk.WasmAddress, authZ AuthorizationPolicy) (err error) {
+	// This method does not support parallel execution.
+	if ctx.ParaMsg() != nil {
+		ctx.ParaMsg().InvalidExecute = true
+	}
 	gas := ctx.GasMeter().GasConsumed()
 	defer func() {
 		if !ctx.IsCheckTx() && k.innertxKeeper != nil {
