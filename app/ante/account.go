@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -184,10 +183,6 @@ func ethGasConsume(ek EVMKeeper, sk types.SupplyKeeper, ctx *sdk.Context, acc ex
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
 		err := auth.DeductFees(sk, *ctx, acc, feeAmt)
-		if !ctx.IsCheckTx() {
-			toAcc := sk.GetModuleAddress(types.FeeCollectorName)
-			ek.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, acc.GetAddress(), toAcc, innertx.CosmosCallType, innertx.SendCallName, feeAmt, err)
-		}
 		if err != nil {
 			return err
 		}
