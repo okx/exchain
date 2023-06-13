@@ -1,7 +1,6 @@
 package refund
 
 import (
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"sync"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/refund"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper, ik innertx.InnerTxKeeper) sdk.GasRefundHandler {
@@ -92,10 +92,6 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 
 	// set coins and record innertx
 	err = refund.RefundFees(sk, ctx, feePayerAcc.GetAddress(), gasFees)
-	if !ctx.IsCheckTx() {
-		fromAddr := sk.GetModuleAddress(types.FeeCollectorName)
-		ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, feePayerAcc.GetAddress(), innertx.CosmosCallType, innertx.SendCallName, gasFees, err)
-	}
 	if err != nil {
 		return nil, err
 	}
