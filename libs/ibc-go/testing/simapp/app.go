@@ -863,8 +863,14 @@ func getTxFeeHandler() sdk.GetTxFeeHandler {
 
 func isParaSupportedE2CMsg(payload []byte) bool {
 	// Here, payload must be E2C's Data.Payload
-	p, _ := evm.ParseContractParam(payload)
-	mw, _ := baseapp.ParseMsgWrapper(p)
+	p, err := evm.ParseContractParam(payload)
+	if err != nil {
+		return false
+	}
+	mw, err := baseapp.ParseMsgWrapper(p)
+	if err != nil {
+		return false
+	}
 	switch mw.Name {
 	case "wasm/MsgInstantiateContract":
 		return false
