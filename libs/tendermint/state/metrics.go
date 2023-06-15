@@ -69,7 +69,7 @@ func PrometheusMetrics(namespace string, labelsAndValues ...string) *Metrics {
 		CommittedHeight: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
-			Name:      "block_height",
+			Name:      "monitor_block_height",
 			Help:      "The block height.",
 		}, labels).With(labelsAndValues...),
 	}
