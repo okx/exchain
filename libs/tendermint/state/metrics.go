@@ -83,5 +83,6 @@ func NopMetrics() *Metrics {
 		lastBlockTime:       time.Now().UnixNano(),
 		AbciTime:            discard.NewGauge(),
 		CommitTime:          discard.NewGauge(),
+		CommittedHeight:     discard.NewGauge(),
 	}
 }
