@@ -1,23 +1,16 @@
 package mempool
 
 import (
-	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/clist"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"math/big"
-	mrand "math/rand"
 	"os"
 	"strconv"
 	"sync"
 	"testing"
-	"time"
-
-	"github.com/okex/exchain/libs/tendermint/libs/clist"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	amino "github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/counter"
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
@@ -29,80 +22,28 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
-const (
-	BlockMaxTxNum = 300
-)
-
-// A cleanupFunc cleans up any config / test files created for a particular
-// test.
-type cleanupFunc func()
-
-func newMempoolWithApp(cc proxy.ClientCreator) (*CListMempool, cleanupFunc) {
-	return newMempoolWithAppAndConfig(cc, cfg.ResetTestRoot("mempool_test"))
+func newMempoolWithAppForHeapQueue(cc proxy.ClientCreator) (*CListMempool, cleanupFunc) {
+	config := cfg.ResetTestRoot("mempool_test")
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
+	return newMempoolWithAppAndConfig(cc, config)
 }
 
-func newMempoolWithAppAndConfig(cc proxy.ClientCreator, config *cfg.Config) (*CListMempool, cleanupFunc) {
-	appConnMem, _ := cc.NewABCIClient()
-	appConnMem.SetLogger(log.TestingLogger().With("module", "abci-client", "connection", "mempool"))
-	err := appConnMem.Start()
-	if err != nil {
-		panic(err)
-	}
-	mempool := NewCListMempool(config.Mempool, appConnMem, 0)
-	mempool.SetLogger(log.TestingLogger())
-	return mempool, func() { os.RemoveAll(config.RootDir) }
+func requireHeapQueue(t *testing.T, queue ITransactionQueue) {
+	_, ok := queue.(*HeapQueue)
+	require.True(t, ok)
 }
 
-func ensureNoFire(t *testing.T, ch <-chan struct{}, timeoutMS int) {
-	timer := time.NewTimer(time.Duration(timeoutMS) * time.Millisecond)
-	select {
-	case <-ch:
-		t.Fatal("Expected not to fire")
-	case <-timer.C:
-	}
-}
-
-func ensureFire(t *testing.T, ch <-chan struct{}, timeoutMS int) {
-	timer := time.NewTimer(time.Duration(timeoutMS) * time.Millisecond)
-	select {
-	case <-ch:
-	case <-timer.C:
-		t.Fatal("Expected to fire")
-	}
-}
-
-func checkTxs(t *testing.T, mempool Mempool, count int, peerID uint16) types.Txs {
-	txs := make(types.Txs, count)
-	txInfo := TxInfo{SenderID: peerID}
-	for i := 0; i < count; i++ {
-		txBytes := make([]byte, 20)
-		txs[i] = txBytes
-		_, err := rand.Read(txBytes)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := mempool.CheckTx(txBytes, nil, txInfo); err != nil {
-			// Skip invalid txs.
-			// TestMempoolFilters will fail otherwise. It asserts a number of txs
-			// returned.
-			if IsPreCheckError(err) {
-				continue
-			}
-			t.Fatalf("CheckTx failed: %v while checking #%d tx", err, i)
-		}
-	}
-	return txs
-}
-
-func TestReapMaxBytesMaxGas(t *testing.T) {
+func TestReapMaxBytesMaxGas_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
-	mempool, cleanup := newMempoolWithApp(cc)
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	// Ensure gas calculation behaves as expected
 	checkTxs(t, mempool, 1, UnknownPeerID)
-	tx0 := mempool.TxsFront().Value.(*mempoolTx)
+	tx0 := mempool.txs.BroadcastFront().Value.(*mempoolTx)
 	// assert that kv store has gas wanted = 1.
 	require.Equal(t, app.CheckTx(abci.RequestCheckTx{Tx: tx0.tx}).GasWanted, int64(1), "KVStore had a gas value neq to 1")
 	require.Equal(t, tx0.gasWanted, int64(1), "transactions gas was set incorrectly")
@@ -119,7 +60,7 @@ func TestReapMaxBytesMaxGas(t *testing.T) {
 		expectedNumTxs int
 	}{
 		{20, -1, -1, 20},
-		{20, -1, 0, 1},
+		{20, -1, 0, 0},
 		{20, -1, 10, 10},
 		{20, -1, 30, 20},
 		{20, 0, -1, 0},
@@ -144,11 +85,13 @@ func TestReapMaxBytesMaxGas(t *testing.T) {
 	}
 }
 
-func TestMempoolFilters(t *testing.T) {
+func TestMempoolFilters_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
-	mempool, cleanup := newMempoolWithApp(cc)
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
 	emptyTxArr := []types.Tx{[]byte{}}
 
 	nopPreFilter := func(tx types.Tx) error { return nil }
@@ -183,11 +126,13 @@ func TestMempoolFilters(t *testing.T) {
 	}
 }
 
-func TestMempoolUpdate(t *testing.T) {
+func TestMempoolUpdate_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
-	mempool, cleanup := newMempoolWithApp(cc)
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
 
 	// 1. Adds valid txs to the cache
 	{
@@ -218,11 +163,13 @@ func TestMempoolUpdate(t *testing.T) {
 	}
 }
 
-func TestTxsAvailable(t *testing.T) {
+func TestTxsAvailable_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
-	mempool, cleanup := newMempoolWithApp(cc)
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
 	mempool.EnableTxsAvailable()
 
 	timeoutMS := 500
@@ -262,13 +209,15 @@ func TestTxsAvailable(t *testing.T) {
 	ensureNoFire(t, mempool.TxsAvailable(), timeoutMS)
 }
 
-func TestSerialReap(t *testing.T) {
+func TestSerialReap_HeapQueue(t *testing.T) {
 	app := counter.NewApplication(true)
 	app.SetOption(abci.RequestSetOption{Key: "serial", Value: "on"})
 	cc := proxy.NewLocalClientCreator(app)
 
-	mempool, cleanup := newMempoolWithApp(cc)
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
 	mempool.config.MaxTxNumPerBlock = 10000
 
 	appConnCon, _ := cc.NewABCIClient()
@@ -374,19 +323,13 @@ func TestSerialReap(t *testing.T) {
 	reapCheck(BlockMaxTxNum)
 }
 
-// Size of the amino encoded TxMessage is the length of the
-// encoded byte array, plus 1 for the struct field, plus 4
-// for the amino prefix.
-func txMessageSize(tx types.Tx) int {
-	return amino.ByteSliceSize(tx) + 1 + 4
-}
-
-func TestMempoolMaxMsgSize(t *testing.T) {
+func TestMempoolMaxMsgSize_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
-	mempl, cleanup := newMempoolWithApp(cc)
+	mempl, cleanup := newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
 
+	requireHeapQueue(t, mempl.txs)
 	maxTxSize := mempl.config.MaxTxBytes
 	maxMsgSize := calcMaxMsgSize(maxTxSize)
 
@@ -432,18 +375,17 @@ func TestMempoolMaxMsgSize(t *testing.T) {
 
 }
 
-func TestMempoolTxsBytes(t *testing.T) {
+func TestMempoolTxsBytes_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
 	config.Mempool.MaxTxsBytes = 10
-	config.Mempool.EnableDeleteMinGPTx = false
-	moc := cfg.MockDynamicConfig{}
-	moc.SetEnableDeleteMinGPTx(false)
-	cfg.SetDynamicConfig(moc)
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	// 1. zero by default
 	assert.EqualValues(t, 0, mempool.TxsBytes())
 
@@ -475,7 +417,7 @@ func TestMempoolTxsBytes(t *testing.T) {
 	// 6. zero after tx is rechecked and removed due to not being valid anymore
 	app2 := counter.NewApplication(true)
 	cc = proxy.NewLocalClientCreator(app2)
-	mempool, cleanup = newMempoolWithApp(cc)
+	mempool, cleanup = newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
 
 	txBytes := make([]byte, 8)
@@ -508,22 +450,16 @@ func TestMempoolTxsBytes(t *testing.T) {
 	}
 }
 
-func abciResponses(n int, code uint32) []*abci.ResponseDeliverTx {
-	responses := make([]*abci.ResponseDeliverTx, 0, n)
-	for i := 0; i < n; i++ {
-		responses = append(responses, &abci.ResponseDeliverTx{Code: code})
-	}
-	return responses
-}
-
-func TestAddAndSortTx(t *testing.T) {
+func TestAddAndSortTx_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
-	config.Mempool.SortTxByGp = true
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	//tx := &mempoolTx{height: 1, gasWanted: 1, tx:[]byte{0x01}}
 	testCases := []struct {
 		Tx *mempoolTx
@@ -581,19 +517,26 @@ func TestAddAndSortTx(t *testing.T) {
 	require.Equal(t, 1, mempool.GetUserPendingTxsCnt("15"))
 	require.Equal(t, 2, mempool.GetUserPendingTxsCnt("18"))
 
-	require.Equal(t, "18", mempool.txs.Front().Address)
-	require.Equal(t, big.NewInt(9740), mempool.txs.Front().GasPrice)
-	require.Equal(t, uint64(0), mempool.txs.Front().Nonce)
+	hq := mempool.txs.(*HeapQueue)
+	heads := hq.Init()
+	require.True(t, len(heads) > 0)
+	require.Equal(t, "18", heads[0].Address)
+	require.Equal(t, big.NewInt(9740), heads[0].GasPrice)
+	require.Equal(t, uint64(0), heads[0].Nonce)
 
-	require.Equal(t, "19", mempool.txs.Back().Address)
-	require.Equal(t, big.NewInt(2484), mempool.txs.Back().GasPrice)
-	require.Equal(t, uint64(0), mempool.txs.Back().Nonce)
+	tail := hq.InitReverse()
+	backTx := hq.PeekReverse(tail)
+	require.Equal(t, "19", backTx.Address)
+	require.Equal(t, big.NewInt(2484), backTx.GasPrice)
+	require.Equal(t, uint64(0), backTx.Nonce)
 
-	require.Equal(t, true, checkTx(mempool.txs.Front()))
+	require.Equal(t, true, checkTx(heads[0]))
 
 	addressList := mempool.GetAddressList()
 	for _, addr := range addressList {
-		require.Equal(t, true, checkAccNonce(addr, mempool.txs.Front()))
+		list, ok := hq.txs[addr]
+		require.True(t, ok)
+		require.Equal(t, true, checkAccNonce(addr, list.Front()))
 	}
 
 	txs := mempool.ReapMaxBytesMaxGas(-1, -1)
@@ -606,13 +549,16 @@ func TestAddAndSortTx(t *testing.T) {
 
 }
 
-func TestReplaceTx(t *testing.T) {
+func TestReplaceTx_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	//tx := &mempoolTx{height: 1, gasWanted: 1, tx:[]byte{0x01}}
 	testCases := []struct {
 		Tx *mempoolTx
@@ -632,41 +578,58 @@ func TestReplaceTx(t *testing.T) {
 
 	var nonces []uint64
 	var gasPrices []uint64
-	for e := mempool.txs.Front(); e != nil; e = e.Next() {
-		nonces = append(nonces, e.Nonce)
-		gasPrices = append(gasPrices, e.GasPrice.Uint64())
+	hq := mempool.txs.(*HeapQueue)
+	heads := hq.Init()
+	tx := hq.Peek(heads)
+	for tx != nil {
+		nonces = append(nonces, tx.realTx.GetNonce())
+		gasPrices = append(gasPrices, tx.realTx.GetGasPrice().Uint64())
+		hq.Shift(&heads)
+		tx = hq.Peek(heads)
 	}
 
 	require.Equal(t, []uint64{0, 1, 2, 3, 4}, nonces)
 	require.Equal(t, []uint64{9740, 5853, 9227, 9526, 9140}, gasPrices)
 }
 
-func TestAddAndSortTxByRandom(t *testing.T) {
+func TestAddAndSortTxByRandom_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	AddrNonce := make(map[string]int)
 	for i := 0; i < 1000; i++ {
 		mempool.addTx(generateNode(AddrNonce, i))
 	}
 
-	require.Equal(t, true, checkTx(mempool.txs.Front()))
+	hq := mempool.txs.(*HeapQueue)
+	heads := hq.Init()
+	require.True(t, len(heads) > 0)
+	front := heads[0]
+	require.Equal(t, true, checkTx(front))
 	addressList := mempool.GetAddressList()
 	for _, addr := range addressList {
-		require.Equal(t, true, checkAccNonce(addr, mempool.txs.Front()))
+		list, ok := hq.txs[addr]
+		require.True(t, ok)
+		require.Equal(t, true, checkAccNonce(addr, list.Front()))
 	}
 }
 
-func TestReapUserTxs(t *testing.T) {
+func TestReapUserTxs_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	//tx := &mempoolTx{height: 1, gasWanted: 1, tx:[]byte{0x01}}
 	testCases := []struct {
 		Tx *mempoolTx
@@ -718,76 +681,7 @@ func TestReapUserTxs(t *testing.T) {
 		"of %s is %v but got %v", "111", 0, len(mempool.ReapUserTxs("111", 100))))
 }
 
-func generateNode(addrNonce map[string]int, idx int) *mempoolTx {
-	mrand.Seed(time.Now().UnixNano())
-	addr := strconv.Itoa(mrand.Int()%1000 + 1)
-	gasPrice := mrand.Int()%100000 + 1
-
-	nonce := 0
-	if n, ok := addrNonce[addr]; ok {
-		if gasPrice%177 == 0 {
-			nonce = n - 1
-		} else {
-			nonce = n
-		}
-	}
-	addrNonce[addr] = nonce + 1
-
-	tx := &mempoolTx{
-		height:    1,
-		gasWanted: int64(idx),
-		tx:        []byte(strconv.Itoa(idx)),
-		from:      addr,
-		realTx: abci.MockTx{
-			GasPrice: big.NewInt(int64(gasPrice)),
-			Nonce:    uint64(nonce),
-		},
-	}
-
-	return tx
-}
-
-func checkAccNonce(addr string, head *clist.CElement) bool {
-	nonce := uint64(0)
-
-	for head != nil {
-		if head.Address == addr {
-			if head.Nonce != nonce {
-				return false
-			}
-			nonce++
-		}
-
-		head = head.Next()
-	}
-
-	return true
-}
-
-func checkTx(head *clist.CElement) bool {
-	for head != nil {
-		next := head.Next()
-		if next == nil {
-			break
-		}
-
-		if head.Address == next.Address {
-			if head.Nonce >= next.Nonce {
-				return false
-			}
-		} else {
-			if head.GasPrice.Cmp(next.GasPrice) < 0 {
-				return false
-			}
-		}
-
-		head = head.Next()
-	}
-
-	return true
-}
-
-func TestMultiPriceBump(t *testing.T) {
+func TestMultiPriceBump_HeapQueue(t *testing.T) {
 	tests := []struct {
 		rawPrice    *big.Int
 		priceBump   uint64
@@ -805,14 +699,16 @@ func TestMultiPriceBump(t *testing.T) {
 	}
 }
 
-func TestAddAndSortTxConcurrency(t *testing.T) {
+func TestAddAndSortTxConcurrency_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
-	config.Mempool.SortTxByGp = true
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	//tx := &mempoolTx{height: 1, gasWanted: 1, tx:[]byte{0x01}}
 	type Case struct {
 		Tx *mempoolTx
@@ -854,41 +750,16 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 	wait.Wait()
 }
 
-func TestTxID(t *testing.T) {
-	var bytes = make([]byte, 256)
-	for i := 0; i < 10; i++ {
-		_, err := rand.Read(bytes)
-		require.NoError(t, err)
-		require.Equal(t, amino.HexEncodeToStringUpper(bytes), fmt.Sprintf("%X", bytes))
-	}
-}
-
-func BenchmarkTxID(b *testing.B) {
-	var bytes = make([]byte, 256)
-	_, _ = rand.Read(bytes)
-	var res string
-	b.Run("fmt", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			res = fmt.Sprintf("%X", bytes)
-		}
-	})
-	b.Run("amino", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			res = amino.HexEncodeToStringUpper(bytes)
-		}
-	})
-	_ = res
-}
-
-func TestReplaceTxWithMultiAddrs(t *testing.T) {
+func TestReplaceTxWithMultiAddrs_HeapQueue(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
 	config := cfg.ResetTestRoot("mempool_test")
+	config.Mempool.SortTxByGpWithHeap = true
+	config.Mempool.SortTxByGp = false
 	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
 	defer cleanup()
 
+	requireHeapQueue(t, mempool.txs)
 	tx1 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(9740), Nonce: 1}}
 	mempool.addTx(tx1)
 	tx2 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("90000"), from: "2", realTx: abci.MockTx{GasPrice: big.NewInt(10717), Nonce: 1}}
@@ -901,15 +772,21 @@ func TestReplaceTxWithMultiAddrs(t *testing.T) {
 	mempool.addTx(tx5)
 
 	var nonces []uint64
-	for e := mempool.txs.Front(); e != nil; e = e.Next() {
-		if e.Address == "1" {
-			nonces = append(nonces, e.Nonce)
+
+	hq := mempool.txs.(*HeapQueue)
+	heads := hq.Init()
+	tx := hq.Peek(heads)
+	for tx != nil {
+		if tx.from == "1" {
+			nonces = append(nonces, tx.realTx.GetNonce())
 		}
+		hq.Shift(&heads)
+		tx = hq.Peek(heads)
 	}
 	require.Equal(t, []uint64{1, 2}, nonces)
 }
 
-func BenchmarkMempoolLogUpdate(b *testing.B) {
+func BenchmarkMempoolLogUpdate_HeapQueue(b *testing.B) {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
 	var options []log.Option
 	options = append(options, log.AllowErrorWith("module", "benchmark"))
@@ -934,7 +811,7 @@ func BenchmarkMempoolLogUpdate(b *testing.B) {
 	})
 }
 
-func BenchmarkMempoolLogAddTx(b *testing.B) {
+func BenchmarkMempoolLogAddTx_HeapQueue(b *testing.B) {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
 	var options []log.Option
 	options = append(options, log.AllowErrorWith("module", "benchmark"))
@@ -970,27 +847,7 @@ func BenchmarkMempoolLogAddTx(b *testing.B) {
 	})
 }
 
-func TestTxOrTxHashToKey(t *testing.T) {
-	var tx = make([]byte, 256)
-	rand.Read(tx)
-
-	old := types.GetVenusHeight()
-
-	types.UnittestOnlySetMilestoneVenusHeight(1)
-
-	venus := types.GetVenusHeight()
-	txhash := types.Tx(tx).Hash(venus)
-
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil, venus))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
-	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus-1))
-	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
-
-	types.UnittestOnlySetMilestoneVenusHeight(old)
-}
-
-func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
+func TestCListMempool_GetEnableDeleteMinGPTx_HeapQueue(t *testing.T) {
 
 	testCases := []struct {
 		name     string
@@ -1002,9 +859,6 @@ func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
 			prepare: func(mempool *CListMempool, tt *testing.T) {
 				mempool.Flush()
 				err := mempool.CheckTx([]byte{0x01}, nil, TxInfo{})
-				moc := cfg.MockDynamicConfig{}
-				moc.SetEnableDeleteMinGPTx(false)
-				cfg.SetDynamicConfig(moc)
 				require.NoError(tt, err)
 			},
 			execFunc: func(mempool *CListMempool, tt *testing.T) {
@@ -1027,9 +881,7 @@ func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
 			execFunc: func(mempool *CListMempool, tt *testing.T) {
 				err := mempool.CheckTx([]byte{0x03}, nil, TxInfo{})
 				require.NoError(tt, err)
-				require.Equal(tt, 1, mempool.Size())
-				tx := mempool.txs.Back().Value.(*mempoolTx).tx
-				require.Equal(tt, byte(0x02), tx[0])
+				require.Equal(tt, 2, mempool.Size())
 			},
 		},
 	}
@@ -1038,9 +890,11 @@ func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
 		t.Run(tc.name, func(tt *testing.T) {
 			app := kvstore.NewApplication()
 			cc := proxy.NewLocalClientCreator(app)
-			mempool, cleanup := newMempoolWithApp(cc)
+			mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
 			mempool.config.MaxTxsBytes = 1 //  in unit test we only use tx bytes to  control mempool weather full
 			defer cleanup()
+
+			requireHeapQueue(t, mempool.txs)
 
 			tc.prepare(mempool, tt)
 			tc.execFunc(mempool, tt)
@@ -1049,12 +903,13 @@ func TestCListMempool_GetEnableDeleteMinGPTx(t *testing.T) {
 
 }
 
-func TestConsumePendingtxConcurrency(t *testing.T) {
+func TestConsumePendingtxConcurrency_HeapQueue(t *testing.T) {
 
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
-	mem, cleanup := newMempoolWithApp(cc)
+	mem, cleanup := newMempoolWithAppForHeapQueue(cc)
 	defer cleanup()
+	requireHeapQueue(t, mem.txs)
 	mem.pendingPool = newPendingPool(500000, 3, 10, 500000)
 
 	for i := 0; i < 10000; i++ {
@@ -1075,40 +930,293 @@ func TestConsumePendingtxConcurrency(t *testing.T) {
 	require.Equal(t, 0, mem.pendingPool.Size())
 }
 
-func TestCheckAndGetWrapCMTx(t *testing.T) {
-	wCMTx := &types.WrapCMTx{Tx: []byte("123456"), Nonce: 2}
-	wdata, err := cdc.MarshalJSON(wCMTx)
-	assert.NoError(t, err)
+func TestSerialRechecktTx_HeapQueue(t *testing.T) {
+	app := counter.NewApplication(true)
+	app.SetOption(abci.RequestSetOption{Key: "serial", Value: "on"})
+	cc := proxy.NewLocalClientCreator(app)
 
-	testcase := []struct {
-		tx     types.Tx
-		txInfo TxInfo
-		res    *types.WrapCMTx
-	}{
-		{
-			tx:     []byte("123"),
-			txInfo: TxInfo{wrapCMTx: &types.WrapCMTx{Tx: []byte("123"), Nonce: 1}},
-			res:    &types.WrapCMTx{Tx: []byte("123"), Nonce: 1},
-		},
-		{
-			tx:     []byte("123"),
-			txInfo: TxInfo{},
-			res:    nil,
-		},
-		{
-			tx:     wdata,
-			txInfo: TxInfo{},
-			res:    wCMTx,
-		},
-	}
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
+	defer cleanup()
 
-	clistMem := &CListMempool{}
-	for _, tc := range testcase {
-		re := clistMem.CheckAndGetWrapCMTx(tc.tx, tc.txInfo)
-		if re != nil {
-			assert.Equal(t, *re, *tc.res)
-		} else {
-			assert.Equal(t, re, tc.res)
+	requireHeapQueue(t, mempool.txs)
+	mempool.config.MaxTxNumPerBlock = 10000
+
+	appConnCon, _ := cc.NewABCIClient()
+	appConnCon.SetLogger(log.TestingLogger().With("module", "abci-client", "connection", "consensus"))
+	err := appConnCon.Start()
+	require.Nil(t, err)
+
+	cacheMap := make(map[string]struct{})
+	deliverTxsRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+
+			// This will succeed
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			err := mempool.CheckTx(txBytes, nil, TxInfo{})
+			_, cached := cacheMap[string(txBytes)]
+			if cached {
+				require.NotNil(t, err, "expected error for cached tx")
+			} else {
+				require.Nil(t, err, "expected no err for uncached tx")
+			}
+			cacheMap[string(txBytes)] = struct{}{}
+
+			// Duplicates are cached and should return error
+			err = mempool.CheckTx(txBytes, nil, TxInfo{})
+			require.NotNil(t, err, "Expected error after CheckTx on duplicated tx")
 		}
 	}
+
+	reapCheck := func(exp int) {
+		txs := mempool.ReapMaxTxs(exp)
+		require.Equal(t, len(txs), exp, fmt.Sprintf("Expected to reap %v txs but got %v", exp, len(txs)))
+	}
+
+	updateRange := func(start, end int) {
+		txs := make([]types.Tx, 0)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			txs = append(txs, txBytes)
+		}
+		if err := mempool.Update(0, txs, abciResponses(len(txs), abci.CodeTypeOK), nil, nil); err != nil {
+			t.Error(err)
+		}
+	}
+
+	commitRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			res, err := appConnCon.DeliverTxSync(abci.RequestDeliverTx{Tx: txBytes})
+			if err != nil {
+				t.Errorf("client error committing tx: %v", err)
+			}
+			if res.IsErr() {
+				t.Errorf("error committing tx. Code:%v result:%X log:%v",
+					res.Code, res.Data, res.Log)
+			}
+		}
+		res, err := appConnCon.CommitSync(abci.RequestCommit{})
+		if err != nil {
+			t.Errorf("client error committing: %v", err)
+		}
+		if len(res.Data) != 8 {
+			t.Errorf("error committing. Hash:%X", res.Data)
+		}
+	}
+
+	makeInvalidTx := func(start, end int) {
+		hq := mempool.txs.(*HeapQueue)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			vaule, ok := hq.txsMap.Load(txKey(txBytes))
+			require.True(t, ok)
+			vaule.(*clist.CElement).Value.(*mempoolTx).tx = make([]byte, 10)
+		}
+	}
+
+	//----------------------------------------
+
+	// Deliver 0 to 999, we should reap 900 new txs
+	// because 100 were already counted.
+	deliverTxsRange(0, BlockMaxTxNum+10)
+
+	// Commit from the conensus AppConn
+	commitRange(0, BlockMaxTxNum)
+	updateRange(0, BlockMaxTxNum)
+
+	reapCheck(10)
+	num := 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
+
+	makeInvalidTx(BlockMaxTxNum+2, BlockMaxTxNum+10)
+	updateRange(BlockMaxTxNum, BlockMaxTxNum+2)
+
+	num = 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
+}
+
+func TestSerialFlush_HeapQueue(t *testing.T) {
+	app := counter.NewApplication(true)
+	app.SetOption(abci.RequestSetOption{Key: "serial", Value: "on"})
+	cc := proxy.NewLocalClientCreator(app)
+
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
+	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
+	mempool.config.MaxTxNumPerBlock = 10000
+
+	appConnCon, _ := cc.NewABCIClient()
+	appConnCon.SetLogger(log.TestingLogger().With("module", "abci-client", "connection", "consensus"))
+	err := appConnCon.Start()
+	require.Nil(t, err)
+
+	cacheMap := make(map[string]struct{})
+	deliverTxsRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+
+			// This will succeed
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			err := mempool.CheckTx(txBytes, nil, TxInfo{})
+			_, cached := cacheMap[string(txBytes)]
+			if cached {
+				require.NotNil(t, err, "expected error for cached tx")
+			} else {
+				require.Nil(t, err, "expected no err for uncached tx")
+			}
+			cacheMap[string(txBytes)] = struct{}{}
+
+			// Duplicates are cached and should return error
+			err = mempool.CheckTx(txBytes, nil, TxInfo{})
+			require.NotNil(t, err, "Expected error after CheckTx on duplicated tx")
+		}
+	}
+
+	//----------------------------------------
+
+	// Deliver 0 to 999, we should reap 900 new txs
+	// because 100 were already counted.
+	deliverTxsRange(0, 1000)
+
+	mempool.Flush()
+	require.Equal(t, mempool.Size(), 0)
+}
+
+func TestDeleteMinGPTx_HeapQueue(t *testing.T) {
+	app := counter.NewApplication(true)
+	app.SetOption(abci.RequestSetOption{Key: "serial", Value: "on"})
+	cc := proxy.NewLocalClientCreator(app)
+
+	mempool, cleanup := newMempoolWithAppForHeapQueue(cc)
+	defer cleanup()
+
+	requireHeapQueue(t, mempool.txs)
+	mempool.config.MaxTxNumPerBlock = 10000
+
+	appConnCon, _ := cc.NewABCIClient()
+	appConnCon.SetLogger(log.TestingLogger().With("module", "abci-client", "connection", "consensus"))
+	err := appConnCon.Start()
+	require.Nil(t, err)
+
+	cacheMap := make(map[string]struct{})
+	deliverTxsRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+
+			// This will succeed
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			err := mempool.CheckTx(txBytes, nil, TxInfo{})
+			_, cached := cacheMap[string(txBytes)]
+			if cached {
+				require.NotNil(t, err, "expected error for cached tx")
+			} else {
+				require.Nil(t, err, "expected no err for uncached tx")
+			}
+			cacheMap[string(txBytes)] = struct{}{}
+
+			// Duplicates are cached and should return error
+			err = mempool.CheckTx(txBytes, nil, TxInfo{})
+			require.NotNil(t, err, "Expected error after CheckTx on duplicated tx")
+		}
+	}
+
+	reapCheck := func(exp int) {
+		txs := mempool.ReapMaxTxs(exp)
+		require.Equal(t, len(txs), exp, fmt.Sprintf("Expected to reap %v txs but got %v", exp, len(txs)))
+	}
+
+	updateRange := func(start, end int) {
+		txs := make([]types.Tx, 0)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			txs = append(txs, txBytes)
+		}
+		if err := mempool.Update(0, txs, abciResponses(len(txs), abci.CodeTypeOK), nil, nil); err != nil {
+			t.Error(err)
+		}
+	}
+
+	commitRange := func(start, end int) {
+		// Deliver some txs.
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			res, err := appConnCon.DeliverTxSync(abci.RequestDeliverTx{Tx: txBytes})
+			if err != nil {
+				t.Errorf("client error committing tx: %v", err)
+			}
+			if res.IsErr() {
+				t.Errorf("error committing tx. Code:%v result:%X log:%v",
+					res.Code, res.Data, res.Log)
+			}
+		}
+		res, err := appConnCon.CommitSync(abci.RequestCommit{})
+		if err != nil {
+			t.Errorf("client error committing: %v", err)
+		}
+		if len(res.Data) != 8 {
+			t.Errorf("error committing. Hash:%X", res.Data)
+		}
+	}
+
+	makeInvalidTx := func(start, end int) {
+		hq := mempool.txs.(*HeapQueue)
+		for i := start; i < end; i++ {
+			txBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(txBytes, uint64(i))
+			vaule, ok := hq.txsMap.Load(txKey(txBytes))
+			require.True(t, ok)
+			vaule.(*clist.CElement).Value.(*mempoolTx).tx = make([]byte, 10)
+		}
+	}
+
+	//----------------------------------------
+
+	// Deliver 0 to 999, we should reap 900 new txs
+	// because 100 were already counted.
+	deliverTxsRange(0, BlockMaxTxNum+10)
+
+	// Commit from the conensus AppConn
+	commitRange(0, BlockMaxTxNum)
+	updateRange(0, BlockMaxTxNum)
+
+	reapCheck(10)
+	num := 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
+
+	makeInvalidTx(BlockMaxTxNum+2, BlockMaxTxNum+10)
+	updateRange(BlockMaxTxNum, BlockMaxTxNum+2)
+
+	num = 0
+	mempool.recheckHeap.Range(func(key, value interface{}) bool {
+		num++
+		return true
+	})
+	require.Equal(t, num, 0)
+	require.Equal(t, mempool.recheckHeapSize, int64(0))
 }

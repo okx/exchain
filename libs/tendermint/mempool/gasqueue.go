@@ -148,3 +148,7 @@ func (q *GasTxQueue) removeElementByKey(key [32]byte) (ret *clist.CElement) {
 
 	return
 }
+
+func (q *GasTxQueue) Type() int {
+	return GasQueueType
+}

@@ -8,6 +8,12 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+const (
+	BasQueueType = iota
+	GasQueueType
+	HeapQueueType
+)
+
 type ITransactionQueue interface {
 	Len() int
 	Insert(tx *mempoolTx) error
@@ -19,6 +25,7 @@ type ITransactionQueue interface {
 	BroadcastLen() int
 	Load(hash [sha256.Size]byte) (*clist.CElement, bool)
 	TxsWaitChan() <-chan struct{}
+	Type() int
 
 	AddressRecorder
 }
@@ -124,4 +131,8 @@ func (q *BaseTxQueue) removeElementByKey(key [32]byte) *clist.CElement {
 
 func (q *BaseTxQueue) CleanItems(address string, nonce uint64) {
 	q.AddressRecord.CleanItems(address, nonce, q.removeElement)
+}
+
+func (q *BaseTxQueue) Type() int {
+	return BasQueueType
 }

@@ -19,12 +19,15 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
+
+var disableMinimumGP = big.NewInt(0)
 
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
@@ -70,6 +73,11 @@ type CListMempool struct {
 	// serial (ie. by abci responses which are called in serial).
 	recheckCursor *clist.CElement // next expected response
 	recheckEnd    *clist.CElement // re-checking stops here
+
+	recheckHeap     sync.Map // recheck map for heapqueue
+	recheckHeapSize int64    // recheck size for heapqueue
+
+	minimumGasPrice atomic.Value
 
 	// Keep a cache of already-seen txs.
 	// This reduces the pressure on the proxyApp.
@@ -136,6 +144,8 @@ func NewCListMempool(
 	var txQueue ITransactionQueue
 	if config.SortTxByGp {
 		txQueue = NewOptimizedTxQueue(int64(config.TxPriceBump))
+	} else if config.SortTxByGpWithHeap {
+		txQueue = NewHeapQueue(int64(config.TxPriceBump))
 	} else {
 		txQueue = NewBaseTxQueue()
 	}
@@ -147,19 +157,21 @@ func NewCListMempool(
 	gpoConfig := NewGPOConfig(cfg.DynamicConfig.GetDynamicGpWeight(), cfg.DynamicConfig.GetDynamicGpCheckBlocks())
 	gpo := NewOracle(gpoConfig)
 	mempool := &CListMempool{
-		config:        config,
-		proxyAppConn:  proxyAppConn,
-		height:        height,
-		recheckCursor: nil,
-		recheckEnd:    nil,
-		eventBus:      types.NopEventBus{},
-		logger:        log.NewNopLogger(),
-		metrics:       NopMetrics(),
-		txs:           txQueue,
-		simQueue:      make(chan *mempoolTx, 100000),
-		gasCache:      gasCache,
+		config:          config,
+		proxyAppConn:    proxyAppConn,
+		height:          height,
+		recheckCursor:   nil,
+		recheckEnd:      nil,
+		eventBus:        types.NopEventBus{},
+		logger:          log.NewNopLogger(),
+		metrics:         NopMetrics(),
+		txs:             txQueue,
+		simQueue:        make(chan *mempoolTx, 100000),
+		gasCache:        gasCache,
 		gpo:           gpo,
+		recheckHeapSize: 0,
 	}
+	mempool.minimumGasPrice.Store(disableMinimumGP)
 
 	if config.PendingRemoveEvent {
 		mempool.rmPendingTxChan = make(chan types.EventDataRmPendingTx, 1000)
@@ -259,8 +271,17 @@ func (mem *CListMempool) Flush() {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
 
-	for e := mem.txs.Front(); e != nil; e = e.Next() {
-		mem.removeTx(e)
+	if mem.txs.Type() != HeapQueueType {
+		for e := mem.txs.Front(); e != nil; e = e.Next() {
+			mem.removeTx(e)
+		}
+	} else {
+		hq := mem.txs.(*HeapQueue)
+		for _, v := range hq.txs {
+			for e := v.Front(); e != nil; e = e.Next() {
+				mem.removeTx(e)
+			}
+		}
 	}
 
 	_ = atomic.SwapInt64(&mem.txsBytes, 0)
@@ -426,7 +447,9 @@ func (mem *CListMempool) CheckAndGetWrapCMTx(tx types.Tx, txInfo TxInfo) *types.
 // When rechecking, we don't need the peerID, so the recheck callback happens
 // here.
 func (mem *CListMempool) globalCb(req *abci.Request, res *abci.Response) {
-	if mem.recheckCursor == nil {
+	if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) == 0 {
+		return
+	} else if mem.txs.Type() != HeapQueueType && mem.recheckCursor == nil {
 		return
 	}
 
@@ -452,7 +475,9 @@ func (mem *CListMempool) reqResCb(
 	externalCb func(*abci.Response),
 ) func(res *abci.Response) {
 	return func(res *abci.Response) {
-		if mem.recheckCursor != nil {
+		if mem.txs.Type() == HeapQueueType && atomic.LoadInt64(&mem.recheckHeapSize) != 0 {
+			panic("recheck cursor is not nil in reqResCb")
+		} else if mem.txs.Type() == HeapQueueType && mem.recheckCursor != nil {
 			// this should never happen
 			panic("recheck cursor is not nil in reqResCb")
 		}
@@ -586,11 +611,18 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		if err := mem.isFull(len(pendingTx.tx)); err != nil {
-			minGPTx := mem.txs.Back().Value.(*mempoolTx)
+			minGasPrice := big.NewInt(0)
+			if mem.txs.Type() == HeapQueueType {
+				minGasPrice = mem.minimumGasPrice.Load().(*big.Int)
+			} else {
+				minGPTx := mem.txs.Back().Value.(*mempoolTx)
+				minGasPrice = minGPTx.realTx.GetGasPrice()
+			}
+
 			// If disable deleteMinGPTx, it'old logic, must be remove cache key
 			// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
 
-			thresholdGasPrice := MultiPriceBump(minGPTx.realTx.GetGasPrice(), int64(mem.config.TxPriceBump))
+			thresholdGasPrice := MultiPriceBump(minGasPrice, int64(mem.config.TxPriceBump))
 			if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(pendingTx.realTx.GetGasPrice()) >= 0) {
 				time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 				continue
@@ -674,10 +706,17 @@ func (mem *CListMempool) resCbFirstTime(
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
-				minGPTx := mem.txs.Back().Value.(*mempoolTx)
+				minGasPrice := big.NewInt(0)
+				if mem.txs.Type() == HeapQueueType {
+					minGasPrice = mem.minimumGasPrice.Load().(*big.Int)
+				} else {
+					minGPTx := mem.txs.Back().Value.(*mempoolTx)
+					minGasPrice = minGPTx.realTx.GetGasPrice()
+				}
+
 				// If disable deleteMinGPTx, it'old logic, must be remove cache key
 				// If enable deleteMinGPTx,it's new logic, check tx.gasprice < minimum tx gas price then remove cache key
-				thresholdGasPrice := MultiPriceBump(minGPTx.realTx.GetGasPrice(), int64(mem.config.TxPriceBump))
+				thresholdGasPrice := MultiPriceBump(minGasPrice, int64(mem.config.TxPriceBump))
 				if !mem.GetEnableDeleteMinGPTx() || (mem.GetEnableDeleteMinGPTx() && thresholdGasPrice.Cmp(r.CheckTx.Tx.GetGasPrice()) >= 0) {
 					// remove from cache (mempool might have a space later)
 					mem.cache.RemoveKey(txkey)
@@ -766,12 +805,20 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 	switch r := res.Value.(type) {
 	case *abci.Response_CheckTx:
 		tx := req.GetCheckTx().Tx
-		memTx := mem.recheckCursor.Value.(*mempoolTx)
-		if !bytes.Equal(tx, memTx.tx) {
-			panic(fmt.Sprintf(
-				"Unexpected tx response from proxy during recheck\nExpected %X, got %X",
-				memTx.tx,
-				tx))
+
+		var memTx *mempoolTx
+		if mem.txs.Type() == HeapQueueType {
+			txkey := hex.EncodeToString(etherhash.Sum(tx))
+			value, ok := mem.recheckHeap.LoadAndDelete(txkey)
+			if !ok {
+				panic(fmt.Sprintf("The tx %X is not exist in recheckHeap. %X", txkey, tx))
+			}
+			memTx = value.(*mempoolTx)
+		} else {
+			memTx = mem.recheckCursor.Value.(*mempoolTx)
+			if !bytes.Equal(tx, memTx.tx) {
+				panic(fmt.Sprintf("Unexpected tx response from proxy during recheck\nExpected %X, got %X", memTx.tx, tx))
+			}
 		}
 		var postCheckErr error
 		if mem.postCheck != nil {
@@ -784,7 +831,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			mem.logger.Info("Tx is no longer valid", "tx", txIDStringer{tx, memTx.height}, "res", r, "err", postCheckErr)
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.cache.Remove(tx)
-			mem.removeTx(mem.recheckCursor)
+			mem.removeTxByKey(txKeyFromMempoolTx(memTx))
 
 			if mem.config.PendingRemoveEvent {
 				mem.rmPendingTxChan <- types.EventDataRmPendingTx{
@@ -794,6 +841,16 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 					types.Recheck,
 				}
 			}
+		}
+		if mem.txs.Type() == HeapQueueType {
+			atomic.AddInt64(&mem.recheckHeapSize, -1)
+			if atomic.LoadInt64(&mem.recheckHeapSize) == 0 {
+				// Done!
+				mem.logger.Info("Done rechecking txs")
+				// incase the recheck removed all txs
+				mem.notifyTxsAvailable()
+			}
+			return
 		}
 		if mem.recheckCursor == mem.recheckEnd {
 			mem.recheckCursor = nil
@@ -870,43 +927,88 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		mem.info.txCount = simCount
 		mem.info.gasUsed = simGas
 	}()
-	for e := mem.txs.Front(); e != nil; e = e.Next() {
-		memTx := e.Value.(*mempoolTx)
-		key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
-		if _, ok := txFilter[key]; ok {
-			// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
-			mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
-			continue
-		}
-		txFilter[key] = struct{}{}
-		// Check total size requirement
-		aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
-		if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
-			return txs
-		}
-		totalBytes += int64(len(memTx.tx)) + aminoOverhead
-		// Check total gas requirement.
-		// If maxGas is negative, skip this check.
-		// Since newTotalGas < masGas, which
-		// must be non-negative, it follows that this won't overflow.
-		gasWanted := atomic.LoadInt64(&memTx.gasWanted)
-		newTotalGas := totalGas + gasWanted
-		if maxGas > -1 && gasWanted >= maxGas {
-			mem.logger.Error("tx gas overflow", "txHash", hex.EncodeToString(key[:]), "gasWanted", gasWanted, "isSim", memTx.isSim)
-		}
-		if maxGas > -1 && newTotalGas > maxGas && len(txs) > 0 {
-			return txs
-		}
-		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
-			return txs
-		}
+	if mem.txs.Type() != HeapQueueType {
+		for e := mem.txs.Front(); e != nil; e = e.Next() {
+			memTx := e.Value.(*mempoolTx)
+			key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+			if _, ok := txFilter[key]; ok {
+				// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
+				mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
+				continue
+			}
+			txFilter[key] = struct{}{}
+			// Check total size requirement
+			aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
+			if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
+				return txs
+			}
+			totalBytes += int64(len(memTx.tx)) + aminoOverhead
+			// Check total gas requirement.
+			// If maxGas is negative, skip this check.
+			// Since newTotalGas < masGas, which
+			// must be non-negative, it follows that this won't overflow.
+			gasWanted := atomic.LoadInt64(&memTx.gasWanted)
+			newTotalGas := totalGas + gasWanted
+			if maxGas > -1 && gasWanted >= maxGas {
+				mem.logger.Error("tx gas overflow", "txHash", hex.EncodeToString(key[:]), "gasWanted", gasWanted, "isSim", memTx.isSim)
+			}
+			if maxGas > -1 && newTotalGas > maxGas && len(txs) > 0 {
+				return txs
+			}
+			if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
+				return txs
+			}
 
-		totalTxNum++
-		totalGas = newTotalGas
-		txs = append(txs, memTx.tx)
-		simGas += gasWanted
-		if atomic.LoadUint32(&memTx.isSim) > 0 {
-			simCount++
+			totalTxNum++
+			totalGas = newTotalGas
+			txs = append(txs, memTx.tx)
+			simGas += gasWanted
+			if atomic.LoadUint32(&memTx.isSim) > 0 {
+				simCount++
+			}
+		}
+	} else {
+		hq := mem.txs.(*HeapQueue)
+		heads := hq.Init()
+		tx := hq.Peek(heads)
+		for tx != nil {
+			memTx := tx
+			key := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), mem.Height())
+			if _, ok := txFilter[key]; ok {
+				// Just log error and ignore the dup tx. and it will be packed into the next block and deleted from mempool
+				mem.logger.Error("found duptx in same block", "tx hash", hex.EncodeToString(key[:]))
+				continue
+			}
+			txFilter[key] = struct{}{}
+			// Check total size requirement
+			aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
+			if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
+				return txs
+			}
+			totalBytes += int64(len(memTx.tx)) + aminoOverhead
+			// Check total gas requirement.
+			// If maxGas is negative, skip this check.
+			// Since newTotalGas < masGas, which
+			// must be non-negative, it follows that this won't overflow.
+			gasWanted := atomic.LoadInt64(&memTx.gasWanted)
+			newTotalGas := totalGas + gasWanted
+			if maxGas > -1 && newTotalGas > maxGas {
+				return txs
+			}
+			if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
+				return txs
+			}
+
+			totalTxNum++
+			totalGas = newTotalGas
+			txs = append(txs, memTx.tx)
+			simGas += gasWanted
+			if atomic.LoadUint32(&memTx.isSim) > 0 {
+				simCount++
+			}
+
+			hq.Shift(&heads)
+			tx = hq.Peek(heads)
 		}
 	}
 
@@ -923,10 +1025,24 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 	}
 
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max))
-	for e := mem.txs.Front(); e != nil && len(txs) <= max; e = e.Next() {
-		memTx := e.Value.(*mempoolTx)
-		txs = append(txs, memTx.tx)
+	if mem.txs.Type() != HeapQueueType {
+		for e := mem.txs.Front(); e != nil && len(txs) <= max; e = e.Next() {
+			memTx := e.Value.(*mempoolTx)
+			txs = append(txs, memTx.tx)
+		}
+	} else {
+		begin := time.Now()
+		hq := mem.txs.(*HeapQueue)
+		heads := hq.Init()
+		tx := hq.Peek(heads)
+		for tx != nil && len(txs) <= max {
+			txs = append(txs, tx.tx)
+			hq.Shift(&heads)
+			tx = hq.Peek(heads)
+		}
+		mem.logger.Error("ReapMaxTxs", "cost", time.Since(begin))
 	}
+
 	return txs
 }
 
@@ -1222,6 +1338,24 @@ func (mem *CListMempool) recheckTxs() {
 		panic("recheckTxs is called, but the mempool is empty")
 	}
 
+	if mem.txs.Type() == HeapQueueType {
+		hq := mem.txs.(*HeapQueue)
+		for _, v := range hq.txs {
+			for e := v.Front(); e != nil; e = e.Next() {
+				memTx := e.Value.(*mempoolTx)
+				hash := hex.EncodeToString(etherhash.Sum(memTx.tx))
+				mem.recheckHeap.Store(hash, memTx)
+				atomic.AddInt64(&mem.recheckHeapSize, 1)
+
+				mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{
+					Tx:   memTx.tx,
+					Type: abci.CheckTxType_Recheck,
+				})
+			}
+		}
+		mem.proxyAppConn.FlushAsync()
+		return
+	}
 	mem.recheckCursor = mem.txs.Front()
 	mem.recheckEnd = mem.txs.Back()
 
@@ -1372,6 +1506,14 @@ func txOrTxHashToKey(tx types.Tx, txHash []byte, height int64) (retHash [sha256.
 	}
 }
 
+func txKeyFromMempoolTx(tx *mempoolTx) [sha256.Size]byte {
+	var txHash []byte
+	if tx.realTx != nil {
+		txHash = tx.realTx.TxHash()
+	}
+	return txOrTxHashToKey(tx.tx, txHash, tx.height)
+}
+
 type txIDStringer struct {
 	tx     []byte
 	height int64
@@ -1464,21 +1606,75 @@ func (mem *CListMempool) simulationJob(memTx *mempoolTx) {
 }
 
 func (mem *CListMempool) deleteMinGPTxOnlyFull() {
-	//check weather exceed mempool size,then need to delet the minimum gas price
-	for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
-		removeTx := mem.txs.Back()
-		mem.removeTx(removeTx)
+	begin := time.Now()
+	defer mem.logger.Error("deleteMinGPTxOnlyFull", "time", time.Since(begin).String())
+	if mem.txs.Type() == HeapQueueType {
+		hq := mem.txs.(*HeapQueue)
+		var heads mempoolTxsByPriceReverse
+		//pre check mempool size for reducing time of InitReverse
+		if mem.Size() > (cfg.DynamicConfig.GetMempoolSize()*90/100) || mem.TxsBytes() > (mem.config.MaxTxsBytes*90/100) {
+			heads = hq.InitReverse()
+			nextEle := hq.PeekReverse(heads)
+			mem.logger.Error("!!!!! deleteMinGPTxOnlyFull update", "new", nextEle.GasPrice.Int64(), "old", mem.minimumGasPrice.Load().(*big.Int).Int64())
+			if nextEle == nil {
+				//  can not run  this line forever, but set minimumGasPrice to disable
+				mem.minimumGasPrice.Store(disableMinimumGP)
 
-		removeMemTx := removeTx.Value.(*mempoolTx)
-		var removeMemTxHash []byte
-		if removeMemTx.realTx != nil {
-			removeMemTxHash = removeMemTx.realTx.TxHash()
+			} else {
+				// this line means set gp of the latest tx
+				mem.minimumGasPrice.Store(nextEle.GasPrice)
+			}
+			hq.Puts(&heads)
 		}
-		mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
-		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+		mem.logger.Error("!!!!! deleteMinGPTxOnlyFull", "minGasPrice", mem.minimumGasPrice.Load().(*big.Int).Int64())
+		//check weather exceed mempool size,then need to delet the minimum gas price
+		for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+			removeTx := hq.PeekReverse(heads)
+			if removeTx == nil {
+				break
+			}
+			hq.ShiftReverse(&heads)
+			nextEle := hq.PeekReverse(heads)
+			if nextEle == nil {
+				//  can not run  this line forever, but set minimumGasPrice to disable
+				mem.minimumGasPrice.Store(disableMinimumGP)
+			} else {
+				// this line means set gp of the latest tx
+				mem.minimumGasPrice.Store(nextEle.GasPrice)
+			}
 
-		if mem.config.PendingRemoveEvent {
-			mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+			mem.removeTx(removeTx)
+
+			removeMemTx := removeTx.Value.(*mempoolTx)
+			var removeMemTxHash []byte
+			if removeMemTx.realTx != nil {
+				removeMemTxHash = removeMemTx.realTx.TxHash()
+			}
+			mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
+			mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+
+			if mem.config.PendingRemoveEvent {
+				mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+			}
+
+		}
+	} else {
+		//check weather exceed mempool size,then need to delet the minimum gas price
+		for mem.Size() > cfg.DynamicConfig.GetMempoolSize() || mem.TxsBytes() > mem.config.MaxTxsBytes {
+			removeTx := mem.txs.Back()
+			mem.removeTx(removeTx)
+
+			removeMemTx := removeTx.Value.(*mempoolTx)
+			var removeMemTxHash []byte
+			if removeMemTx.realTx != nil {
+				removeMemTxHash = removeMemTx.realTx.TxHash()
+			}
+			mem.logger.Debug("mempool", "delete Tx", hex.EncodeToString(removeMemTxHash), "nonce", removeMemTx.realTx.GetNonce(), "gp", removeMemTx.realTx.GetGasPrice())
+			mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
+
+			if mem.config.PendingRemoveEvent {
+				mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+			}
 		}
 	}
 }
