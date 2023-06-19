@@ -122,6 +122,8 @@ type OecConfig struct {
 
 	//
 	commitGapOffset int64
+
+	maxSubscriptionClients int
 }
 
 const (
@@ -159,6 +161,7 @@ const (
 	FlagEnableHasBlockPartMsg      = "enable-blockpart-ack"
 	FlagDebugGcInterval            = "debug.gc-interval"
 	FlagCommitGapOffset            = "commit-gap-offset"
+	FlagMaxSubscriptionClients     = "max-subscription-clients"
 )
 
 var (
@@ -308,6 +311,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
+	c.SetMaxSubscriptionClients(viper.GetInt(FlagMaxSubscriptionClients))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -380,7 +384,8 @@ func (c *OecConfig) format() string {
     commit-gap-height: %d
 	enable-analyzer: %v
     iavl-commit-async-no-batch: %v
-	active-view-change: %v`, system.ChainName,
+	active-view-change: %v
+	max_subscription_clients: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -410,6 +415,7 @@ func (c *OecConfig) format() string {
 		c.GetEnableAnalyzer(),
 		c.GetIavlAcNoBatch(),
 		c.GetActiveVC(),
+		c.GetMaxSubscriptionClients(),
 	)
 }
 
@@ -658,6 +664,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetCommitGapOffset(r)
+	case FlagMaxSubscriptionClients:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetMaxSubscriptionClients(r)
 	}
 
 }
@@ -1074,4 +1086,15 @@ func (c *OecConfig) GetIavlAcNoBatch() bool {
 
 func (c *OecConfig) SetIavlAcNoBatch(value bool) {
 	c.iavlAcNoBatch = value
+}
+
+func (c *OecConfig) SetMaxSubscriptionClients(v int) {
+	if v < 0 {
+		v = 0
+	}
+	c.maxSubscriptionClients = v
+}
+
+func (c *OecConfig) GetMaxSubscriptionClients() int {
+	return c.maxSubscriptionClients
 }
