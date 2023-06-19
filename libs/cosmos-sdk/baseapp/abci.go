@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -158,6 +159,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
+	if app.getGasConfigHandler != nil {
+		app.UpdateGlobalGasConfig(app.deliverState.ctx)
+	}
+
 	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
@@ -169,28 +174,22 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
-	app.feeCollector = sdk.Coins{}
-	app.feeChanged = false
+	app.feeCollector = nil
 	// clean FeeSplitCollector
 	app.FeeSplitCollector = make([]*sdk.FeeSplitInfo, 0)
 
 	return res
 }
 
-func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
-	if fee.IsZero() {
+func (app *BaseApp) UpdateGlobalGasConfig(ctx sdk.Context) {
+	if ctx.IsCheckTx() || ctx.IsTraceTx() {
 		return
 	}
-	app.feeChanged = true
-	if add {
-		app.feeCollector = app.feeCollector.Add(fee...)
-	} else {
-		app.feeCollector = app.feeCollector.Sub(fee)
-	}
+	stypes.UpdateGlobalGasConfig(app.getGasConfigHandler(ctx))
 }
 
 func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
-	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
+	if app.updateFeeCollectorAccHandler == nil {
 		return
 	}
 
@@ -467,7 +466,7 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 
 	msgs := tx.GetMsgs()
 
-	if enableFastQuery() {
+	if enableWasmFastQuery() {
 		isPureWasm := true
 		for _, msg := range msgs {
 			if msg.Route() != "wasm" {
@@ -476,10 +475,19 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 			}
 		}
 		if isPureWasm {
-			res, err := handleSimulateWasm(height, txBytes, msgs)
+			res, err := handleSimulateWasm(height, txBytes, msgs, app.checkState.ms.CacheMultiStore())
 			return res, shouldAddBuffer, err
 		}
 	}
+
+	if isMempoolSim {
+		gInfo, res, _ := app.MempoolSimulate(txBytes, tx, height, overrideBytes, from)
+		return sdk.SimulationResponse{
+			GasInfo: gInfo,
+			Result:  res,
+		}, shouldAddBuffer, nil
+	}
+
 	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
 	if err != nil && !isMempoolSim {
 		return sdk.SimulationResponse{}, false, sdkerrors.Wrap(err, "failed to simulate tx")
@@ -491,7 +499,7 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	}, shouldAddBuffer, nil
 }
 
-func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg) (simRes sdk.SimulationResponse, err error) {
+func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg, ms sdk.CacheMultiStore) (simRes sdk.SimulationResponse, err error) {
 	wasmSimulator := simulator.NewWasmSimulator()
 	defer wasmSimulator.Release()
 	defer func() {
@@ -507,7 +515,7 @@ func handleSimulateWasm(height int64, txBytes []byte, msgs []sdk.Msg) (simRes sd
 
 	wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
 	wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
-	res, err := wasmSimulator.Simulate(msgs)
+	res, err := wasmSimulator.Simulate(msgs, ms)
 	if err != nil {
 		return sdk.SimulationResponse{}, sdkerrors.Wrap(err, "failed to simulate wasm tx")
 	}
@@ -724,9 +732,9 @@ var (
 	fqOnce    sync.Once
 )
 
-func enableFastQuery() bool {
+func enableWasmFastQuery() bool {
 	fqOnce.Do(func() {
-		fastQuery = viper.GetBool("fast-query")
+		fastQuery = viper.GetBool("wasm-fast-query")
 	})
 	return fastQuery
 }

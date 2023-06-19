@@ -1,11 +1,12 @@
 package app
 
 import (
-	"encoding/hex"
 	"sort"
 	"strings"
 
+	appante "github.com/okex/exchain/app/ante"
 	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -13,16 +14,29 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 )
+
+func getFeeCollectorInfo(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorInfo {
+	return func(ctx sdk.Context, onlyGetFeeCollectorStoreKey bool) (sdk.Coins, []byte) {
+		if onlyGetFeeCollectorStoreKey {
+			return sdk.Coins{}, auth.AddressStoreKey(sk.GetModuleAddress(auth.FeeCollectorName))
+		}
+		return bk.GetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName)), nil
+	}
+}
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
-		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
-		if err != nil {
-			return err
+		if !balance.Empty() {
+			err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+			if err != nil {
+				return err
+			}
 		}
 
 		// split fee
@@ -31,7 +45,7 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 			feesplits, sortAddrs := groupByAddrAndSortFeeSplits(txFeesplit)
 			for _, addr := range sortAddrs {
 				acc := sdk.MustAccAddressFromBech32(addr)
-				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
+				err := sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
 				if err != nil {
 					return err
 				}
@@ -45,6 +59,12 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
 		return ek.FixLog(tx, logIndex, hasEnterEvmTx, anteErrs, resp)
+	}
+}
+
+func fixCosmosTxCountInWasmForParallelTx(storeKey sdk.StoreKey) sdk.UpdateCosmosTxCount {
+	return func(ctx sdk.Context, txCount int) {
+		wasmkeeper.UpdateTxCount(ctx, storeKey, txCount)
 	}
 }
 
@@ -96,10 +116,19 @@ func getTxFeeHandler() sdk.GetTxFeeHandler {
 }
 
 // getTxFeeAndFromHandler get tx fee and from
-func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string, err error) {
+func getTxFeeAndFromHandler(ek appante.EVMKeeper) sdk.GetTxFeeAndFromHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, isE2C bool, from string, to string, err error, supportPara bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
+			supportPara = true
+			if appante.IsE2CTx(ek, &ctx, evmTx) {
+				isE2C = true
+				// E2C will include cosmos Msg in the Payload.
+				// Sometimes, this Msg do not support parallel execution.
+				if !isParaSupportedE2CMsg(evmTx.Data.Payload) {
+					supportPara = false
+				}
+			}
 			err = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			if err != nil {
 				return
@@ -114,9 +143,15 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			}
 		} else if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
-			feePayer := feeTx.FeePayer(ctx)
-			feePayerAcc := ak.GetAccount(ctx, feePayer)
-			from = hex.EncodeToString(feePayerAcc.GetAddress())
+			if stdTx, ok := tx.(*auth.StdTx); ok && len(stdTx.Msgs) == 1 { // only support one message
+				if msg, ok := stdTx.Msgs[0].(interface{ CalFromAndToForPara() (string, string) }); ok {
+					from, to = msg.CalFromAndToForPara()
+					if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+						supportPara = true
+					}
+				}
+			}
+
 		}
 
 		return
@@ -144,4 +179,26 @@ func groupByAddrAndSortFeeSplits(txFeesplit []*sdk.FeeSplitInfo) (feesplits map[
 	sort.Strings(sortAddrs)
 
 	return
+}
+
+func isParaSupportedE2CMsg(payload []byte) bool {
+	// Here, payload must be E2C's Data.Payload
+	p, err := evm.ParseContractParam(payload)
+	if err != nil {
+		return false
+	}
+	mw, err := baseapp.ParseMsgWrapper(p)
+	if err != nil {
+		return false
+	}
+	switch mw.Name {
+	case "wasm/MsgInstantiateContract":
+		return false
+	case "wasm/MsgMigrateContract":
+		return false
+	case "wasm/MsgUpdateAdmin":
+		return false
+	default:
+		return true
+	}
 }

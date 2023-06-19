@@ -50,12 +50,15 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	//	txCount            uint32
-	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	watcher        *TxWatcher
-	feesplitInfo   *FeeSplitInfo
 
-	statedb  vm.StateDB
-	outOfGas bool
+	wasmSimulateCache map[string][]byte
+	overridesBytes    []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	watcher           *TxWatcher
+	feesplitInfo      *FeeSplitInfo
+
+	statedb         vm.StateDB
+	outOfGas        bool
+	mempoolSimulate bool // if mempoolSimulate = true, then is mempool simulate tx
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -105,6 +108,7 @@ func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache {
 	return c.cache
 }
+
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
@@ -184,11 +188,6 @@ func (c *Context) BlockHeader() abci.Header {
 func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
 }
-
-////TxCount
-//func (c *Context) TxCount() uint32 {
-//	return c.txCount
-//}
 
 // NewContext create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
@@ -402,6 +401,24 @@ func (c *Context) SetWatcher(w IWatcher) {
 	c.watcher.IWatcher = w
 }
 
+func (c *Context) SetWasmSimulateCache() {
+	c.wasmSimulateCache = getWasmCacheMap()
+}
+func (c *Context) GetWasmSimulateCache() map[string][]byte {
+	if c.wasmSimulateCache == nil {
+		c.wasmSimulateCache = getWasmCacheMap()
+		return c.wasmSimulateCache
+	}
+	return c.wasmSimulateCache
+}
+
+func (c *Context) MoveWasmSimulateCacheToPool() {
+	for k, _ := range c.wasmSimulateCache {
+		delete(c.wasmSimulateCache, k)
+	}
+	putBackWasmCacheMap(c.wasmSimulateCache)
+}
+
 func (c *Context) GetWatcher() IWatcher {
 	if c.watcher == nil {
 		return emptyWatcher
@@ -542,6 +559,14 @@ func (c Context) WithValue(key, value interface{}) Context {
 //	ctx.Value(key)
 func (c Context) Value(key interface{}) interface{} {
 	return c.ctx.Value(key)
+}
+
+func (c *Context) SetMempoolSimulate(v bool) {
+	c.mempoolSimulate = v
+}
+
+func (c *Context) IsMempoolSimulate() bool {
+	return c.mempoolSimulate
 }
 
 func (c *Context) SetOutOfGas(v bool) {

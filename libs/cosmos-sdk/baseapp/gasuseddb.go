@@ -76,11 +76,13 @@ func (h *HistoryGasUsedRecordDB) FlushHgu() {
 		return
 	}
 	latestGasKeys := make([]gasKey, len(h.latestGu))
+	index := 0
 	for key, gas := range h.latestGu {
-		latestGasKeys = append(latestGasKeys, gasKey{
+		latestGasKeys[index] = gasKey{
 			gas: gas,
 			key: key,
-		})
+		}
+		index++
 		delete(h.latestGu, key)
 	}
 	h.jobQueue <- func() { h.flushHgu(latestGasKeys...) } // closure
@@ -103,8 +105,8 @@ func (h *HistoryGasUsedRecordDB) getHgu(key []byte) (hgu int64, fromCache bool) 
 func (h *HistoryGasUsedRecordDB) flushHgu(gks ...gasKey) {
 	for _, gk := range gks {
 		hgu, cacheHit := h.getHgu([]byte(gk.key))
-		// avgGas = 0.4 * newGas + 0.6 * oldGas
-		avgGas := int64(GasUsedFactor*float64(gk.gas) + (1.0-GasUsedFactor)*float64(hgu))
+		// avgGas = 0.4 * newGas + 0.6 * oldGas.The value of wasm store contract is too small and need to be rounded up.
+		avgGas := int64(GasUsedFactor*float64(gk.gas) + (1.0-GasUsedFactor)*float64(hgu) + 0.6)
 		// add to cache if hit
 		if cacheHit {
 			h.cache.Add(gk.key, avgGas)
