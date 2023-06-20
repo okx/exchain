@@ -191,14 +191,14 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 	}
 
 	// delta producer
-	if dc.uploadDelta {
+	if dc.uploadDelta && !types.WasmStoreCode {
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
 
 		wdFunc := evmWatchDataManager.CreateWatchDataGenerator()
 		wasmWdFunc := wasmWatchDataManager.CreateWatchDataGenerator()
 		go dc.uploadData(height, abciResponses, deltaMap, wdFunc, wasmWdFunc)
-
 	}
+	types.WasmStoreCode = false
 }
 
 func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc, wasmWdFunc func() ([]byte, error)) {
