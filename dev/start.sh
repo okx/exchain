@@ -37,6 +37,8 @@ run() {
       --append-pid=true \
       --iavl-output-modules evm=0,acc=0 \
       --commit-gap-height 3 \
+      --state-sync.snapshot-interval 10 \
+      --state-sync.snapshot-keep-recent 100 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &

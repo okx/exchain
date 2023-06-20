@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/snapshots"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/okex/exchain/app/logevents"
@@ -155,6 +157,16 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		panic(err)
 	}
 
+	snapshotDir := filepath.Join(viper.GetString(flags.FlagHome), "data", "snapshots")
+	snapshotDB, err := sdk.NewDB("metadata", snapshotDir)
+	if err != nil {
+		panic(err)
+	}
+	snapshotStore, err := snapshots.NewStore(snapshotDB, snapshotDir)
+	if err != nil {
+		panic(err)
+	}
+
 	return app.NewOKExChainApp(
 		logger,
 		db,
@@ -165,6 +177,9 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application
 		baseapp.SetPruning(pruningOpts),
 		baseapp.SetMinGasPrices(viper.GetString(server.FlagMinGasPrices)),
 		baseapp.SetHaltHeight(uint64(viper.GetInt(server.FlagHaltHeight))),
+		baseapp.SetSnapshotStore(snapshotStore),
+		baseapp.SetSnapshotInterval(viper.GetUint64(server.FlagStateSyncSnapshotInterval)),
+		baseapp.SetSnapshotKeepRecent(viper.GetUint32(server.FlagStateSyncSnapshotKeepRecent)),
 	)
 }
 

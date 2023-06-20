@@ -75,6 +75,12 @@ const (
 	FlagEventBlockTime = "event-block-time"
 )
 
+// State sync-related flags.
+const (
+	FlagStateSyncSnapshotInterval   = "state-sync.snapshot-interval"
+	FlagStateSyncSnapshotKeepRecent = "state-sync.snapshot-keep-recent"
+)
+
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
 func StartCmd(ctx *Context,

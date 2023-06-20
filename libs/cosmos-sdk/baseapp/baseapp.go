@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/snapshots"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -159,6 +160,11 @@ type BaseApp struct { // nolint: maligned
 	getTxFeeHandler        sdk.GetTxFeeHandler
 	updateCMTxNonceHandler sdk.UpdateCMTxNonceHandler
 	getGasConfigHandler    sdk.GetGasConfigHandler
+
+	// manages snapshots, i.e. dumps of app state at certain intervals
+	snapshotManager    *snapshots.Manager
+	snapshotInterval   uint64 // block interval between state sync snapshots
+	snapshotKeepRecent uint32 // recent state sync snapshots to keep
 
 	// volatile states:
 	//
@@ -459,6 +465,12 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 		}
 		return nil
 	}
+}
+
+// SnapshotManager returns the snapshot manager.
+// application use this to register extra extension snapshotters.
+func (app *BaseApp) SnapshotManager() *snapshots.Manager {
+	return app.snapshotManager
 }
 
 // LoadVersion loads the BaseApp application version. It will panic if called

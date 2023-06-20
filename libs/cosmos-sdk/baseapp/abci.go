@@ -340,6 +340,10 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 		app.halt()
 	}
 
+	if app.snapshotInterval > 0 && uint64(header.Height)%app.snapshotInterval == 0 {
+		go app.snapshot(header.Height)
+	}
+
 	return abci.ResponseCommit{
 		Data:     commitID.Hash,
 		DeltaMap: output,
@@ -367,6 +371,36 @@ func (app *BaseApp) halt() {
 	// via SIGINT/SIGTERM signals.
 	app.logger.Info("failed to send SIGINT/SIGTERM; exiting...")
 	os.Exit(0)
+}
+
+// snapshot takes a snapshot of the current state and prunes any old snapshottypes.
+func (app *BaseApp) snapshot(height int64) {
+	if app.snapshotManager == nil {
+		app.logger.Info("snapshot manager not configured")
+		return
+	}
+
+	app.logger.Info("creating state snapshot", "height", height)
+
+	snapshot, err := app.snapshotManager.Create(uint64(height))
+	if err != nil {
+		app.logger.Error("failed to create state snapshot", "height", height, "err", err)
+		return
+	}
+
+	app.logger.Info("completed state snapshot", "height", height, "format", snapshot.Format)
+
+	if app.snapshotKeepRecent > 0 {
+		app.logger.Debug("pruning state snapshots")
+
+		pruned, err := app.snapshotManager.Prune(app.snapshotKeepRecent)
+		if err != nil {
+			app.logger.Error("Failed to prune state snapshots", "err", err)
+			return
+		}
+
+		app.logger.Debug("pruned state snapshots", "pruned", pruned)
+	}
 }
 
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it

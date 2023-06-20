@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	snapshottypes "github.com/okex/exchain/libs/cosmos-sdk/snapshots/types"
 	"io"
 
 	"github.com/okex/exchain/libs/iavl"
@@ -164,6 +165,7 @@ type CacheMultiStoreResetter interface {
 type CommitMultiStore interface {
 	Committer
 	MultiStore
+	snapshottypes.Snapshotter
 	CommitMultiStorePipeline
 	CommitterCommitMap(iavl.TreeDeltaMap) (CommitID, iavl.TreeDeltaMap) // CommitterCommit
 

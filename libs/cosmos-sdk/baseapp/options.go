@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/snapshots"
 	"io"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -47,6 +48,21 @@ func SetInterBlockCache(cache sdk.MultiStorePersistentCache) func(*BaseApp) {
 // SetTrace will turn on or off trace flag
 func SetTrace(trace bool) func(*BaseApp) {
 	return func(app *BaseApp) { app.setTrace(trace) }
+}
+
+// SetSnapshotInterval sets the snapshot interval.
+func SetSnapshotInterval(interval uint64) func(*BaseApp) {
+	return func(app *BaseApp) { app.SetSnapshotInterval(interval) }
+}
+
+// SetSnapshotKeepRecent sets the recent snapshots to keep.
+func SetSnapshotKeepRecent(keepRecent uint32) func(*BaseApp) {
+	return func(app *BaseApp) { app.SetSnapshotKeepRecent(keepRecent) }
+}
+
+// SetSnapshotStore sets the snapshot store.
+func SetSnapshotStore(snapshotStore *snapshots.Store) func(*BaseApp) {
+	return func(app *BaseApp) { app.SetSnapshotStore(snapshotStore) }
 }
 
 func (app *BaseApp) SetName(name string) {
@@ -161,6 +177,34 @@ func (app *BaseApp) SetRouter(router sdk.Router) {
 		panic("SetRouter() on sealed BaseApp")
 	}
 	app.router = router
+}
+
+// SetSnapshotStore sets the snapshot store.
+func (app *BaseApp) SetSnapshotStore(snapshotStore *snapshots.Store) {
+	if app.sealed {
+		panic("SetSnapshotStore() on sealed BaseApp")
+	}
+	if snapshotStore == nil {
+		app.snapshotManager = nil
+		return
+	}
+	app.snapshotManager = snapshots.NewManager(snapshotStore, app.cms)
+}
+
+// SetSnapshotInterval sets the snapshot interval.
+func (app *BaseApp) SetSnapshotInterval(snapshotInterval uint64) {
+	if app.sealed {
+		panic("SetSnapshotInterval() on sealed BaseApp")
+	}
+	app.snapshotInterval = snapshotInterval
+}
+
+// SetSnapshotKeepRecent sets the number of recent snapshots to keep.
+func (app *BaseApp) SetSnapshotKeepRecent(snapshotKeepRecent uint32) {
+	if app.sealed {
+		panic("SetSnapshotKeepRecent() on sealed BaseApp")
+	}
+	app.snapshotKeepRecent = snapshotKeepRecent
 }
 
 func (app *BaseApp) SetUpdateFeeCollectorAccHandler(handler sdk.UpdateFeeCollectorAccHandler) {

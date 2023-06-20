@@ -102,6 +102,10 @@ var (
 	ErrInvalidChainID = Register(RootCodespace, 28, "invalid chain-id")
 
 	ErrNotFound = Register(RootCodespace, 38, "not found")
+
+	// ErrConflict defines a conflict error, e.g. when two goroutines try to access
+	// the same resource and one of them fails.
+	ErrConflict = Register(RootCodespace, 36, "conflict")
 )
 
 // Register returns an error instance that should be used as the base for
