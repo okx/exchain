@@ -706,7 +706,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	}
 
 	if mode == runTxModeDeliver {
-		ctx.SetDeliver()
+		ctx.SetDeliverSerial()
 	}
 	ctx.SetFeeSplitInfo(&sdk.FeeSplitInfo{})
 
