@@ -46,7 +46,9 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case *MsgStoreCode: //nolint:typecheck
-			types2.WasmStoreCode = true
+			if !ctx.IsCheckTx() {
+				types2.WasmStoreCode = true
+			}
 			res, err = msgServer.StoreCode(sdk.WrapSDKContext(ctx), msg)
 		case *MsgInstantiateContract:
 			res, err = msgServer.InstantiateContract(sdk.WrapSDKContext(ctx), msg)
