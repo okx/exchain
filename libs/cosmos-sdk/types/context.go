@@ -304,7 +304,7 @@ func (c *Context) SetIsCheckTx(isCheckTx bool) *Context {
 	return c
 }
 
-func (c *Context) SetIsDeliverTx(isDeliverWithSerial bool) *Context {
+func (c *Context) SetIsDeliverTxSerial(isDeliverWithSerial bool) *Context {
 	c.isDeliverWithSerial = isDeliverWithSerial
 	return c
 }
