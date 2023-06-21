@@ -94,7 +94,7 @@ func (k Keeper) SetFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 	store.Set(key.Bytes(), bz)
 
 	// update cache
-	if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+	if ctx.IsDeliverWithSerial() || ctx.ParaMsg() != nil {
 		types.GetParamsCache().UpdateFeeSplit(feeSplit.ContractAddress, feeSplit, ctx.IsCheckTx())
 	}
 }
@@ -106,7 +106,7 @@ func (k Keeper) DeleteFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 	store.Delete(key.Bytes())
 
 	// update cache
-	if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+	if ctx.IsDeliverWithSerial() || ctx.ParaMsg() != nil {
 		types.GetParamsCache().DeleteFeeSplit(feeSplit.ContractAddress, ctx.IsCheckTx())
 	}
 }
@@ -196,7 +196,7 @@ func (k Keeper) SetContractShare(
 	store.Set(contract.Bytes(), share.Bytes())
 
 	// update cache
-	if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+	if ctx.IsDeliverWithSerial() || ctx.ParaMsg() != nil {
 		types.GetParamsCache().UpdateShare(contract, share, ctx.IsCheckTx())
 	}
 }
