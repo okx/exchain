@@ -35,7 +35,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		// update watcher
 		defer func() {
 			// update watchDB when delivering tx
-			if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+			if ctx.IsDeliverWithSerial() || ctx.ParaMsg() != nil {
 				watcher.Save(err)
 			}
 
@@ -46,6 +46,9 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 
 		switch msg := msg.(type) {
 		case *MsgStoreCode: //nolint:typecheck
+			if !ctx.IsCheckTx() {
+				types2.WasmStoreCode = true
+			}
 			res, err = msgServer.StoreCode(sdk.WrapSDKContext(ctx), msg)
 		case *MsgInstantiateContract:
 			res, err = msgServer.InstantiateContract(sdk.WrapSDKContext(ctx), msg)

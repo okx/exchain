@@ -24,41 +24,41 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx                context.Context
-	ms                 MultiStore
-	header             *abci.Header
-	chainID            string
-	from               string
-	txBytes            []byte
-	logger             log.Logger
-	voteInfo           []abci.VoteInfo
-	gasMeter           GasMeter
-	blockGasMeter      GasMeter
-	isDeliver          bool
-	checkTx            bool
-	recheckTx          bool   // if recheckTx == true, then checkTx must also be true
-	wrappedCheckTx     bool   // if wrappedCheckTx == true, then checkTx must also be true
-	traceTx            bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
-	traceTxLog         bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
-	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
-	minGasPrice        DecCoins
-	consParams         *abci.ConsensusParams
-	eventManager       *EventManager
-	accountNonce       uint64
-	cache              *Cache
-	trc                *trace.Tracer
-	accountCache       *AccountCache
-	paraMsg            *ParaMsg
+	ctx                 context.Context
+	ms                  MultiStore
+	header              *abci.Header
+	chainID             string
+	from                string
+	txBytes             []byte
+	logger              log.Logger
+	voteInfo            []abci.VoteInfo
+	gasMeter            GasMeter
+	blockGasMeter       GasMeter
+	isDeliverWithSerial bool
+	checkTx             bool
+	recheckTx           bool   // if recheckTx == true, then checkTx must also be true
+	wrappedCheckTx      bool   // if wrappedCheckTx == true, then checkTx must also be true
+	traceTx             bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog          bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	traceTxConfigBytes  []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
+	minGasPrice         DecCoins
+	consParams          *abci.ConsensusParams
+	eventManager        *EventManager
+	accountNonce        uint64
+	cache               *Cache
+	trc                 *trace.Tracer
+	accountCache        *AccountCache
+	paraMsg             *ParaMsg
 	//	txCount            uint32
 
-	wasmKvStoreForSimulate *KVStore
-	overridesBytes         []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	watcher                *TxWatcher
-	feesplitInfo           *FeeSplitInfo
+	wasmSimulateCache map[string][]byte
+	overridesBytes    []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	watcher           *TxWatcher
+	feesplitInfo      *FeeSplitInfo
 
-	statedb  vm.StateDB
-	outOfGas bool
-  mempoolSimulate bool // if mempoolSimulate = true, then is mempool simulate tx
+	statedb         vm.StateDB
+	outOfGas        bool
+	mempoolSimulate bool // if mempoolSimulate = true, then is mempool simulate tx
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -87,12 +87,12 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 
-func (c *Context) IsDeliver() bool {
-	return c.isDeliver
+func (c *Context) IsDeliverWithSerial() bool {
+	return c.isDeliverWithSerial
 }
 
 func (c *Context) UseParamCache() bool {
-	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock) || c.checkTx
+	return c.isDeliverWithSerial || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock) || c.checkTx
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
@@ -109,9 +109,6 @@ func (c *Context) Cache() *Cache {
 	return c.cache
 }
 
-func (c *Context) WasmKvStoreForSimulate() KVStore {
-	return *c.wasmKvStoreForSimulate
-}
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
@@ -192,36 +189,26 @@ func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
 }
 
-// //TxCount
-//
-//	func (c *Context) TxCount() uint32 {
-//		return c.txCount
-//	}
-var (
-	nilKvStore = KVStore(nil)
-)
-
 // NewContext create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
 	// https://github.com/gogo/protobuf/issues/519
 	header.Time = header.Time.UTC()
 	return Context{
-		ctx:                    context.Background(),
-		ms:                     ms,
-		header:                 &header,
-		chainID:                header.ChainID,
-		checkTx:                isCheckTx,
-		logger:                 logger,
-		gasMeter:               stypes.NewInfiniteGasMeter(),
-		minGasPrice:            DecCoins{},
-		eventManager:           NewEventManager(),
-		watcher:                &TxWatcher{EmptyWatcher{}},
-		wasmKvStoreForSimulate: &nilKvStore,
+		ctx:          context.Background(),
+		ms:           ms,
+		header:       &header,
+		chainID:      header.ChainID,
+		checkTx:      isCheckTx,
+		logger:       logger,
+		gasMeter:     stypes.NewInfiniteGasMeter(),
+		minGasPrice:  DecCoins{},
+		eventManager: NewEventManager(),
+		watcher:      &TxWatcher{EmptyWatcher{}},
 	}
 }
 
-func (c *Context) SetDeliver() *Context {
-	c.isDeliver = true
+func (c *Context) SetDeliverSerial() *Context {
+	c.isDeliverWithSerial = true
 	return c
 }
 
@@ -317,8 +304,8 @@ func (c *Context) SetIsCheckTx(isCheckTx bool) *Context {
 	return c
 }
 
-func (c *Context) SetIsDeliverTx(isDeliverTx bool) *Context {
-	c.isDeliver = isDeliverTx
+func (c *Context) SetIsDeliverTxSerial(isDeliverWithSerial bool) *Context {
+	c.isDeliverWithSerial = isDeliverWithSerial
 	return c
 }
 
@@ -414,12 +401,22 @@ func (c *Context) SetWatcher(w IWatcher) {
 	c.watcher.IWatcher = w
 }
 
-func (c *Context) SetWasmKvStoreForSimulate(k KVStore) {
-	*c.wasmKvStoreForSimulate = k
+func (c *Context) SetWasmSimulateCache() {
+	c.wasmSimulateCache = getWasmCacheMap()
+}
+func (c *Context) GetWasmSimulateCache() map[string][]byte {
+	if c.wasmSimulateCache == nil {
+		c.wasmSimulateCache = getWasmCacheMap()
+		return c.wasmSimulateCache
+	}
+	return c.wasmSimulateCache
 }
 
-func (c *Context) ResetWasmKvStoreForSimulate() {
-	*c.wasmKvStoreForSimulate = KVStore(nil)
+func (c *Context) MoveWasmSimulateCacheToPool() {
+	for k, _ := range c.wasmSimulateCache {
+		delete(c.wasmSimulateCache, k)
+	}
+	putBackWasmCacheMap(c.wasmSimulateCache)
 }
 
 func (c *Context) GetWatcher() IWatcher {

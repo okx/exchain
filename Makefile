@@ -7,13 +7,13 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
-GO_VERSION=1.17
+GO_VERSION=1.20
 ROCKSDB_VERSION=6.27.3
 IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.7.5
+Version=v1.7.7
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3

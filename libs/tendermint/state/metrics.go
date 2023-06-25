@@ -27,6 +27,8 @@ type Metrics struct {
 	AbciTime metrics.Gauge
 	// Time during commiting app state
 	CommitTime metrics.Gauge
+
+	CommittedHeight metrics.Gauge
 }
 
 // PrometheusMetrics returns Metrics build using Prometheus client library.
@@ -64,6 +66,12 @@ func PrometheusMetrics(namespace string, labelsAndValues ...string) *Metrics {
 			Name:      "block_commit_time",
 			Help:      "Time during commiting app state in ms.",
 		}, labels).With(labelsAndValues...),
+		CommittedHeight: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: MetricsSubsystem,
+			Name:      "monitor_block_height",
+			Help:      "The block height.",
+		}, labels).With(labelsAndValues...),
 	}
 }
 
@@ -75,5 +83,6 @@ func NopMetrics() *Metrics {
 		lastBlockTime:       time.Now().UnixNano(),
 		AbciTime:            discard.NewGauge(),
 		CommitTime:          discard.NewGauge(),
+		CommittedHeight:     discard.NewGauge(),
 	}
 }

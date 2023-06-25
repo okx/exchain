@@ -6,9 +6,15 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math"
+	"path/filepath"
+	"strconv"
+	"strings"
+
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/gogo/protobuf/proto"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -20,15 +26,11 @@ import (
 	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/okex/exchain/x/wasm/watcher"
-	"math"
-	"path/filepath"
-	"strconv"
-	"strings"
 )
 
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
 // constant value so all nodes run with the same limit.
-const contractMemoryLimit = 32
+const ContractMemoryLimit = 32
 const SupportedFeatures = "iterator,staking,stargate"
 
 type contextKey int
@@ -125,14 +127,23 @@ func NewKeeper(
 	}
 	watcher.SetWatchDataManager()
 	wasmStorageKey = storeKey
+	*wasmAccountKeeper = accountKeeper
+	*WasmbankKeeper = bankKeeper
 	k := newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, defaultAdapter{}, opts...)
+	*wasmGasRegister = k.gasRegister
 	accountKeeper.SetObserverKeeper(k)
 
 	return k
 }
 
 var (
-	wasmStorageKey = sdk.StoreKey(sdk.NewKVStoreKey("wasm")) // need reset by NewKeeper
+	nilwasmGasRegister = GasRegister(nil)
+	nilAccountKeeper   = types.AccountKeeper(nil)
+	nilBankKeeper      = types.BankKeeper(nil)
+	wasmStorageKey     = sdk.StoreKey(sdk.NewKVStoreKey("wasm")) // need reset by NewKeeper
+	wasmAccountKeeper  = &nilAccountKeeper                       //need reset by NewKeeper
+	WasmbankKeeper     = &nilBankKeeper
+	wasmGasRegister    = &nilwasmGasRegister
 )
 
 func NewSimulateKeeper(
@@ -151,7 +162,9 @@ func NewSimulateKeeper(
 	supportedFeatures string,
 	opts ...Option,
 ) Keeper {
-	return newKeeper(cdc, wasmStorageKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, watcher.Adapter{}, opts...)
+	k := newKeeper(cdc, wasmStorageKey, paramSpace, *wasmAccountKeeper, *WasmbankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, watcher.Adapter{}, opts...)
+	k.gasRegister = *wasmGasRegister
+	return k
 }
 
 func newKeeper(cdc *codec.CodecProxy,
@@ -171,7 +184,8 @@ func newKeeper(cdc *codec.CodecProxy,
 	ada types.DBAdapter,
 	opts ...Option,
 ) Keeper {
-	wasmer, err := wasmvm.NewVM(filepath.Join(homeDir, "wasm"), supportedFeatures, contractMemoryLimit, wasmConfig.ContractDebugMode, wasmConfig.MemoryCacheSize)
+
+	wasmer, err := wasmvm.NewVM(filepath.Join(homeDir, "wasm"), supportedFeatures, ContractMemoryLimit, wasmConfig.ContractDebugMode, wasmConfig.MemoryCacheSize)
 	if err != nil {
 		panic(err)
 	}
@@ -438,6 +452,10 @@ func (k Keeper) importCode(ctx sdk.Context, codeID uint64, codeInfo types.CodeIn
 
 func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.WasmAddress, initMsg []byte, label string, deposit sdk.Coins, authZ AuthorizationPolicy) (sdk.WasmAddress, []byte, error) {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "instantiate")
+	// This method does not support parallel execution.
+	if ctx.ParaMsg() != nil {
+		ctx.ParaMsg().InvalidExecute = true
+	}
 	instanceCosts := k.gasRegister.NewContractInstanceCosts(k.IsPinnedCode(ctx, codeID), len(initMsg))
 	ctx.GasMeter().ConsumeGas(instanceCosts, "Loading CosmWasm module: instantiate")
 	// create contract address
@@ -594,6 +612,10 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 
 func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, newCodeID uint64, msg []byte, authZ AuthorizationPolicy) ([]byte, error) {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "migrate")
+	// This method does not support parallel execution.
+	if ctx.ParaMsg() != nil {
+		ctx.ParaMsg().InvalidExecute = true
+	}
 	migrateSetupCosts := k.gasRegister.InstantiateContractCosts(k.IsPinnedCode(ctx, newCodeID), len(msg))
 	ctx.GasMeter().ConsumeGas(migrateSetupCosts, "Loading CosmWasm module: migrate")
 
@@ -766,6 +788,10 @@ func (k Keeper) IterateContractsByCode(ctx sdk.Context, codeID uint64, cb func(a
 }
 
 func (k Keeper) setContractAdmin(ctx sdk.Context, contractAddress, caller, newAdmin sdk.WasmAddress, authZ AuthorizationPolicy) (err error) {
+	// This method does not support parallel execution.
+	if ctx.ParaMsg() != nil {
+		ctx.ParaMsg().InvalidExecute = true
+	}
 	gas := ctx.GasMeter().GasConsumed()
 	defer func() {
 		if !ctx.IsCheckTx() && k.innertxKeeper != nil {

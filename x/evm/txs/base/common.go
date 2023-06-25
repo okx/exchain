@@ -56,7 +56,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 	st.TraceTxLog = ctx.IsTraceTxLog()
 	st.SetCallToCM(k.GetCallToCM())
 
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) && ctx.IsDeliver() {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) && ctx.IsDeliverWithSerial() {
 		st.Csdb = k.EvmStateDb.WithContext(*ctx)
 	} else {
 		csdb := getCommitStateDB()

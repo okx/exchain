@@ -354,22 +354,6 @@ func (m *MsgStoreCode) CalFromAndToForPara() (string, string) {
 	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), ""
 }
 
-func (m *MsgInstantiateContract) CalFromAndToForPara() (string, string) {
-	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), ""
-}
-
 func (m *MsgExecuteContract) CalFromAndToForPara() (string, string) {
-	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
-}
-
-func (m *MsgMigrateContract) CalFromAndToForPara() (string, string) {
-	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
-}
-
-func (m *MsgUpdateAdmin) CalFromAndToForPara() (string, string) {
-	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
-}
-
-func (m *MsgClearAdmin) CalFromAndToForPara() (string, string) {
 	return strings.ToLower(ethcmm.BytesToAddress(m.GetSigners()[0]).String()[2:]), m.Contract
 }

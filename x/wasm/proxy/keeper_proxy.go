@@ -32,8 +32,6 @@ const (
 	accountBytesLen = 80
 )
 
-var gasConfig = types2.KVGasConfig()
-
 // AccountKeeperProxy defines the expected account keeper interface
 type AccountKeeperProxy struct {
 	cachedAcc map[string]*apptypes.EthAccount
@@ -63,6 +61,7 @@ func (a AccountKeeperProxy) IterateAccounts(ctx sdk.Context, cb func(account aut
 }
 
 func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account {
+	gasConfig := types2.KVGasConfig()
 	ctx.GasMeter().ConsumeGas(gasConfig.ReadCostFlat, types2.GasReadCostFlatDesc)
 	ctx.GasMeter().ConsumeGas(gasConfig.ReadCostPerByte*accountBytesLen, types2.GasReadPerByteDesc)
 	acc, ok := a.cachedAcc[addr.String()]
@@ -82,6 +81,7 @@ func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Acc
 		a.cachedAcc = make(map[string]*apptypes.EthAccount)
 	}
 	a.cachedAcc[account.GetAddress().String()] = acc
+	gasConfig := types2.KVGasConfig()
 	ctx.GasMeter().ConsumeGas(gasConfig.WriteCostFlat, types2.GasWriteCostFlatDesc)
 	ctx.GasMeter().ConsumeGas(gasConfig.WriteCostPerByte*accountBytesLen, types2.GasWritePerByteDesc)
 	return
@@ -89,6 +89,7 @@ func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Acc
 
 func (a AccountKeeperProxy) RemoveAccount(ctx sdk.Context, account authexported.Account) {
 	delete(a.cachedAcc, account.GetAddress().String())
+	gasConfig := types2.KVGasConfig()
 	ctx.GasMeter().ConsumeGas(gasConfig.DeleteCost, types2.GasDeleteDesc)
 }
 
