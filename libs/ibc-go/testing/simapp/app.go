@@ -21,6 +21,7 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -816,7 +817,11 @@ func getTxFeeAndFromHandler(ek ante.EVMKeeper) sdk.GetTxFeeAndFromHandler {
 			supportPara = true
 			if ante.IsE2CTx(ek, &ctx, evmTx) {
 				isE2C = true
-				// supportPara = false
+				// E2C will include cosmos Msg in the Payload.
+				// Sometimes, this Msg do not support parallel execution.
+				if !isParaSupportedE2CMsg(evmTx.Data.Payload) {
+					supportPara = false
+				}
 			}
 			err = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			if err != nil {
@@ -853,6 +858,28 @@ func getTxFeeHandler() sdk.GetTxFeeHandler {
 		}
 
 		return
+	}
+}
+
+func isParaSupportedE2CMsg(payload []byte) bool {
+	// Here, payload must be E2C's Data.Payload
+	p, err := evm.ParseContractParam(payload)
+	if err != nil {
+		return false
+	}
+	mw, err := baseapp.ParseMsgWrapper(p)
+	if err != nil {
+		return false
+	}
+	switch mw.Name {
+	case "wasm/MsgInstantiateContract":
+		return false
+	case "wasm/MsgMigrateContract":
+		return false
+	case "wasm/MsgUpdateAdmin":
+		return false
+	default:
+		return true
 	}
 }
 
