@@ -5,12 +5,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-var kvGasConfig storetypes.GasConfig
-
-func init() {
-	kvGasConfig = storetypes.KVGasConfig()
-}
-
 type SizerAccountKeeper interface {
 	GetEncodedAccountSize(acc Account) int
 }
@@ -27,6 +21,7 @@ func TryAddGetAccountGas(gasMeter sdk.GasMeter, ak SizerAccountKeeper, acc Accou
 	if size == 0 {
 		return false, 0
 	}
+	kvGasConfig := storetypes.KVGasConfig()
 	gas := kvGasConfig.ReadCostFlat + storetypes.Gas(size)*kvGasConfig.ReadCostPerByte
 	gasMeter.ConsumeGas(gas, "x/bank/internal/keeper/keeper.BaseSendKeeper")
 	return true, gas
@@ -40,6 +35,7 @@ func GetAccountGas(ak SizerAccountKeeper, acc Account) (sdk.Gas, bool) {
 	if size == 0 {
 		return 0, false
 	}
+	kvGasConfig := storetypes.KVGasConfig()
 	gas := kvGasConfig.ReadCostFlat + storetypes.Gas(size)*kvGasConfig.ReadCostPerByte
 	return gas, true
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
@@ -27,6 +28,7 @@ func MakeTxKV() ([]byte, []byte, []byte) {
 }
 
 func TestHeaderEvents(t *testing.T) {
+	setMocConfig(100)
 	for i, c := range GetClients() {
 		i, c := i, c // capture params
 		t.Run(reflect.TypeOf(c).String(), func(t *testing.T) {
@@ -49,6 +51,7 @@ func TestHeaderEvents(t *testing.T) {
 }
 
 func TestBlockEvents(t *testing.T) {
+	setMocConfig(100)
 	for i, c := range GetClients() {
 		i, c := i, c // capture params
 		t.Run(reflect.TypeOf(c).String(), func(t *testing.T) {
@@ -97,6 +100,7 @@ func TestTxEventsSentWithBroadcastTxAsync(t *testing.T) { testTxEventsSent(t, "a
 func TestTxEventsSentWithBroadcastTxSync(t *testing.T)  { testTxEventsSent(t, "sync") }
 
 func testTxEventsSent(t *testing.T, broadcastMethod string) {
+	setMocConfig(100)
 	for i, c := range GetClients() {
 		i, c := i, c // capture params
 		t.Run(reflect.TypeOf(c).String(), func(t *testing.T) {
@@ -150,6 +154,7 @@ func TestClientsResubscribe(t *testing.T) {
 }
 
 func TestHTTPReturnsErrorIfClientIsNotRunning(t *testing.T) {
+	setMocConfig(100)
 	c := getHTTPClient()
 
 	// on Subscribe
@@ -165,4 +170,11 @@ func TestHTTPReturnsErrorIfClientIsNotRunning(t *testing.T) {
 	// on UnsubscribeAll
 	err = c.UnsubscribeAll(context.Background(), "TestHeaderEvents")
 	assert.Error(t, err)
+}
+
+func setMocConfig(clientNum int) {
+	moc := cfg.MockDynamicConfig{}
+	moc.SetMaxSubscriptionClients(100)
+
+	cfg.SetDynamicConfig(moc)
 }

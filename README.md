@@ -13,7 +13,7 @@ The Infrastructure of Decentralized Exchange
 
 This repository hosts `OKTC`, the implementation of the OKTC based on the [Cosmos SDK](https://github.com/cosmos/cosmos-sdk).
 
-**Note**: Requires [Go 1.17](https://golang.org/dl/)
+**Note**: Requires [Go 1.20](https://golang.org/dl/)
 
 ## Getting Started
 Refer to the [documentation](https://okexchain-docs.readthedocs.io/en/latest/index.html).

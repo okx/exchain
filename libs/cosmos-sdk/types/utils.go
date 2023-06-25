@@ -102,6 +102,7 @@ type ParaMsg struct {
 	LogIndex            int
 	HasRunEvmTx         bool
 	CosmosIndexInBlock  int
+	InvalidExecute      bool
 }
 
 type FeeSplitInfo struct {

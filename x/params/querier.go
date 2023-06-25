@@ -21,6 +21,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 				keeper.Logger(ctx).Error("invalid query path", "path", path)
 			}
 			return queryUpgrade(ctx, path[1], keeper)
+		case types.QueryGasConfig:
+			return queryGasConfig(ctx, req, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown params query endpoint")
 		}
@@ -56,6 +58,14 @@ func queryUpgrade(ctx sdk.Context, name string, keeper Keeper) ([]byte, sdk.Erro
 	}
 
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, infos)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, fmt.Sprintf("could not marshal result to JSON %s", err.Error()))
+	}
+	return bz, nil
+}
+
+func queryGasConfig(ctx sdk.Context, _ abci.RequestQuery, keeper Keeper) ([]byte, sdk.Error) {
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, keeper.getGasConfig(ctx))
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, fmt.Sprintf("could not marshal result to JSON %s", err.Error()))
 	}
