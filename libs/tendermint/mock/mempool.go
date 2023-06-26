@@ -3,6 +3,7 @@ package mock
 import (
 	"crypto/sha256"
 	"fmt"
+
 	"github.com/okex/exchain/libs/system/trace"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -84,4 +85,8 @@ func (Mempool) SetEnableDeleteMinGPTx(enable bool) {
 
 func (Mempool) GetEnableDeleteMinGPTx() bool {
 	return false
+}
+
+func (Mempool) GetPendingPoolTxsBytes() map[string]map[string]types.WrappedMempoolTx {
+	return make(map[string]map[string]types.WrappedMempoolTx)
 }

@@ -1,8 +1,11 @@
 package mempool
 
 import (
+	"strconv"
+	"strings"
 	"sync"
 
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -39,6 +42,21 @@ func (p *PendingPool) Size() int {
 	return len(p.txsMap)
 }
 
+func (p *PendingPool) GetWrappedAddressTxsMap() map[string]map[string]types.WrappedMempoolTx {
+	p.mtx.RLock()
+	defer p.mtx.RUnlock()
+	wrappedAddressTxsMap := make(map[string]map[string]types.WrappedMempoolTx)
+	for address, subMap := range p.addressTxsMap {
+		nonceTxsMap := make(map[string]types.WrappedMempoolTx)
+		for nonce, memTxPtr := range subMap {
+			nonceStr := strconv.Itoa(int(nonce))
+			nonceTxsMap[nonceStr] = memTxPtr.ToWrappedMempoolTx()
+		}
+		wrappedAddressTxsMap[address] = nonceTxsMap
+	}
+	return wrappedAddressTxsMap
+}
+
 func (p *PendingPool) txCount(address string) int {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()
@@ -67,6 +85,14 @@ func (p *PendingPool) hasTx(tx types.Tx, height int64) bool {
 func (p *PendingPool) addTx(pendingTx *mempoolTx) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
+	blacklist := strings.Split(cfg.DynamicConfig.GetPendingPoolBlacklist(), ",")
+	// When cfg.DynamicConfig.GetPendingPoolBlacklist() == "", blacklist == []string{""} and len(blacklist) == 1.
+	// Above case should be avoided.
+	for _, address := range blacklist {
+		if address != "" && pendingTx.from == address {
+			return
+		}
+	}
 	if _, ok := p.addressTxsMap[pendingTx.from]; !ok {
 		p.addressTxsMap[pendingTx.from] = make(map[uint64]*mempoolTx)
 	}
