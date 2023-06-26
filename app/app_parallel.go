@@ -125,7 +125,7 @@ func getTxFeeAndFromHandler(ek appante.EVMKeeper) sdk.GetTxFeeAndFromHandler {
 				isE2C = true
 				// E2C will include cosmos Msg in the Payload.
 				// Sometimes, this Msg do not support parallel execution.
-				if !isParaSupportedE2CMsg(evmTx.Data.Payload) {
+				if !tmtypes.HigherThanVenus6(ctx.BlockHeight()) || !isParaSupportedE2CMsg(evmTx.Data.Payload) {
 					supportPara = false
 				}
 			}
@@ -192,13 +192,11 @@ func isParaSupportedE2CMsg(payload []byte) bool {
 		return false
 	}
 	switch mw.Name {
-	case "wasm/MsgInstantiateContract":
-		return false
-	case "wasm/MsgMigrateContract":
-		return false
-	case "wasm/MsgUpdateAdmin":
-		return false
-	default:
+	case "wasm/MsgExecuteContract":
 		return true
+	case "wasm/MsgStoreCode":
+		return true
+	default:
+		return false
 	}
 }
