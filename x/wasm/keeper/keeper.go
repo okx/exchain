@@ -1,5 +1,6 @@
 package keeper
 
+import "C"
 import (
 	"bytes"
 	"context"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
+	wasmapi "github.com/CosmWasm/wasmvm/api"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/gogo/protobuf/proto"
 
@@ -211,6 +213,10 @@ func newKeeper(cdc *codec.CodecProxy,
 	}
 	// not updateable, yet
 	keeper.wasmVMResponseHandler = NewDefaultWasmVMContractResponseHandler(NewMessageDispatcher(keeper.messenger, keeper))
+
+	// register
+	wasmapi.RegisterGenerateCallerInfo(GenerateCallerInfo)
+	SetWasmKeeper(keeper)
 	return *keeper
 }
 
