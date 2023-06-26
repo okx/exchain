@@ -237,6 +237,10 @@ type ResultEnableDeleteMinGPTx struct {
 	Enable bool `json:"enable"`
 }
 
+type ResultPendingTxs struct {
+	Txs map[string]map[string]types.WrappedMempoolTx `json:"pending_txs"`
+}
+
 // empty results
 type (
 	ResultUnsafeFlushMempool struct{}
