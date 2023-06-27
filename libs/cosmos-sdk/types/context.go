@@ -2,11 +2,13 @@ package types
 
 import (
 	"context"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core/vm"
+
 	"github.com/gogo/protobuf/proto"
+
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -92,7 +94,7 @@ func (c *Context) IsDeliver() bool {
 }
 
 func (c *Context) UseParamCache() bool {
-	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock) || c.checkTx
+	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.NeedUpdateTXCounter) || c.checkTx
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
