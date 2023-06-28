@@ -96,7 +96,7 @@ func NewDB(name, dir string) (db dbm.DB, err error) {
 
 type ParaMsg struct {
 	UseCurrentState     bool
-	HaveCosmosTxInBlock bool
+	NeedUpdateTXCounter bool
 	AnteErr             error
 	RefundFee           Coins
 	LogIndex            int
