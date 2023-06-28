@@ -137,7 +137,6 @@ func (app *BaseApp) calGroup() {
 		if tx.supportPara { //evmTx & wasmTx
 			Union(tx.from, tx.to)
 		} else {
-			para.haveCosmosTxInBlock = true
 			app.parallelTxManage.putResult(index, &executeResult{paraMsg: &sdk.ParaMsg{}, msIsNil: true})
 		}
 
