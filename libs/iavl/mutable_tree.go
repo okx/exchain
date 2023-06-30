@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -195,6 +196,7 @@ func (tree *MutableTree) prepareOrphansSlice() []*Node {
 // Set sets a key in the working tree. Nil values are invalid. The given key/value byte slices must
 // not be modified after this call, since they point to slices stored within IAVL.
 func (tree *MutableTree) Set(key, value []byte) bool {
+	log.Printf("set key: %x\n", key)
 	// orphaned, updated := tree.set(key, value) // old code
 	orphaned := tree.makeOrphansSliceReady()
 	updated := tree.setWithOrphansSlice(key, value, &orphaned)
@@ -348,6 +350,7 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 // Remove removes a key from the working tree. The given key byte slice should not be modified
 // after this call, since it may point to data stored inside IAVL.
 func (tree *MutableTree) Remove(key []byte) ([]byte, bool) {
+	log.Printf("remove key: %x\n", key)
 	// val, orphaned, removed := tree.remove(key) // old code
 	orphaned := tree.makeOrphansSliceReady()
 	val, removed := tree.removeWithOrphansSlice(key, &orphaned)
