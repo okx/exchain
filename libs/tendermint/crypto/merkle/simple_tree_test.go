@@ -128,3 +128,10 @@ func Test_getSplitPoint(t *testing.T) {
 		require.Equal(t, tt.want, got, "getSplitPoint(%d) = %v, want %v", tt.length, got, tt.want)
 	}
 }
+
+func TestSimpleHashFromMap(t *testing.T) {
+	m := make(map[string][]byte)
+
+	hash := SimpleHashFromMap(m)
+	t.Log(hash)
+}

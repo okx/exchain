@@ -1,6 +1,7 @@
 package merkle
 
 import (
+	"log"
 	"math/bits"
 )
 
@@ -47,10 +48,10 @@ func SimpleHashFromByteSlices(items [][]byte) []byte {
 //
 // These preliminary results suggest:
 //
-// 1. The performance of the SimpleHashFromByteSlice is pretty good
-// 2. Go has low overhead for recursive functions
-// 3. The performance of the SimpleHashFromByteSlice routine is dominated
-//    by the actual hashing of data
+//  1. The performance of the SimpleHashFromByteSlice is pretty good
+//  2. Go has low overhead for recursive functions
+//  3. The performance of the SimpleHashFromByteSlice routine is dominated
+//     by the actual hashing of data
 //
 // Although this work is in no way exhaustive, point #3 suggests that
 // optimization of this routine would need to take an alternative
@@ -100,6 +101,9 @@ func SimpleHashFromMap(m map[string][]byte) []byte {
 	for k, v := range m {
 		sm.Set(k, v)
 	}
+	log.Println("----------------")
+	log.Println(m)
+	log.Println("++++++++++++++++")
 	return sm.Hash()
 }
 
