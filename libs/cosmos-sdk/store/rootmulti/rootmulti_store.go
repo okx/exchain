@@ -611,6 +611,9 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 	tsCommitStores := time.Now()
 	var outputDeltaMap iavltree.TreeDeltaMap
+	log.Println("--------########")
+	log.Println(rs.stores)
+	log.Println("++------########")
 	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitFilters)
 
 	if !iavltree.EnableAsyncCommit {
