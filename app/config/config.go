@@ -55,6 +55,8 @@ type OecConfig struct {
 	nodeKeyWhitelist []string
 	//mempool.check_tx_cost
 	mempoolCheckTxCost bool
+	//mempool.pending-pool-blacklist
+	pendingPoolBlacklist string
 	// p2p.sentry_addrs
 	sentryAddrs []string
 
@@ -143,6 +145,7 @@ const (
 	FlagNodeKeyWhitelist           = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost         = "mempool.check_tx_cost"
 	FlagMempoolEnableDeleteMinGPTx = "mempool.enable_delete_min_gp_tx"
+	FlagPendingPoolBlacklist       = "mempool.pending-pool-blacklist"
 	FlagGasLimitBuffer             = "gas-limit-buffer"
 	FlagEnableDynamicGp            = "enable-dynamic-gp"
 	FlagDynamicGpMode              = "dynamic-gp-mode"
@@ -281,6 +284,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetEnableDeleteMinGPTx(viper.GetBool(FlagMempoolEnableDeleteMinGPTx))
+	c.SetPendingPoolBlacklist(viper.GetString(FlagPendingPoolBlacklist))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
 	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
@@ -364,6 +368,7 @@ func (c *OecConfig) format() string {
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
 	mempool.enable_delete_min_gp_tx: %v
+	mempool.pending-pool-blacklist: %v
 	mempool.max_gas_used_per_block: %d
 	mempool.check_tx_cost: %v
 
@@ -398,6 +403,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
 		c.GetEnableDeleteMinGPTx(),
+		c.GetPendingPoolBlacklist(),
 		c.GetMaxGasUsedPerBlock(),
 		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
@@ -474,6 +480,8 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetEnableDeleteMinGPTx(r)
+	case FlagPendingPoolBlacklist:
+		c.SetPendingPoolBlacklist(v)
 	case FlagNodeKeyWhitelist:
 		c.SetNodeKeyWhitelist(v)
 	case FlagMempoolCheckTxCost:
@@ -1117,4 +1125,12 @@ func (c *OecConfig) SetMaxSubscriptionClients(v int) {
 
 func (c *OecConfig) GetMaxSubscriptionClients() int {
 	return c.maxSubscriptionClients
+}
+
+func (c *OecConfig) SetPendingPoolBlacklist(v string) {
+	c.pendingPoolBlacklist = v
+}
+
+func (c *OecConfig) GetPendingPoolBlacklist() string {
+	return c.pendingPoolBlacklist
 }

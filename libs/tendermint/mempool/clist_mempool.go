@@ -1280,6 +1280,23 @@ func (memTx *mempoolTx) Height() int64 {
 	return atomic.LoadInt64(&memTx.height)
 }
 
+func (memTx *mempoolTx) ToWrappedMempoolTx() types.WrappedMempoolTx {
+	return types.WrappedMempoolTx{
+		Height:      memTx.height,
+		GasWanted:   memTx.gasWanted,
+		GasLimit:    memTx.gasLimit,
+		Tx:          memTx.tx,
+		NodeKey:     memTx.nodeKey,
+		Signature:   memTx.signature,
+		From:        memTx.from,
+		SenderNonce: memTx.senderNonce,
+		Outdated:    memTx.isOutdated,
+		IsSim:       memTx.isSim,
+		IsWrapCMTx:  memTx.isWrapCMTx,
+		WrapCMNonce: memTx.wrapCMNonce,
+	}
+}
+
 //--------------------------------------------------------------------------------
 
 type txCache interface {
@@ -1485,4 +1502,8 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 
 func (mem *CListMempool) GetEnableDeleteMinGPTx() bool {
 	return cfg.DynamicConfig.GetEnableDeleteMinGPTx()
+}
+
+func (mem *CListMempool) GetPendingPoolTxsBytes() map[string]map[string]types.WrappedMempoolTx {
+	return mem.pendingPool.GetWrappedAddressTxsMap()
 }

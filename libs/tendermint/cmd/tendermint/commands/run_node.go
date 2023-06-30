@@ -121,6 +121,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.EnableDeleteMinGPTx,
 		"Enable delete the minimum gas price tx from mempool when mempool is full",
 	)
+	cmd.Flags().String(
+		"mempool.pending-pool-blacklist",
+		"",
+		"Set the address blacklist of the pending pool, separated by commas",
+	)
 	cmd.Flags().Int64(
 		"mempool.max_gas_used_per_block",
 		config.Mempool.MaxGasUsedPerBlock,
