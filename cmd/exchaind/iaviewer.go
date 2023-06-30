@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/app/utils/appstatus"
 	"os"
 	"sort"
 	"strconv"
@@ -132,6 +133,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		iaviewerDiffCmd(iavlCtx),
 		iaviewerVersionsCmd(iavlCtx),
 		iaviewerListModulesCmd(),
+		iaviewerReadRootCmd(iavlCtx),
 	)
 	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	iavlCtx.flags.Start = cmd.PersistentFlags().Int(flagStart, 0, "index of result set start from")
@@ -218,6 +220,23 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	viper.BindPFlag(flagKeyPrefix, cmd.PersistentFlags().Lookup(flagKeyPrefix))
 	viper.BindPFlag(flagHex, cmd.PersistentFlags().Lookup(flagHex))
 	viper.BindPFlag(flagKey, cmd.PersistentFlags().Lookup(flagKey))
+
+	return cmd
+}
+
+func iaviewerReadRootCmd(ctx *iaviewerContext) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "read-root <data_dir> [version]",
+		Short: "Read iavl tree key-value from db",
+		Long:  "Read iavl tree key-value from db, you must specify data_dir if version is 0 or not specified, read data from the latest version.\n",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			ctx.Version, _ = strconv.Atoi(args[1])
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			return iaviewerReadRoot(ctx)
+		},
+	}
 
 	return cmd
 }
@@ -391,6 +410,26 @@ func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
 	}(wg)
 
 	wg.Wait()
+
+	return nil
+}
+
+func iaviewerReadRoot(ctx *iaviewerContext) error {
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
+	if err != nil {
+		return fmt.Errorf("error opening DB: %w", err)
+	}
+	defer db.Close()
+
+	storeKeys := appstatus.GetAllStoreKeys()
+	for _, key := range storeKeys {
+		ctx.Prefix = fmt.Sprintf("s/k:%s/", key)
+		tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+		if err != nil {
+			return fmt.Errorf("error reading data: %w", err)
+		}
+		fmt.Printf("module: %v; version:%v ; root:%x\n", key, ctx.Version, tree.Hash())
+	}
 
 	return nil
 }

@@ -2,6 +2,7 @@ package appstatus
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/wasm"
 	"math"
 	"path/filepath"
 
@@ -49,7 +50,7 @@ func GetAllStoreKeys() []string {
 		ibchost.StoreKey,
 		erc20.StoreKey,
 		// mpt.StoreKey,
-		// wasm.StoreKey,
+		wasm.StoreKey,
 		feesplit.StoreKey,
 	}
 }
