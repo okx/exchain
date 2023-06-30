@@ -231,6 +231,7 @@ func iaviewerReadRootCmd(ctx *iaviewerContext) *cobra.Command {
 		Long:  "Read iavl tree key-value from db, you must specify data_dir if version is 0 or not specified, read data from the latest version.\n",
 		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
 			ctx.Version, _ = strconv.Atoi(args[1])
+			ctx.DataDir = args[0]
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
