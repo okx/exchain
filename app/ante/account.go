@@ -2,6 +2,7 @@ package ante
 
 import (
 	"bytes"
+	"log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -182,6 +183,7 @@ func ethGasConsume(ek EVMKeeper, sk types.SupplyKeeper, ctx *sdk.Context, acc ex
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
+		log.Printf("ethGasConsume DeductFees %v \n", feeAmt)
 		err := auth.DeductFees(sk, *ctx, acc, feeAmt)
 		if err != nil {
 			return err

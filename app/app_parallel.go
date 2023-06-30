@@ -1,6 +1,7 @@
 package app
 
 import (
+	"log"
 	"sort"
 	"strings"
 
@@ -33,6 +34,7 @@ func getFeeCollectorInfo(bk bank.Keeper, sk supply.Keeper) sdk.GetFeeCollectorIn
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit []*sdk.FeeSplitInfo) error {
 		if !balance.Empty() {
+			log.Printf("update fee collector %v\n", balance)
 			err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 			if err != nil {
 				return err

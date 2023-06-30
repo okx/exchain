@@ -1,6 +1,7 @@
 package refund
 
 import (
+	"log"
 	"math/big"
 	"sync"
 
@@ -90,6 +91,7 @@ func gasRefund(ik innertx.InnerTxKeeper, ak accountKeeperInterface, sk types.Sup
 	fees := feeTx.GetFee()
 	gasFees := calculateRefundFees(gasUsed, gas, fees)
 
+	log.Printf("refund fees %v \n", gasFees)
 	// set coins and record innertx
 	err = refund.RefundFees(sk, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
