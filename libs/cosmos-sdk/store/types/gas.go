@@ -3,6 +3,7 @@ package types
 import (
 	"log"
 	"math"
+	"runtime/debug"
 	"sync"
 )
 
@@ -115,6 +116,9 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 		panic(ErrorGasOverflow{descriptor})
 	}
 	log.Printf("------giskook consumeGas %v\n", amount)
+	if amount == 4338203 {
+		debug.PrintStack()
+	}
 
 	if g.consumed > g.limit {
 		panic(ErrorOutOfGas{descriptor})
