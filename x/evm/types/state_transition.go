@@ -164,6 +164,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	// This gas limit the the transaction gas limit with intrinsic gas subtracted
+	log.Printf("giskook st.GasLimit %v\n", st.GasLimit)
+	log.Printf("giskook ctx.GasMeter().GasConsumed() %v\n", ctx.GasMeter().GasConsumed())
 	gasLimit := st.GasLimit - ctx.GasMeter().GasConsumed()
 
 	// This gas meter is set up to consume gas from gaskv during evm execution and be ignored

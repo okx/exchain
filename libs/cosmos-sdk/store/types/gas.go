@@ -3,7 +3,6 @@ package types
 import (
 	"log"
 	"math"
-	"runtime/debug"
 	"sync"
 )
 
@@ -120,10 +119,10 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	}
 	log.Printf("------giskook consumeGas %v\n", amount)
 	if amount == 4338203 {
-		debug.PrintStack()
+		//debug.PrintStack()
 	}
 	if amount == 1000 {
-		debug.PrintStack()
+		//debug.PrintStack()
 	}
 
 	if g.consumed > g.limit {
