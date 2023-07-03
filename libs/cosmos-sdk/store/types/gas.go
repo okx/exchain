@@ -122,6 +122,9 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	if amount == 4338203 {
 		debug.PrintStack()
 	}
+	if amount == 1000 {
+		debug.PrintStack()
+	}
 
 	if g.consumed > g.limit {
 		panic(ErrorOutOfGas{descriptor})
