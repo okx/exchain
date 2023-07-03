@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 
@@ -286,7 +287,9 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
 		StartTxLog(trace.EVMCORE)
 		defer StopTxLog(trace.EVMCORE)
+		log.Printf("giskook gas call limit %v\n", gasLimit)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
+		log.Printf("giskook gas call leftOverGas %v\n", leftOverGas)
 
 		if recipientStr == "" {
 			recipientStr = EthAddressToString(st.Recipient)
@@ -294,6 +297,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
 		gasConsumed = gasLimit - leftOverGas
+		log.Printf("giskook gas call gasConsumed %v\n", gasConsumed)
 		if !ctx.IsMempoolSimulate() && !csdb.GuFactor.IsNegative() {
 			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 		}

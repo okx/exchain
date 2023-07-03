@@ -13,6 +13,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/vmbridge/types"
+	"log"
 	"math/big"
 )
 
@@ -202,8 +203,10 @@ func (k Keeper) CallEvm(ctx sdk.Context, callerAddr common.Address, to *common.A
 	ethTxHash := common.BytesToHash(txHash)
 
 	gasLimit := ctx.GasMeter().Limit()
+	log.Printf("giskook gas limit %v\n", gasLimit)
 	if gasLimit == sdk.NewInfiniteGasMeter().Limit() {
 		gasLimit = k.evmKeeper.GetParams(ctx).MaxGasLimitPerTx
+		log.Printf("giskook gas limit from param %v\n", gasLimit)
 	}
 
 	st := evmtypes.StateTransition{
