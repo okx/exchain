@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"io"
 	"os"
 	"runtime/debug"
@@ -958,6 +959,8 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 }
 
 func PreRun(ctx *server.Context, cmd *cobra.Command) error {
+	prepareSnapshotDataIfNeed(viper.GetString(server.FlagStartFromSnapshot), viper.GetString(flags.FlagHome), ctx.Logger)
+
 	// check start flag conflicts
 	err := sanity.CheckStart()
 	if err != nil {
