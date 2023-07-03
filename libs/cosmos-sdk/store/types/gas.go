@@ -1,6 +1,7 @@
 package types
 
 import (
+	"log"
 	"math"
 	"sync"
 )
@@ -113,6 +114,7 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	if overflow {
 		panic(ErrorGasOverflow{descriptor})
 	}
+	log.Printf("------giskook consumeGas %v\n", amount)
 
 	if g.consumed > g.limit {
 		panic(ErrorOutOfGas{descriptor})
