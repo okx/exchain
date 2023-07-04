@@ -180,6 +180,7 @@ func (g *infiniteGasMeter) Limit() Gas {
 func (g *infiniteGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
+	log.Printf("giskook infiniteGasMeter %v\n", amount)
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
 	if overflow {
 		panic(ErrorGasOverflow{descriptor})
