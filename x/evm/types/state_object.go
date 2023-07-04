@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"sync"
 
@@ -429,6 +430,9 @@ func (so *stateObject) Code(db ethstate.Database) []byte {
 		code = data
 	} else {
 		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), KeyPrefixCode)
+		if !ctx.IsCheckTx() {
+			log.Println("hh")
+		}
 		code = store.Get(so.CodeHash())
 		ctx.Cache().UpdateCode(so.CodeHash(), code, false)
 	}

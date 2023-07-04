@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"log"
 	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -117,6 +118,9 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 // SetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
+	if "ex17xpfvakm2amg962yls6f84z3kell8c5lcs49z2" == addr.String() {
+		log.Printf("acc.coins %v\n", acc.GetCoins())
+	}
 
 	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
