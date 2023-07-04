@@ -111,7 +111,7 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	if amount == 4338203 {
-		// amount = 4308203
+		amount = 4308203
 	}
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
 	if overflow {
