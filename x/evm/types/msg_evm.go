@@ -76,6 +76,10 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	return from
 }
 
+func (tx *MsgEthereumTx) GetEthAddr() string {
+	return tx.GetFrom()
+}
+
 func (msg MsgEthereumTx) GetSender(ctx sdk.Context) string {
 	chainID, err := ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {

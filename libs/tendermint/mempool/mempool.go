@@ -3,6 +3,7 @@ package mempool
 import (
 	"crypto/sha256"
 	"fmt"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -92,6 +93,8 @@ type Mempool interface {
 	GetTxSimulateGas(txHash string) int64
 
 	GetEnableDeleteMinGPTx() bool
+
+	GetPendingPoolTxsBytes() map[string]map[string]types.WrappedMempoolTx
 }
 
 //--------------------------------------------------------------------------------

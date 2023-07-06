@@ -55,6 +55,8 @@ type OecConfig struct {
 	nodeKeyWhitelist []string
 	//mempool.check_tx_cost
 	mempoolCheckTxCost bool
+	//mempool.pending-pool-blacklist
+	pendingPoolBlacklist string
 	// p2p.sentry_addrs
 	sentryAddrs []string
 
@@ -122,6 +124,10 @@ type OecConfig struct {
 
 	//
 	commitGapOffset int64
+	// enable mempool sim gu factor
+	enableMempoolSimGuFactor bool
+
+	maxSubscriptionClients int
 }
 
 const (
@@ -139,6 +145,7 @@ const (
 	FlagNodeKeyWhitelist           = "mempool.node_key_whitelist"
 	FlagMempoolCheckTxCost         = "mempool.check_tx_cost"
 	FlagMempoolEnableDeleteMinGPTx = "mempool.enable_delete_min_gp_tx"
+	FlagPendingPoolBlacklist       = "mempool.pending-pool-blacklist"
 	FlagGasLimitBuffer             = "gas-limit-buffer"
 	FlagEnableDynamicGp            = "enable-dynamic-gp"
 	FlagDynamicGpMode              = "dynamic-gp-mode"
@@ -159,6 +166,8 @@ const (
 	FlagEnableHasBlockPartMsg      = "enable-blockpart-ack"
 	FlagDebugGcInterval            = "debug.gc-interval"
 	FlagCommitGapOffset            = "commit-gap-offset"
+	FlagEnableMempoolSimGuFactor   = "enable-mem-sim-gu-factor"
+	FlagMaxSubscriptionClients     = "max-subscription-clients"
 )
 
 var (
@@ -275,6 +284,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetEnableDeleteMinGPTx(viper.GetBool(FlagMempoolEnableDeleteMinGPTx))
+	c.SetPendingPoolBlacklist(viper.GetString(FlagPendingPoolBlacklist))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
 	c.SetPGUAdjustment(viper.GetFloat64(FlagPGUAdjustment))
@@ -308,6 +318,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 	c.SetIavlAcNoBatch(viper.GetBool(tmiavl.FlagIavlCommitAsyncNoBatch))
+	c.SetEnableMempoolSimGuFactor(viper.GetBool(FlagEnableMempoolSimGuFactor))
+	c.SetMaxSubscriptionClients(viper.GetInt(FlagMaxSubscriptionClients))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -356,6 +368,7 @@ func (c *OecConfig) format() string {
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
 	mempool.enable_delete_min_gp_tx: %v
+	mempool.pending-pool-blacklist: %v
 	mempool.max_gas_used_per_block: %d
 	mempool.check_tx_cost: %v
 
@@ -380,7 +393,9 @@ func (c *OecConfig) format() string {
     commit-gap-height: %d
 	enable-analyzer: %v
     iavl-commit-async-no-batch: %v
-	active-view-change: %v`, system.ChainName,
+    enable-mempool-sim-gu-factor: %v
+	active-view-change: %v
+	max_subscription_clients: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -388,6 +403,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
 		c.GetEnableDeleteMinGPTx(),
+		c.GetPendingPoolBlacklist(),
 		c.GetMaxGasUsedPerBlock(),
 		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
@@ -409,7 +425,9 @@ func (c *OecConfig) format() string {
 		c.GetCommitGapHeight(),
 		c.GetEnableAnalyzer(),
 		c.GetIavlAcNoBatch(),
+		c.GetEnableMempoolSimGuFactor(),
 		c.GetActiveVC(),
+		c.GetMaxSubscriptionClients(),
 	)
 }
 
@@ -462,6 +480,8 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetEnableDeleteMinGPTx(r)
+	case FlagPendingPoolBlacklist:
+		c.SetPendingPoolBlacklist(v)
 	case FlagNodeKeyWhitelist:
 		c.SetNodeKeyWhitelist(v)
 	case FlagMempoolCheckTxCost:
@@ -658,6 +678,18 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetCommitGapOffset(r)
+	case FlagEnableMempoolSimGuFactor:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableMempoolSimGuFactor(r)
+	case FlagMaxSubscriptionClients:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetMaxSubscriptionClients(r)
 	}
 
 }
@@ -1074,4 +1106,31 @@ func (c *OecConfig) GetIavlAcNoBatch() bool {
 
 func (c *OecConfig) SetIavlAcNoBatch(value bool) {
 	c.iavlAcNoBatch = value
+}
+
+func (c *OecConfig) SetEnableMempoolSimGuFactor(v bool) {
+	c.enableMempoolSimGuFactor = v
+}
+
+func (c *OecConfig) GetEnableMempoolSimGuFactor() bool {
+	return c.enableMempoolSimGuFactor
+}
+
+func (c *OecConfig) SetMaxSubscriptionClients(v int) {
+	if v < 0 {
+		v = 0
+	}
+	c.maxSubscriptionClients = v
+}
+
+func (c *OecConfig) GetMaxSubscriptionClients() int {
+	return c.maxSubscriptionClients
+}
+
+func (c *OecConfig) SetPendingPoolBlacklist(v string) {
+	c.pendingPoolBlacklist = v
+}
+
+func (c *OecConfig) GetPendingPoolBlacklist() string {
+	return c.pendingPoolBlacklist
 }

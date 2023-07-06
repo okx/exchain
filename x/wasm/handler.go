@@ -4,8 +4,11 @@ import (
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
+	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	sdktypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/keeper"
@@ -32,13 +35,20 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		// update watcher
 		defer func() {
 			// update watchDB when delivering tx
-			if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+			if ctx.IsDeliverWithSerial() || ctx.ParaMsg() != nil {
 				watcher.Save(err)
+			}
+
+			if err == nil && !ctx.IsCheckTx() {
+				updateHGU(ctx, msg)
 			}
 		}()
 
 		switch msg := msg.(type) {
 		case *MsgStoreCode: //nolint:typecheck
+			if !ctx.IsCheckTx() {
+				types2.WasmStoreCode = true
+			}
 			res, err = msgServer.StoreCode(sdk.WrapSDKContext(ctx), msg)
 		case *MsgInstantiateContract:
 			res, err = msgServer.InstantiateContract(sdk.WrapSDKContext(ctx), msg)
@@ -58,6 +68,30 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		ctx.SetEventManager(filterMessageEvents(ctx))
 		return sdk.WrapServiceResult(ctx, res, err)
 	}
+}
+
+func updateHGU(ctx sdk.Context, msg sdk.Msg) {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() <= 0 {
+		return
+	}
+
+	v, ok := msg.(sdktypes.WasmMsgChecker)
+	if !ok {
+		return
+	}
+
+	fnSign, deploySize, err := v.FnSignatureInfo()
+	if err != nil || len(fnSign) <= 0 {
+		return
+	}
+
+	gc := int64(ctx.GasMeter().GasConsumed())
+	if deploySize > 0 {
+		// calculate average gas consume for deploy contract case, The value is too small and need to +1
+		gc = gc/int64(deploySize) + 1
+	}
+
+	bam.InstanceOfHistoryGasUsedRecordDB().UpdateGasUsed([]byte(fnSign), gc)
 }
 
 // filterMessageEvents returns the same events with all of type == EventTypeMessage removed except

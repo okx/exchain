@@ -8,7 +8,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/config"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	rpctypes "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
@@ -61,8 +63,8 @@ func BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcas
 func BroadcastTxCommit(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcastTxCommit, error) {
 	subscriber := ctx.RemoteAddr()
 
-	if env.EventBus.NumClients() >= env.Config.MaxSubscriptionClients {
-		return nil, fmt.Errorf("max_subscription_clients %d reached", env.Config.MaxSubscriptionClients)
+	if env.EventBus.NumClients() >= config.DynamicConfig.GetMaxSubscriptionClients() {
+		return nil, fmt.Errorf("max_subscription_clients %d reached", config.DynamicConfig.GetMaxSubscriptionClients())
 	} else if env.EventBus.NumClientSubscriptions(subscriber) >= env.Config.MaxSubscriptionsPerClient {
 		return nil, fmt.Errorf("max_subscriptions_per_client %d reached", env.Config.MaxSubscriptionsPerClient)
 	}
@@ -170,10 +172,18 @@ func UserUnconfirmedTxs(address string, limit int) (*ctypes.ResultUserUnconfirme
 		Txs:   txs}, nil
 }
 
+func TmUserUnconfirmedTxs(ctx *rpctypes.Context, address string, limit int) (*ctypes.ResultUserUnconfirmedTxs, error) {
+	return UserUnconfirmedTxs(address, limit)
+}
+
 func UserNumUnconfirmedTxs(address string) (*ctypes.ResultUserUnconfirmedTxs, error) {
 	nums := env.Mempool.ReapUserTxsCnt(address)
 	return &ctypes.ResultUserUnconfirmedTxs{
 		Count: nums}, nil
+}
+
+func TmUserNumUnconfirmedTxs(ctx *rpctypes.Context, address string) (*ctypes.ResultUserUnconfirmedTxs, error) {
+	return UserNumUnconfirmedTxs(address)
 }
 
 func GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
@@ -185,6 +195,10 @@ func GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	return &ctypes.ResultUnconfirmedAddresses{
 		Addresses: addressList,
 	}, nil
+}
+
+func TmGetAddressList(ctx *rpctypes.Context) (*ctypes.ResultUnconfirmedAddresses, error) {
+	return GetAddressList()
 }
 
 func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
@@ -200,4 +214,12 @@ func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 func GetEnableDeleteMinGPTx(ctx *rpctypes.Context) (*ctypes.ResultEnableDeleteMinGPTx, error) {
 	status := env.Mempool.GetEnableDeleteMinGPTx()
 	return &ctypes.ResultEnableDeleteMinGPTx{Enable: status}, nil
+}
+
+func GetPendingTxs(ctx *rpctypes.Context) (*ctypes.ResultPendingTxs, error) {
+	pendingTx := make(map[string]map[string]types.WrappedMempoolTx)
+	if baseapp.IsMempoolEnablePendingPool() {
+		pendingTx = env.Mempool.GetPendingPoolTxsBytes()
+	}
+	return &ctypes.ResultPendingTxs{Txs: pendingTx}, nil
 }

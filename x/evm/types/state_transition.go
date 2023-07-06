@@ -223,7 +223,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 
 	//add InnerTx
-	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, senderStr, "", "", "", st.Amount, nil)
+	callTx := innertx.AddDefaultInnerTx(evm, innertx.CosmosDepth, senderStr, "", "", "", st.Amount, nil, st.Payload)
 
 	// create contract or execute call
 	switch contractCreation {
@@ -254,7 +254,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		contractAddressStr := EthAddressToString(&contractAddress)
 		recipientLog = strings.Join([]string{"contract address ", contractAddressStr}, "")
 		gasConsumed = gasLimit - leftOverGas
-		if !csdb.GuFactor.IsNegative() {
+		if !ctx.IsMempoolSimulate() && !csdb.GuFactor.IsNegative() {
 			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 		}
 		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
@@ -294,7 +294,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		recipientLog = strings.Join([]string{"recipient address ", recipientStr}, "")
 		gasConsumed = gasLimit - leftOverGas
-		if !csdb.GuFactor.IsNegative() {
+		if !ctx.IsMempoolSimulate() && !csdb.GuFactor.IsNegative() {
 			gasConsumed = csdb.GuFactor.MulInt(sdk.NewIntFromUint64(gasConsumed)).TruncateInt().Uint64()
 		}
 		//if no err, we must be check weather out of gas because, we may increase gasConsumed by 'csdb.GuFactor'.
@@ -384,7 +384,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	if !st.Simulate {
 		if types.HigherThanMars(ctx.BlockHeight()) {
-			if ctx.IsDeliver() {
+			if ctx.IsDeliverWithSerial() {
 				csdb.IntermediateRoot(true)
 			}
 		} else {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkparams "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -70,4 +71,17 @@ func (keeper Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
 	keeper.paramSpace.GetParamSet(ctx, &params)
 	return params
+}
+
+func (keeper Keeper) GetGasConfig(ctx sdk.Context) *stypes.GasConfig {
+	params := keeper.getGasConfig(ctx)
+	return &params.GasConfig
+}
+
+func (keeper Keeper) getGasConfig(ctx sdk.Context) (params types.GasConfig) {
+	for _, pair := range params.ParamSetPairs() {
+		keeper.paramSpace.GetIfExists(ctx, pair.Key, pair.Value)
+	}
+	stypes.AsDefaultGasConfig(&params.GasConfig)
+	return
 }
