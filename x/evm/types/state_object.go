@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
 	"sync"
 
@@ -201,6 +202,7 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 
 // setState sets a state with a prefixed key and value to the dirty storage.
 func (so *stateObject) setState(key, value ethcmn.Hash) {
+	log.Printf("giskooko %v:%v\n", key, value)
 	so.dirtyStorage[key] = value
 }
 
