@@ -216,7 +216,9 @@ func newKeeper(cdc *codec.CodecProxy,
 
 	// register
 	wasmapi.RegisterGenerateCallerInfo(GenerateCallerInfo)
+	wasmapi.RegisterGetCacheInfo(GetCacheInfo)
 	SetWasmKeeper(keeper)
+	SetWasmCache(wasmer.GetCache())
 	return *keeper
 }
 

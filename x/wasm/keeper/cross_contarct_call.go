@@ -5,6 +5,7 @@ import "C"
 import (
 	"fmt"
 	wasmvm "github.com/CosmWasm/wasmvm"
+	"github.com/CosmWasm/wasmvm/api"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/wasm/types"
@@ -13,10 +14,39 @@ import (
 
 var (
 	wasmKeeper Keeper
+
+	// wasmvm cache param
+	filePath            string
+	supportedFeatures   string
+	contractMemoryLimit uint32 = ContractMemoryLimit
+	contractDebugMode   bool
+	memoryCacheSize     uint32
+
+	wasmCache api.Cache
 )
 
 func SetWasmKeeper(k *Keeper) {
 	wasmKeeper = *k
+}
+
+func SetWasmCache(cache api.Cache) {
+	wasmCache = cache
+}
+
+func SetWasmCacheParam(dataDir string,
+	supportedFeatures string,
+	memoryLimit uint32,
+	printDebug bool,
+	cacheSize uint32) {
+	filePath = dataDir
+	supportedFeatures = supportedFeatures
+	contractMemoryLimit = memoryLimit
+	contractDebugMode = printDebug
+	memoryCacheSize = cacheSize
+}
+
+func GetCacheInfo() (wasmvm.GoAPI, api.Cache) {
+	return cosmwasmAPI, wasmCache
 }
 
 func GenerateCallerInfo(q unsafe.Pointer, contractAddress string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter) {
@@ -37,5 +67,5 @@ func generateCallerInfo(ctx sdk.Context, addr string) ([]byte, wasmvmtypes.Env, 
 		return nil, env, nil, nil, nil
 	}
 	queryHandler := wasmKeeper.newQueryHandler(ctx, contractAddress)
-	return codeInfo.CodeHash, env, prefixStore, &queryHandler, wasmKeeper.gasMeter(ctx)
+	return codeInfo.CodeHash, env, prefixStore, queryHandler, wasmKeeper.gasMeter(ctx)
 }
