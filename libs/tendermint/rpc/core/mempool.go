@@ -172,10 +172,18 @@ func UserUnconfirmedTxs(address string, limit int) (*ctypes.ResultUserUnconfirme
 		Txs:   txs}, nil
 }
 
+func TmUserUnconfirmedTxs(ctx *rpctypes.Context, address string, limit int) (*ctypes.ResultUserUnconfirmedTxs, error) {
+	return UserUnconfirmedTxs(address, limit)
+}
+
 func UserNumUnconfirmedTxs(address string) (*ctypes.ResultUserUnconfirmedTxs, error) {
 	nums := env.Mempool.ReapUserTxsCnt(address)
 	return &ctypes.ResultUserUnconfirmedTxs{
 		Count: nums}, nil
+}
+
+func TmUserNumUnconfirmedTxs(ctx *rpctypes.Context, address string) (*ctypes.ResultUserUnconfirmedTxs, error) {
+	return UserNumUnconfirmedTxs(address)
 }
 
 func GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
@@ -187,6 +195,10 @@ func GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	return &ctypes.ResultUnconfirmedAddresses{
 		Addresses: addressList,
 	}, nil
+}
+
+func TmGetAddressList(ctx *rpctypes.Context) (*ctypes.ResultUnconfirmedAddresses, error) {
+	return GetAddressList()
 }
 
 func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {

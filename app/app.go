@@ -1036,9 +1036,13 @@ func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHa
 
 func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
 	return func(tx sdk.Tx, nonce uint64) {
-		stdtx, ok := tx.(*authtypes.StdTx)
-		if ok && nonce != 0 {
-			stdtx.Nonce = nonce
+		if nonce != 0 {
+			switch v := tx.(type) {
+			case *authtypes.StdTx:
+				v.Nonce = nonce
+			case *authtypes.IbcTx:
+				v.Nonce = nonce
+			}
 		}
 	}
 }
