@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/tendermint/go-amino"
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -16,6 +14,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	cryptoamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/tendermint/go-amino"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -303,6 +303,14 @@ func (tx *StdTx) GetFrom() string {
 		return ""
 	}
 	return signers[0].String()
+}
+
+func (tx *StdTx) GetEthAddr() string {
+	signers := tx.GetSigners()
+	if len(signers) == 0 {
+		return ""
+	}
+	return ethcmn.BytesToAddress(signers[0]).String()
 }
 
 func (tx *StdTx) GetSender(_ sdk.Context) string {
