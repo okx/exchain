@@ -708,7 +708,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		})
 		app.parallelTxManage.txByteMpCMIndexLock.RUnlock()
 		ctx.SetTxBytes(txBytes)
-		ctx.ResetWatche
+		ctx.ResetWatcher()
 	}
 
 	if mode == runTxModeDeliver {
