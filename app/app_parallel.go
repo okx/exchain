@@ -145,13 +145,14 @@ func getTxFeeAndFromHandler(ek appante.EVMKeeper) sdk.GetTxFeeAndFromHandler {
 			}
 		} else if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
-			if stdTx, ok := tx.(*auth.StdTx); ok {
+			if tx.GetType() == sdk.StdTxType {
 				if tmtypes.HigherThanEarth(ctx.BlockHeight()) {
 					needUpdateTXCounter = true
 				}
+				txMsgs := tx.GetMsgs()
 				// only support one message
-				if len(stdTx.Msgs) == 1 {
-					if msg, ok := stdTx.Msgs[0].(interface{ CalFromAndToForPara() (string, string) }); ok {
+				if len(txMsgs) == 1 {
+					if msg, ok := txMsgs[0].(interface{ CalFromAndToForPara() (string, string) }); ok {
 						from, to = msg.CalFromAndToForPara()
 						if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
 							supportPara = true

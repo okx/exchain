@@ -697,12 +697,18 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
+		app.parallelTxManage.txByteMpCMIndexLock.RLock()
 		ctx.SetParaMsg(&sdk.ParaMsg{
-			NeedUpdateTXCounter: app.parallelTxManage.needUpdateTXCounter,
+			// Concurrency security issues need to be considered here,
+			// and there is a small probability that NeedUpdateTXCounter() will be wrong
+			// due to concurrent reading and writing of pm.txIndexMpUpdateTXCounter (slice),
+			// but such tx will be rerun, so this case can be ignored.
+			NeedUpdateTXCounter: app.parallelTxManage.NeedUpdateTXCounter(),
 			CosmosIndexInBlock:  app.parallelTxManage.txByteMpCosmosIndex[string(txBytes)],
 		})
+		app.parallelTxManage.txByteMpCMIndexLock.RUnlock()
 		ctx.SetTxBytes(txBytes)
-		ctx.ResetWatcher()
+		ctx.ResetWatche
 	}
 
 	if mode == runTxModeDeliver {

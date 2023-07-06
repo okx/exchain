@@ -92,6 +92,7 @@ func (c *Context) IsDeliverWithSerial() bool {
 }
 
 func (c *Context) UseParamCache() bool {
+	// NeedUpdateTXCounter of E2C tx also is true.
 	return c.isDeliverWithSerial || (c.paraMsg != nil && !c.paraMsg.NeedUpdateTXCounter) || c.checkTx
 }
 
