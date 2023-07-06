@@ -3,6 +3,8 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -242,13 +244,13 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 		if ctx.IsCheckTx() {
 			if txNonce != 0 { // txNonce first
-				err := nonceVerification(ctx, signerAccs[i].GetSequence(), txNonce, signerAddrs[i].String(), simulate)
+				err := nonceVerification(ctx, signerAccs[i].GetSequence(), txNonce, ethcmn.BytesToAddress(signerAddrs[i]).String(), simulate)
 				if err != nil {
 					return ctx, err
 				}
 				signerAccs[i].SetSequence(txNonce)
 			} else { // for adaptive pending tx in mempool just in checkTx but not deliverTx
-				pendingNonce := getCheckTxNonceFromMempool(signerAddrs[i].String())
+				pendingNonce := getCheckTxNonceFromMempool(ethcmn.BytesToAddress(signerAddrs[i]).String())
 				if pendingNonce != 0 {
 					signerAccs[i].SetSequence(pendingNonce)
 				}
@@ -327,7 +329,7 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 		acc := isd.ak.GetAccount(ctx, addr)
 		// for adaptive pending tx in mempool just in checkTx but not deliverTx
 		if ctx.IsCheckTx() && !ctx.IsReCheckTx() {
-			pendingNonce := getCheckTxNonceFromMempool(addr.String())
+			pendingNonce := getCheckTxNonceFromMempool(ethcmn.BytesToAddress(addr).String())
 			if pendingNonce != 0 {
 				acc.SetSequence(pendingNonce)
 			}
