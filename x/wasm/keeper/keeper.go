@@ -469,6 +469,7 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.W
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(deposit)
 	info := types.NewInfo(creator, adapters)
+	cosmwasmAPI.Contract = contractExternal(ctx, k)
 
 	// create prefixed data store
 	// 0x03 | BuildContractAddress (sdk.WasmAddress)
@@ -548,6 +549,7 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(coins)
 	info := types.NewInfo(caller, adapters)
+	cosmwasmAPI.Contract = contractExternal(ctx, k)
 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
@@ -856,6 +858,16 @@ func (k Keeper) QuerySmart(ctx sdk.Context, contractAddr sdk.WasmAddress, req []
 		return nil, sdkerrors.Wrap(types.ErrQueryFailed, qErr.Error())
 	}
 	return queryResult, nil
+}
+
+// CreateByContract create the smart contract from other contract.
+func (k Keeper) CreateByContract(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, initMsg []byte, adminAddr sdk.WasmAddress, label string, deposit sdk.Coins) (sdk.WasmAddress, []byte, error) {
+	codeID, err := k.create(ctx, creator, wasmCode, nil, DefaultAuthorizationPolicy{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return k.instantiate(ctx, codeID, creator, adminAddr, initMsg, label, deposit, DefaultAuthorizationPolicy{})
 }
 
 func checkAndIncreaseQueryStackSize(ctx sdk.Context, maxQueryStackSize uint32) (sdk.Context, error) {
