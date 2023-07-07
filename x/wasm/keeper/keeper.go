@@ -215,8 +215,8 @@ func newKeeper(cdc *codec.CodecProxy,
 	keeper.wasmVMResponseHandler = NewDefaultWasmVMContractResponseHandler(NewMessageDispatcher(keeper.messenger, keeper))
 
 	// register
-	wasmapi.RegisterGenerateCallerInfo(GenerateCallerInfo)
-	wasmapi.RegisterGetCacheInfo(GetCacheInfo)
+	wasmapi.RegisterGetWasmCallInfo(GetWasmCallInfo)
+	wasmapi.RegisterGetWasmCacheInfo(GetWasmCacheInfo)
 	SetWasmKeeper(keeper)
 	SetWasmCache(wasmer.GetCache())
 	return *keeper

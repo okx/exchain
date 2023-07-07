@@ -3,7 +3,7 @@ package keeper
 import "C"
 
 import (
-	"fmt"
+	"errors"
 	wasmvm "github.com/CosmWasm/wasmvm"
 	"github.com/CosmWasm/wasmvm/api"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -31,26 +31,43 @@ func SetWasmCache(cache api.Cache) {
 	wasmCache = cache
 }
 
-func GetCacheInfo() (wasmvm.GoAPI, api.Cache) {
+func GetWasmCacheInfo() (wasmvm.GoAPI, api.Cache) {
 	return cosmwasmAPI, wasmCache
 }
 
-func GenerateCallerInfo(q unsafe.Pointer, contractAddress string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter) {
+func GetWasmCallInfo(q unsafe.Pointer, contractAddress, storeAddress string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
 	goQuerier := *(*wasmvm.Querier)(q)
-	qq := goQuerier.(QueryHandler)
-	code, store, querier, gasMeter := generateCallerInfo(qq.Ctx, contractAddress)
-	return code, store, querier, gasMeter
+	qq, ok := goQuerier.(QueryHandler)
+	if !ok {
+		return nil, nil, nil, nil, errors.New("can not switch the pointer to the QueryHandler")
+	}
+	return getCallerInfo(qq.Ctx, contractAddress, storeAddress)
 }
 
-func generateCallerInfo(ctx sdk.Context, addr string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter) {
-	contractAddress, err := sdk.WasmAddressFromBech32(addr)
+func getCallerInfo(ctx sdk.Context, contractAddress, storeAddress string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
+	cAddr, err := sdk.WasmAddressFromBech32(contractAddress)
 	if err != nil {
-		panic(fmt.Sprintln("WasmAddressFromBech32 err", err))
+		return nil, nil, nil, nil, err
 	}
-	_, codeInfo, prefixStore, err := wasmKeeper.contractInstance(ctx, contractAddress)
+	// 1. get wasm code from contractAddress
+	_, codeInfo, prefixStore, err := wasmKeeper.contractInstance(ctx, cAddr)
 	if err != nil {
-		return nil, nil, nil, nil
+		return nil, nil, nil, nil, err
 	}
-	queryHandler := wasmKeeper.newQueryHandler(ctx, contractAddress)
-	return codeInfo.CodeHash, prefixStore, queryHandler, wasmKeeper.gasMeter(ctx)
+	// 2. contractAddress == storeAddress and direct return
+	if contractAddress == storeAddress {
+		queryHandler := wasmKeeper.newQueryHandler(ctx, cAddr)
+		return codeInfo.CodeHash, prefixStore, queryHandler, wasmKeeper.gasMeter(ctx), nil
+	}
+	// 3. get store from storeaddress
+	sAddr, err := sdk.WasmAddressFromBech32(storeAddress)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	_, _, prefixStore, err = wasmKeeper.contractInstance(ctx, sAddr)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	queryHandler := wasmKeeper.newQueryHandler(ctx, sAddr)
+	return codeInfo.CodeHash, prefixStore, queryHandler, wasmKeeper.gasMeter(ctx), nil
 }
