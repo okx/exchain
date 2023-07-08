@@ -7,9 +7,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -21,6 +18,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 // StateTransition defines data to transitionDB in evm
