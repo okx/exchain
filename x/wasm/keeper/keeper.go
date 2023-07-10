@@ -211,6 +211,12 @@ func newKeeper(cdc *codec.CodecProxy,
 	}
 	// not updateable, yet
 	keeper.wasmVMResponseHandler = NewDefaultWasmVMContractResponseHandler(NewMessageDispatcher(keeper.messenger, keeper))
+
+	// register
+	wasmvm.RegisterGetWasmCallInfo(GetWasmCallInfo)
+	wasmvm.RegisterGetWasmCacheInfo(GetWasmCacheInfo)
+	SetWasmKeeper(keeper)
+	SetWasmCache(wasmer.GetCache())
 	return *keeper
 }
 
