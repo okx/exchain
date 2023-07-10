@@ -1,4 +1,4 @@
-package app
+package app_test
 
 import (
 	"encoding/json"
@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/require"
 
+	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -31,7 +32,7 @@ type Env struct {
 }
 
 type Chain struct {
-	app          *OKExChainApp
+	app          *app.OKExChainApp
 	codec        *codec.Codec
 	priv         []ethsecp256k1.PrivKey
 	addr         []sdk.AccAddress
@@ -74,7 +75,7 @@ func NewChain(env *Env) *Chain {
 		chain.num[i] = uint64(i)
 	}
 
-	chain.app = SetupWithGenesisAccounts(false, genAccs, WithChainId(chain.chainIdStr))
+	chain.app = app.SetupWithGenesisAccounts(false, genAccs, app.WithChainId(chain.chainIdStr))
 	chain.codec = chain.app.Codec()
 
 	params := evmtypes.DefaultParams()
