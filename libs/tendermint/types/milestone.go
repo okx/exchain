@@ -201,6 +201,10 @@ func UnittestOnlySetMilestoneVenus1Height(h int64) {
 	milestoneVenus1Height = h
 }
 
+func UnittestOnlySetMilestoneVenus6Height(h int64) {
+	milestoneVenus6Height = h
+}
+
 func GetVenus1Height() int64 {
 	return milestoneVenus1Height
 }
