@@ -7,9 +7,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -21,6 +18,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 // StateTransition defines data to transitionDB in evm
@@ -328,19 +327,20 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	// return trace log if tracetxlog no matter err = nil  or not nil
 	defer func() {
 		var traceLogs []byte
+		var traceErr error
 		if st.TraceTxLog {
 			result := &core.ExecutionResult{
 				UsedGas:    gasConsumed,
 				Err:        err,
 				ReturnData: ret,
 			}
-			traceLogs, err = GetTracerResult(tracer, result)
-			if err != nil {
-				traceLogs = []byte(err.Error())
+			traceLogs, traceErr = GetTracerResult(tracer, result)
+			if traceErr != nil {
+				traceLogs = []byte(traceErr.Error())
 			} else {
-				traceLogs, err = integratePreimage(csdb, traceLogs)
-				if err != nil {
-					traceLogs = []byte(err.Error())
+				traceLogs, traceErr = integratePreimage(csdb, traceLogs)
+				if traceErr != nil {
+					traceLogs = []byte(traceErr.Error())
 				}
 			}
 			if exeRes == nil {
@@ -384,7 +384,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	if !st.Simulate {
 		if types.HigherThanMars(ctx.BlockHeight()) {
-			if ctx.IsDeliver() {
+			if ctx.IsDeliverWithSerial() {
 				csdb.IntermediateRoot(true)
 			}
 		} else {

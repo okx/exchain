@@ -69,7 +69,7 @@ func setupTest() *WatcherTestSt {
 
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
-	w.ctx.SetDeliver()
+	w.ctx.SetDeliverSerial()
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
 
 	ethermint.SetChainId(chain_id)

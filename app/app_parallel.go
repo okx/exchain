@@ -192,13 +192,11 @@ func isParaSupportedE2CMsg(payload []byte) bool {
 		return false
 	}
 	switch mw.Name {
-	case "wasm/MsgInstantiateContract":
-		return false
-	case "wasm/MsgMigrateContract":
-		return false
-	case "wasm/MsgUpdateAdmin":
-		return false
-	default:
+	case "wasm/MsgExecuteContract":
 		return true
+	case "wasm/MsgStoreCode":
+		return true
+	default:
+		return false
 	}
 }

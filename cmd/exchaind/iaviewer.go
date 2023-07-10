@@ -215,6 +215,10 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd.PersistentFlags().String(flagKey, "", "print only the value for this key, key must be in hex format.\n"+
 		"if specified, keyprefix, start and limit flags would be ignored")
 	cmd.PersistentFlags().String(flagKeyPrefix, "", "print values for keys with specified prefix, prefix must be in hex format.")
+	viper.BindPFlag(flagKeyPrefix, cmd.PersistentFlags().Lookup(flagKeyPrefix))
+	viper.BindPFlag(flagHex, cmd.PersistentFlags().Lookup(flagHex))
+	viper.BindPFlag(flagKey, cmd.PersistentFlags().Lookup(flagKey))
+
 	return cmd
 }
 
@@ -232,6 +236,7 @@ func iaviewerReadNodeCmd(ctx *iaviewerContext) *cobra.Command {
 		},
 	}
 	cmd.PersistentFlags().String(flagNodeHash, "", "print only the value for this hash, key must be in hex format.")
+	viper.BindPFlag(flagNodeHash, cmd.PersistentFlags().Lookup(flagNodeHash))
 	return cmd
 }
 
@@ -318,6 +323,8 @@ func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 	}
 	cmd.PersistentFlags().Bool(flagHex, false, "print key and value in hex format")
 	cmd.PersistentFlags().String(flagKeyPrefix, "", "diff values for keys with specified prefix, prefix must be in hex format.")
+	viper.BindPFlag(flagHex, cmd.PersistentFlags().Lookup(flagHex))
+	viper.BindPFlag(flagKeyPrefix, cmd.PersistentFlags().Lookup(flagKeyPrefix))
 	return cmd
 }
 

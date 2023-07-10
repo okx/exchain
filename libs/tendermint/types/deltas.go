@@ -42,6 +42,7 @@ var (
 	FastQuery     = false
 	DownloadDelta = false
 	UploadDelta   = false
+	WasmStoreCode = false
 )
 
 type DeltasMessage struct {

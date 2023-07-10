@@ -54,6 +54,7 @@ type Tx interface {
 
 	GetRaw() []byte
 	GetFrom() string
+	GetEthAddr() string
 	GetSender(ctx Context) string
 	GetNonce() uint64
 	TxHash() []byte
@@ -86,6 +87,7 @@ func (tx *BaseTx) GetSigners() []AccAddress            { return nil }
 func (tx *BaseTx) GetGas() uint64                      { return 0 }
 func (tx *BaseTx) GetNonce() uint64                    { return tx.Nonce }
 func (tx *BaseTx) GetFrom() string                     { return tx.From }
+func (tx *BaseTx) GetEthAddr() string                  { return tx.GetFrom() }
 func (tx *BaseTx) GetRaw() []byte                      { return tx.Raw }
 func (tx *BaseTx) TxHash() []byte                      { return tx.Hash }
 func (tx *BaseTx) SetRaw(raw []byte)                   { tx.Raw = raw }
