@@ -125,12 +125,8 @@ func createEthTx(t *testing.T, chain *Chain, addressIdx int) []byte {
 func createAnteErrEthTx(t *testing.T, chain *Chain, addressIdx int) []byte {
 	amount, gasPrice, gasLimit := int64(1024), int64(2048), uint64(100000)
 	addrTo := ethcmn.BytesToAddress(chain.priv[addressIdx+1].PubKey().Address().Bytes())
-	msg := evmtypes.NewMsgEthereumTx(chain.seq[addressIdx], &addrTo, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte{})
-	// Note: anteErr can only occur if chain.seq[addressIdx] > 0.
-	if chain.seq[addressIdx] > 0 {
-		msg = evmtypes.NewMsgEthereumTx(chain.seq[addressIdx]-1, &addrTo, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte{})
-	}
-	chain.seq[addressIdx]++
+	//Note: anteErr occur (invalid nonce)
+	msg := evmtypes.NewMsgEthereumTx(chain.seq[addressIdx]+1, &addrTo, big.NewInt(amount), gasLimit, big.NewInt(gasPrice), []byte{})
 	err := msg.Sign(chain.chainIdInt, chain.priv[addressIdx].ToECDSA())
 	require.NoError(t, err)
 	rawTx, err := rlp.EncodeToBytes(&msg)
@@ -230,7 +226,7 @@ func TestParallelTxs(t *testing.T) {
 				var rawTxs [][]byte
 				rawTxs = append(rawTxs, createEthTx(t, chain, 1))
 				rawTxs = append(rawTxs, createAnteErrEthTx(t, chain, 1))
-				for i := 2; i < 4; i++ {
+				for i := 2; i < 5; i++ {
 					rawTxs = append(rawTxs, createEthTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
@@ -244,7 +240,7 @@ func TestParallelTxs(t *testing.T) {
 				var rawTxs [][]byte
 				rawTxs = append(rawTxs, createEthTx(t, chain, 1))
 				rawTxs = append(rawTxs, createAnteErrEthTx(t, chain, 1))
-				for i := 3; i < 5; i++ {
+				for i := 3; i < 6; i++ {
 					rawTxs = append(rawTxs, createEthTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
@@ -368,12 +364,28 @@ func TestParallelTxs(t *testing.T) {
 			},
 		},
 		{
-			"2 evm txs, 1 cosmos tx, and 2 evm contract txs, 3 group",
+			"2 evm txs, 1 cosmos tx, and 2 evm contract txs, 2 group",
 			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
 				var rawTxs [][]byte
 				for i := 0; i < 2; i++ {
 					rawTxs = append(rawTxs, createEthTx(t, chain, i))
 				}
+				rawTxs = append(rawTxs, createTokenSendTx(t, chain, 3))
+				//one group 2txs
+				for i := 5; i < 7; i++ {
+					rawTxs = append(rawTxs, callContract(t, chain, i))
+				}
+				ret := runTxs(chain, rawTxs, isParallel)
+
+				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+			},
+		},
+		{
+			"1 evm tx, 1 AnteErr evm tx, 1 cosmos tx, and 2 evm contract txs, 2 group",
+			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+				var rawTxs [][]byte
+				rawTxs = append(rawTxs, createEthTx(t, chain, 0))
+				rawTxs = append(rawTxs, createAnteErrEthTx(t, chain, 1))
 				rawTxs = append(rawTxs, createTokenSendTx(t, chain, 3))
 				//one group 2txs
 				for i := 5; i < 7; i++ {
