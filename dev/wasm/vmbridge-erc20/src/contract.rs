@@ -157,11 +157,11 @@ fn try_mint_cw20(
     recipient: String,
     amount: Uint128,
 ) -> Result<Response<CallToEvmMsg>, ContractError> {
-    if info.sender.to_string() != EVM_CONTRACT_ADDR.to_string() {
-        return Err(ContractError::ContractERC20Err {
-           addr:info.sender.to_string()
-        });
-    }
+    // if info.sender.to_string() != EVM_CONTRACT_ADDR.to_string() {
+    //     return Err(ContractError::ContractERC20Err {
+    //        addr:info.sender.to_string()
+    //     });
+    // }
     let amount_raw = amount.u128();
     let recipient_address = deps.api.addr_validate(recipient.as_str())?;
     let mut account_balance = read_balance(deps.storage, &recipient_address)?;
