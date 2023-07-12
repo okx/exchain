@@ -255,7 +255,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 			if res.paraMsg.AnteErr != nil {
 				res.msIsNil = true
-				pm.handleAnteErrTx(res.paraMsg.NeedUpdateTXCounter)
+				pm.handleAnteErrTx(pm.txIndexMpUpdateTXCounter[pm.upComingTxIndex])
 			}
 
 			pm.deliverTxs[pm.upComingTxIndex] = &res.resp
@@ -852,11 +852,11 @@ func (pm *parallelTxManager) NeedUpdateTXCounter() bool {
 
 // When an AnteErr tx is encountered, this tx will be discarded,
 // and the cosmosIndex of the remaining tx needs to be corrected.
-func (pm *parallelTxManager) handleAnteErrTx(needUpdateTXCounter bool) {
+func (pm *parallelTxManager) handleAnteErrTx(curTxNeedUpdateTXCounter bool) {
 	pm.haveAnteErrTx = true
 	pm.txIndexMpUpdateTXCounter[pm.upComingTxIndex] = false
 
-	if needUpdateTXCounter {
+	if curTxNeedUpdateTXCounter {
 		pm.cosmosTxIndexInBlock--
 		pm.txByteMpCMIndexLock.Lock()
 		for index, tx := range pm.txs {
