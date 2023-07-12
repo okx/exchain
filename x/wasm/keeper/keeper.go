@@ -13,6 +13,7 @@ import (
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -369,22 +370,26 @@ func (k Keeper) OnAccountUpdated(acc exported.Account) {
 }
 
 // CreateByContract create the smart contract from other contract.
-func (k Keeper) CreateByContract(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, initMsg []byte, adminAddr sdk.WasmAddress, label string, deposit sdk.Coins) (sdk.WasmAddress, []byte, error) {
-	codeID, err := k.create(ctx, creator, wasmCode, nil, DefaultAuthorizationPolicy{})
+func (k Keeper) CreateByContract(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, initMsg []byte, adminAddr sdk.WasmAddress, label string, isCreate2 bool, salt []byte, deposit sdk.Coins) (sdk.WasmAddress, []byte, error) {
+	codeID, codeHash, err := k.create(ctx, creator, wasmCode, nil, DefaultAuthorizationPolicy{})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return k.instantiate(ctx, codeID, creator, adminAddr, initMsg, label, deposit, DefaultAuthorizationPolicy{})
+	var contractAddress sdk.WasmAddress
+	if isCreate2 {
+		contractAddress = generateContractAddress2(salt, codeHash)
+	}
+	return k.instantiate(ctx, codeID, creator, adminAddr, contractAddress, initMsg, label, deposit, DefaultAuthorizationPolicy{})
 }
 
-func (k Keeper) create(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ AuthorizationPolicy) (codeID uint64, err error) {
+func (k Keeper) create(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ AuthorizationPolicy) (codeID uint64, codeHash []byte, err error) {
 	if creator == nil {
-		return 0, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "cannot be nil")
+		return 0, nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "cannot be nil")
 	}
 
 	if !authZ.CanCreateCode(k.getUploadAccessConfig(ctx), creator) {
-		return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, types.GenerateUnauthorizeError(k.GetParams(ctx).CodeUploadAccess.Permission))
+		return 0, nil, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, types.GenerateUnauthorizeError(k.GetParams(ctx).CodeUploadAccess.Permission))
 	}
 	// figure out proper instantiate access
 	defaultAccessConfig := k.getInstantiateAccessConfig(ctx).With(creator)
@@ -392,28 +397,28 @@ func (k Keeper) create(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte
 		instantiateAccess = &defaultAccessConfig
 	} else if !instantiateAccess.IsSubset(defaultAccessConfig) {
 		// we enforce this must be subset of default upload access
-		return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "instantiate access must be subset of default upload access")
+		return 0, nil, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "instantiate access must be subset of default upload access")
 	}
 
 	wasmCode, err = ioutils.Uncompress(wasmCode, uint64(types.MaxWasmSize))
 	if err != nil {
-		return 0, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
+		return 0, nil, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
 	}
 	ctx.GasMeter().ConsumeGas(k.gasRegister.CompileCosts(len(wasmCode)), "Compiling WASM Bytecode")
 
 	checksum, err := k.wasmVM.Create(wasmCode)
 	if err != nil {
-		return 0, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
+		return 0, nil, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
 	}
 	report, err := k.wasmVM.AnalyzeCode(checksum)
 	if err != nil {
-		return 0, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
+		return 0, nil, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
 	}
 	codeID = k.autoIncrementID(ctx, types.KeyLastCodeID)
 	k.Logger(ctx).Debug("storing new contract", "features", report.RequiredFeatures, "code_id", codeID)
 	result, err := types.ConvertAccessConfig(*instantiateAccess)
 	if err != nil {
-		return 0, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
+		return 0, nil, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
 	}
 	codeInfo := types.NewCodeInfo(checksum, creator, result)
 	k.storeCodeInfo(ctx, codeID, codeInfo)
@@ -427,7 +432,7 @@ func (k Keeper) create(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte
 	}
 	ctx.EventManager().EmitEvent(evt)
 
-	return codeID, nil
+	return codeID, checksum, nil
 }
 
 func (k Keeper) storeCodeInfo(ctx sdk.Context, codeID uint64, codeInfo types.CodeInfo) {
@@ -460,7 +465,7 @@ func (k Keeper) importCode(ctx sdk.Context, codeID uint64, codeInfo types.CodeIn
 	return nil
 }
 
-func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.WasmAddress, initMsg []byte, label string, deposit sdk.Coins, authZ AuthorizationPolicy) (sdk.WasmAddress, []byte, error) {
+func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin, contractAddress sdk.WasmAddress, initMsg []byte, label string, deposit sdk.Coins, authZ AuthorizationPolicy) (sdk.WasmAddress, []byte, error) {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "instantiate")
 	// This method does not support parallel execution.
 	if ctx.ParaMsg() != nil {
@@ -469,7 +474,9 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.W
 	instanceCosts := k.gasRegister.NewContractInstanceCosts(k.IsPinnedCode(ctx, codeID), len(initMsg))
 	ctx.GasMeter().ConsumeGas(instanceCosts, "Loading CosmWasm module: instantiate")
 	// create contract address
-	contractAddress := k.generateContractAddress(ctx, codeID)
+	if contractAddress.Empty() {
+		contractAddress = k.generateContractAddress(ctx, codeID)
+	}
 	existingAcct := k.accountKeeper.GetAccount(ctx, sdk.WasmToAccAddress(contractAddress))
 	if existingAcct != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrAccountExists, existingAcct.GetAddress().String())
@@ -1218,12 +1225,17 @@ func (k Keeper) generateContractAddress(ctx sdk.Context, codeID uint64) sdk.Wasm
 	return BuildContractAddress(codeID, instanceID)
 }
 
-// BuildContractAddress builds an sdk account address for a contract.
+// BuildContractAddress builds a sdk account address for a contract.
 func BuildContractAddress(codeID, instanceID uint64) sdk.WasmAddress {
 	contractID := make([]byte, 16)
 	binary.BigEndian.PutUint64(contractID[:8], codeID)
 	binary.BigEndian.PutUint64(contractID[8:], instanceID)
 	return types.Module(types.ModuleName, contractID)[types.ContractIndex:]
+}
+
+// generateContractAddress2 builds a sdk account address for a contract like evm create2.
+func generateContractAddress2(salt, codeHash []byte) sdk.WasmAddress {
+	return types.Module(types.ModuleName, ethcrypto.Keccak256([]byte{0xff}, salt, codeHash))[types.ContractIndex:]
 }
 
 func (k Keeper) autoIncrementID(ctx sdk.Context, lastIDKey []byte) uint64 {

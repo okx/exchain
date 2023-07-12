@@ -10,8 +10,8 @@ var _ types.ContractOpsKeeper = PermissionedKeeper{}
 
 // decoratedKeeper contains a subset of the wasm keeper that are already or can be guarded by an authorization policy in the future
 type decoratedKeeper interface {
-	create(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ AuthorizationPolicy) (codeID uint64, err error)
-	instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.WasmAddress, initMsg []byte, label string, deposit sdk.Coins, authZ AuthorizationPolicy) (sdk.WasmAddress, []byte, error)
+	create(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ AuthorizationPolicy) (codeID uint64, codeHash []byte, err error)
+	instantiate(ctx sdk.Context, codeID uint64, creator, admin, contractAddress sdk.WasmAddress, initMsg []byte, label string, deposit sdk.Coins, authZ AuthorizationPolicy) (sdk.WasmAddress, []byte, error)
 	migrate(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, newCodeID uint64, msg []byte, authZ AuthorizationPolicy) ([]byte, error)
 	setContractAdmin(ctx sdk.Context, contractAddress, caller, newAdmin sdk.WasmAddress, authZ AuthorizationPolicy) error
 	pinCode(ctx sdk.Context, codeID uint64) error
@@ -47,11 +47,12 @@ func NewDefaultPermissionKeeper(nested decoratedKeeper) *PermissionedKeeper {
 }
 
 func (p PermissionedKeeper) Create(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, instantiateAccess *types.AccessConfig) (codeID uint64, err error) {
-	return p.nested.create(ctx, creator, wasmCode, instantiateAccess, p.authZPolicy)
+	codeID, _, err = p.nested.create(ctx, creator, wasmCode, instantiateAccess, p.authZPolicy)
+	return
 }
 
 func (p PermissionedKeeper) Instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.WasmAddress, initMsg []byte, label string, deposit sdk.Coins) (sdk.WasmAddress, []byte, error) {
-	return p.nested.instantiate(ctx, codeID, creator, admin, initMsg, label, deposit, p.authZPolicy)
+	return p.nested.instantiate(ctx, codeID, creator, admin, nil, initMsg, label, deposit, p.authZPolicy)
 }
 
 func (p PermissionedKeeper) Execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, msg []byte, coins sdk.Coins) ([]byte, error) {

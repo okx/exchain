@@ -54,7 +54,7 @@ func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.C
 		if err != nil {
 			return "", ctx.GasMeter().GasConsumed() - gasBefore, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.AdminAddr)
 		}
-		addr, _, err := keeper.CreateByContract(ctx, creator, request.WasmCode, request.InitMsg, admin, request.Label, nil)
+		addr, _, err := keeper.CreateByContract(ctx, creator, request.WasmCode, request.InitMsg, admin, request.Label, request.IsCreate2, request.Salt, nil)
 		if err != nil {
 			return "", ctx.GasMeter().GasConsumed() - gasBefore, err
 		}
