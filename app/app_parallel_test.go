@@ -167,6 +167,43 @@ func createTokenSendTx(t *testing.T, chain *Chain, i int) []byte {
 	return txBytes
 }
 
+func createFailedTokenSendTx(t *testing.T, chain *Chain, i int) []byte {
+	msg := tokentypes.NewMsgTokenSend(chain.addr[i], chain.addr[i+1], sdk.Coins{sdk.NewInt64Coin("okt", 100000000000)})
+
+	tx := helpers.GenTx(
+		[]sdk.Msg{msg},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)},
+		helpers.DefaultGenTxGas,
+		chain.chainIdStr,
+		[]uint64{chain.num[i]},
+		[]uint64{chain.seq[i]},
+		chain.priv[i],
+	)
+	chain.seq[i]++
+
+	txBytes, err := chain.app.Codec().MarshalBinaryLengthPrefixed(tx)
+	require.Nil(t, err)
+	return txBytes
+}
+
+func createAnteErrTokenSendTx(t *testing.T, chain *Chain, i int) []byte {
+	msg := tokentypes.NewMsgTokenSend(chain.addr[i], chain.addr[i+1], sdk.Coins{sdk.NewInt64Coin("okt", 1)})
+
+	tx := helpers.GenTx(
+		[]sdk.Msg{msg},
+		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 1000000000000)},
+		helpers.DefaultGenTxGas,
+		chain.chainIdStr,
+		[]uint64{chain.num[i]},
+		[]uint64{chain.seq[i]},
+		chain.priv[i],
+	)
+
+	txBytes, err := chain.app.Codec().MarshalBinaryLengthPrefixed(tx)
+	require.Nil(t, err)
+	return txBytes
+}
+
 func runTxs(chain *Chain, rawTxs [][]byte, isParallel bool) []*abci.ResponseDeliverTx {
 	header := abci.Header{Height: chain.app.LastBlockHeight() + 1, ChainID: chain.chainIdStr}
 	chain.app.BaseApp.BeginBlock(abci.RequestBeginBlock{Header: header})
@@ -201,27 +238,29 @@ func TestParallelTxs(t *testing.T) {
 	DeployContractAndGetContractAddress(t, chainB)
 
 	testCases := []struct {
-		title      string
-		executeTxs func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte)
+		title         string
+		executeTxs    func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte)
+		expectedCodes []uint32
 	}{
 		// #####################
 		// ### only evm txs ####
 		// #####################
 		{
 			"5 evm txs, 1 group: a->b b->c c->d d->e e->f",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
 				for i := 0; i < 5; i++ {
 					rawTxs = append(rawTxs, createEthTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 0, 0, 0, 0},
 		},
 		{
 			"4 evm txs and 1 AnteErr evm tx, 1 group: a->b anteErr(a->b) b->c c->d d->e",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
 				rawTxs = append(rawTxs, createEthTx(t, chain, 1))
@@ -230,12 +269,13 @@ func TestParallelTxs(t *testing.T) {
 					rawTxs = append(rawTxs, createEthTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 3, 0, 0, 0},
 		},
 		{
 			"4 evm txs and 1 AnteErr evm tx, 2 group: a->b anteErr(a->b) / c->d d->e e->f",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
 				rawTxs = append(rawTxs, createEthTx(t, chain, 1))
@@ -244,24 +284,26 @@ func TestParallelTxs(t *testing.T) {
 					rawTxs = append(rawTxs, createEthTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 3, 0, 0, 0},
 		},
 		{
 			"5 failed evm txs, 1 group:a->b b->c c->d d->e e->f",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
 				for i := 0; i < 5; i++ {
 					rawTxs = append(rawTxs, createFailedEthTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{11, 11, 11, 11, 11},
 		},
 		{
 			"5 evm txs, 2 group:a->b b->c / d->e e->f f->g",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 				var rawTxs [][]byte
 				//one group 3txs
 				for i := 0; i < 3; i++ {
@@ -273,12 +315,13 @@ func TestParallelTxs(t *testing.T) {
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
 
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 0, 0, 0, 0},
 		},
 		{
 			"5 failed evm txs, 2 group:a->b b->c / d->e e->f f->g",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 				var rawTxs [][]byte
 				//one group 3txs
 				for i := 0; i < 3; i++ {
@@ -290,12 +333,13 @@ func TestParallelTxs(t *testing.T) {
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
 
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{11, 11, 11, 11, 11},
 		},
 		{
 			"2 evm txs and 3 failed evm txs, 2 group:a->b b->c / d->e e->f f->g",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 				rawTxs := [][]byte{}
 				//one group 3txs
 				for i := 0; i < 3; i++ {
@@ -307,12 +351,33 @@ func TestParallelTxs(t *testing.T) {
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
 
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{11, 11, 11, 0, 0},
+		},
+		{
+			"3 evm txs and 2 failed evm txs, 2 group:a->b failed(b->c) / d->e e->f failed(f->g)",
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
+				rawTxs := [][]byte{}
+				//one group 3txs
+				for i := 0; i < 2; i++ {
+					rawTxs = append(rawTxs, createEthTx(t, chain, i))
+				}
+				rawTxs = append(rawTxs, createFailedEthTx(t, chain, 2))
+				//one group 2txs
+				for i := 8; i > 7; i-- {
+					rawTxs = append(rawTxs, createEthTx(t, chain, i))
+				}
+				rawTxs = append(rawTxs, createFailedEthTx(t, chain, 7))
+				ret := runTxs(chain, rawTxs, isParallel)
+
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+			},
+			[]uint32{0, 0, 11, 0, 11},
 		},
 		{
 			"3 contract txs and 2 normal evm txs, 2 group",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 				var rawTxs [][]byte
 
 				for i := 0; i < 3; i++ {
@@ -323,30 +388,91 @@ func TestParallelTxs(t *testing.T) {
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
 
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 0, 0, 0, 0},
 		},
 		// #####################
 		// ## only cosmos txs ##
 		// #####################
 		{
-			"5 cosmos txs, 1 group: a->b b->c c->d d->e e->f",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			"5 cosmos txs, 0 group: a->b b->c c->d d->e e->f",
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
 				for i := 0; i < 5; i++ {
 					rawTxs = append(rawTxs, createTokenSendTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 0, 0, 0, 0},
+		},
+		{
+			"4 cosmos txs, 1 Failed cosmos tx, 0 group: a->b b->c c->d d->e e->f",
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
+
+				var rawTxs [][]byte
+				rawTxs = append(rawTxs, createTokenSendTx(t, chain, 0))
+				rawTxs = append(rawTxs, createFailedTokenSendTx(t, chain, 1))
+				for i := 2; i < 5; i++ {
+					rawTxs = append(rawTxs, createTokenSendTx(t, chain, i))
+				}
+				ret := runTxs(chain, rawTxs, isParallel)
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+			},
+			[]uint32{0, 61034, 0, 0, 0},
+		},
+		{
+			"4 cosmos txs, 1 AnteErr cosmos tx, 0 group: a->b b->c c->d d->e e->f",
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
+
+				var rawTxs [][]byte
+				rawTxs = append(rawTxs, createTokenSendTx(t, chain, 0))
+				rawTxs = append(rawTxs, createAnteErrTokenSendTx(t, chain, 1))
+				for i := 2; i < 5; i++ {
+					rawTxs = append(rawTxs, createTokenSendTx(t, chain, i))
+				}
+				ret := runTxs(chain, rawTxs, isParallel)
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+			},
+			[]uint32{0, 5, 0, 0, 0},
+		},
+		{
+			"3 cosmos txs, 1 failed cosmos tx, 1 AnteErr cosmos tx, 0 group: a->b b->c c->d d->e e->f",
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
+
+				var rawTxs [][]byte
+				rawTxs = append(rawTxs, createTokenSendTx(t, chain, 0))
+				rawTxs = append(rawTxs, createFailedTokenSendTx(t, chain, 1))
+				rawTxs = append(rawTxs, createAnteErrTokenSendTx(t, chain, 2))
+				for i := 3; i < 5; i++ {
+					rawTxs = append(rawTxs, createTokenSendTx(t, chain, i))
+				}
+				ret := runTxs(chain, rawTxs, isParallel)
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+			},
+			[]uint32{0, 61034, 5, 0, 0},
+		},
+		{
+			"5 failed cosmos txs, 0 group: a->b b->c c->d d->e e->f",
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
+
+				var rawTxs [][]byte
+				for i := 0; i < 5; i++ {
+					rawTxs = append(rawTxs, createFailedTokenSendTx(t, chain, i))
+				}
+				ret := runTxs(chain, rawTxs, isParallel)
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+			},
+			[]uint32{61034, 61034, 61034, 61034, 61034},
 		},
 		// #####################
 		// ###### mix txs ######
 		// #####################
 		{
 			"2 evm txs with 1 cosmos tx and 2 evm contract txs, 2 group",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 				var rawTxs [][]byte
 				//one group 3txs
 				for i := 0; i < 2; i++ {
@@ -360,12 +486,13 @@ func TestParallelTxs(t *testing.T) {
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
 
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 0, 0, 0, 0},
 		},
 		{
 			"2 evm txs, 1 cosmos tx, and 2 evm contract txs, 2 group",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 				var rawTxs [][]byte
 				for i := 0; i < 2; i++ {
 					rawTxs = append(rawTxs, createEthTx(t, chain, i))
@@ -377,12 +504,13 @@ func TestParallelTxs(t *testing.T) {
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
 
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 0, 0, 0, 0},
 		},
 		{
 			"1 evm tx, 1 AnteErr evm tx, 1 cosmos tx, and 2 evm contract txs, 2 group",
-			func(t *testing.T, chain *Chain, isParallel bool) ([]byte, []byte) {
+			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 				var rawTxs [][]byte
 				rawTxs = append(rawTxs, createEthTx(t, chain, 0))
 				rawTxs = append(rawTxs, createAnteErrEthTx(t, chain, 1))
@@ -393,15 +521,18 @@ func TestParallelTxs(t *testing.T) {
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
 
-				return resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
+				return ret, resultHash(ret), chain.app.BaseApp.LastCommitID().Hash
 			},
+			[]uint32{0, 3, 0, 0, 0},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.title, func(t *testing.T) {
-			resultHashA, appHashA := tc.executeTxs(t, chainA, true)
-			resultHashB, appHashB := tc.executeTxs(t, chainB, false)
+			retA, resultHashA, appHashA := tc.executeTxs(t, chainA, true)
+			retB, resultHashB, appHashB := tc.executeTxs(t, chainB, false)
+			checkCodes(t, tc.title, retA, tc.expectedCodes)
+			checkCodes(t, tc.title, retB, tc.expectedCodes)
 			require.True(t, reflect.DeepEqual(resultHashA, resultHashB))
 			require.True(t, reflect.DeepEqual(appHashA, appHashB))
 		})
@@ -481,4 +612,10 @@ func callContract(t *testing.T, chain *Chain, i int) []byte {
 	rawTx, err := rlp.EncodeToBytes(&msg)
 	require.NoError(t, err)
 	return rawTx
+}
+
+func checkCodes(t *testing.T, title string, resp []*abci.ResponseDeliverTx, codes []uint32) {
+	for i, code := range codes {
+		require.True(t, resp[i].Code == code, "title: %s, expect code: %d, but %d! tx index: %d", title, code, resp[i].Code, i)
+	}
 }
