@@ -370,16 +370,25 @@ func (k Keeper) OnAccountUpdated(acc exported.Account) {
 }
 
 // CreateByContract create the smart contract from other contract.
-func (k Keeper) CreateByContract(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, initMsg []byte, adminAddr sdk.WasmAddress, label string, isCreate2 bool, salt []byte, deposit sdk.Coins) (sdk.WasmAddress, []byte, error) {
-	codeID, codeHash, err := k.create(ctx, creator, wasmCode, nil, DefaultAuthorizationPolicy{})
-	if err != nil {
-		return nil, nil, err
+func (k Keeper) CreateByContract(ctx sdk.Context, creator sdk.WasmAddress, wasmCode []byte, codeID uint64, initMsg []byte, adminAddr sdk.WasmAddress, label string, isCreate2 bool, salt []byte, deposit sdk.Coins) (sdk.WasmAddress, []byte, error) {
+	var codeHash []byte
+	var err error
+	if codeID < 1 {
+		codeID, codeHash, err = k.create(ctx, creator, wasmCode, nil, DefaultAuthorizationPolicy{})
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	if codeID >= 1 && isCreate2 {
+		codeInfo := k.GetCodeInfo(ctx, codeID)
+		codeHash = codeInfo.CodeHash
 	}
 
 	var contractAddress sdk.WasmAddress
 	if isCreate2 {
 		contractAddress = generateContractAddress2(salt, codeHash)
 	}
+
 	return k.instantiate(ctx, codeID, creator, adminAddr, contractAddress, initMsg, label, deposit, DefaultAuthorizationPolicy{})
 }
 
