@@ -13,7 +13,6 @@ import (
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -386,7 +385,7 @@ func (k Keeper) CreateByContract(ctx sdk.Context, creator sdk.WasmAddress, wasmC
 
 	var contractAddress sdk.WasmAddress
 	if isCreate2 {
-		contractAddress = generateContractAddress2(salt, codeHash)
+		contractAddress = BuildContractAddressPredictable(codeHash, creator, salt, []byte{})
 	}
 
 	return k.instantiate(ctx, codeID, creator, adminAddr, contractAddress, initMsg, label, deposit, DefaultAuthorizationPolicy{})
@@ -1242,9 +1241,40 @@ func BuildContractAddress(codeID, instanceID uint64) sdk.WasmAddress {
 	return types.Module(types.ModuleName, contractID)[types.ContractIndex:]
 }
 
-// generateContractAddress2 builds a sdk account address for a contract like evm create2.
-func generateContractAddress2(salt, codeHash []byte) sdk.WasmAddress {
-	return types.Module(types.ModuleName, ethcrypto.Keccak256([]byte{0xff}, salt, codeHash))[types.ContractIndex:]
+// BuildContractAddressPredictable generates a contract address for the wasm module with len = types.ContractAddrLen using the
+// Cosmos SDK address.Module function.
+// Internally a key is built containing:
+// (len(checksum) | checksum | len(sender_address) | sender_address | len(salt) | salt| len(initMsg) | initMsg).
+//
+// All method parameter values must be valid and not nil.
+func BuildContractAddressPredictable(checksum []byte, creator sdk.WasmAddress, salt, initMsg types.RawContractMessage) sdk.WasmAddress {
+	if len(checksum) != 32 {
+		panic("invalid checksum")
+	}
+	if err := sdk.VerifyAddressFormat(creator); err != nil {
+		panic(fmt.Sprintf("creator: %s", err))
+	}
+	if err := types.ValidateSalt(salt); err != nil {
+		panic(fmt.Sprintf("salt: %s", err))
+	}
+	if err := initMsg.ValidateBasic(); len(initMsg) != 0 && err != nil {
+		panic(fmt.Sprintf("initMsg: %s", err))
+	}
+	checksum = UInt64LengthPrefix(checksum)
+	creator = UInt64LengthPrefix(creator)
+	salt = UInt64LengthPrefix(salt)
+	initMsg = UInt64LengthPrefix(initMsg)
+	key := make([]byte, len(checksum)+len(creator)+len(salt)+len(initMsg))
+	copy(key[0:], checksum)
+	copy(key[len(checksum):], creator)
+	copy(key[len(checksum)+len(creator):], salt)
+	copy(key[len(checksum)+len(creator)+len(salt):], initMsg)
+	return types.Module(types.ModuleName, key)[types.ContractIndex:]
+}
+
+// UInt64LengthPrefix prepend big endian encoded byte length
+func UInt64LengthPrefix(bz []byte) []byte {
+	return append(sdk.Uint64ToBigEndian(uint64(len(bz))), bz...)
 }
 
 func (k Keeper) autoIncrementID(ctx sdk.Context, lastIDKey []byte) uint64 {
