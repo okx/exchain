@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -79,11 +81,13 @@ func SetupWithGenesisAccounts(isCheckTx bool, genAccs []authexported.GenesisAcco
 		}
 
 		// Initialize the chain
+		testTime, _ := time.Parse("2006-01-02 15:04:05", "2017-04-11 13:33:37")
 		app.InitChain(
 			abci.RequestInitChain{
 				Validators:    []abci.ValidatorUpdate{},
 				AppStateBytes: stateBytes,
 				ChainId:       setupOption.chainId,
+				Time:          testTime,
 			},
 		)
 
