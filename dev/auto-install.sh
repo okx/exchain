@@ -56,7 +56,7 @@ GetArchitecture() {
           echo "echo Arch Linux detected."
           os="linux"
           deptool="ldd"
-          goAchive="go1.17.linux-amd64.tar.gz"
+          goAchive="go1.20.2.linux-amd64.tar.gz"
           libArray=("/usr/local/lib/librocksdb.so.6.27.3" "/usr/local/lib/librocksdb.so.6.27" "/usr/local/lib/librocksdb.so.6" "/usr/local/lib/librocksdb.so" "/usr/lib/librocksdb.so.6.27.3" "/usr/lib/librocksdb.so.6.27" "/usr/lib/librocksdb.so.6" "/usr/lib/librocksdb.so")
           rocksdbdep=("/usr/local/lib/pkconfig/rocksdb.pc" "/usr/local/include/rocksdb" "/usr/local/lib/librocksdb.so*" "/usr//lib/pkconfig/rocksdb.pc" "/usr/include/rocksdb" "/usr/lib/librocksdb.so*")
           case "$(getOSName)" in
@@ -108,9 +108,9 @@ GetArchitecture() {
           echo "$_cputype"
           if [ "$_cputype" == "arm64" ]
           then
-            goAchive="go1.17.darwin-arm64.tar.gz"
+            goAchive="go1.20.2.darwin-arm64.tar.gz"
           else
-            goAchive="go1.17.darwin-amd64.tar.gz"
+            goAchive="go1.20.2.darwin-amd64.tar.gz"
           fi
           brew install wget
   else
@@ -222,12 +222,12 @@ Prepare() {
 
   v=$(/usr/local/go/bin/go version | { read _ _ v _; echo ${v#go}; })
   # shellcheck disable=SC2046
-  if [ $(checkgoversion "$v") -ge $(checkgoversion "1.17") ]
+  if [ $(checkgoversion "$v") -ge $(checkgoversion "1.20") ]
   then
     echo "$v"
     echo "should not install go"
   else
-    echo "should install go version above 1.17"
+    echo "should install go version above 1.20"
     installgo
   fi
 

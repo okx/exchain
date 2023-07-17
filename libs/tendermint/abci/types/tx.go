@@ -5,7 +5,7 @@ import "math/big"
 type TxEssentials interface {
 	GetRaw() []byte
 	TxHash() []byte
-	GetFrom() string
+	GetEthAddr() string
 	GetNonce() uint64
 	GetGasPrice() *big.Int
 }
@@ -26,7 +26,7 @@ func (tx MockTx) TxHash() []byte {
 	return tx.Hash
 }
 
-func (tx MockTx) GetFrom() string {
+func (tx MockTx) GetEthAddr() string {
 	return tx.From
 }
 

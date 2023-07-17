@@ -247,6 +247,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	viper.BindPFlag(FlagEvmImportMode, cmd.Flags().Lookup(FlagEvmImportMode))
 	viper.BindPFlag(FlagEvmImportPath, cmd.Flags().Lookup(FlagEvmImportPath))
 	viper.BindPFlag(FlagGoroutineNum, cmd.Flags().Lookup(FlagGoroutineNum))
+	viper.BindPFlag(FlagStartFromSnapshot, cmd.Flags().Lookup(FlagStartFromSnapshot))
 
 	cmd.Flags().Int(state.FlagDeliverTxsExecMode, 0, "Execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
 	cmd.Flags().Bool(state.FlagEnableConcurrency, false, "Enable concurrency for deliver txs")
@@ -258,6 +259,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
+	cmd.Flags().Int64(flags.FlagMaxBodyBytes, flags.DefaultMaxBodyBytes, "The RPC maximum size of request body, in bytes")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, ChainID, "Chain ID of tendermint node for web3")
@@ -274,6 +276,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int64(FlagCommitGapHeight, 100, "Block interval to commit cached data into db, affects iavl & mpt")
 
 	cmd.Flags().Int64(FlagFastSyncGap, 20, "Block height interval to switch fast-sync mode")
+	cmd.Flags().String(FlagStartFromSnapshot, "", "Snapshot URL which uses to start node")
+	cmd.Flags().MarkHidden(FlagStartFromSnapshot)
 
 	return cmd
 }

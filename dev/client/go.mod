@@ -1,6 +1,6 @@
 module github.com/okex/exchain/dev/client
 
-go 1.17
+go 1.20
 
 require (
 	github.com/cosmos/cosmos-sdk v0.39.2

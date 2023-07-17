@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"io"
 	"os"
 	"runtime/debug"
@@ -50,6 +51,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -758,13 +760,15 @@ func NewOKExChainApp(
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
 	app.SetUpdateWasmTxCount(fixCosmosTxCountInWasmForParallelTx(app.WasmHandler.TXCounterStoreKey))
 	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetGetFeeCollectorInfo(getFeeCollectorInfo(app.BankKeeper, app.SupplyKeeper))
 	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
-	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.EvmKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 	app.SetUpdateCMTxNonceHandler(NewUpdateCMTxNonceHandler())
+	app.SetGetGasConfigHandler(NewGetGasConfigHandler(app.ParamsKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -955,6 +959,8 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 }
 
 func PreRun(ctx *server.Context, cmd *cobra.Command) error {
+	prepareSnapshotDataIfNeed(viper.GetString(server.FlagStartFromSnapshot), viper.GetString(flags.FlagHome), ctx.Logger)
+
 	// check start flag conflicts
 	err := sanity.CheckStart()
 	if err != nil {
@@ -1033,9 +1039,19 @@ func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHa
 
 func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
 	return func(tx sdk.Tx, nonce uint64) {
-		stdtx, ok := tx.(*authtypes.StdTx)
-		if ok && nonce != 0 {
-			stdtx.Nonce = nonce
+		if nonce != 0 {
+			switch v := tx.(type) {
+			case *authtypes.StdTx:
+				v.Nonce = nonce
+			case *authtypes.IbcTx:
+				v.Nonce = nonce
+			}
 		}
+	}
+}
+
+func NewGetGasConfigHandler(pk params.Keeper) sdk.GetGasConfigHandler {
+	return func(ctx sdk.Context) *stypes.GasConfig {
+		return pk.GetGasConfig(ctx)
 	}
 }

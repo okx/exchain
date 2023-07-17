@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
+
+	"github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/etherhash"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	"github.com/tendermint/go-amino"
 )
 
 // Tx is an arbitrary byte array.
@@ -209,4 +211,19 @@ func ComputeAminoOverhead(tx Tx, fieldNum int) int64 {
 	fnum := uint64(fieldNum)
 	typ3AndFieldNum := (fnum << 3) | uint64(amino.Typ3_ByteLength)
 	return int64(amino.UvarintSize(typ3AndFieldNum)) + int64(amino.UvarintSize(uint64(len(tx))))
+}
+
+type WrappedMempoolTx struct {
+	Height      int64  `json:"height"`
+	GasWanted   int64  `json:"gas_wanted"`
+	GasLimit    int64  `json:"gas_limit"`
+	Tx          Tx     `json:"tx"`
+	NodeKey     []byte `json:"node_key"`
+	Signature   []byte `json:"signature"`
+	From        string `json:"from"`
+	SenderNonce uint64 `json:"sender_nonce"`
+	Outdated    uint32 `json:"outdated"`
+	IsSim       uint32 `json:"is_sim"`
+	IsWrapCMTx  bool   `json:"is_wrap_cm_tx"`
+	WrapCMNonce uint64 `json:"wrap_cm_nonce"`
 }

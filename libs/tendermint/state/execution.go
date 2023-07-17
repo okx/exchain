@@ -208,6 +208,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
 	}
+
 	trc := trace.NewTracer(trace.ApplyBlock)
 	trc.EnableSummary()
 	trc.SetWorkloadStatistic(trace.GetApplyBlockWorkloadSttistic())
@@ -224,6 +225,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		now := time.Now().UnixNano()
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
 		blockExec.metrics.lastBlockTime = now
+		blockExec.metrics.CommittedHeight.Set(float64(block.Height))
 	}()
 
 	if err := blockExec.ValidateBlock(state, block); err != nil {

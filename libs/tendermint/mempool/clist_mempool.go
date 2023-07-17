@@ -710,7 +710,7 @@ func (mem *CListMempool) resCbFirstTime(
 				realTx:      r.CheckTx.Tx,
 				nodeKey:     txInfo.wtx.GetNodeKey(),
 				signature:   txInfo.wtx.GetSignature(),
-				from:        r.CheckTx.Tx.GetFrom(),
+				from:        r.CheckTx.Tx.GetEthAddr(),
 				senderNonce: r.CheckTx.SenderNonce,
 			}
 			if txInfo.isGasPrecise {
@@ -791,7 +791,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			if mem.config.PendingRemoveEvent {
 				mem.rmPendingTxChan <- types.EventDataRmPendingTx{
 					memTx.realTx.TxHash(),
-					memTx.realTx.GetFrom(),
+					memTx.realTx.GetEthAddr(),
 					memTx.realTx.GetNonce(),
 					types.Recheck,
 				}
@@ -1278,6 +1278,23 @@ func (memTx *mempoolTx) Height() int64 {
 	return atomic.LoadInt64(&memTx.height)
 }
 
+func (memTx *mempoolTx) ToWrappedMempoolTx() types.WrappedMempoolTx {
+	return types.WrappedMempoolTx{
+		Height:      memTx.height,
+		GasWanted:   memTx.gasWanted,
+		GasLimit:    memTx.gasLimit,
+		Tx:          memTx.tx,
+		NodeKey:     memTx.nodeKey,
+		Signature:   memTx.signature,
+		From:        memTx.from,
+		SenderNonce: memTx.senderNonce,
+		Outdated:    memTx.isOutdated,
+		IsSim:       memTx.isSim,
+		IsWrapCMTx:  memTx.isWrapCMTx,
+		WrapCMNonce: memTx.wrapCMNonce,
+	}
+}
+
 //--------------------------------------------------------------------------------
 
 type txCache interface {
@@ -1485,11 +1502,15 @@ func (mem *CListMempool) deleteMinGPTxOnlyFull() {
 		mem.cache.RemoveKey(txOrTxHashToKey(removeMemTx.tx, removeMemTxHash, removeMemTx.Height()))
 
 		if mem.config.PendingRemoveEvent {
-			mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetFrom(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
+			mem.rmPendingTxChan <- types.EventDataRmPendingTx{removeMemTxHash, removeMemTx.realTx.GetEthAddr(), removeMemTx.realTx.GetNonce(), types.MinGasPrice}
 		}
 	}
 }
 
 func (mem *CListMempool) GetEnableDeleteMinGPTx() bool {
 	return cfg.DynamicConfig.GetEnableDeleteMinGPTx()
+}
+
+func (mem *CListMempool) GetPendingPoolTxsBytes() map[string]map[string]types.WrappedMempoolTx {
+	return mem.pendingPool.GetWrappedAddressTxsMap()
 }

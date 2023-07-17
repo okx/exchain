@@ -3,10 +3,8 @@ package keeper
 import (
 	"encoding/binary"
 
-	types2 "github.com/okex/exchain/libs/tendermint/types"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -30,7 +28,7 @@ func NewCountTXDecorator(storeKey sdk.StoreKey) *CountTXDecorator {
 // The ante handler passes the counter value via sdk.Context upstream. See `types.TXCounter(ctx)` to read the value.
 // Simulations don't get a tx counter value assigned.
 func (a CountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if simulate || !types2.HigherThanEarth(ctx.BlockHeight()) {
+	if simulate || !tmtypes.HigherThanEarth(ctx.BlockHeight()) {
 		return next(ctx, tx, simulate)
 	}
 	currentGasmeter := ctx.GasMeter()
@@ -108,7 +106,9 @@ func (d LimitSimulationGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 }
 
 func UpdateTxCount(ctx sdk.Context, storeKey sdk.StoreKey, txCount int) {
-	store := ctx.KVStore(storeKey)
-	currentHeight := ctx.BlockHeight()
-	store.Set(types.TXCounterPrefix, encodeHeightCounter(currentHeight, uint32(txCount+1)))
+	if tmtypes.HigherThanEarth(ctx.BlockHeight()) {
+		store := ctx.KVStore(storeKey)
+		currentHeight := ctx.BlockHeight()
+		store.Set(types.TXCounterPrefix, encodeHeightCounter(currentHeight, uint32(txCount+1)))
+	}
 }

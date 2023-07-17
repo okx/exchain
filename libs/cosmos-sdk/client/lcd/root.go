@@ -106,7 +106,7 @@ func (rs *RestServer) Logger() log.Logger {
 }
 
 // Start starts the rest server
-func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTimeout uint, cors bool) (err error) {
+func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTimeout uint, maxBodyBytes int64, cors bool) (err error) {
 	//trapSignal(func() {
 	//	err := rs.listener.Close()
 	//	rs.log.Error("error closing listener", "err", err)
@@ -116,6 +116,9 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 	cfg.MaxOpenConnections = maxOpen
 	cfg.ReadTimeout = time.Duration(readTimeout) * time.Second
 	cfg.WriteTimeout = time.Duration(writeTimeout) * time.Second
+	if maxBodyBytes > 0 {
+		cfg.MaxBodyBytes = maxBodyBytes
+	}
 
 	rs.listener, err = tmrpcserver.Listen(listenAddr, cfg)
 	if err != nil {
@@ -163,6 +166,7 @@ func ServeCommand(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, regist
 				viper.GetInt(flags.FlagMaxOpenConnections),
 				uint(viper.GetInt(flags.FlagRPCReadTimeout)),
 				uint(viper.GetInt(flags.FlagRPCWriteTimeout)),
+				viper.GetInt64(flags.FlagMaxBodyBytes),
 				viper.GetBool(flags.FlagUnsafeCORS),
 			)
 
@@ -177,7 +181,7 @@ func StartRestServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, reg
 	rs := NewRestServer(cdc, interfaceReg, tmNode)
 
 	registerRoutesFn(rs)
-	//rs.registerSwaggerUI() 
+	//rs.registerSwaggerUI()
 	rs.log.Info("start rest server")
 	// Start the rest server and return error if one exists
 	return rs.Start(
@@ -185,6 +189,7 @@ func StartRestServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, reg
 		viper.GetInt(flags.FlagMaxOpenConnections),
 		uint(viper.GetInt(flags.FlagRPCReadTimeout)),
 		uint(viper.GetInt(flags.FlagRPCWriteTimeout)),
+		viper.GetInt64(flags.FlagMaxBodyBytes),
 		viper.GetBool(flags.FlagUnsafeCORS),
 	)
 }

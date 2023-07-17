@@ -151,12 +151,14 @@ type BaseApp struct { // nolint: maligned
 	fauxMerkleMode bool             // if true, IAVL MountStores uses MountStoresDB for simulation speed.
 
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
+	getFeeCollectorInfoHandler   sdk.GetFeeCollectorInfo
 	logFix                       sdk.LogFix
 	updateCosmosTxCount          sdk.UpdateCosmosTxCount
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 	getTxFeeHandler        sdk.GetTxFeeHandler
 	updateCMTxNonceHandler sdk.UpdateCMTxNonceHandler
+	getGasConfigHandler    sdk.GetGasConfigHandler
 
 	// volatile states:
 	//
@@ -205,7 +207,6 @@ type BaseApp struct { // nolint: maligned
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	feeCollector          sdk.Coins
-	feeChanged            bool // used to judge whether should update the fee-collector account
 	FeeSplitCollector     []*sdk.FeeSplitInfo
 
 	chainCache *sdk.Cache
@@ -696,16 +697,22 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
+		app.parallelTxManage.txByteMpCMIndexLock.RLock()
 		ctx.SetParaMsg(&sdk.ParaMsg{
-			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+			// Concurrency security issues need to be considered here,
+			// and there is a small probability that NeedUpdateTXCounter() will be wrong
+			// due to concurrent reading and writing of pm.txIndexMpUpdateTXCounter (slice),
+			// but such tx will be rerun, so this case can be ignored.
+			HaveCosmosTxInBlock: app.parallelTxManage.NeedUpdateTXCounter(),
 			CosmosIndexInBlock:  app.parallelTxManage.txByteMpCosmosIndex[string(txBytes)],
 		})
+		app.parallelTxManage.txByteMpCMIndexLock.RUnlock()
 		ctx.SetTxBytes(txBytes)
 		ctx.ResetWatcher()
 	}
 
 	if mode == runTxModeDeliver {
-		ctx.SetDeliver()
+		ctx.SetDeliverSerial()
 	}
 	ctx.SetFeeSplitInfo(&sdk.FeeSplitInfo{})
 
