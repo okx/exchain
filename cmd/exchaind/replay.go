@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"sort"
 	"time"
 
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -57,6 +58,28 @@ const (
 	defaultPprofFilePerm = 0644
 )
 
+func rankByWordCount(wordFrequencies map[string]int) PairList {
+	pl := make(PairList, len(wordFrequencies))
+	i := 0
+	for k, v := range wordFrequencies {
+		pl[i] = Pair{k, v}
+		i++
+	}
+	sort.Sort(sort.Reverse(pl))
+	return pl
+}
+
+type Pair struct {
+	Key   string
+	Value int
+}
+
+type PairList []Pair
+
+func (p PairList) Len() int           { return len(p) }
+func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
+func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
 func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 	cdc *codec.CodecProxy, appCreator server.AppCreator, registry jsonpb.AnyResolver,
 	registerRoutesFn func(restServer *lcd.RestServer)) *cobra.Command {
@@ -102,6 +125,19 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			ts := time.Now()
 			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
+			log.Println("----------summary----------")
+			log.Printf("total txs %v\n", global.TotalTxs)
+
+			counter := 0
+			ret := rankByWordCount(global.ContractsMap)
+			for _, v := range ret {
+				log.Printf("%s,%v\n", v.Key, v.Value)
+				counter++
+				if counter == 20 {
+					break
+				}
+			}
+			log.Println("----------summary----------")
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			if viper.GetBool(runWithPprofMemFlag) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math/big"
 	"strings"
 
@@ -280,6 +281,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 			return exeRes, resData, ErrCallDisabled, innerTxs, erc20Contracts
 		}
+		global.TotalTxs++
+		global.ContractsMap[(*st.Recipient).String()]++
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)

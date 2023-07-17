@@ -13,3 +13,10 @@ func SetGlobalHeight(height int64) {
 func GetGlobalHeight() int64 {
 	return atomic.LoadInt64(&lastCommittedHeight)
 }
+
+var ContractsMap map[string]int
+var TotalTxs int
+
+func init() {
+	ContractsMap = make(map[string]int)
+}
