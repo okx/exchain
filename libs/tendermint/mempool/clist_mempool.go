@@ -1288,7 +1288,7 @@ func (memTx *mempoolTx) ToWrappedMempoolTx() types.WrappedMempoolTx {
 		Signature:   memTx.signature,
 		From:        memTx.from,
 		SenderNonce: memTx.senderNonce,
-		Outdated:    memTx.isOutdated,
+		Outdated:    memTx.outdated,
 		IsSim:       memTx.isSim,
 		IsWrapCMTx:  memTx.isWrapCMTx,
 		WrapCMNonce: memTx.wrapCMNonce,
