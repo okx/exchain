@@ -215,6 +215,7 @@ func newKeeper(cdc *codec.CodecProxy,
 	// register
 	wasmvm.RegisterGetWasmCallInfo(GetWasmCallInfo)
 	wasmvm.RegisterGetWasmCacheInfo(GetWasmCacheInfo)
+	wasmvm.RegisterTransferCoins(TransferCoins)
 	SetWasmKeeper(keeper)
 	SetWasmCache(wasmer.GetCache())
 	return *keeper
