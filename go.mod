@@ -173,7 +173,7 @@ require (
 )
 
 replace (
-	github.com/CosmWasm/wasmvm => github.com/okx/wasmvm v1.2.4-0.20230713102449-f9397480ce4f
+	github.com/CosmWasm/wasmvm => github.com/okx/wasmvm v1.2.4-0.20230718075938-483644dbdc3f
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 	github.com/cosmos/gorocksdb => github.com/okex/grocksdb v1.6.45-okc2
