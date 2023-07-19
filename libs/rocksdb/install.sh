@@ -54,8 +54,8 @@ install_linux() {
   $sh_c "cd rocksdb && make uninstall"
   $sh_c "cd rocksdb && make clean PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make uninstall PREFIX=/usr LIBDIR=/usr/lib"
-  $sh_c "cd rocksdb && ROCKSDB_DISABLE_TCMALLOC=1 make -j${num_proc} DISABLE_JEMALLOC=1 shared_lib PREFIX=/usr LIBDIR=/usr/lib"
-  $sh_c "cd rocksdb && make install-shared PREFIX=/usr LIBDIR=/usr/lib"
+  $sh_c "cd rocksdb && PORTABLE=1 ROCKSDB_DISABLE_TCMALLOC=1 make -j${num_proc} PORTABLE=1 DISABLE_JEMALLOC=1 shared_lib PREFIX=/usr LIBDIR=/usr/lib"
+  $sh_c "cd rocksdb && PORTABLE=1 make install-shared PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "ldconfig"
 }
 
