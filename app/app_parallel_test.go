@@ -443,13 +443,13 @@ func TestParallelTxs(t *testing.T) {
 			[]uint32{0, 0, 0, 0, 0},
 		},
 		{
-			"4 cosmos txs, 1 Failed cosmos tx, 0 group: a->b failed(b->c) c->d d->e e->f",
+			"4 cosmos txs, 1 Failed cosmos tx, 0 group: a->b failed(b->c) / d->e e->f f->g",
 			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
 				rawTxs = append(rawTxs, createTokenSendTx(t, chain, 0))
 				rawTxs = append(rawTxs, createFailedTokenSendTx(t, chain, 1))
-				for i := 2; i < 5; i++ {
+				for i := 3; i < 6; i++ {
 					rawTxs = append(rawTxs, createTokenSendTx(t, chain, i))
 				}
 				ret := runTxs(chain, rawTxs, isParallel)
