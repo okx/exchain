@@ -382,6 +382,7 @@ func (k Keeper) CreateByContract(ctx sdk.Context, creator sdk.WasmAddress, wasmC
 	if codeID < 1 {
 		codeID, codeHash, err = k.create(ctx, creator, wasmCode, nil, DefaultAuthorizationPolicy{})
 		if err != nil {
+			fmt.Println(8, err)
 			return nil, nil, err
 		}
 	}

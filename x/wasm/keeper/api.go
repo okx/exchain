@@ -63,6 +63,7 @@ func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.C
 		}
 		addr, _, err := keeper.CreateByContract(ctx, creator, request.WasmCode, request.CodeID, request.InitMsg, admin, request.Label, request.IsCreate2, request.Salt, nil)
 		if err != nil {
+			fmt.Println(9, err)
 			return "", ctx.GasMeter().GasConsumed() - gasBefore, err
 		}
 
