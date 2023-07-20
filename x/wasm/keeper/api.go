@@ -49,7 +49,9 @@ func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.C
 		gasBefore := ctx.GasMeter().GasConsumed()
 		code := request.WasmCode
 		request.WasmCode = nil
-		fmt.Printf("创建合约start：height=%d, gasbefore=%d, lenCode=%d, %+v\n", ctx.BlockHeight(), gasBefore, len(code), request)
+		if !ctx.IsCheckTx() {
+			fmt.Printf("create contract start：height=%d, gasbefore=%d, lenCode=%d, %+v\n", ctx.BlockHeight(), gasBefore, len(code), request)
+		}
 		request.WasmCode = code
 		creator, err := sdk.WasmAddressFromBech32(request.Creator)
 		if err != nil {
@@ -64,7 +66,9 @@ func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.C
 			return "", ctx.GasMeter().GasConsumed() - gasBefore, err
 		}
 
-		fmt.Printf("创建合约end：contractAddr=%s, gas=%d\n", addr.String(), ctx.GasMeter().GasConsumed()-gasBefore)
+		if !ctx.IsCheckTx() {
+			fmt.Printf("创建合约end：contractAddr=%s, gas=%d\n", addr.String(), ctx.GasMeter().GasConsumed()-gasBefore)
+		}
 		return addr.String(), ctx.GasMeter().GasConsumed() - gasBefore, nil
 	}
 }
