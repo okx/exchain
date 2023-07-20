@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strconv"
 	"sync"
@@ -107,6 +108,24 @@ type CListMempool struct {
 	rmPendingTxChan chan types.EventDataRmPendingTx
 
 	gpo *Oracle
+}
+
+func (mem *CListMempool) filterCMTx(tx abci.TxEssentials) bool {
+	if tx.GetType() != abci.StdTxType {
+		return true
+	}
+	if mem.txs.GetAddressTxsCnt(tx.GetFrom()) != 0 {
+		return false
+	}
+
+	if tx2, ok := tx.(abci.TxFilter); ok {
+		addr := ethcmn.BytesToAddress(tx2.GetFromBytes()).String()
+		if mem.txs.GetAddressTxsCnt(addr) != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 var _ Mempool = &CListMempool{}
@@ -686,6 +705,15 @@ func (mem *CListMempool) resCbFirstTime(
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
 				mem.cache.RemoveKey(txkey)
 				errMsg := "Failed to get extra info for this tx!"
+				mem.logger.Error(errMsg)
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = errMsg
+				return
+			}
+
+			if !mem.filterCMTx(r.CheckTx.Tx) {
+				mem.cache.RemoveKey(txkey)
+				errMsg := "The transaction could not be added to the mempool as there is already another transaction from the same sender in the mempool"
 				mem.logger.Error(errMsg)
 				r.CheckTx.Code = 1
 				r.CheckTx.Log = errMsg
