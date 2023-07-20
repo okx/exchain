@@ -588,6 +588,7 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "execute")
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddress)
 	if err != nil {
+		fmt.Println(1, err)
 		return nil, err
 	}
 
@@ -597,6 +598,7 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	// add more funds
 	if !coins.IsZero() {
 		if err := k.bank.TransferCoins(ctx, caller, contractAddress, coins); err != nil {
+			fmt.Println(2, err)
 			return nil, err
 		}
 	}
@@ -613,10 +615,12 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 		var methodsMap map[string]interface{}
 		err = json.Unmarshal(msg, &methodsMap)
 		if err != nil {
+			fmt.Println(3, err)
 			return nil, err
 		}
 		for method := range methodsMap {
 			if k.IsContractMethodBlocked(ctx, contractAddress.String(), method) {
+				fmt.Println(4)
 				return nil, sdkerrors.Wrap(types.ErrExecuteFailed, fmt.Sprintf("%s method of contract %s is not allowed", contractAddress.String(), method))
 			}
 		}
@@ -625,9 +629,11 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	res, gasUsed, execErr := k.wasmVM.Execute(codeInfo.CodeHash, env, info, msg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
+		fmt.Println(5, err)
 		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.ExecuteInnertxName, coins, err, k.gasRegister.FromWasmVMGas(gasUsed), string(msg))
 	}
 	if execErr != nil {
+		fmt.Println(6, execErr.Error())
 		return nil, sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	}
 
@@ -638,6 +644,7 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 
 	data, err := k.handleContractResponse(ctx, contractAddress, contractInfo.IBCPortID, res.Messages, res.Attributes, res.Data, res.Events)
 	if err != nil {
+		fmt.Println(7, err)
 		return nil, sdkerrors.Wrap(err, "dispatch")
 	}
 
