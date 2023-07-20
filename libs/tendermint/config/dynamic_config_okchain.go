@@ -11,7 +11,10 @@ type IDynamicConfig interface {
 	GetEnableDeleteMinGPTx() bool
 	GetMaxGasUsedPerBlock() int64
 	GetEnablePGU() bool
+	GetPGUPercentageThreshold() int64
+	GetPGUConcurrency() int
 	GetPGUAdjustment() float64
+	GetPGUPersist() bool
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
 	GetMempoolCheckTxCost() bool
@@ -81,8 +84,20 @@ func (d MockDynamicConfig) GetEnablePGU() bool {
 	return false
 }
 
+func (d MockDynamicConfig) GetPGUPercentageThreshold() int64 {
+	return 10
+}
+
+func (d MockDynamicConfig) GetPGUConcurrency() int {
+	return 1
+}
+
 func (d MockDynamicConfig) GetPGUAdjustment() float64 {
 	return 1
+}
+
+func (d MockDynamicConfig) GetPGUPersist() bool {
+	return false
 }
 
 func (d MockDynamicConfig) GetMempoolFlush() bool {
