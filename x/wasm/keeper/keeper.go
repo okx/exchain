@@ -586,6 +586,9 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin, cont
 
 // Execute executes the contract instance
 func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, msg []byte, coins sdk.Coins) ([]byte, error) {
+	if !ctx.IsCheckTx() {
+		fmt.Println("execute start ---------", ctx.BlockHeight())
+	}
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "execute")
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddress)
 	if err != nil {
@@ -649,6 +652,9 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 		return nil, sdkerrors.Wrap(err, "dispatch")
 	}
 
+	if !ctx.IsCheckTx() {
+		fmt.Println("execute end ========", ctx.BlockHeight())
+	}
 	return data, nil
 }
 
