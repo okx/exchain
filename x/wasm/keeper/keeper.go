@@ -639,7 +639,9 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 		fmt.Println(6, execErr.Error())
 		return nil, sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
 	} else {
-		fmt.Println(5, gasUsed, res)
+		if !ctx.IsCheckTx() {
+			fmt.Println(5, gasUsed, res)
+		}
 	}
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
