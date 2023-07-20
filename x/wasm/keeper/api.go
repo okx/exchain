@@ -46,11 +46,11 @@ var cosmwasmAPI = wasmvm.GoAPI{
 
 func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.ContractCreateRequest, gasLimit uint64) (string, uint64, error) {
 	return func(request wasmvmtypes.ContractCreateRequest, gasLimit uint64) (string, uint64, error) {
+		gasBefore := ctx.GasMeter().GasConsumed()
 		code := request.WasmCode
 		request.WasmCode = nil
-		fmt.Printf("创建合约start：lenCode=%d, %+v", len(code), request)
+		fmt.Printf("创建合约start：height=%d, gasbefore=%d, lenCode=%d, %+v\n", ctx.BlockHeight(), gasBefore, len(code), request)
 		request.WasmCode = code
-		gasBefore := ctx.GasMeter().GasConsumed()
 		creator, err := sdk.WasmAddressFromBech32(request.Creator)
 		if err != nil {
 			return "", ctx.GasMeter().GasConsumed() - gasBefore, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Creator)
@@ -64,7 +64,7 @@ func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.C
 			return "", ctx.GasMeter().GasConsumed() - gasBefore, err
 		}
 
-		fmt.Printf("创建合约end：contractAddr=%s, gas=%d", addr.String(), ctx.GasMeter().GasConsumed()-gasBefore)
+		fmt.Printf("创建合约end：contractAddr=%s, gas=%d\n", addr.String(), ctx.GasMeter().GasConsumed()-gasBefore)
 		return addr.String(), ctx.GasMeter().GasConsumed() - gasBefore, nil
 	}
 }
