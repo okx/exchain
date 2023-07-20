@@ -6,6 +6,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
+	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking/exported"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
@@ -40,11 +41,18 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 		panic(err)
 	}
 
+	totalFee := sdk.ConvertDecToFloat64(feesCollected.AmountOf(common.NativeToken))
+	k.feeInfo.TotalFee += totalFee
+	k.metric.TotalFee.Add(totalFee)
+
 	feePool := k.GetFeePool(ctx)
 	if totalPreviousPower == 0 {
 		feePool.CommunityPool = feePool.CommunityPool.Add(feesCollected...)
 		k.SetFeePool(ctx, feePool)
-		logger.Debug("totalPreviousPower is zero, send fees to community pool", "fees", feesCollected)
+		feeToCommunity := float64(feesCollected.AmountOf(common.NativeToken).TruncateInt64())
+		k.feeInfo.FeeToCommunityPool += feeToCommunity
+		k.metric.FeeToCommunityPool.Add(feeToCommunity)
+		logger.Debug("totalPreviousPower is zero, send fees to community pool", "fees", feesCollected, "height", ctx.BlockHeight())
 		return
 	}
 
@@ -72,8 +80,15 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	if !feesToCommunity.IsZero() {
 		feePool.CommunityPool = feePool.CommunityPool.Add(feesToCommunity...)
 		k.SetFeePool(ctx, feePool)
-		logger.Debug("Send fees to community pool", "community_pool", feesToCommunity)
+		feeToCommunity := sdk.ConvertDecToFloat64(feesToCommunity.AmountOf(common.NativeToken))
+		k.feeInfo.FeeToCommunityPool += feeToCommunity
+		k.metric.FeeToCommunityPool.Add(feeToCommunity)
+		logger.Debug("Send fees to community pool", "community_pool", feesToCommunity, "height", ctx.BlockHeight())
 	}
+	logger.Error("Total fee to community pool", "community_pool", k.feeInfo.FeeToCommunityPool, "height", ctx.BlockHeight())
+	logger.Error("Total fee to controlled validators", "controlled_validators", k.feeInfo.FeeToControlledVals, "height", ctx.BlockHeight())
+	logger.Error("Total fee to other validators", "other_validators", k.feeInfo.FeeToOtherVals, "height", ctx.BlockHeight())
+	logger.Error("Total fee", "total_fee", k.feeInfo.TotalFee, "height", ctx.BlockHeight())
 }
 
 func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.SysCoins, previousVotes []abci.VoteInfo) sdk.SysCoins {
@@ -98,10 +113,18 @@ func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.SysCoins, previousV
 	//beginning allocating rewards equally
 	remaining := rewards
 	reward := rewards.MulDecTruncate(powerFraction)
+	rewardInFloat64 := sdk.ConvertDecToFloat64(reward.AmountOf(common.NativeToken))
 	for _, val := range validators {
 		k.AllocateTokensToValidator(ctx, val, reward)
 		logger.Debug("allocate by equal", val.GetOperator(), reward.String())
 		remaining = remaining.Sub(reward)
+		if index := sdk.StringsContains(k.monitoredValidators, val.GetOperator().String()); index != -1 {
+			k.feeInfo.FeeToControlledVals += rewardInFloat64
+			k.metric.FeeToControlledVals.Add(rewardInFloat64)
+		} else {
+			k.feeInfo.FeeToOtherVals += rewardInFloat64
+			k.metric.FeeToOtherVals.Add(rewardInFloat64)
+		}
 	}
 	return remaining
 }
@@ -137,6 +160,14 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 		k.AllocateTokensToValidator(ctx, val, reward)
 		logger.Debug("allocate by shares", val.GetOperator(), reward)
 		remaining = remaining.Sub(reward)
+		rewardInFloat64 := sdk.ConvertDecToFloat64(reward.AmountOf(common.NativeToken))
+		if index := sdk.StringsContains(k.monitoredValidators, val.GetOperator().String()); index != -1 {
+			k.feeInfo.FeeToControlledVals += rewardInFloat64
+			k.metric.FeeToControlledVals.Add(rewardInFloat64)
+		} else {
+			k.feeInfo.FeeToOtherVals += rewardInFloat64
+			k.metric.FeeToOtherVals.Add(rewardInFloat64)
+		}
 	}
 	return remaining
 }

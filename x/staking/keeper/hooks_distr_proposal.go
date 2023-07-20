@@ -47,3 +47,11 @@ func (k Keeper) CheckEnabled(ctx sdk.Context) bool {
 
 	return k.hooks.CheckEnabled(ctx)
 }
+
+func (k Keeper) GetOfficeRewards() float64 {
+	if k.hooks == nil {
+		return 0
+	}
+
+	return k.hooks.GetOfficeRewards()
+}

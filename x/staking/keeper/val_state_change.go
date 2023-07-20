@@ -108,6 +108,8 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		k.SetLastTotalPower(ctx, totalPower)
 	}
 
+	// todo: test code for monitoring
+	k.recordValidatorsPower(ctx)
 	return updates
 }
 
@@ -268,4 +270,18 @@ func sortNoLongerBonded(last validatorsByAddr) [][]byte {
 		return bytes.Compare(noLongerBonded[i], noLongerBonded[j]) == -1
 	})
 	return noLongerBonded
+}
+
+func (k Keeper) recordValidatorsPower(ctx sdk.Context) {
+	totalNewPower, totalControlledNewPower := int64(0), int64(0)
+	k.IterateLastValidatorPowers(ctx, func(operator sdk.ValAddress, power int64) (stop bool) {
+		totalNewPower += power
+		if index := sdk.StringsContains(k.monitoredValidators, operator.String()); index != -1 {
+			totalControlledNewPower += power
+		}
+		return false
+	})
+	k.metric.AllValidatorsShare.Set(float64(totalNewPower))
+	k.metric.ControlledValidatorsShare.Set(float64(totalControlledNewPower))
+	k.metric.ControlledValidatorsShareRatio.Set(float64(totalControlledNewPower) / float64(totalNewPower))
 }

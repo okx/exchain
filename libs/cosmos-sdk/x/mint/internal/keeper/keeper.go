@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -23,6 +24,13 @@ type Keeper struct {
 	farmModuleName         string
 	originalMintedPerBlock sdk.Dec
 	govKeeper              types.GovKeeper
+
+	feeInfo    *FeeInfo
+	mintMetric *MintMetric
+}
+
+type FeeInfo struct {
+	totalTreasury float64
 }
 
 // NewKeeper creates a new mint Keeper instance
@@ -36,6 +44,10 @@ func NewKeeper(
 		panic("the mint module account has not been set")
 	}
 
+	feeInfo := FeeInfo{viper.GetFloat64("test.init_treasury")}
+	metrics := DefaultMintMetric()
+	metrics.ToTreasury.Set(feeInfo.totalTreasury)
+
 	return Keeper{
 		cdc:                    cdc,
 		storeKey:               key,
@@ -45,6 +57,9 @@ func NewKeeper(
 		feeCollectorName:       feeCollectorName,
 		farmModuleName:         farmModule,
 		originalMintedPerBlock: types.DefaultOriginalMintedPerBlock(),
+
+		feeInfo:    &feeInfo,
+		mintMetric: metrics,
 	}
 }
 

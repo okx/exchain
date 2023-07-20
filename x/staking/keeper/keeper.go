@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/common/monitor"
 	"github.com/okex/exchain/x/staking/exported"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -18,16 +20,21 @@ var _ types.ValidatorSet = Keeper{}
 
 // Keeper is the keeper struct of the staking store
 type Keeper struct {
-	storeKey     sdk.StoreKey
-	cdcMarshl    *codec.CodecProxy
-	supplyKeeper types.SupplyKeeper
-	hooks        types.StakingHooks
-	paramstore   params.Subspace
+	storeKey      sdk.StoreKey
+	cdcMarshl     *codec.CodecProxy
+	supplyKeeper  types.SupplyKeeper
+	accountKeeper types.AccountKeeper
+	hooks         types.StakingHooks
+	paramstore    params.Subspace
+
+	metric              *monitor.StakingMetric
+	monitoredValidators []string
+	monitoredDelegators []string
 }
 
 // NewKeeper creates a new staking Keeper instance
-func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
-	paramstore params.Subspace) Keeper {
+func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper, accountKeeper types.AccountKeeper,
+	paramstore params.Subspace, metrics *monitor.StakingMetric) Keeper {
 	// set KeyTable if it has not already been set
 	if !paramstore.HasKeyTable() {
 		paramstore = paramstore.WithKeyTable(ParamKeyTable())
@@ -42,23 +49,29 @@ func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types
 	}
 
 	return Keeper{
-		storeKey:     key,
-		cdcMarshl:    cdcMarshl,
-		supplyKeeper: supplyKeeper,
-		paramstore:   paramstore,
-		hooks:        nil,
+		storeKey:      key,
+		cdcMarshl:     cdcMarshl,
+		supplyKeeper:  supplyKeeper,
+		accountKeeper: accountKeeper,
+		paramstore:    paramstore,
+		hooks:         nil,
+
+		metric:              metrics,
+		monitoredValidators: viper.GetStringSlice("test.monitored_validators"),
+		monitoredDelegators: viper.GetStringSlice("test.monitored_delegators"),
 	}
 }
 
-func NewKeeperWithNoParam(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+func NewKeeperWithNoParam(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper, accountKeeper types.AccountKeeper,
 	paramstore params.Subspace) Keeper {
 
 	return Keeper{
-		storeKey:     key,
-		cdcMarshl:    cdcMarshl,
-		supplyKeeper: supplyKeeper,
-		paramstore:   paramstore,
-		hooks:        nil,
+		storeKey:      key,
+		cdcMarshl:     cdcMarshl,
+		supplyKeeper:  supplyKeeper,
+		accountKeeper: accountKeeper,
+		paramstore:    paramstore,
+		hooks:         nil,
 	}
 }
 

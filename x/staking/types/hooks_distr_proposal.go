@@ -43,3 +43,12 @@ func (h MultiStakingHooks) CheckEnabled(ctx sdk.Context) bool {
 
 	return true
 }
+
+func (h MultiStakingHooks) GetOfficeRewards() float64 {
+	total := float64(0)
+	for i := range h {
+		total = total + h[i].GetOfficeRewards()
+	}
+
+	return total
+}

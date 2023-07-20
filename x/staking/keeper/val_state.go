@@ -98,6 +98,8 @@ func (k Keeper) KickOutAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []
 	// 5. update the total power of this block to store
 	k.SetLastTotalPower(ctx, totalPower)
 
+	// todo: test code for monitoring
+	k.recordValidatorsPower(ctx)
 	return updates
 }
 
