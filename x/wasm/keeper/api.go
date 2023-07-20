@@ -6,6 +6,7 @@ import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"runtime/debug"
 )
 
 const (
@@ -50,7 +51,8 @@ func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.C
 		code := request.WasmCode
 		request.WasmCode = nil
 		if !ctx.IsCheckTx() {
-			fmt.Printf("create contract start：height=%d, gasbefore=%d, lenCode=%d, %+v\n", ctx.BlockHeight(), gasBefore, len(code), request)
+			fmt.Printf("create contract start：height=%d, gasbefore=%d, lenCode=%d\n", ctx.BlockHeight(), gasBefore, len(code))
+			debug.PrintStack()
 		}
 		request.WasmCode = code
 		creator, err := sdk.WasmAddressFromBech32(request.Creator)
@@ -68,7 +70,7 @@ func contractExternal(ctx sdk.Context, keeper Keeper) func(request wasmvmtypes.C
 		}
 
 		if !ctx.IsCheckTx() {
-			fmt.Printf("创建合约end：contractAddr=%s, gas=%d\n", addr.String(), ctx.GasMeter().GasConsumed()-gasBefore)
+			fmt.Printf("创建合约end：height=%d, contractAddr=%s, gas=%d\n", ctx.BlockHeight(), addr.String(), ctx.GasMeter().GasConsumed()-gasBefore)
 		}
 		return addr.String(), ctx.GasMeter().GasConsumed() - gasBefore, nil
 	}
