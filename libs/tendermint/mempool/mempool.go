@@ -118,11 +118,11 @@ type TxInfo struct {
 	// SenderP2PID is the actual p2p.ID of the sender, used e.g. for logging.
 	SenderP2PID p2p.ID
 
-	from      string
-	wtx       *WrappedTx
-	checkType abci.CheckTxType
-
-	gasUsed int64
+	from         string
+	wtx          *WrappedTx
+	checkType    abci.CheckTxType
+	isGasPrecise bool
+	gasUsed      int64
 
 	wrapCMTx *types.WrapCMTx
 }
