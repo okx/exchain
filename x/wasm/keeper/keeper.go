@@ -109,7 +109,7 @@ func NewKeeper(
 	paramSpace paramtypes.Subspace,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
-//distKeeper types.DistributionKeeper,
+	//distKeeper types.DistributionKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	capabilityKeeper types.CapabilityKeeper,
@@ -525,7 +525,11 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin, cont
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(deposit)
 	info := types.NewInfo(creator, adapters)
-	cosmwasmAPI.Contract = contractExternal(ctx, k)
+	var cosmwasmAPI = wasmvm.GoAPI{
+		HumanAddress:     humanAddress,
+		CanonicalAddress: canonicalAddress,
+		Contract:         contractExternal(ctx, k),
+	}
 
 	// create prefixed data store
 	// 0x03 | BuildContractAddress (sdk.WasmAddress)
@@ -608,7 +612,12 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(coins)
 	info := types.NewInfo(caller, adapters)
-	cosmwasmAPI.Contract = contractExternal(ctx, k)
+
+	var cosmwasmAPI = wasmvm.GoAPI{
+		HumanAddress:     humanAddress,
+		CanonicalAddress: canonicalAddress,
+		Contract:         contractExternal(ctx, k),
+	}
 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
