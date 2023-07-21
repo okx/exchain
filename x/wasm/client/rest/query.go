@@ -31,6 +31,7 @@ func registerQueryRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
 	r.HandleFunc("/wasm/contract/{contractAddr}/smart/{query}", queryContractStateSmartHandlerFn(cliCtx)).Queries("encoding", "{encoding}").Methods("GET")
 	r.HandleFunc("/wasm/contract/{contractAddr}/raw/{key}", queryContractStateRawHandlerFn(cliCtx)).Queries("encoding", "{encoding}").Methods("GET")
 	r.HandleFunc("/wasm/contract/{contractAddr}/blocked_methods", queryContractBlockedMethodsHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/wasm/code/contract/{contractAddr}", queryCodeContractHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/wasm/params", queryParamsHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/wasm/extra_params", queryExtraParamsHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/wasm/whitelist", queryContractWhitelistHandlerFn(cliCtx)).Methods("GET")
@@ -260,6 +261,52 @@ func queryContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			return
 		}
 		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(res)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		rest.PostProcessResponse(w, cliCtx, json.RawMessage(out))
+	}
+}
+
+func queryCodeContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
+		queryClient := types.NewQueryClient(cliCtx)
+		res, err := queryClient.ContractInfo(
+			context.Background(),
+			&types.QueryContractInfoRequest{
+				Address: mux.Vars(r)["contractAddr"],
+			},
+		)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		codeId := res.CodeID
+
+		queryCodeClient := types.NewQueryClient(cliCtx)
+		codeRes, err := queryCodeClient.Code(
+			context.Background(),
+			&types.QueryCodeRequest{
+				CodeId: codeId,
+			},
+		)
+
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if codeRes == nil {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "contract not found")
+			return
+		}
+
+		out, err := cliCtx.CodecProy.GetProtocMarshal().MarshalJSON(codeRes)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
