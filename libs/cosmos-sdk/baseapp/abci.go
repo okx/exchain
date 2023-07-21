@@ -481,6 +481,7 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	}
 
 	if isMempoolSim {
+		fmt.Println("handleSimulate.isMempoolSim ==================", height)
 		gInfo, res, _ := app.MempoolSimulate(txBytes, tx, height, overrideBytes, from)
 		return sdk.SimulationResponse{
 			GasInfo: gInfo,

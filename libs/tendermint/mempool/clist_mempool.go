@@ -1457,6 +1457,7 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 
 func (mem *CListMempool) simulationRoutine() {
 	for memTx := range mem.simQueue {
+		fmt.Println("mempool.simulationRoutine==================", mem.height, memTx.isSim)
 		mem.simulationJob(memTx)
 	}
 }

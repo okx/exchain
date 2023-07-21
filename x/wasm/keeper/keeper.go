@@ -109,7 +109,7 @@ func NewKeeper(
 	paramSpace paramtypes.Subspace,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
-	//distKeeper types.DistributionKeeper,
+//distKeeper types.DistributionKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	capabilityKeeper types.CapabilityKeeper,
@@ -586,9 +586,7 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin, cont
 
 // Execute executes the contract instance
 func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller sdk.WasmAddress, msg []byte, coins sdk.Coins) ([]byte, error) {
-	if !ctx.IsCheckTx() {
-		fmt.Println("execute start ---------", ctx.BlockHeight())
-	}
+	fmt.Printf("execute start ---------height=%d, IsCheckTx=%v, IsMempoolSimulate=%v\n", ctx.BlockHeight(), ctx.IsCheckTx(), ctx.IsMempoolSimulate())
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "execute")
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddress)
 	if err != nil {
@@ -638,10 +636,6 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	if execErr != nil {
 		fmt.Println(6, execErr.Error())
 		return nil, sdkerrors.Wrap(types.ErrExecuteFailed, execErr.Error())
-	} else {
-		if !ctx.IsCheckTx() {
-			fmt.Println(5, gasUsed, res)
-		}
 	}
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
@@ -655,9 +649,7 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 		return nil, sdkerrors.Wrap(err, "dispatch")
 	}
 
-	if !ctx.IsCheckTx() {
-		fmt.Println("execute end ========", ctx.BlockHeight())
-	}
+	fmt.Printf("execute end ========height=%d, IsCheckTx=%v, IsMempoolSimulate=%v\n", ctx.BlockHeight(), ctx.IsCheckTx(), ctx.IsMempoolSimulate())
 	return data, nil
 }
 
@@ -1254,6 +1246,7 @@ func (k Keeper) consumeRuntimeGas(ctx sdk.Context, gas uint64) {
 // generates a contract address from codeID + instanceID
 func (k Keeper) generateContractAddress(ctx sdk.Context, codeID uint64) sdk.WasmAddress {
 	instanceID := k.autoIncrementID(ctx, types.KeyLastInstanceID)
+	fmt.Printf("height=%d,codeID=%d, instanceID=%d\n", ctx.BlockHeight(), codeID, instanceID)
 	return BuildContractAddress(codeID, instanceID)
 }
 
