@@ -430,7 +430,7 @@ func TestParallelTxs(t *testing.T) {
 		// ## only cosmos txs ##
 		// #####################
 		{
-			"5 cosmos txs, 0 group: a->b b->c c->d d->e e->f",
+			"5 cosmos txs, 1 group: a->b b->c c->d d->e e->f",
 			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
@@ -443,7 +443,7 @@ func TestParallelTxs(t *testing.T) {
 			[]uint32{0, 0, 0, 0, 0},
 		},
 		{
-			"4 cosmos txs, 1 Failed cosmos tx, 0 group: a->b failed(b->c) b->c c->d d->f",
+			"4 cosmos txs, 1 Failed cosmos tx, 1 group: a->b failed(b->c) b->c c->d d->f",
 			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
@@ -458,7 +458,7 @@ func TestParallelTxs(t *testing.T) {
 			[]uint32{0, 61034, 0, 0, 0},
 		},
 		{
-			"4 cosmos txs, 1 Failed cosmos tx, 0 group: a->b failed(b->c) / d->e e->f f->g",
+			"4 cosmos txs, 1 Failed cosmos tx, 2 group: a->b failed(b->c) / d->e e->f f->g",
 			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
@@ -473,7 +473,7 @@ func TestParallelTxs(t *testing.T) {
 			[]uint32{0, 61034, 0, 0, 0},
 		},
 		{
-			"4 cosmos txs, 1 AnteErr cosmos tx, 0 group: a->b AnteErr(b->c) c->d d->e e->f",
+			"4 cosmos txs, 1 AnteErr cosmos tx, 1 group: a->b AnteErr(b->c) c->d d->e e->f",
 			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
@@ -488,7 +488,7 @@ func TestParallelTxs(t *testing.T) {
 			[]uint32{0, 5, 0, 0, 0},
 		},
 		{
-			"4 failed cosmos txs, 1 AnteErr cosmos tx, 0 group",
+			"4 failed cosmos txs, 1 AnteErr cosmos tx, 1 group",
 			func(t *testing.T, chain *Chain, isParallel bool) ([]*abci.ResponseDeliverTx, []byte, []byte) {
 
 				var rawTxs [][]byte
