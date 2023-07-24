@@ -142,47 +142,10 @@ func TransformDataError(err error, method string) error {
 			data: RPCNullData,
 		}
 	}
-	//m, retErr := preProcessError(realErr, err.Error())
 	return preProcessError(realErr, err.Error())
-	//if retErr != nil {
-	//	return realErr
-	//}
-	////if there have multi error type of EVM, this need a reactor mode to process error
-	//revert, f := m[vm.ErrExecutionReverted.Error()]
-	//if !f {
-	//	revert = RPCUnknowErr
-	//}
-	//data, f := m[types.ErrorHexData]
-	//if !f {
-	//	data = RPCNullData
-	//}
-	//switch method {
-	//case RPCEthEstimateGas:
-	//	return DataError{
-	//		code: VMExecuteExceptionInEstimate,
-	//		Msg:  revert,
-	//		data: data,
-	//	}
-	//case RPCEthCall:
-	//	return DataError{
-	//		code: VMExecuteException,
-	//		Msg:  revert,
-	//		data: newDataError(revert, data),
-	//	}
-	//default:
-	//	return DataError{
-	//		code: DefaultEVMErrorCode,
-	//		Msg:  revert,
-	//		data: newDataError(revert, data),
-	//	}
-	//}
 }
 
-//Preprocess error string, the string of realErr.Log is most like:
-//`["execution reverted","message","HexData","0x00000000000"];some failed information`
-//we need marshalled json slice from realErr.Log and using segment tag `[` and `]` to cut it
-
-// realErrs are all cosmosError, which is formatted from wrappedError. Msgs are concatenated with ':' between each of them
+// realErr is a cosmosError, which is formatted from wrappedError. Msgs are concatenated with ':' between each of them
 // Main cause always appears in the first place, thus this function only get the first part of the error out of realErr.
 func preProcessError(realErr *cosmosError, origErrorMsg string) error {
 	lastSeg := strings.IndexAny(realErr.Log, ":")
@@ -201,45 +164,7 @@ func preProcessError(realErr *cosmosError, origErrorMsg string) error {
 		Msg:  errorSeg,
 		data: RPCNullData,
 	}
-	//var logs []string
-	//lastSeg := strings.LastIndexAny(realErr.Log, "]")
-	//if lastSeg < 0 {
-	//	return nil, DataError{
-	//		code: DefaultEVMErrorCode,
-	//		Msg:  origErrorMsg,
-	//		data: RPCNullData,
-	//	}
-	//}
-	//marshaler := realErr.Log[0 : lastSeg+1]
-	//e := json.Unmarshal([]byte(marshaler), &logs)
-	//if e != nil {
-	//	return nil, DataError{
-	//		code: DefaultEVMErrorCode,
-	//		Msg:  origErrorMsg,
-	//		data: RPCNullData,
-	//	}
-	//}
-	//m := genericStringMap(logs)
-	//if m == nil {
-	//	return nil, DataError{
-	//		code: DefaultEVMErrorCode,
-	//		Msg:  origErrorMsg,
-	//		data: RPCNullData,
-	//	}
-	//}
-	//return m, nil
 }
-
-//func genericStringMap(s []string) map[string]string {
-//	var ret = make(map[string]string)
-//	if len(s)%2 != 0 {
-//		return nil
-//	}
-//	for i := 0; i < len(s); i += 2 {
-//		ret[s[i]] = s[i+1]
-//	}
-//	return ret
-//}
 
 func CheckError(txRes sdk.TxResponse) (common.Hash, error) {
 	switch txRes.Code {
