@@ -26,6 +26,7 @@ run() {
 #    exchaind start --pruning=nothing --rpc.unsafe \
     exchaind start --rpc.unsafe \
       --local-rpc-port 26657 \
+      --dydx.web-port=8555 \
       --log_level $LOG_LEVEL \
       --log_file json \
       --enable-dynamic-gp=false \

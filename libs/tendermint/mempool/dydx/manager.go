@@ -38,13 +38,22 @@ var (
 	//	VMode:                      false,
 	//}
 
+	//Config = DydxConfig{
+	//	PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
+	//	ChainID:                    "67",
+	//	EthHttpRpcUrl:              "http://localhost:8545",
+	//	PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
+	//	P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
+	//	P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
+	//}
+
 	Config = DydxConfig{
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
-		ChainID:                    "67",
-		EthHttpRpcUrl:              "http://localhost:8545",
-		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
-		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
-		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
+		ChainID:                    "1442",
+		EthHttpRpcUrl:              "https://rpc.public.zkevm-test.net",
+		PerpetualV1ContractAddress: "0xd99cAE3FAC551f6b6Ba7B9f19bDD316951eeEE98",
+		P1OrdersContractAddress:    "0xf332761c673b59B21fF6dfa8adA44d78c12dEF09",
+		P1MakerOracleAddress:       "0x2c34A2Fb1d0b4f55de51E1d0bDEfaDDce6b7cDD6",
 	}
 
 	//Config = DydxConfig{
@@ -101,6 +110,7 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		orders:           clist.New(),
 		book:             NewDepthBook(),
 		orderQueue:       NewOrderQueue(),
+		marketPrice:      big.NewInt(1000),
 		logger:           logger,
 	}
 
@@ -187,7 +197,9 @@ func (d *OrderManager) GetMarketPrice() *big.Int {
 }
 
 func (d *OrderManager) updateMarketPriceRoutine() {
+	_ = context.Background()
 	for range d.signals {
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
 			From:    d.engine.contracts.Addresses.PerpetualV1,
