@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -203,28 +204,67 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		}
 
 		go func() {
+			bn, err := engine.httpCli.BlockNumber(context.Background())
+			if err != nil {
+				panic(err)
+			}
+			bn += 1
+
 			for {
-				select {
-				case err := <-engine.sub.Err():
-					engine.logger.Error("failed to subscribe filter logs", "err", err)
-					break
-				case evmLog := <-ch:
-					engine.mtx.Lock()
-					var waitRemove []*list.Element
-					for e := engine.waitUnfreeze.Front(); e != nil; e = e.Next() {
-						matched := e.Value.(*MatchResult)
-						matched.Unfreeze()
-						waitRemove = append(waitRemove, e)
-						if matched.Tx.Hash() == evmLog.TxHash {
-							break
-						}
-					}
-					for _, e := range waitRemove {
-						engine.waitUnfreeze.Remove(e)
-					}
-					engine.mtx.Unlock()
-					engine.logProcess(&evmLog)
+				time.Sleep(time.Second * 1)
+				current_bn, err := engine.httpCli.BlockNumber(context.Background())
+				if err != nil {
+					panic(err)
 				}
+				if current_bn >= bn {
+					query := engine.logFilter
+					query.FromBlock = big.NewInt(int64(bn))
+					query.ToBlock = big.NewInt(int64(current_bn))
+					logs, err := engine.httpCli.FilterLogs(context.Background(), query)
+					if err != nil {
+						panic(err)
+					}
+					for _, evmLog := range logs {
+						engine.mtx.Lock()
+						var waitRemove []*list.Element
+						for e := engine.waitUnfreeze.Front(); e != nil; e = e.Next() {
+							matched := e.Value.(*MatchResult)
+							matched.Unfreeze()
+							waitRemove = append(waitRemove, e)
+							if matched.Tx.Hash() == evmLog.TxHash {
+								break
+							}
+						}
+						for _, e := range waitRemove {
+							engine.waitUnfreeze.Remove(e)
+						}
+						engine.mtx.Unlock()
+						engine.logProcess(&evmLog)
+					}
+					bn = current_bn + 1
+				}
+
+				//select {
+				//case err := <-engine.sub.Err():
+				//	engine.logger.Error("failed to subscribe filter logs", "err", err)
+				//	break
+				//case evmLog := <-ch:
+				//	engine.mtx.Lock()
+				//	var waitRemove []*list.Element
+				//	for e := engine.waitUnfreeze.Front(); e != nil; e = e.Next() {
+				//		matched := e.Value.(*MatchResult)
+				//		matched.Unfreeze()
+				//		waitRemove = append(waitRemove, e)
+				//		if matched.Tx.Hash() == evmLog.TxHash {
+				//			break
+				//		}
+				//	}
+				//	for _, e := range waitRemove {
+				//		engine.waitUnfreeze.Remove(e)
+				//	}
+				//	engine.mtx.Unlock()
+				//	engine.logProcess(&evmLog)
+				//}
 			}
 		}()
 	}
