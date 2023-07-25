@@ -207,6 +207,7 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 	addr := common.HexToAddress(vars[addrKey])
 	p1Balance, err := o.engine.contracts.PerpetualV1.GetAccountBalance(nil, addr)
 	if err != nil {
+		fmt.Println("GetAccountBalance error: ", err)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
@@ -218,6 +219,7 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 	//}
 	balance, err := token.BalanceOf(nil, addr)
 	if err != nil {
+		fmt.Println("BalanceOf error: ", err)
 		fmt.Fprintf(w, err.Error())
 		return
 	}

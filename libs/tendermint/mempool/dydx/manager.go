@@ -185,6 +185,11 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	ok := d.orderQueue.Enqueue(&wrapOdr)
 	d.logger.Debug("enqueue", "order", wrapOdr.Hash(), "ok", ok)
 
+	_, err = d.engine.MatchAndTrade(&wrapOdr)
+	if err != nil {
+		panic(err)
+	}
+
 	return nil
 }
 

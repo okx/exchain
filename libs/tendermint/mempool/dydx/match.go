@@ -203,11 +203,11 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 	engine.logger.Info("init operator nonce", "addr", engine.from, "nonce", engine.nonce)
 
 	if config.RpcMode {
-		ch := make(chan ethtypes.Log, 32)
-		engine.sub, err = engine.httpCli.SubscribeFilterLogs(context.Background(), engine.logFilter, ch)
-		if err != nil {
-			return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
-		}
+		//ch := make(chan ethtypes.Log, 32)
+		//engine.sub, err = engine.httpCli.SubscribeFilterLogs(context.Background(), engine.logFilter, ch)
+		//if err != nil {
+		//	return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
+		//}
 
 		go func() {
 			bn, err := engine.httpCli.BlockNumber(context.Background())
