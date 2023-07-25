@@ -4,88 +4,74 @@ import "C"
 
 import (
 	"encoding/json"
-	"errors"
 	wasmvm "github.com/CosmWasm/wasmvm"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"unsafe"
 )
 
 var (
-	wasmKeeper Keeper
-
-	// wasmvm cache param
-	filePath            string
-	supportedFeatures   string
-	contractMemoryLimit uint32 = ContractMemoryLimit
-	contractDebugMode   bool
-	memoryCacheSize     uint32
-
 	wasmCache wasmvm.Cache
 )
-
-func SetWasmKeeper(k *Keeper) {
-	wasmKeeper = *k
-}
 
 func SetWasmCache(cache wasmvm.Cache) {
 	wasmCache = cache
 }
 
-func GetWasmCacheInfo() (wasmvm.GoAPI, wasmvm.Cache) {
-	return cosmwasmAPI, wasmCache
+func GetWasmCacheInfo() wasmvm.Cache {
+	return wasmCache
 }
 
-func GetWasmCallInfo(q unsafe.Pointer, contractAddress, storeAddress string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
-	goQuerier := *(*wasmvm.Querier)(q)
-	qq, ok := goQuerier.(QueryHandler)
-	if !ok {
-		return nil, nil, nil, nil, errors.New("can not switch the pointer to the QueryHandler")
+func GetCallerInfo(ctx sdk.Context, keeper Keeper) func(contractAddress, storeAddress string) ([]byte, uint64, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
+	return func(contractAddress, storeAddress string) ([]byte, uint64, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
+		gasBefore := ctx.GasMeter().GasConsumed()
+		codeHash, store, querier, gasMeter, err := getCallerInfo(ctx, keeper, contractAddress, storeAddress)
+		gasAfter := ctx.GasMeter().GasConsumed()
+		return codeHash, gasAfter - gasBefore, store, querier, gasMeter, err
 	}
-	return getCallerInfo(qq.Ctx, contractAddress, storeAddress)
 }
 
-func getCallerInfo(ctx sdk.Context, contractAddress, storeAddress string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
+func getCallerInfo(ctx sdk.Context, keeper Keeper, contractAddress, storeAddress string) ([]byte, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
 	cAddr, err := sdk.WasmAddressFromBech32(contractAddress)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 	// 1. get wasm code from contractAddress
-	_, codeInfo, prefixStore, err := wasmKeeper.contractInstance(ctx, cAddr)
+	_, codeInfo, prefixStore, err := keeper.contractInstance(ctx, cAddr)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 	// 2. contractAddress == storeAddress and direct return
 	if contractAddress == storeAddress {
-		queryHandler := wasmKeeper.newQueryHandler(ctx, cAddr)
-		return codeInfo.CodeHash, prefixStore, queryHandler, wasmKeeper.gasMeter(ctx), nil
+		queryHandler := keeper.newQueryHandler(ctx, cAddr)
+		return codeInfo.CodeHash, prefixStore, queryHandler, keeper.gasMeter(ctx), nil
 	}
 	// 3. get store from storeaddress
 	sAddr, err := sdk.WasmAddressFromBech32(storeAddress)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	_, _, prefixStore, err = wasmKeeper.contractInstance(ctx, sAddr)
+	_, _, prefixStore, err = keeper.contractInstance(ctx, sAddr)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	queryHandler := wasmKeeper.newQueryHandler(ctx, sAddr)
-	return codeInfo.CodeHash, prefixStore, queryHandler, wasmKeeper.gasMeter(ctx), nil
+	queryHandler := keeper.newQueryHandler(ctx, sAddr)
+	return codeInfo.CodeHash, prefixStore, queryHandler, keeper.gasMeter(ctx), nil
 }
 
-func TransferCoins(q unsafe.Pointer, contractAddress, caller string, coinsData []byte) error {
-	goQuerier := *(*wasmvm.Querier)(q)
-	qq, ok := goQuerier.(QueryHandler)
-	if !ok {
-		return errors.New("can not switch the pointer to the QueryHandler")
+func TransferCoins(ctx sdk.Context, keeper Keeper) func(contractAddress, caller string, coinsData []byte) (uint64, error) {
+	return func(contractAddress, caller string, coinsData []byte) (uint64, error) {
+		var coins sdk.Coins
+		err := json.Unmarshal(coinsData, &coins)
+		if err != nil {
+			return 0, err
+		}
+		gasBefore := ctx.GasMeter().GasConsumed()
+		err = transferCoins(ctx, keeper, contractAddress, caller, coins)
+		gasAfter := ctx.GasMeter().GasConsumed()
+		return gasAfter - gasBefore, err
 	}
-	var coins sdk.Coins
-	err := json.Unmarshal(coinsData, &coins)
-	if err != nil {
-		return err
-	}
-	return transferCoins(qq.Ctx, contractAddress, caller, coins)
 }
-func transferCoins(ctx sdk.Context, contractAddress, caller string, coins sdk.Coins) error {
+
+func transferCoins(ctx sdk.Context, keeper Keeper, contractAddress, caller string, coins sdk.Coins) error {
 	if !coins.IsZero() {
 		contractAddr, err := sdk.WasmAddressFromBech32(contractAddress)
 		if err != nil {
@@ -95,7 +81,7 @@ func transferCoins(ctx sdk.Context, contractAddress, caller string, coins sdk.Co
 		if err != nil {
 			return err
 		}
-		if err := wasmKeeper.bank.TransferCoins(ctx, callerAddr, contractAddr, coins); err != nil {
+		if err := keeper.bank.TransferCoins(ctx, callerAddr, contractAddr, coins); err != nil {
 			return err
 		}
 	}
