@@ -1,0 +1,18 @@
+ Acerca de la creación de integraciones
+Puedes crear integraciones para ampliar la funcionalidad de GitHub.
+
+Las integraciones son herramientas que amplían la funcionalidad de GitHub. Las integraciones pueden realizar acciones en GitHub, como abrir incidencias, comentar solicitudes de cambios y administrar proyectos. También pueden realizar acciones fuera de GitHub en función de los eventos que se producen en GitHub. Por ejemplo, una integración puede publicar en Slack cuando se abra una incidencia en GitHub.
+
+Muchas integraciones son GitHub Apps, flujos de trabajo de GitHub Actions o acciones personalizadas para flujos de trabajo de GitHub Actions.
+
+Las GitHub Apps son integraciones que se ejecutan en el servidor del propietario de la aplicación o en un dispositivo de usuario. Para obtener más información, vea «Acerca de la creación de GitHub Apps».
+Los flujos de trabajo de GitHub Actions son flujos de trabajo que se ejecutan cuando se producen eventos específicos en GitHub. Para obtener más información, vea «Entender las GitHub Actions».
+Las acciones personalizadas son código que puede ejecutar un flujo de trabajo de GitHub Actions. Para obtener más información, vea «Acercad e las acciones personalizadas».
+La integración puede usar la API de GitHub para recuperar datos y realizar cambios en los datos de GitHub. GitHub tiene una API REST y una API GraphQL. Para más información, consulte:
+
+"Acerca de las API de GitHub"
+"Documentación de API REST para GitHub"
+"Documentación de GraphQL API para GitHub"
+La integración puede usar webhooks para saber cuándo se producen eventos específicos en GitHub. Para obtener más información, vea «Acerca de webhooks».
+
+Si la integración es una instancia de GitHub App o una acción personalizada, puedes publicar la integración en GitHub Marketplace. Para más información, consulta "Acerca de Marketplace de GitHub para aplicaciones" y "Publicar acciones en GitHub Marketplace".
