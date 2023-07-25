@@ -434,7 +434,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 }
 
 func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
-	if d == nil {
+	if d == nil || d.engine == nil || d.engine.config.RpcMode {
 		return
 	}
 	if !types.HigherThanVenus(global.GetGlobalHeight()) {
@@ -537,6 +537,10 @@ func (d *OrderManager) Update(txsResps []*abci.ResponseDeliverTx) {
 		return
 	}
 
+	if d.engine.config.RpcMode {
+		goto GRPC
+	}
+
 	if len(d.currentBlockTxs) > 0 {
 		d.currentBlockTxs = d.currentBlockTxs[:0]
 		d.totalBytes = 0
@@ -550,6 +554,7 @@ func (d *OrderManager) Update(txsResps []*abci.ResponseDeliverTx) {
 
 	d.engine.UpdateState(txsResps)
 
+GRPC:
 	d.gServer.UpdateClient()
 }
 
