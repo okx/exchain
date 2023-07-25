@@ -116,7 +116,10 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		return nil, fmt.Errorf("invalid chain id")
 	}
 
-	engine.httpCli, _ = ethclient.Dial(config.EthHttpRpcUrl)
+	engine.httpCli, err = ethclient.Dial(config.EthHttpRpcUrl)
+	if err != nil {
+		panic(err)
+	}
 	if config.RpcMode {
 		if engine.httpCli == nil {
 			return nil, fmt.Errorf("cannot connect to eth node")
@@ -142,6 +145,9 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		engine.txOps,
 		engine.contractBackend,
 	)
+	if err != nil {
+		panic(err)
+	}
 
 	if handler != nil {
 		ordersAbi, err := contracts.P1OrdersMetaData.GetAbi()

@@ -52,7 +52,7 @@ var (
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 		ChainID:                    "1442",
 		EthHttpRpcUrl:              "https://rpc.public.zkevm-test.net",
-		PerpetualV1ContractAddress: "0xd99cAE3FAC551f6b6Ba7B9f19bDD316951eeEE98",
+		PerpetualV1ContractAddress: "0x68D6B739D2020067D1e2F713b999dA97E4d54812",
 		P1OrdersContractAddress:    "0xf332761c673b59B21fF6dfa8adA44d78c12dEF09",
 		P1MakerOracleAddress:       "0x2c34A2Fb1d0b4f55de51E1d0bDEfaDDce6b7cDD6",
 	}
@@ -200,20 +200,19 @@ func (d *OrderManager) GetMarketPrice() *big.Int {
 func (d *OrderManager) updateMarketPriceRoutine() {
 	_ = context.Background()
 	for range d.signals {
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-			From:    d.engine.contracts.Addresses.PerpetualV1,
-			Context: ctx,
-		})
-		cancel()
-		if err != nil {
-			d.logger.Error("UpdateMarketPrice", "GetPrice error", err)
-			continue
-		}
-		d.marketPriceMtx.Lock()
-		d.marketPrice = marketPrice
-		d.marketPriceMtx.Unlock()
+		//ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		//marketPrice, err := d.engine.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
+		//	From:    d.engine.contracts.Addresses.PerpetualV1,
+		//	Context: ctx,
+		//})
+		//cancel()
+		//if err != nil {
+		//	d.logger.Error("UpdateMarketPrice", "GetPrice error", err)
+		//	continue
+		//}
+		//d.marketPriceMtx.Lock()
+		//d.marketPrice = marketPrice
+		//d.marketPriceMtx.Unlock()
 	}
 }
 

@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -55,34 +56,41 @@ func NewContracts(
 
 	cons.PerpetualV1, err = contracts.NewPerpetualV1(config.PerpetualV1, backend)
 	if err != nil {
+		fmt.Println("no PerpetualV1 contract")
 		return nil, err
 	}
 
 	tokenAddress, err := cons.PerpetualV1.GetTokenContract(nil)
 	if err != nil {
+		fmt.Println("GetTokenContract err")
 		return nil, err
 	}
 	config.ERC20 = tokenAddress
 	cons.PerpetualV1Token, err = contracts.NewIERC20(tokenAddress, backend)
 	if err != nil {
+		fmt.Println("no PerpetualV1Token contract")
 		return nil, err
 	}
 	perpetualV1OracleAddress, err := cons.PerpetualV1.GetOracleContract(nil)
 	if err != nil {
+		fmt.Println("GetOracleContract err")
 		return nil, err
 	}
 	cons.PerpetualV1Oracel, err = contracts.NewIP1Oracle(perpetualV1OracleAddress, cons.backend)
 	if err != nil {
+		fmt.Println("no Oracle contract")
 		return nil, err
 	}
 
 	cons.P1Orders, err = contracts.NewP1Orders(config.P1Orders, backend)
 	if err != nil {
+		fmt.Println("no P1Orders contract")
 		return nil, err
 	}
 
 	cons.P1MakerOracle, err = contracts.NewP1MakerOracle(config.P1MakerOracle, backend)
 	if err != nil {
+		fmt.Println("no P1MakerOracle contract")
 		return nil, err
 	}
 
