@@ -101,6 +101,7 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 
 		frozenOrders:    list.New(),
 		contractBackend: global.GetLocalEthClient(),
+		waitUnfreeze:    list.New(),
 	}
 	if engine.logger == nil {
 		engine.logger = log.NewNopLogger()
