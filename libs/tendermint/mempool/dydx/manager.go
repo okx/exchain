@@ -52,9 +52,10 @@ var (
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 		ChainID:                    "1442",
 		EthHttpRpcUrl:              "https://rpc.public.zkevm-test.net",
-		PerpetualV1ContractAddress: "0x68D6B739D2020067D1e2F713b999dA97E4d54812",
+		PerpetualV1ContractAddress: "0xd99cAE3FAC551f6b6Ba7B9f19bDD316951eeEE98",
 		P1OrdersContractAddress:    "0xf332761c673b59B21fF6dfa8adA44d78c12dEF09",
 		P1MakerOracleAddress:       "0x2c34A2Fb1d0b4f55de51E1d0bDEfaDDce6b7cDD6",
+		RpcMode:                    true,
 	}
 
 	//Config = DydxConfig{
