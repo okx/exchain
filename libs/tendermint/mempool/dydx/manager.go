@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/dydx"
 	"github.com/okex/exchain/libs/dydx/contracts"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -313,6 +314,58 @@ func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled
 	return o
 }
 
+func (d *OrderManager) HandleTrade(trade *contracts.PerpetualV1LogTrade) {
+	if trade != nil {
+		var makerBalance = dydx.Bytes32ToBalance(&trade.MakerBalance)
+		var takerBalance = dydx.Bytes32ToBalance(&trade.TakerBalance)
+		d.logger.Debug("HandleTrade",
+			"taker", trade.Taker,
+			"takerBalance", dydx.P1TypesBalanceStringer(takerBalance),
+			"maker", trade.Maker,
+			"makerBalance", dydx.P1TypesBalanceStringer(makerBalance),
+		)
+	}
+}
+
+func (d *OrderManager) HandleWithdraw(withdraw *contracts.PerpetualV1LogWithdraw) {
+	if withdraw != nil {
+		balance := dydx.Bytes32ToBalance(&withdraw.Balance)
+		d.logger.Debug("HandleWithdraw",
+			"addr", withdraw.Account, "to", withdraw.Destination,
+			"amount", withdraw.Amount, "balance", dydx.P1TypesBalanceStringer(balance),
+		)
+	}
+}
+
+func (d *OrderManager) HandleDeposit(deposit *contracts.PerpetualV1LogDeposit) {
+	if deposit != nil {
+		balance := dydx.Bytes32ToBalance(&deposit.Balance)
+		d.logger.Debug("HandleDeposit",
+			"addr", deposit.Account,
+			"amount", deposit.Amount,
+			"balance", dydx.P1TypesBalanceStringer(balance),
+		)
+	}
+}
+
+func (d *OrderManager) HandleIndex(index *contracts.PerpetualV1LogIndex) {
+	if index != nil {
+		index := dydx.Bytes32ToIndex(&index.Index)
+		timeIndex := time.Unix(int64(index.Timestamp), 0).Local()
+		valueStr := index.Value.String()
+		if !index.IsPositive {
+			valueStr = "-" + valueStr
+		}
+		d.logger.Debug("HandleIndex", "time", timeIndex, "value", valueStr)
+	}
+}
+
+func (d *OrderManager) HandleAccountSettled(settled *contracts.PerpetualV1LogAccountSettled) {
+	if settled != nil {
+		d.logger.Debug("HandleAccountSettled", "addr", settled.Account)
+	}
+}
+
 func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderCanceled) {
 	if canceled != nil {
 		d.filledOrCanceledOrders.Store(canceled.OrderHash, nil)
@@ -397,7 +450,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 }
 
 func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
-	if d == nil {
+	if d == nil || d.engine == nil || d.engine.config.RpcMode {
 		return
 	}
 	if !types.HigherThanVenus(global.GetGlobalHeight()) {
@@ -500,6 +553,10 @@ func (d *OrderManager) Update(txsResps []*abci.ResponseDeliverTx) {
 		return
 	}
 
+	if d.engine.config.RpcMode {
+		goto GRPC
+	}
+
 	if len(d.currentBlockTxs) > 0 {
 		d.currentBlockTxs = d.currentBlockTxs[:0]
 		d.totalBytes = 0
@@ -513,6 +570,7 @@ func (d *OrderManager) Update(txsResps []*abci.ResponseDeliverTx) {
 
 	d.engine.UpdateState(txsResps)
 
+GRPC:
 	d.gServer.UpdateClient()
 }
 

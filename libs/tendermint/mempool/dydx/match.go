@@ -6,6 +6,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -42,6 +43,8 @@ type MatchEngine struct {
 	contractBackend global.LocalEthClient
 	httpCli         *ethclient.Client
 
+	sub ethereum.Subscription
+
 	config DydxConfig
 
 	pubsub   PubSub
@@ -49,12 +52,21 @@ type MatchEngine struct {
 
 	logger log.Logger
 
-	logFilter             ethereum.FilterQuery
-	topicLogOrderCanceled common.Hash
-	topicLogOrderFilled   common.Hash
-	logHandler            LogHandler
+	topicLogOrderCanceled  common.Hash
+	topicLogOrderFilled    common.Hash
+	topicLogTrade          common.Hash
+	topicLogWithdraw       common.Hash
+	topicLogDeposit        common.Hash
+	topicLogIndex          common.Hash
+	topicLogAccountSettled common.Hash
+
+	logFilter  ethereum.FilterQuery
+	logHandler LogHandler
 
 	frozenOrders *list.List
+
+	waitUnfreeze *list.List
+	mtx          sync.Mutex
 }
 
 type DydxConfig struct {
@@ -65,11 +77,18 @@ type DydxConfig struct {
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
+
+	RpcMode bool
 }
 
 type LogHandler interface {
 	HandleOrderFilled(*contracts.P1OrdersLogOrderFilled)
 	HandleOrderCanceled(*contracts.P1OrdersLogOrderCanceled)
+	HandleTrade(*contracts.PerpetualV1LogTrade)
+	HandleWithdraw(withdraw *contracts.PerpetualV1LogWithdraw)
+	HandleDeposit(deposit *contracts.PerpetualV1LogDeposit)
+	HandleIndex(index *contracts.PerpetualV1LogIndex)
+	HandleAccountSettled(accountSettled *contracts.PerpetualV1LogAccountSettled)
 }
 
 func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
@@ -98,6 +117,16 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 	}
 
 	engine.httpCli, _ = ethclient.Dial(config.EthHttpRpcUrl)
+	if config.RpcMode {
+		if engine.httpCli == nil {
+			return nil, fmt.Errorf("cannot connect to eth node")
+		}
+		engine.contractBackend = engine.httpCli
+	} else {
+		if engine.contractBackend == nil && engine.httpCli != nil {
+			engine.contractBackend = engine.httpCli
+		}
+	}
 
 	engine.txOps, err = bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
 	if err != nil {
@@ -119,16 +148,35 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		if err != nil {
 			return nil, fmt.Errorf("failed to get orders abi, err: %w", err)
 		}
+		perpetualAbi, err := contracts.PerpetualV1MetaData.GetAbi()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get perpetual abi, err: %w", err)
+		}
 
 		engine.topicLogOrderCanceled = ordersAbi.Events["LogOrderCanceled"].ID
 		engine.topicLogOrderFilled = ordersAbi.Events["LogOrderFilled"].ID
 
+		engine.topicLogTrade = perpetualAbi.Events["LogTrade"].ID
+		engine.topicLogWithdraw = perpetualAbi.Events["LogWithdraw"].ID
+		engine.topicLogDeposit = perpetualAbi.Events["LogDeposit"].ID
+		engine.topicLogIndex = perpetualAbi.Events["LogIndex"].ID
+		engine.topicLogAccountSettled = perpetualAbi.Events["LogAccountSettled"].ID
+
 		var query = ethereum.FilterQuery{
 			Addresses: []common.Address{
-				common.HexToAddress(config.P1OrdersContractAddress),
+				ccConfig.P1Orders,
+				ccConfig.PerpetualV1,
 			},
 			Topics: [][]common.Hash{
-				{engine.topicLogOrderFilled, engine.topicLogOrderCanceled},
+				{
+					engine.topicLogOrderFilled,
+					engine.topicLogOrderCanceled,
+					engine.topicLogTrade,
+					engine.topicLogWithdraw,
+					engine.topicLogDeposit,
+					engine.topicLogIndex,
+					engine.topicLogAccountSettled,
+				},
 			},
 		}
 
@@ -136,7 +184,7 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 		engine.logHandler = handler
 	}
 
-	if accRetriever != nil {
+	if !config.RpcMode && accRetriever != nil {
 		engine.nonce = accRetriever.GetAccountNonce(engine.from.String())
 	} else {
 		engine.nonce, err = engine.contractBackend.NonceAt(context.Background(), engine.from, nil)
@@ -146,6 +194,40 @@ func NewMatchEngine(api PubSub, accRetriever AccountRetriever, depthBook *DepthB
 	}
 	engine.nonce--
 	engine.logger.Info("init operator nonce", "addr", engine.from, "nonce", engine.nonce)
+
+	if config.RpcMode {
+		ch := make(chan ethtypes.Log, 32)
+		engine.sub, err = engine.httpCli.SubscribeFilterLogs(context.Background(), engine.logFilter, ch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
+		}
+
+		go func() {
+			for {
+				select {
+				case err := <-engine.sub.Err():
+					engine.logger.Error("failed to subscribe filter logs", "err", err)
+					break
+				case evmLog := <-ch:
+					engine.mtx.Lock()
+					var waitRemove []*list.Element
+					for e := engine.waitUnfreeze.Front(); e != nil; e = e.Next() {
+						matched := e.Value.(*MatchResult)
+						matched.Unfreeze()
+						waitRemove = append(waitRemove, e)
+						if matched.Tx.Hash() == evmLog.TxHash {
+							break
+						}
+					}
+					for _, e := range waitRemove {
+						engine.waitUnfreeze.Remove(e)
+					}
+					engine.mtx.Unlock()
+					engine.logProcess(&evmLog)
+				}
+			}
+		}()
+	}
 
 	return engine, nil
 }
@@ -196,24 +278,54 @@ func (record MatchRecord) String() string {
 	return fmt.Sprintf("taker %s maker %s,price, %s, amount %s;", record.Taker.Hash(), record.Maker.Hash(), record.Fill.Price, record.Fill.Amount)
 }
 
+func (m *MatchEngine) logProcess(evmLog *ethtypes.Log) {
+	switch evmLog.Topics[0] {
+	case m.topicLogOrderFilled:
+		filledLog, err := m.contracts.P1Orders.ParseLogOrderFilled(*evmLog)
+		if err == nil {
+			m.logHandler.HandleOrderFilled(filledLog)
+		}
+	case m.topicLogOrderCanceled:
+		canceledLog, err := m.contracts.P1Orders.ParseLogOrderCanceled(*evmLog)
+		if err == nil {
+			m.logHandler.HandleOrderCanceled(canceledLog)
+		}
+	case m.topicLogTrade:
+		tradeLog, err := m.contracts.PerpetualV1.ParseLogTrade(*evmLog)
+		if err == nil {
+			m.logHandler.HandleTrade(tradeLog)
+		}
+	case m.topicLogWithdraw:
+		withdrawLog, err := m.contracts.PerpetualV1.ParseLogWithdraw(*evmLog)
+		if err == nil {
+			m.logHandler.HandleWithdraw(withdrawLog)
+		}
+	case m.topicLogDeposit:
+		depositLog, err := m.contracts.PerpetualV1.ParseLogDeposit(*evmLog)
+		if err == nil {
+			m.logHandler.HandleDeposit(depositLog)
+		}
+	case m.topicLogIndex:
+		indexLog, err := m.contracts.PerpetualV1.ParseLogIndex(*evmLog)
+		if err == nil {
+			m.logHandler.HandleIndex(indexLog)
+		}
+	case m.topicLogAccountSettled:
+		settledLog, err := m.contracts.PerpetualV1.ParseLogAccountSettled(*evmLog)
+		if err == nil {
+			m.logHandler.HandleAccountSettled(settledLog)
+		}
+	}
+}
+
 func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
-	if len(txsResps) == 0 {
+	if len(txsResps) == 0 || m.config.RpcMode {
 		return
 	}
 	logsSlice := m.pubsub.ParseLogsFromTxs(txsResps, m.logFilter)
 	for _, logs := range logsSlice {
 		for _, evmLog := range logs {
-			if evmLog.Topics[0] == m.topicLogOrderFilled {
-				filledLog, err := m.contracts.P1Orders.ParseLogOrderFilled(*evmLog)
-				if err == nil {
-					m.logHandler.HandleOrderFilled(filledLog)
-				}
-			} else if evmLog.Topics[0] == m.topicLogOrderCanceled {
-				canceledLog, err := m.contracts.P1Orders.ParseLogOrderCanceled(*evmLog)
-				if err == nil {
-					m.logHandler.HandleOrderCanceled(canceledLog)
-				}
-			}
+			m.logProcess(evmLog)
 		}
 	}
 }
@@ -284,6 +396,23 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 		}
 	}
 	matched.tradeOps = op
+
+	if m.config.RpcMode {
+		m.mtx.Lock()
+		m.waitUnfreeze.PushBack(matched)
+		m.mtx.Unlock()
+
+		matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: true})
+		if err != nil {
+			needRollback = true
+			m.mtx.Lock()
+			m.waitUnfreeze.Remove(m.waitUnfreeze.Back())
+			m.mtx.Unlock()
+			return matched, fmt.Errorf("failed to commit, err: %w", err)
+		}
+		m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
+	}
+
 	return matched, nil
 }
 
