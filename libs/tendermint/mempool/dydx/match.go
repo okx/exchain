@@ -449,7 +449,7 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 		m.waitUnfreeze.PushBack(matched)
 		m.mtx.Unlock()
 
-		matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: true})
+		matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: true, GasLimit: 300000000})
 		if err != nil {
 			needRollback = true
 			m.mtx.Lock()
