@@ -525,8 +525,8 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin, cont
 		HumanAddress:     humanAddress,
 		CanonicalAddress: canonicalAddress,
 		Contract:         contractExternal(ctx, k),
-		GetCallInfo:      GetCallerInfo(ctx, k),
-		TransferCoins:    TransferCoins(ctx, k),
+		GetCallInfo:      getCallerInfoFunc(ctx, k),
+		TransferCoins:    transferCoinsFunc(ctx, k),
 	}
 
 	// create prefixed data store
@@ -611,8 +611,8 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 		HumanAddress:     humanAddress,
 		CanonicalAddress: canonicalAddress,
 		Contract:         contractExternal(ctx, k),
-		GetCallInfo:      GetCallerInfo(ctx, k),
-		TransferCoins:    TransferCoins(ctx, k),
+		GetCallInfo:      getCallerInfoFunc(ctx, k),
+		TransferCoins:    transferCoinsFunc(ctx, k),
 	}
 
 	// prepare querier

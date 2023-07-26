@@ -20,7 +20,7 @@ func GetWasmCacheInfo() wasmvm.Cache {
 	return wasmCache
 }
 
-func GetCallerInfo(ctx sdk.Context, keeper Keeper) func(contractAddress, storeAddress string) ([]byte, uint64, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
+func getCallerInfoFunc(ctx sdk.Context, keeper Keeper) func(contractAddress, storeAddress string) ([]byte, uint64, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
 	return func(contractAddress, storeAddress string) ([]byte, uint64, wasmvm.KVStore, wasmvm.Querier, wasmvm.GasMeter, error) {
 		gasBefore := ctx.GasMeter().GasConsumed()
 		codeHash, store, querier, gasMeter, err := getCallerInfo(ctx, keeper, contractAddress, storeAddress)
@@ -57,7 +57,7 @@ func getCallerInfo(ctx sdk.Context, keeper Keeper, contractAddress, storeAddress
 	return codeInfo.CodeHash, prefixStore, queryHandler, keeper.gasMeter(ctx), nil
 }
 
-func TransferCoins(ctx sdk.Context, keeper Keeper) func(contractAddress, caller string, coinsData []byte) (uint64, error) {
+func transferCoinsFunc(ctx sdk.Context, keeper Keeper) func(contractAddress, caller string, coinsData []byte) (uint64, error) {
 	return func(contractAddress, caller string, coinsData []byte) (uint64, error) {
 		var coins sdk.Coins
 		err := json.Unmarshal(coinsData, &coins)
