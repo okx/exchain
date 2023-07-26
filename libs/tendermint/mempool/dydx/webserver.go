@@ -228,7 +228,7 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p1BalanceCache := o.getBalance(addr)
+	p1BalanceCache, _ := o.getBalance(addr)
 	if p1BalanceCache == nil {
 		p1BalanceCache = &contracts.P1TypesBalance{
 			Margin:   big.NewInt(0),

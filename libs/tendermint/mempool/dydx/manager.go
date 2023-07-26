@@ -234,15 +234,10 @@ func (d *OrderManager) updateMarketPriceRoutine() {
 }
 
 func (d *OrderManager) checkBalance(order *WrapOrder) error {
-	balance := d.getBalance(order.Maker)
-	if balance == nil {
-		p1Balance, err := d.engine.contracts.PerpetualV1.GetAccountBalance(nil, order.Maker)
-		if err != nil {
-			d.logger.Error("checkBalance", "GetAccountBalance error", err, "addr", order.Maker)
-			return nil
-		}
-		d.setBalance(order.Maker, &p1Balance)
-		balance = &p1Balance
+	balance, err := d.getBalance(order.Maker)
+	if err != nil {
+		d.logger.Error("checkBalance", "GetAccountBalance error", err, "addr", order.Maker)
+		return nil
 	}
 	marketPrice := d.GetMarketPrice()
 	if marketPrice == nil {
@@ -268,16 +263,28 @@ func (d *OrderManager) checkBalance(order *WrapOrder) error {
 	return nil
 }
 
-func (d *OrderManager) getBalance(addr common.Address) *contracts.P1TypesBalance {
-	d.balancesMtx.RLock()
-	defer d.balancesMtx.RUnlock()
-	return d.balances[addr]
+func (d *OrderManager) getBalance(addr common.Address) (*contracts.P1TypesBalance, error) {
+	p1Balance, err := d.engine.contracts.PerpetualV1.GetAccountBalance(nil, addr)
+	if err != nil {
+		d.logger.Error("checkBalance", "GetAccountBalance error", err, "addr", addr)
+		return nil, err
+	}
+	return &p1Balance, nil
 }
 
 func (d *OrderManager) setBalance(addr common.Address, balance *contracts.P1TypesBalance) {
 	d.balancesMtx.Lock()
 	defer d.balancesMtx.Unlock()
 	d.balances[addr] = balance
+}
+
+func (d *OrderManager) updateBalance(addr common.Address) {
+	p1Balance, err := d.engine.contracts.PerpetualV1.GetAccountBalance(nil, addr)
+	if err != nil {
+		d.logger.Error("checkBalance", "GetAccountBalance error", err, "addr", addr)
+		return
+	}
+	d.setBalance(addr, &p1Balance)
 }
 
 func (d *OrderManager) Remove(order OrderRaw) {
@@ -421,7 +428,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 			//TODO delete broadcast queue
 		}
 	}
-	balance := d.getBalance(wodr.Maker)
+	balance, _ := d.getBalance(wodr.Maker)
 	positionDiff := negBig(filled.Fill.Amount, balance.PositionIsPositive)
 	marginDiff := negBig(new(big.Int).Mul(filled.Fill.Amount, filled.Fill.Price), balance.MarginIsPositive)
 	marginDiff.Div(marginDiff, exp18)
