@@ -54,7 +54,7 @@ var (
 	callTypeABI   = abi.MustNewType("int32")
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
 
-	chainID         = big.NewInt(65)
+	chainID         = big.NewInt(1442)
 	ContractAddress = Config.P1OrdersContractAddress
 
 	EIP191_HEADER                       = []byte{0x19, 0x01}
@@ -100,6 +100,7 @@ func (p *P1Order) VerifySignature(sig []byte) error {
 		return err
 	}
 	if addr != p.Maker {
+		fmt.Println(addr, p.Maker)
 		return ErrInvalidSignature
 	}
 	return nil

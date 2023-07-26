@@ -94,7 +94,15 @@ func TestWithdraw(t *testing.T) {
 func TestMint(t *testing.T) {
 	cli, err := ethclient.Dial(Config.EthHttpRpcUrl)
 	require.NoError(t, err)
-	token, err := contracts.NewTestToken(common.HexToAddress(Config.P1MarginAddress), cli)
+
+	perpetualV1, err := contracts.NewPerpetualV1(common.HexToAddress(Config.PerpetualV1ContractAddress), cli)
+	require.NoError(t, err)
+
+	tokenAddr, err := perpetualV1.GetTokenContract(nil)
+	require.NoError(t, err)
+	t.Logf("token contract: %s\n", tokenAddr)
+
+	token, err := contracts.NewTestToken(tokenAddr, cli)
 	require.NoError(t, err)
 
 	privAdmin, err := crypto.HexToECDSA(Config.PrivKeyHex)
@@ -102,7 +110,7 @@ func TestMint(t *testing.T) {
 	adminTxOps, _ := bind.NewKeyedTransactorWithChainID(privAdmin, chainID)
 	adminTxOps.GasLimit = 1000000
 
-	tx, err := token.Mint(adminTxOps, common.HexToAddress("0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044"), big.NewInt(1000000))
+	tx, err := token.Mint(adminTxOps, common.HexToAddress("0xbbE4733d85bc2b90682147779DA49caB38C0aA1F"), big.NewInt(1000000))
 	require.NoError(t, err)
 	t.Logf("mint tx: %v", tx.Hash().Hex())
 }

@@ -31,7 +31,7 @@ const (
 
 	// 0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5 testnet
 	// 0x2594E83A94F89Ffb923773ddDfF723BbE017b80D localnet
-	placeOrderContractAddr = "0x2594E83A94F89Ffb923773ddDfF723BbE017b80D"
+	placeOrderContractAddr = "0xcf253d5AD22209f0562E212d4455eF6358c41E48"
 )
 
 var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
@@ -86,6 +86,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 	isBuy := vars["isBuy"]
 	caller, err := placeorder.NewPlaceorderCaller(common.HexToAddress(placeOrderContractAddr), o.engine.contractBackend)
 	if err != nil {
+		fmt.Println("GenerateOrderHandler error1:", err)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
@@ -102,6 +103,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 	}
 	msg, err := caller.GetOrderMessage(&bind.CallOpts{From: common.HexToAddress(maker), Context: context.Background()}, order)
 	if err != nil {
+		fmt.Println("GenerateOrderHandler error1:", err)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
@@ -131,11 +133,13 @@ func (o *OrderManager) SendHandler(w http.ResponseWriter, r *http.Request) {
 	hexSignedOrder = strings.TrimPrefix(hexSignedOrder, "0x")
 	signedOrder, err := hex.DecodeString(hexSignedOrder)
 	if err != nil {
+		fmt.Println("hexSignedOrder:", hexSignedOrder)
 		fmt.Fprintf(w, err.Error())
 		return
 	}
 	err = o.Insert(NewMempoolOrder(signedOrder, 0))
 	if err != nil {
+		fmt.Println("insert order error:", err.Error())
 		fmt.Fprintf(w, err.Error())
 		return
 	}
