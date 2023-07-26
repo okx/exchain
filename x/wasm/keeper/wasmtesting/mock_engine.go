@@ -94,6 +94,16 @@ func (m *MockWasmer) AnalyzeCode(codeID wasmvm.Checksum) (*wasmvmtypes.AnalysisR
 	return m.AnalyzeCodeFn(codeID)
 }
 
+func (m *MockWasmer) UpdateCurBlockNum(_ uint64) error {
+	panic("UpdateCurBlockNum error ")
+	return nil
+}
+
+func (m *MockWasmer) UpdateMilestone(_ string, _ uint64) error {
+	panic("UpdateMilestone error ")
+	return nil
+}
+
 func (m *MockWasmer) Instantiate(codeID wasmvm.Checksum, env wasmvmtypes.Env, info wasmvmtypes.MessageInfo, initMsg []byte, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.Response, uint64, error) {
 	if m.InstantiateFn == nil {
 		panic("not supposed to be called!")
