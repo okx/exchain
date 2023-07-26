@@ -449,7 +449,7 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 		m.waitUnfreeze.PushBack(matched)
 		m.mtx.Unlock()
 
-		matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: true, GasLimit: 300000000})
+		matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: false})
 		if err != nil {
 			needRollback = true
 			m.mtx.Lock()
@@ -519,6 +519,7 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, book *DepthBook, 
 	if takerOrder.LeftAmount.Cmp(zero) <= 0 || !isValidTriggerPrice(takerOrder, marketPrice) {
 		err := book.Insert(takerOrder)
 		if err != nil {
+			fmt.Println("L522: error", err)
 			return nil, err
 		}
 		return matchResult, nil
@@ -583,6 +584,7 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, book *DepthBook, 
 	}
 	err := book.Insert(takerOrder)
 	if err != nil {
+		fmt.Println("L586: error", err)
 		return nil, err
 	}
 	return matchResult, nil
