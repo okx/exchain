@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	//"github.com/okex/exchain/libs/cosmos-sdk/telemetry"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -32,11 +31,6 @@ func (k Keeper) OnOpenChannel(
 
 	env := types.NewEnv(ctx, contractAddr)
 	querier := k.newQueryHandler(ctx, contractAddr)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, execErr := k.wasmVM.IBCChannelOpen(codeInfo.CodeHash, env, msg, prefixStore, cosmwasmAPI, querier, ctx.GasMeter(), gas, costJSONDeserialization)
@@ -73,11 +67,6 @@ func (k Keeper) OnConnectChannel(
 
 	env := types.NewEnv(ctx, contractAddr)
 	querier := k.newQueryHandler(ctx, contractAddr)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, execErr := k.wasmVM.IBCChannelConnect(codeInfo.CodeHash, env, msg, prefixStore, cosmwasmAPI, querier, ctx.GasMeter(), gas, costJSONDeserialization)
@@ -109,11 +98,6 @@ func (k Keeper) OnCloseChannel(
 
 	params := types.NewEnv(ctx, contractAddr)
 	querier := k.newQueryHandler(ctx, contractAddr)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, execErr := k.wasmVM.IBCChannelClose(codeInfo.CodeHash, params, msg, prefixStore, cosmwasmAPI, querier, ctx.GasMeter(), gas, costJSONDeserialization)
@@ -145,11 +129,6 @@ func (k Keeper) OnRecvPacket(
 
 	env := types.NewEnv(ctx, contractAddr)
 	querier := k.newQueryHandler(ctx, contractAddr)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, execErr := k.wasmVM.IBCPacketReceive(codeInfo.CodeHash, env, msg, prefixStore, cosmwasmAPI, querier, ctx.GasMeter(), gas, costJSONDeserialization)
@@ -185,11 +164,6 @@ func (k Keeper) OnAckPacket(
 
 	env := types.NewEnv(ctx, contractAddr)
 	querier := k.newQueryHandler(ctx, contractAddr)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, execErr := k.wasmVM.IBCPacketAck(codeInfo.CodeHash, env, msg, prefixStore, cosmwasmAPI, querier, ctx.GasMeter(), gas, costJSONDeserialization)
@@ -217,11 +191,6 @@ func (k Keeper) OnTimeoutPacket(
 
 	env := types.NewEnv(ctx, contractAddr)
 	querier := k.newQueryHandler(ctx, contractAddr)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, execErr := k.wasmVM.IBCPacketTimeout(codeInfo.CodeHash, env, msg, prefixStore, cosmwasmAPI, querier, ctx.GasMeter(), gas, costJSONDeserialization)

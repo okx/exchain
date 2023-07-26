@@ -51,6 +51,7 @@ type Context struct {
 	paraMsg             *ParaMsg
 	//	txCount            uint32
 
+	wasmCallDepth     uint32
 	wasmSimulateCache map[string][]byte
 	overridesBytes    []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 	watcher           *TxWatcher
@@ -417,6 +418,18 @@ func (c *Context) MoveWasmSimulateCacheToPool() {
 		delete(c.wasmSimulateCache, k)
 	}
 	putBackWasmCacheMap(c.wasmSimulateCache)
+}
+
+func (c *Context) IncrementCallDepth() {
+	c.wasmCallDepth++
+}
+
+func (c *Context) DecrementCallDepth() {
+	c.wasmCallDepth--
+}
+
+func (c *Context) CallDepth() uint32 {
+	return c.wasmCallDepth
 }
 
 func (c *Context) GetWatcher() IWatcher {

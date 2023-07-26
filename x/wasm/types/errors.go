@@ -96,6 +96,7 @@ var (
 	ErrUnknownExtraProposalAction = sdkErrors.Register(DefaultCodespace, 31, "extra proposal's action unknown")
 
 	ErrProposerMustBeValidator = sdkErrors.Register(DefaultCodespace, 32, "the proposal of proposer must be validator")
+	ErrExceedCallDepth         = sdkErrors.Register(DefaultCodespace, 33, "max call depth exceeded")
 )
 
 type ErrNoSuchContract struct {
