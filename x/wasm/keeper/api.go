@@ -77,9 +77,9 @@ func contractExternal(ctx sdk.Context, k Keeper) func(request wasmvmtypes.Contra
 		}
 		addr, _, err := k.CreateByContract(ctx, creator, request.WasmCode, request.CodeID, request.InitMsg, admin, request.Label, request.IsCreate2, request.Salt, nil)
 		if err != nil {
-			return "", ctx.GasMeter().GasConsumed() - gasBefore, err
+			return "", k.gasRegister.ToWasmVMGas(ctx.GasMeter().GasConsumed() - gasBefore), err
 		}
 
-		return addr.String(), ctx.GasMeter().GasConsumed() - gasBefore, nil
+		return addr.String(), k.gasRegister.ToWasmVMGas(ctx.GasMeter().GasConsumed() - gasBefore), nil
 	}
 }
