@@ -25,7 +25,7 @@ func getCallerInfoFunc(ctx sdk.Context, keeper Keeper) func(contractAddress, sto
 		gasBefore := ctx.GasMeter().GasConsumed()
 		codeHash, store, querier, gasMeter, err := getCallerInfo(ctx, keeper, contractAddress, storeAddress)
 		gasAfter := ctx.GasMeter().GasConsumed()
-		return codeHash, gasAfter - gasBefore, store, querier, gasMeter, err
+		return codeHash, keeper.gasRegister.ToWasmVMGas(gasAfter - gasBefore), store, querier, gasMeter, err
 	}
 }
 
@@ -67,7 +67,7 @@ func transferCoinsFunc(ctx sdk.Context, keeper Keeper) func(contractAddress, cal
 		gasBefore := ctx.GasMeter().GasConsumed()
 		err = transferCoins(ctx, keeper, contractAddress, caller, coins)
 		gasAfter := ctx.GasMeter().GasConsumed()
-		return gasAfter - gasBefore, err
+		return keeper.gasRegister.ToWasmVMGas(gasAfter - gasBefore), err
 	}
 }
 
