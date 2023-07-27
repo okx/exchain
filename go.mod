@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/99designs/keyring v1.1.6
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
-	github.com/CosmWasm/wasmvm v1.2.4
+	github.com/CosmWasm/wasmvm v1.3.0
 	github.com/VictoriaMetrics/fastcache v1.8.0
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/alicebob/miniredis/v2 v2.17.0
@@ -48,6 +48,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/jmhodges/levigo v1.0.0
 	github.com/json-iterator/go v1.1.12
+	github.com/klauspost/pgzip v1.0.2-0.20170402124221-0bf5dcad4ada
 	github.com/libp2p/go-buffer-pool v0.1.0
 	github.com/magiconair/properties v1.8.6
 	github.com/mattn/go-isatty v0.0.14
@@ -129,6 +130,8 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.2.0 // indirect
 	github.com/keybase/go-keychain v0.0.0-20190712205309-48d3d31d256d // indirect
+	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
 	github.com/lestrrat/go-file-rotatelogs v0.0.0-20180223000712-d3151e2a480f // indirect
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect

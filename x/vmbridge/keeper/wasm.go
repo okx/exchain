@@ -14,11 +14,7 @@ import (
 )
 
 func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractAddr, recipient string, amount sdk.Int) error {
-	// must check recipient is ex address
-	if !sdk.IsOKCAddress(recipient) {
-		return types.ErrIsNotOKCAddr
-	}
-	to, err := sdk.AccAddressFromBech32(recipient)
+	_, err := sdk.WasmAddressFromBech32(recipient)
 	if err != nil {
 		return err
 	}
@@ -26,7 +22,7 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if amount.IsNegative() {
 		return types.ErrAmountNegative
 	}
-	input, err := types.GetMintCW20Input(amount.String(), sdk.AccToAWasmddress(to).String())
+	input, err := types.GetMintCW20Input(amount.String(), recipient)
 	if err != nil {
 		return err
 	}

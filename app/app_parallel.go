@@ -117,15 +117,17 @@ func getTxFeeHandler() sdk.GetTxFeeHandler {
 
 // getTxFeeAndFromHandler get tx fee and from
 func getTxFeeAndFromHandler(ek appante.EVMKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, isE2C bool, from string, to string, err error, supportPara bool) {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, needUpdateTXCounter bool, from string, to string, err error, supportPara bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
 			supportPara = true
 			if appante.IsE2CTx(ek, &ctx, evmTx) {
-				isE2C = true
+				if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+					needUpdateTXCounter = true
+				}
 				// E2C will include cosmos Msg in the Payload.
 				// Sometimes, this Msg do not support parallel execution.
-				if !isParaSupportedE2CMsg(evmTx.Data.Payload) {
+				if !tmtypes.HigherThanVenus6(ctx.BlockHeight()) || !isParaSupportedE2CMsg(evmTx.Data.Payload) {
 					supportPara = false
 				}
 			}
@@ -143,11 +145,18 @@ func getTxFeeAndFromHandler(ek appante.EVMKeeper) sdk.GetTxFeeAndFromHandler {
 			}
 		} else if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
-			if stdTx, ok := tx.(*auth.StdTx); ok && len(stdTx.Msgs) == 1 { // only support one message
-				if msg, ok := stdTx.Msgs[0].(interface{ CalFromAndToForPara() (string, string) }); ok {
-					from, to = msg.CalFromAndToForPara()
-					if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
-						supportPara = true
+			if tx.GetType() == sdk.StdTxType {
+				if tmtypes.HigherThanEarth(ctx.BlockHeight()) {
+					needUpdateTXCounter = true
+				}
+				txMsgs := tx.GetMsgs()
+				// only support one message
+				if len(txMsgs) == 1 {
+					if msg, ok := txMsgs[0].(interface{ CalFromAndToForPara() (string, string) }); ok {
+						from, to = msg.CalFromAndToForPara()
+						if tmtypes.HigherThanVenus6(ctx.BlockHeight()) {
+							supportPara = true
+						}
 					}
 				}
 			}
