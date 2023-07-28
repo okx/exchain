@@ -186,6 +186,8 @@ func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
 		keeper.GetWasmParamsCache().SetNeedBlockedUpdate()
 	}
 	am.keeper.UpdateGasRegister(ctx)
+	// TODO
+	// am.keeper.UpdateCurBlockNum(ctx)
 }
 
 // EndBlock returns the end blocker for the wasm module. It returns no validator
