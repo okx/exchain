@@ -605,8 +605,8 @@ github.com/okex/go-ethereum v1.10.8-okc2/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJ
 github.com/okex/grocksdb v1.6.45-okc2 h1:JuUg2NcAFHZn78+xANcEKn9bcuF0tX8Jx3iMFfPnAEQ=
 github.com/okex/grocksdb v1.6.45-okc2/go.mod h1:+/BHUY+mT0tbaVXwO2wTtD9eytazyw1W5n2O7AGyXZA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
-github.com/okx/wasmvm v1.3.3-0.20230728015654-a16c7d2ea289 h1:XcLpTU6Jsr2B3BqX69aDjZn9cXxNNXig6ofqMI2klf4=
-github.com/okx/wasmvm v1.3.3-0.20230728015654-a16c7d2ea289/go.mod h1:vW/E3h8j9xBQs9bCoijDuawKo9kCtxOaS8N8J7KFtkc=
+github.com/okx/wasmvm v1.3.3-0.20230728083011-6960449ac9d5 h1:o3w8M+Amz2IkgqI2/FqFUMkPDzoE7y3s3UV08H6/wWY=
+github.com/okx/wasmvm v1.3.3-0.20230728083011-6960449ac9d5/go.mod h1:vW/E3h8j9xBQs9bCoijDuawKo9kCtxOaS8N8J7KFtkc=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
