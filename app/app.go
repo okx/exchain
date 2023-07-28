@@ -782,6 +782,8 @@ func NewOKExChainApp(
 		}
 		app.InitUpgrade(ctx)
 		app.WasmKeeper.UpdateGasRegister(ctx)
+		// TODO
+		// app.WasmKeeper.UpdateCurBlockNum(ctx)
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
@@ -802,6 +804,9 @@ func (app *OKExChainApp) InitUpgrade(ctx sdk.Context) {
 	app.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS6_NAME, func(info paramstypes.UpgradeInfo) {
 		tmtypes.InitMilestoneVenus6Height(int64(info.EffectiveHeight))
 	})
+
+	// TODO
+	// app.WasmKeeper.UpdateMilestone(ctx, "wasm_v1", info.EffectiveHeight)
 
 	if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
 		tmos.Exit(fmt.Sprintf("failed apply effective upgrade height info: %s", err))
