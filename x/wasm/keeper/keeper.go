@@ -213,10 +213,7 @@ func newKeeper(cdc *codec.CodecProxy,
 	keeper.wasmVMResponseHandler = NewDefaultWasmVMContractResponseHandler(NewMessageDispatcher(keeper.messenger, keeper))
 
 	// register
-	wasmvm.RegisterGetWasmCallInfo(GetWasmCallInfo)
 	wasmvm.RegisterGetWasmCacheInfo(GetWasmCacheInfo)
-	wasmvm.RegisterTransferCoins(TransferCoins)
-	SetWasmKeeper(keeper)
 	SetWasmCache(wasmer.GetCache())
 	return *keeper
 }
@@ -499,6 +496,12 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.W
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(deposit)
 	info := types.NewInfo(creator, adapters)
+	cosmwasmAPI := wasmvm.GoAPI{
+		HumanAddress:     humanAddress,
+		CanonicalAddress: canonicalAddress,
+		GetCallInfo:      getCallerInfoFunc(ctx, k),
+		TransferCoins:    transferCoinsFunc(ctx, k),
+	}
 
 	// create prefixed data store
 	// 0x03 | BuildContractAddress (sdk.WasmAddress)
@@ -578,6 +581,12 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(coins)
 	info := types.NewInfo(caller, adapters)
+	cosmwasmAPI := wasmvm.GoAPI{
+		HumanAddress:     humanAddress,
+		CanonicalAddress: canonicalAddress,
+		GetCallInfo:      getCallerInfoFunc(ctx, k),
+		TransferCoins:    transferCoinsFunc(ctx, k),
+	}
 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
