@@ -27,7 +27,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 	reset := func() {
 		caller = sdk.AccAddress(contract.Bytes())
 		wasmContractAddr = suite.wasmContract.String()
-		recipient = sdk.AccAddress(ethAddr.Bytes()).String()
+		recipient = ethAddr.String()
 		amount = sdk.NewInt(1)
 	}
 	testCases := []struct {
@@ -42,7 +42,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 			},
 			func() {
 				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
@@ -55,11 +55,11 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 			},
 			func() {
 				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
-			nil,
+			errors.New("execute wasm contract failed: Generic error: addr_validate errored: Address is not normalized"),
 		},
 		{
 			"recipient is 0x",
@@ -68,11 +68,11 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 			},
 			func() {
 				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
-			types.ErrIsNotOKCAddr,
+			nil,
 		},
 		{
 			"recipient is wasmaddr",
@@ -81,24 +81,24 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 			},
 			func() {
 				queryAddr := sdk.WasmAddress(make([]byte, 32))
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
-			nil,
+			errors.New("execute wasm contract failed: Generic error: addr_validate errored: Address is not normalized"),
 		},
 		{
-			"recipient is wasmaddr 0x",
+			"recipient is  0x 32",
 			func() {
 				recipient = "0x" + hex.EncodeToString(make([]byte, 32))
 			},
 			func() {
 				queryAddr := sdk.WasmAddress(make([]byte, 32))
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
-			types.ErrIsNotOKCAddr,
+			errors.New("incorrect address length"),
 		},
 		{
 			"normal topic,amount is zero",
@@ -107,7 +107,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 			},
 			func() {
 				queryAddr := sdk.WasmAddress(ethAddr.Bytes())
-				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, sdk.AccToAWasmddress(suite.wasmContract), []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"0\"}", string(result))
 			},

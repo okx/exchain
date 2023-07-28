@@ -697,10 +697,16 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
+		app.parallelTxManage.txByteMpCMIndexLock.RLock()
 		ctx.SetParaMsg(&sdk.ParaMsg{
-			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+			// Concurrency security issues need to be considered here,
+			// and there is a small probability that NeedUpdateTXCounter() will be wrong
+			// due to concurrent reading and writing of pm.txIndexMpUpdateTXCounter (slice),
+			// but such tx will be rerun, so this case can be ignored.
+			HaveCosmosTxInBlock: app.parallelTxManage.NeedUpdateTXCounter(),
 			CosmosIndexInBlock:  app.parallelTxManage.txByteMpCosmosIndex[string(txBytes)],
 		})
+		app.parallelTxManage.txByteMpCMIndexLock.RUnlock()
 		ctx.SetTxBytes(txBytes)
 		ctx.ResetWatcher()
 	}
@@ -1013,25 +1019,42 @@ func (app *BaseApp) GetRealTxFromRawTx(rawTx tmtypes.Tx) abci.TxEssentials {
 	return nil
 }
 
-func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
+func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx, gasLimit int64) (int64, bool) {
 	tx, err := app.txDecoder(rawTx)
 	if err != nil {
-		return -1
+		return -1, false
 	}
 
 	txFnSig, toDeployContractSize := tx.GetTxFnSignatureInfo()
 	if txFnSig == nil {
-		return -1
+		return -1, false
 	}
 
 	hgu := InstanceOfHistoryGasUsedRecordDB().GetHgu(txFnSig)
-
-	if toDeployContractSize > 0 {
-		// if deploy contract case, the history gas used value is unit gas used
-		return hgu*int64(toDeployContractSize) + int64(1000)
+	if hgu == nil {
+		return -1, false
+	}
+	precise := true
+	if hgu.BlockNum < preciseBlockNum ||
+		(hgu.MaxGas-hgu.MovingAverageGas)*100/hgu.MovingAverageGas > cfg.DynamicConfig.GetPGUPercentageThreshold() ||
+		(hgu.MovingAverageGas-hgu.MinGas)*100/hgu.MinGas > cfg.DynamicConfig.GetPGUPercentageThreshold() {
+		precise = false
 	}
 
-	return hgu
+	var gasWanted int64
+	if toDeployContractSize > 0 {
+		// if deploy contract case, the history gas used value is unit gas used
+		gasWanted = hgu.MovingAverageGas*int64(toDeployContractSize) + int64(1000)
+	} else {
+		gasWanted = hgu.MovingAverageGas
+	}
+
+	// hgu gas can not be greater than gasLimit
+	if gasWanted > gasLimit {
+		gasWanted = gasLimit
+	}
+
+	return gasWanted, precise
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }

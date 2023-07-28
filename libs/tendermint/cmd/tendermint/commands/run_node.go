@@ -136,11 +136,25 @@ func AddNodeFlags(cmd *cobra.Command) {
 		false,
 		"enable precise gas used",
 	)
+	cmd.Flags().Int64(
+		"mempool.pgu-percentage-threshold",
+		10,
+		"use pgu when hgu has a margin of at least threshold percent",
+	)
+	cmd.Flags().Int(
+		"mempool.pgu-concurrency",
+		1,
+		"pgu concurrency",
+	)
 	cmd.Flags().Float64(
 		"mempool.pgu-adjustment",
 		1,
 		"adjustment for pgu, such as 0.9 or 1.1",
 	)
+	cmd.Flags().Bool(
+		"mempool.pgu-persist",
+		false,
+		"persist the gas estimated by pgu")
 	cmd.Flags().Bool(
 		"mempool.sort_tx_by_gp",
 		config.Mempool.SortTxByGp,
