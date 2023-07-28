@@ -529,17 +529,13 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin, cont
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(deposit)
 	info := types.NewInfo(creator, adapters)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 	gasInfo := types.GetGasInfo(k.gasRegister.GetGasMultiplier())
 	cosmwasmAPI := wasmvm.GoAPI{
 		HumanAddress:     humanAddress,
 		CanonicalAddress: canonicalAddress,
 		GetCallInfo:      getCallerInfoFunc(ctx, k),
 		TransferCoins:    transferCoinsFunc(ctx, k),
+		Contract:         contractExternal(ctx, k),
 	}
 
 	// create prefixed data store
@@ -620,17 +616,13 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(coins)
 	info := types.NewInfo(caller, adapters)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 	gasInfo := types.GetGasInfo(k.gasRegister.GetGasMultiplier())
 	cosmwasmAPI := wasmvm.GoAPI{
 		HumanAddress:     humanAddress,
 		CanonicalAddress: canonicalAddress,
 		GetCallInfo:      getCallerInfoFunc(ctx, k),
 		TransferCoins:    transferCoinsFunc(ctx, k),
+		Contract:         contractExternal(ctx, k),
 	}
 
 	// prepare querier
