@@ -43,6 +43,7 @@ type WasmerEngine interface {
 		gasMeter wasmvm.GasMeter,
 		gasLimit uint64,
 		deserCost wasmvmtypes.UFraction,
+		gasInfo wasmvmtypes.GasInfo,
 	) (*wasmvmtypes.Response, uint64, error)
 
 	// Execute calls a given contract. Since the only difference between contracts with the same CodeID is the
@@ -62,6 +63,7 @@ type WasmerEngine interface {
 		gasMeter wasmvm.GasMeter,
 		gasLimit uint64,
 		deserCost wasmvmtypes.UFraction,
+		gasInfo wasmvmtypes.GasInfo,
 	) (*wasmvmtypes.Response, uint64, error)
 
 	// Query allows a client to execute a contract-specific query. If the result is not empty, it should be
