@@ -1,10 +1,11 @@
 package baseapp
 
 import (
-	"encoding/binary"
+	"log"
 	"path/filepath"
 	"sync"
 
+	"github.com/gogo/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -17,13 +18,15 @@ const (
 	HistoryGasUsedDBName = "hgu"
 
 	FlagGasUsedFactor = "gu_factor"
+	preciseBlockNum   = 20
 )
 
 var (
-	once          sync.Once
-	GasUsedFactor = 0.4
-	jobQueueLen   = 10
-	cacheSize     = 10000
+	once             sync.Once
+	GasUsedFactor    = 0.4
+	regressionFactor = 0.05
+	jobQueueLen      = 10
+	cacheSize        = 10000
 
 	historyGasUsedRecordDB HistoryGasUsedRecordDB
 )
@@ -35,7 +38,7 @@ type gasKey struct {
 
 type HistoryGasUsedRecordDB struct {
 	latestGuMtx sync.Mutex
-	latestGu    map[string]int64
+	latestGu    map[string][]int64
 	cache       *lru.Cache
 	guDB        db.DB
 
@@ -46,7 +49,7 @@ func InstanceOfHistoryGasUsedRecordDB() *HistoryGasUsedRecordDB {
 	once.Do(func() {
 		cache, _ := lru.New(cacheSize)
 		historyGasUsedRecordDB = HistoryGasUsedRecordDB{
-			latestGu: make(map[string]int64),
+			latestGu: make(map[string][]int64),
 			cache:    cache,
 			guDB:     initDb(),
 			jobQueue: make(chan func(), jobQueueLen),
@@ -58,13 +61,13 @@ func InstanceOfHistoryGasUsedRecordDB() *HistoryGasUsedRecordDB {
 
 func (h *HistoryGasUsedRecordDB) UpdateGasUsed(key []byte, gasUsed int64) {
 	h.latestGuMtx.Lock()
-	h.latestGu[string(key)] = gasUsed
+	h.latestGu[string(key)] = append(h.latestGu[string(key)], gasUsed)
 	h.latestGuMtx.Unlock()
 }
 
-func (h *HistoryGasUsedRecordDB) GetHgu(key []byte) int64 {
+func (h *HistoryGasUsedRecordDB) GetHgu(key []byte) *HguRecord {
 	hgu, cacheHit := h.getHgu(key)
-	if !cacheHit && hgu != -1 {
+	if hgu != nil && !cacheHit {
 		// add to cache before returning hgu
 		h.cache.Add(string(key), hgu)
 	}
@@ -75,43 +78,71 @@ func (h *HistoryGasUsedRecordDB) FlushHgu() {
 	if len(h.latestGu) == 0 {
 		return
 	}
-	latestGasKeys := make([]gasKey, len(h.latestGu))
-	index := 0
-	for key, gas := range h.latestGu {
-		latestGasKeys[index] = gasKey{
-			gas: gas,
+	latestGasKeys := make([]gasKey, 0, len(h.latestGu))
+	for key, allGas := range h.latestGu {
+		latestGasKeys = append(latestGasKeys, gasKey{
+			gas: meanGas(allGas),
 			key: key,
-		}
-		index++
+		})
 		delete(h.latestGu, key)
 	}
 	h.jobQueue <- func() { h.flushHgu(latestGasKeys...) } // closure
 }
 
-func (h *HistoryGasUsedRecordDB) getHgu(key []byte) (hgu int64, fromCache bool) {
+func (h *HistoryGasUsedRecordDB) getHgu(key []byte) (hgu *HguRecord, fromCache bool) {
 	v, ok := h.cache.Get(string(key))
 	if ok {
-		return v.(int64), true
+		return v.(*HguRecord), true
 	}
 
 	data, err := h.guDB.Get(key)
 	if err != nil || len(data) == 0 {
-		return -1, false
+		return nil, false
 	}
 
-	return bytesToInt64(data), false
+	var r HguRecord
+	err = proto.Unmarshal(data, &r)
+	if err != nil {
+		return nil, false
+	}
+	return &r, false
 }
 
 func (h *HistoryGasUsedRecordDB) flushHgu(gks ...gasKey) {
 	for _, gk := range gks {
 		hgu, cacheHit := h.getHgu([]byte(gk.key))
-		// avgGas = 0.4 * newGas + 0.6 * oldGas.The value of wasm store contract is too small and need to be rounded up.
-		avgGas := int64(GasUsedFactor*float64(gk.gas) + (1.0-GasUsedFactor)*float64(hgu) + 0.6)
-		// add to cache if hit
-		if cacheHit {
-			h.cache.Add(gk.key, avgGas)
+		if hgu == nil {
+			hgu = &HguRecord{
+				MaxGas:           gk.gas,
+				MinGas:           gk.gas,
+				MovingAverageGas: gk.gas,
+			}
+		} else {
+			// MovingAverageGas = 0.4 * newGas + 0.6 * oldMovingAverageGas
+			hgu.MovingAverageGas = int64(GasUsedFactor*float64(gk.gas) + (1.0-GasUsedFactor)*float64(hgu.MovingAverageGas))
+			// MaxGas = 0.05 * MovingAverageGas + 0.95 * oldMaxGas
+			hgu.MaxGas = int64(regressionFactor*float64(hgu.MovingAverageGas) + (1.0-regressionFactor)*float64(hgu.MaxGas))
+			// MinGas = 0.05 * MovingAverageGas + 0.95 * oldMinGas
+			hgu.MinGas = int64(regressionFactor*float64(hgu.MovingAverageGas) + (1.0-regressionFactor)*float64(hgu.MinGas))
+			hgu.BlockNum++
+			if gk.gas > hgu.MaxGas {
+				hgu.MaxGas = gk.gas
+			} else if gk.gas < hgu.MinGas {
+				hgu.MinGas = gk.gas
+			}
+			// add to cache if hit
+			if cacheHit {
+				h.cache.Add(gk.key, hgu)
+			}
 		}
-		h.guDB.Set([]byte(gk.key), int64ToBytes(avgGas))
+
+		data, err := proto.Marshal(hgu)
+		if err != nil {
+			log.Println("flushHgu marshal error:", err)
+			continue
+		}
+
+		h.guDB.Set([]byte(gk.key), data)
 	}
 }
 
@@ -132,12 +163,10 @@ func initDb() db.DB {
 	return db
 }
 
-func int64ToBytes(i int64) []byte {
-	var buf = make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(i))
-	return buf
-}
-
-func bytesToInt64(buf []byte) int64 {
-	return int64(binary.BigEndian.Uint64(buf))
+func meanGas(allGas []int64) int64 {
+	var totalGas int64
+	for _, gas := range allGas {
+		totalGas += gas
+	}
+	return totalGas / int64(len(allGas))
 }

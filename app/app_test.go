@@ -7,35 +7,30 @@ import (
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
-	cosmossdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/libs/tendermint/global"
-	tendertypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/distribution/keeper"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	"github.com/okex/exchain/x/dex"
-	distr "github.com/okex/exchain/x/distribution"
-	"github.com/okex/exchain/x/farm"
-	"github.com/okex/exchain/x/params"
-
-	"github.com/stretchr/testify/require"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/okex/exchain/libs/tm-db"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-
+	cosmossdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	tendertypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/dex"
+	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/distribution/keeper"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/farm"
 	"github.com/okex/exchain/x/gov"
+	"github.com/okex/exchain/x/params"
 )
 
 var (

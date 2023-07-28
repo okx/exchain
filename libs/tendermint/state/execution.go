@@ -235,6 +235,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	deltaInfo := dc.prepareStateDelta(block.Height)
 
 	trc.Pin(trace.Abci)
+	if cfg.DynamicConfig.GetEnablePGU() {
+		global.CommitLock()
+		defer global.CommitUnlock()
+	}
 
 	startTime := time.Now().UnixNano()
 
