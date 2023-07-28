@@ -684,11 +684,6 @@ func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	}
 
 	env := types.NewEnv(ctx, contractAddress)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 
@@ -742,11 +737,6 @@ func (k Keeper) Sudo(ctx sdk.Context, contractAddress sdk.WasmAddress, msg []byt
 	ctx.GasMeter().ConsumeGas(sudoSetupCosts, "Loading CosmWasm module: sudo")
 
 	env := types.NewEnv(ctx, contractAddress)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 	gas := k.runtimeGasForContract(ctx)
@@ -781,11 +771,6 @@ func (k Keeper) reply(ctx sdk.Context, contractAddress sdk.WasmAddress, reply wa
 	ctx.GasMeter().ConsumeGas(replyCosts, "Loading CosmWasm module: reply")
 
 	env := types.NewEnv(ctx, contractAddress)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         contractExternal(ctx, k),
-	}
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 	gas := k.runtimeGasForContract(ctx)
@@ -926,12 +911,6 @@ func (k Keeper) QuerySmart(ctx sdk.Context, contractAddr sdk.WasmAddress, req []
 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddr)
-	cosmwasmAPI := wasmvm.GoAPI{
-		HumanAddress:     humanAddress,
-		CanonicalAddress: canonicalAddress,
-		Contract:         nil,
-	}
-
 	env := types.NewEnv(ctx, contractAddr)
 	queryResult, gasUsed, qErr := k.wasmVM.Query(codeInfo.CodeHash, env, req, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), k.runtimeGasForContract(ctx), costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
