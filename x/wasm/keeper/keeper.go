@@ -496,6 +496,7 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.W
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(deposit)
 	info := types.NewInfo(creator, adapters)
+	gasInfo := types.GetGasInfo(k.gasRegister.GetGasMultiplier())
 	cosmwasmAPI := wasmvm.GoAPI{
 		HumanAddress:     humanAddress,
 		CanonicalAddress: canonicalAddress,
@@ -513,7 +514,7 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.W
 
 	// instantiate wasm contract
 	gas := k.runtimeGasForContract(ctx)
-	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStoreAdapter, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
+	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStoreAdapter, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization, gasInfo)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
 		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, creator, contractAddress, innertx.CosmosCallType, types.InstantiateInnertxName, sdk.Coins{}, err, k.gasRegister.FromWasmVMGas(gasUsed), string(initMsg))
@@ -581,6 +582,7 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 	env := types.NewEnv(ctx, contractAddress)
 	adapters := sdk.CoinsToCoinAdapters(coins)
 	info := types.NewInfo(caller, adapters)
+	gasInfo := types.GetGasInfo(k.gasRegister.GetGasMultiplier())
 	cosmwasmAPI := wasmvm.GoAPI{
 		HumanAddress:     humanAddress,
 		CanonicalAddress: canonicalAddress,
@@ -604,7 +606,7 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.WasmAddress, caller
 		}
 	}
 
-	res, gasUsed, execErr := k.wasmVM.Execute(codeInfo.CodeHash, env, info, msg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
+	res, gasUsed, execErr := k.wasmVM.Execute(codeInfo.CodeHash, env, info, msg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization, gasInfo)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if !ctx.IsCheckTx() && k.innertxKeeper != nil {
 		k.innertxKeeper.UpdateWasmInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, caller, contractAddress, innertx.CosmosCallType, types.ExecuteInnertxName, coins, err, k.gasRegister.FromWasmVMGas(gasUsed), string(msg))

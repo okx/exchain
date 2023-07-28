@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"reflect"
 	"strings"
 
@@ -131,10 +132,11 @@ func (c *ContractInfo) SetExtension(ext ContractInfoExtension) error {
 
 // ReadExtension copies the extension value to the pointer passed as argument so that there is no need to cast
 // For example with a custom extension of type `MyContractDetails` it will look as following:
-// 		var d MyContractDetails
-//		if err := info.ReadExtension(&d); err != nil {
-//			return nil, sdkerrors.Wrap(err, "extension")
-//		}
+//
+//	var d MyContractDetails
+//	if err := info.ReadExtension(&d); err != nil {
+//		return nil, sdkerrors.Wrap(err, "extension")
+//	}
 func (c *ContractInfo) ReadExtension(e ContractInfoExtension) error {
 	rv := reflect.ValueOf(e)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
@@ -253,6 +255,16 @@ func (a *AbsoluteTxPosition) Bytes() []byte {
 	copy(r[0:], sdk.Uint64ToBigEndian(a.BlockHeight))
 	copy(r[8:], sdk.Uint64ToBigEndian(a.TxIndex))
 	return r
+}
+
+func GetGasInfo(gasMultiplier uint64) wasmvmtypes.GasInfo {
+	gc := stypes.KVGasConfig()
+	return wasmvmtypes.GasInfo{
+		WriteCostFlat:    gc.WriteCostFlat,
+		WriteCostPerByte: gc.ReadCostPerByte,
+		DeleteCost:       gc.DeleteCost,
+		GasMultiplier:    gasMultiplier,
+	}
 }
 
 // NewEnv initializes the environment for a contract instance
