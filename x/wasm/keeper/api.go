@@ -54,18 +54,18 @@ func contractExternal(ctx sdk.Context, k Keeper) func(request wasmvmtypes.Contra
 			return "", 0, sdkerrors.Wrap(types.ErrExceedCallDepth, strconv.Itoa(int(ctx.CallDepth())))
 		}
 
-		gasMeter := ctx.GasMeter()
-		ctx.SetGasMeter(sdk.NewGasMeter(k.gasRegister.FromWasmVMGas(gasLimit)))
+		//gasMeter := ctx.GasMeter()
+		//ctx.SetGasMeter(sdk.NewGasMeter(k.gasRegister.FromWasmVMGas(gasLimit)))
 		gasBefore := ctx.GasMeter().GasConsumed()
 
-		defer func() {
-			ctx.DecrementCallDepth()
-
-			// reset gas meter
-			gasCost := ctx.GasMeter().GasConsumed() - gasBefore
-			ctx.SetGasMeter(gasMeter)
-			ctx.GasMeter().ConsumeGas(gasCost, "contract sub-create")
-		}()
+		//defer func() {
+		//	ctx.DecrementCallDepth()
+		//
+		//	// reset gas meter
+		//	gasCost := ctx.GasMeter().GasConsumed() - gasBefore
+		//	ctx.SetGasMeter(gasMeter)
+		//	ctx.GasMeter().ConsumeGas(gasCost, "contract sub-create")
+		//}()
 
 		creator, err := sdk.WasmAddressFromBech32(request.Creator)
 		if err != nil {
