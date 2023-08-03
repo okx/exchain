@@ -407,6 +407,7 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
+	cs.needLogPgu = false
 
 	// Finally, broadcast RoundState
 	cs.newStep()
