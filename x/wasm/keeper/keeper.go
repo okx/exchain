@@ -994,6 +994,12 @@ func (k Keeper) contractInstance(ctx sdk.Context, contractAddress sdk.WasmAddres
 	return contractInfo, codeInfo, types.NewStoreAdapter(prefixStore), nil
 }
 
+func (k Keeper) getStorageStore(ctx sdk.Context, acc sdk.WasmAddress) sdk.KVStore {
+	store := k.ada.NewStore(ctx, k.storeKey, nil)
+	prefixStoreKey := types.GetContractStorePrefix(acc)
+	return prefix.NewStore(store, prefixStoreKey)
+}
+
 func (k Keeper) GetContractInfo(ctx sdk.Context, contractAddress sdk.WasmAddress) *types.ContractInfo {
 	store := k.ada.NewStore(ctx, k.storeKey, nil)
 	var contract types.ContractInfo

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	wasmvm "github.com/CosmWasm/wasmvm"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 var (
@@ -47,10 +48,7 @@ func getCallerInfo(ctx sdk.Context, keeper Keeper, contractAddress, storeAddress
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	_, _, prefixStore, err = keeper.contractInstance(ctx, sAddr)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
+	prefixStore = types.NewStoreAdapter(keeper.getStorageStore(ctx, sAddr))
 	queryHandler := keeper.newQueryHandler(ctx, sAddr)
 	return codeInfo.CodeHash, prefixStore, queryHandler, keeper.gasMeter(ctx), nil
 }
