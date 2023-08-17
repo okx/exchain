@@ -135,3 +135,56 @@ func (suite *KeeperSuite) TestGetGasConfig() {
 		tt.fncheck(*res)
 	}
 }
+
+func (suite *KeeperSuite) TestGetBlockConfig() {
+	sub := "params"
+	tests := []struct {
+		changes []types.ParamChange
+		fncheck func(res sdk.BlockConfig, err error)
+	}{
+		{
+			changes: []types.ParamChange{{Subspace: sub, Key: types.MaxGasUsedPerBlock, Value: "\"-1\""}},
+			fncheck: func(res sdk.BlockConfig, err error) {
+				suite.NoError(err)
+				suite.Equal(sdk.BlockConfig{MaxGasUsedPerBlock: -1}, res)
+			},
+		},
+		{
+			changes: []types.ParamChange{{Subspace: sub, Key: types.MaxGasUsedPerBlock, Value: "\"0\""}},
+			fncheck: func(res sdk.BlockConfig, err error) {
+				suite.NoError(err)
+				suite.Equal(sdk.BlockConfig{MaxGasUsedPerBlock: 0}, res)
+			},
+		},
+		{
+			changes: []types.ParamChange{{Subspace: sub, Key: types.MaxGasUsedPerBlock, Value: "\"100\""}},
+			fncheck: func(res sdk.BlockConfig, err error) {
+				suite.NoError(err)
+				suite.Equal(sdk.BlockConfig{MaxGasUsedPerBlock: 100}, res)
+			},
+		},
+		{
+			changes: []types.ParamChange{{Subspace: sub, Key: types.MaxGasUsedPerBlock, Value: "\"1000000000000\""}},
+			fncheck: func(res sdk.BlockConfig, err error) {
+				suite.NoError(err)
+				suite.Equal(sdk.BlockConfig{MaxGasUsedPerBlock: 1000000000000}, res)
+			},
+		},
+		{
+			changes: []types.ParamChange{{Subspace: sub, Key: types.MaxGasUsedPerBlock, Value: "\"-2\""}},
+			fncheck: func(res sdk.BlockConfig, err error) {
+				suite.Error(err)
+				suite.Equal(sdk.BlockConfig{MaxGasUsedPerBlock: 1000000000000}, res)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		ctx := suite.Context(0)
+
+		err := changeParams(ctx, &suite.paramsKeeper, types.NewParameterChangeProposal("hello", "word", tt.changes, 1))
+
+		res := suite.paramsKeeper.GetBlockConfig(ctx)
+		tt.fncheck(*res, err)
+	}
+}
