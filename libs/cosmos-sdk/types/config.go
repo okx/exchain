@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 )
@@ -84,7 +85,8 @@ func (config *Config) SetBech32PrefixForAccount(addressPrefix, pubKeyPrefix stri
 }
 
 // SetBech32PrefixForValidator builds the Config with Bech32 addressPrefix and publKeyPrefix for validators
-//  and returns the config instance
+//
+//	and returns the config instance
 func (config *Config) SetBech32PrefixForValidator(addressPrefix, pubKeyPrefix string) {
 	config.assertNotSealed()
 	config.bech32AddressPrefix["validator_addr"] = addressPrefix
@@ -196,4 +198,20 @@ func KeyringServiceName() string {
 		return DefaultKeyringServiceName
 	}
 	return version.Name
+}
+
+const DefaultMaxGasUsedPerBlock int64 = -1
+
+var globalBlockConfig = &BlockConfig{MaxGasUsedPerBlock: DefaultMaxGasUsedPerBlock}
+
+type BlockConfig struct {
+	MaxGasUsedPerBlock int64
+}
+
+func UpdateBlockConfig(bc *BlockConfig) {
+	atomic.StoreInt64(&globalBlockConfig.MaxGasUsedPerBlock, bc.MaxGasUsedPerBlock)
+}
+
+func GetMaxGasUsedPerBlock() int64 {
+	return atomic.LoadInt64(&globalBlockConfig.MaxGasUsedPerBlock)
 }
