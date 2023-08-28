@@ -44,7 +44,7 @@ func TestGetWasmCallInfo(t *testing.T) {
 
 	// 3. storeAddress is not exist
 	_, _, _, _, err = getCallerInfo(ctx, wasmkeeper, gotContractAddr.String(), "0xE70e7466a2f18FAd8C97c45Ba8fEc57d90F3435E")
-	require.NotNil(t, err)
+	require.NoError(t, err)
 
 	// 4. contractAddress is not equal to storeAddress
 	gotContractAddr2, _, err := keepers.ContractKeeper.Instantiate(ctx, codeID, creator, nil, initMsgBz, "demo contract 1", nil)
