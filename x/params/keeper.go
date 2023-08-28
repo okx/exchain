@@ -85,3 +85,16 @@ func (keeper Keeper) getGasConfig(ctx sdk.Context) (params types.GasConfig) {
 	stypes.AsDefaultGasConfig(&params.GasConfig)
 	return
 }
+
+func (keeper Keeper) GetBlockConfig(ctx sdk.Context) *sdk.BlockConfig {
+	params := keeper.getBlockConfig(ctx)
+	return &sdk.BlockConfig{params.MaxGasUsedPerBlock}
+}
+
+func (keeper Keeper) getBlockConfig(ctx sdk.Context) *types.BlockConfig {
+	params := types.NewDefaultBlockConfig()
+	for _, pair := range params.ParamSetPairs() {
+		keeper.paramSpace.GetIfExists(ctx, pair.Key, pair.Value)
+	}
+	return params
+}

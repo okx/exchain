@@ -163,6 +163,10 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		app.UpdateGlobalGasConfig(app.deliverState.ctx)
 	}
 
+	if app.getBlockConfigHandler != nil {
+		app.UpdateBlockConfig(app.deliverState.ctx)
+	}
+
 	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
@@ -186,6 +190,13 @@ func (app *BaseApp) UpdateGlobalGasConfig(ctx sdk.Context) {
 		return
 	}
 	stypes.UpdateGlobalGasConfig(app.getGasConfigHandler(ctx))
+}
+
+func (app *BaseApp) UpdateBlockConfig(ctx sdk.Context) {
+	if ctx.IsCheckTx() || ctx.IsTraceTx() {
+		return
+	}
+	sdk.UpdateBlockConfig(app.getBlockConfigHandler(ctx))
 }
 
 func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {

@@ -247,3 +247,10 @@ func (app *BaseApp) SetGetGasConfigHandler(handler sdk.GetGasConfigHandler) {
 	}
 	app.getGasConfigHandler = handler
 }
+
+func (app *BaseApp) SetGetBlockConfigHandler(handler sdk.GetBlockConfigHandler) {
+	if app.sealed {
+		panic("SetGetBlockConfigHandler() on sealed BaseApp")
+	}
+	app.getBlockConfigHandler = handler
+}
