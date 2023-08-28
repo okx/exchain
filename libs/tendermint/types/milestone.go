@@ -45,6 +45,9 @@ var (
 	MILESTONE_VENUS6_NAME       = "venus6"
 	milestoneVenus6Height int64 = 0
 
+	MILESTONE_VENUS7_NAME       = "venus7"
+	milestoneVenus7Height int64 = 0
+
 	// note: it stores the earlies height of the node,and it is used by cli
 	nodePruneHeight int64
 
@@ -330,4 +333,24 @@ func GetVenus6Height() int64 {
 }
 
 // =========== Venus6 ===============
+// ==================================
+
+// ==================================
+// =========== Venus7 ===============
+func HigherThanVenus7(h int64) bool {
+	if milestoneVenus7Height == 0 {
+		return false
+	}
+	return h > milestoneVenus7Height
+}
+
+func InitMilestoneVenus7Height(h int64) {
+	milestoneVenus7Height = h
+}
+
+func GetVenus7Height() int64 {
+	return milestoneVenus7Height
+}
+
+// =========== Venus7 ===============
 // ==================================
