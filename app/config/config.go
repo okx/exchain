@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
@@ -232,6 +233,10 @@ var (
 	once       sync.Once
 	confLogger log.Logger
 )
+
+func GetChainMaxGasUsedPerBlock() int64 {
+	return sdk.GetMaxGasUsedPerBlock()
+}
 
 func GetOecConfig() *OecConfig {
 	once.Do(func() {
@@ -846,6 +851,9 @@ func (c *OecConfig) SetEnableDeleteMinGPTx(enable bool) {
 }
 
 func (c *OecConfig) GetMaxGasUsedPerBlock() int64 {
+	if c.maxGasUsedPerBlock == -1 {
+		return GetChainMaxGasUsedPerBlock()
+	}
 	return c.maxGasUsedPerBlock
 }
 

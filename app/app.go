@@ -769,6 +769,7 @@ func NewOKExChainApp(
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 	app.SetUpdateCMTxNonceHandler(NewUpdateCMTxNonceHandler())
 	app.SetGetGasConfigHandler(NewGetGasConfigHandler(app.ParamsKeeper))
+	app.SetGetBlockConfigHandler(NewGetBlockConfigHandler(app.ParamsKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -782,6 +783,7 @@ func NewOKExChainApp(
 		}
 		app.InitUpgrade(ctx)
 		app.WasmKeeper.UpdateGasRegister(ctx)
+		app.WasmKeeper.UpdateCurBlockNum(ctx)
 	}
 
 	app.ScopedIBCKeeper = scopedIBCKeeper
@@ -801,6 +803,11 @@ func (app *OKExChainApp) InitUpgrade(ctx sdk.Context) {
 	// Claim before ApplyEffectiveUpgrade
 	app.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS6_NAME, func(info paramstypes.UpgradeInfo) {
 		tmtypes.InitMilestoneVenus6Height(int64(info.EffectiveHeight))
+	})
+
+	app.ParamsKeeper.ClaimReadyForUpgrade(tmtypes.MILESTONE_VENUS7_NAME, func(info paramstypes.UpgradeInfo) {
+		tmtypes.InitMilestoneVenus7Height(int64(info.EffectiveHeight))
+		app.WasmKeeper.UpdateMilestone(ctx, "wasm_v1", info.EffectiveHeight)
 	})
 
 	if err := app.ParamsKeeper.ApplyEffectiveUpgrade(ctx); err != nil {
@@ -1053,5 +1060,11 @@ func NewUpdateCMTxNonceHandler() sdk.UpdateCMTxNonceHandler {
 func NewGetGasConfigHandler(pk params.Keeper) sdk.GetGasConfigHandler {
 	return func(ctx sdk.Context) *stypes.GasConfig {
 		return pk.GetGasConfig(ctx)
+	}
+}
+
+func NewGetBlockConfigHandler(pk params.Keeper) sdk.GetBlockConfigHandler {
+	return func(ctx sdk.Context) *sdk.BlockConfig {
+		return pk.GetBlockConfig(ctx)
 	}
 }

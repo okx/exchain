@@ -48,3 +48,11 @@ func TestConfig_SetFullFundraiserPath(t *testing.T) {
 func TestKeyringServiceName(t *testing.T) {
 	require.Equal(t, sdk.DefaultKeyringServiceName, sdk.KeyringServiceName())
 }
+
+func TestBlockConfig(t *testing.T) {
+	require.Equal(t, sdk.DefaultMaxGasUsedPerBlock, sdk.GetMaxGasUsedPerBlock())
+	sdk.UpdateBlockConfig(&sdk.BlockConfig{0})
+	require.Equal(t, int64(0), sdk.GetMaxGasUsedPerBlock())
+	sdk.UpdateBlockConfig(&sdk.BlockConfig{100})
+	require.Equal(t, int64(100), sdk.GetMaxGasUsedPerBlock())
+}
