@@ -42,6 +42,7 @@ $ exchaincli query params params
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
 			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryParams)
 			bz, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
