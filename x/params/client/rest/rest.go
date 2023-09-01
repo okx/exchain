@@ -2,14 +2,13 @@ package rest
 
 import (
 	"fmt"
-	"github.com/okex/exchain/x/params/types"
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/params/types"
+	"net/http"
 )
 
 // RegisterRoutes, a central function to define routes
@@ -20,6 +19,11 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 func QueryBlockConfigFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+
 		route := fmt.Sprintf("custom/%s/%s", params.RouterKey, types.QueryBlockConfig)
 		bz, _, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
