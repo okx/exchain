@@ -13,7 +13,7 @@ require (
 	github.com/apolloconfig/agollo/v4 v4.0.8
 	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/btcsuite/btcd v0.22.1
+	github.com/btcsuite/btcd v0.23.2
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/confio/ics23/go v0.7.0
 	github.com/cosmos/cosmos-proto v1.0.0-alpha7
@@ -74,7 +74,7 @@ require (
 	github.com/spf13/viper v1.12.0
 	github.com/status-im/keycard-go v0.0.0-20190424133014-d95853db0f48
 	github.com/stretchr/testify v1.8.1
-	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
