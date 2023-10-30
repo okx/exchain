@@ -115,6 +115,7 @@ func (conR *Reactor) OnStart() error {
 	}
 
 	go conR.updateRoundStateRoutine()
+	go conR.getBlockRoutine()
 
 	return nil
 }
@@ -1099,6 +1100,18 @@ OUTER_LOOP:
 	}
 }
 
+func (conR *Reactor) getBlockRoutine() {
+	ctx := conR.conS.blockCtx
+	subChan := ctx.deltaBroker.SubChannel().Channel()
+	for msg := range subChan {
+		pbm := &ProposalBlockMessage{}
+		if err := pbm.Unmarshal([]byte(msg.Payload)); err == nil {
+			conR.Logger.Debug("Block from Redis:", "chan", msg.Channel, "height", pbm.Proposal.Height)
+			conR.conS.peerMsgQueue <- msgInfo{pbm, ""}
+		}
+	}
+}
+
 func (conR *Reactor) peerStatsRoutine() {
 	conR.resetSwitchToFastSyncTimer()
 
@@ -1712,6 +1725,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
 	cdc.RegisterConcrete(&ProposeResponseMessage{}, "tendermint/ProposeResponseMessage", nil)
 	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
+	cdc.RegisterConcrete(&ProposalBlockMessage{}, "tendermint/Block", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1881,6 +1895,41 @@ func (m *BlockPartMessage) ValidateBasic() error {
 // String returns a string representation.
 func (m *BlockPartMessage) String() string {
 	return fmt.Sprintf("[BlockPart H:%v R:%v P:%v]", m.Height, m.Round, m.Part)
+}
+
+//-------------------------------------
+
+// BlockMessage is a whole block
+type ProposalBlockMessage struct {
+	Proposal *types.Proposal
+	Block    *types.Block
+}
+
+// ValidateBasic performs basic validation.
+func (m *ProposalBlockMessage) ValidateBasic() error {
+	if m.Proposal.Height < 0 {
+		return errors.New("negative Height")
+	}
+	if m.Proposal.Round < 0 {
+		return errors.New("negative Round")
+	}
+	if err := m.Block.ValidateBasic(); err != nil {
+		return fmt.Errorf("wrong Block: %v", err)
+	}
+	return nil
+}
+
+// String returns a string representation.
+func (m *ProposalBlockMessage) String() string {
+	return fmt.Sprintf("[Block H:%v R:%v B:%v]", m.Proposal.Height, m.Proposal.Round, m.Block)
+}
+
+func (m *ProposalBlockMessage) Marshal() []byte {
+	return cdc.MustMarshalBinaryBare(m)
+}
+
+func (m *ProposalBlockMessage) Unmarshal(bs []byte) error {
+	return cdc.UnmarshalBinaryBare(bs, m)
 }
 
 //-------------------------------------
