@@ -143,6 +143,7 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 
 // GetBlockByNumber returns the block identified by number.
 func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
+	fullTx = false
 	//query block in cache first
 	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum), fullTx)
 	if err == nil {
@@ -180,6 +181,7 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 
 // GetBlockByHash returns the block identified by hash.
 func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
+	fullTx = false
 	//query block in cache first
 	block, err := b.backendCache.GetBlockByHash(hash, fullTx)
 	if err == nil {
