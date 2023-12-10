@@ -126,6 +126,19 @@ type OecConfig struct {
 	enableMempoolSimGuFactor bool
 
 	maxSubscriptionClients int
+
+	maxTxLimitPerPeer uint64
+}
+
+func (c *OecConfig) SetMaxTxLimitPerPeer(maxTxLimitPerPeer int64) {
+	if maxTxLimitPerPeer < 0 {
+		return
+	}
+	c.maxTxLimitPerPeer = uint64(maxTxLimitPerPeer)
+}
+
+func (c *OecConfig) GetMaxTxLimitPerPeer() uint64 {
+	return c.maxTxLimitPerPeer
 }
 
 const (
@@ -165,6 +178,7 @@ const (
 	FlagCommitGapOffset            = "commit-gap-offset"
 	FlagEnableMempoolSimGuFactor   = "enable-mem-sim-gu-factor"
 	FlagMaxSubscriptionClients     = "max-subscription-clients"
+	FlagMaxTxLimitPerPeer          = "mempool.max_tx_limit_per_peer"
 )
 
 var (
@@ -280,6 +294,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
 	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
+	c.SetMaxTxLimitPerPeer(int64(viper.GetUint64(FlagMaxTxLimitPerPeer)))
 	c.SetEnableDeleteMinGPTx(viper.GetBool(FlagMempoolEnableDeleteMinGPTx))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetEnablePGU(viper.GetBool(FlagEnablePGU))
@@ -468,6 +483,12 @@ func (c *OecConfig) updateFromKVStr(k, v string) {
 			return
 		}
 		c.SetMaxTxNumPerBlock(r)
+	case FlagMaxTxLimitPerPeer:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetMaxTxLimitPerPeer(r)
 	case FlagMempoolEnableDeleteMinGPTx:
 		r, err := strconv.ParseBool(v)
 		if err != nil {

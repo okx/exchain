@@ -308,10 +308,10 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		if !ok {
 			peerTxCount = 0
 		}
-		if peerTxCount >= mem.config.MaxTxLimitPerPeer {
+		if peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
 			mem.peersTxCountMtx.Unlock()
-			mem.logger.Debug(fmt.Sprintf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, mem.config.MaxTxLimitPerPeer))
-			return fmt.Errorf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, mem.config.MaxTxLimitPerPeer)
+			mem.logger.Debug(fmt.Sprintf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer()))
+			return fmt.Errorf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer())
 		}
 		peerTxCount++
 		mem.peersTxCount[string(txInfo.SenderP2PID)] = peerTxCount
