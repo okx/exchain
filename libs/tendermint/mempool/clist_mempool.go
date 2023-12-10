@@ -108,6 +108,9 @@ type CListMempool struct {
 	rmPendingTxChan chan types.EventDataRmPendingTx
 
 	gpo *Oracle
+
+	peersTxCountMtx sync.RWMutex
+	peersTxCount    map[string]uint64
 }
 
 func (mem *CListMempool) filterCMTx(tx abci.TxEssentials) bool {
@@ -166,6 +169,7 @@ func NewCListMempool(
 		simQueue:      make(chan *mempoolTx, 100000),
 		gasCache:      gasCache,
 		gpo:           gpo,
+		peersTxCount:  make(map[string]uint64, 0),
 	}
 
 	if config.PendingRemoveEvent {
@@ -305,6 +309,22 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	mem.peersTxCountMtx.Lock()
+	if len(txInfo.SenderP2PID) != 0 {
+		peerTxCount, ok := mem.peersTxCount[string(txInfo.SenderP2PID)]
+		if !ok {
+			peerTxCount = 0
+		}
+		if peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
+			mem.peersTxCountMtx.Unlock()
+			mem.logger.Debug(fmt.Sprintf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer()))
+			return fmt.Errorf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer())
+		}
+		peerTxCount++
+		mem.peersTxCount[string(txInfo.SenderP2PID)] = peerTxCount
+	}
+	mem.peersTxCountMtx.Unlock()
+
 	timeStart := int64(0)
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		timeStart = time.Now().UnixMicro()
@@ -1010,6 +1030,11 @@ func (mem *CListMempool) Update(
 	preCheck PreCheckFunc,
 	postCheck PostCheckFunc,
 ) error {
+	mem.peersTxCountMtx.Lock()
+	for key := range mem.peersTxCount {
+		delete(mem.peersTxCount, key)
+	}
+	mem.peersTxCountMtx.Unlock()
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
