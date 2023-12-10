@@ -141,6 +141,8 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 	return hexutil.Uint64(committedHeight), nil
 }
 
+var ErrTxTooMany = errors.New("tx count is too many")
+
 // GetBlockByNumber returns the block identified by number.
 func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
 	fullTx = false
@@ -152,6 +154,13 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 	//query block from watch db
 	block, err = b.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
 	if err == nil {
+		if block.Transactions != nil {
+			txsHash := block.Transactions.([]interface{})
+			if b.logsLimit != 0 && len(txsHash) >= b.logsLimit {
+				return nil, ErrTxTooMany
+			}
+		}
+
 		b.backendCache.AddOrUpdateBlock(block.Hash, block, fullTx)
 		return block, nil
 	}
@@ -190,6 +199,12 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (*watch
 	//query block from watch db
 	block, err = b.wrappedBackend.GetBlockByHash(hash, fullTx)
 	if err == nil {
+		if block.Transactions != nil {
+			txsHash := block.Transactions.([]interface{})
+			if b.logsLimit != 0 && len(txsHash) >= b.logsLimit {
+				return nil, ErrTxTooMany
+			}
+		}
 		b.backendCache.AddOrUpdateBlock(hash, block, fullTx)
 		return block, nil
 	}

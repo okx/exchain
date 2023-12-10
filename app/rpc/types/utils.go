@@ -61,9 +61,10 @@ func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *watcher.Tr
 	return rpcTx
 }
 
+var ErrTxTooMany = errors.New("tx count is too many")
+
 // RpcBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
 func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block, fullTx bool, txsLimit int) (*watcher.Block, error) {
-	fullTx = false
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -75,6 +76,8 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		return nil, ErrTxTooMany
 	}
 
 	var bloom ethtypes.Bloom

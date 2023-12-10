@@ -1227,12 +1227,13 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	}
 
 	// number of pending txs queried from the mempool
-	unconfirmedTxs, err := api.clientCtx.Client.UnconfirmedTxs(1000)
-	if err != nil {
-		return nil, err
-	}
+	// todo:: fix mem 12-10
+	//unconfirmedTxs, err := api.clientCtx.Client.UnconfirmedTxs(1000)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	gasUsed, ethTxs, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, unconfirmedTxs.Txs, common.BytesToHash(latestBlock.Block.Hash()), uint64(height))
+	gasUsed, ethTxs, err := rpctypes.EthTransactionsFromTendermint(api.clientCtx, nil, common.BytesToHash(latestBlock.Block.Hash()), uint64(height))
 	if err != nil {
 		return nil, err
 	}
