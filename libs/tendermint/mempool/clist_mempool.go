@@ -309,7 +309,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 			peerTxCount = 0
 		}
 		if peerTxCount > mem.config.MaxTxLimitPerPeer {
-			return fmt.Errorf("%s has been over 100 transaction, please wait a few second")
+			mem.peersTxCountMtx.Unlock()
+			return fmt.Errorf("%s has been over 100 transaction, please wait a few second", txInfo.SenderP2PID)
 		}
 		peerTxCount++
 		mem.peersTxCount[string(txInfo.SenderP2PID)] = peerTxCount
