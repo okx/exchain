@@ -141,8 +141,6 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 	return hexutil.Uint64(committedHeight), nil
 }
 
-var ErrTxTooMany = errors.New("tx count is too many")
-
 // GetBlockByNumber returns the block identified by number.
 func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
 	fullTx = false
@@ -157,7 +155,9 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 		if block.Transactions != nil {
 			txsHash := block.Transactions.([]interface{})
 			if b.logsLimit != 0 && len(txsHash) >= b.logsLimit {
-				return nil, ErrTxTooMany
+				return nil, errors.New(
+					fmt.Sprintf("You need to set up your own node for the query when the block has over %d transactions.",
+						b.logsLimit))
 			}
 		}
 
@@ -202,7 +202,9 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (*watch
 		if block.Transactions != nil {
 			txsHash := block.Transactions.([]interface{})
 			if b.logsLimit != 0 && len(txsHash) >= b.logsLimit {
-				return nil, ErrTxTooMany
+				return nil, errors.New(
+					fmt.Sprintf("You need to set up your own node for the query when the block has over %d transactions.",
+						b.logsLimit))
 			}
 		}
 		b.backendCache.AddOrUpdateBlock(hash, block, fullTx)
