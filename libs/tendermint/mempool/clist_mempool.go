@@ -300,6 +300,32 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 	return mem.txs.TxsWaitChan()
 }
 
+func (mem *CListMempool) validatePeerCount(txInfo TxInfo) error {
+	mem.peersTxCountMtx.Lock()
+	defer mem.peersTxCountMtx.Unlock()
+	if len(txInfo.SenderP2PID) != 0 {
+		peerTxCount, ok := mem.peersTxCount[string(txInfo.SenderP2PID)]
+		if !ok {
+			peerTxCount = 0
+		}
+		if cfg.DynamicConfig.GetMaxTxLimitPerPeer() != 0 && peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
+			mem.logger.Debug(fmt.Sprintf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer()))
+			return fmt.Errorf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer())
+		}
+		peerTxCount++
+		mem.peersTxCount[string(txInfo.SenderP2PID)] = peerTxCount
+	}
+	return nil
+}
+
+func (mem *CListMempool) resetPeerCount() {
+	mem.peersTxCountMtx.Lock()
+	defer mem.peersTxCountMtx.Unlock()
+	for key := range mem.peersTxCount {
+		delete(mem.peersTxCount, key)
+	}
+}
+
 // It blocks if we're waiting on Update() or Reap().
 // cb: A callback from the CheckTx command.
 //
@@ -309,22 +335,9 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-	mem.peersTxCountMtx.Lock()
-	if len(txInfo.SenderP2PID) != 0 {
-		peerTxCount, ok := mem.peersTxCount[string(txInfo.SenderP2PID)]
-		if !ok {
-			peerTxCount = 0
-		}
-		if cfg.DynamicConfig.GetMaxTxLimitPerPeer() != 0 && peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
-			mem.peersTxCountMtx.Unlock()
-			mem.logger.Debug(fmt.Sprintf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer()))
-			return fmt.Errorf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer())
-		}
-		peerTxCount++
-		mem.peersTxCount[string(txInfo.SenderP2PID)] = peerTxCount
+	if err := mem.validatePeerCount(txInfo); err != nil {
+		return err
 	}
-	mem.peersTxCountMtx.Unlock()
-
 	timeStart := int64(0)
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		timeStart = time.Now().UnixMicro()
@@ -1030,11 +1043,7 @@ func (mem *CListMempool) Update(
 	preCheck PreCheckFunc,
 	postCheck PostCheckFunc,
 ) error {
-	mem.peersTxCountMtx.Lock()
-	for key := range mem.peersTxCount {
-		delete(mem.peersTxCount, key)
-	}
-	mem.peersTxCountMtx.Unlock()
+	mem.resetPeerCount()
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
 		return mem.updateSealed(height, txs, deliverTxResponses)
