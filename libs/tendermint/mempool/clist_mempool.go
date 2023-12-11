@@ -301,6 +301,9 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 }
 
 func (mem *CListMempool) validatePeerCount(txInfo TxInfo) error {
+	if cfg.DynamicConfig.GetMaxTxLimitPerPeer() == 0 {
+		return nil
+	}
 	mem.peersTxCountMtx.Lock()
 	defer mem.peersTxCountMtx.Unlock()
 	if len(txInfo.SenderP2PID) != 0 {
@@ -308,7 +311,7 @@ func (mem *CListMempool) validatePeerCount(txInfo TxInfo) error {
 		if !ok {
 			peerTxCount = 0
 		}
-		if cfg.DynamicConfig.GetMaxTxLimitPerPeer() != 0 && peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
+		if peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
 			mem.logger.Debug(fmt.Sprintf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer()))
 			return fmt.Errorf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer())
 		}
