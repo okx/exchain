@@ -106,7 +106,6 @@ type CListMempool struct {
 
 	peersTxCountMtx sync.RWMutex
 	peersTxCount    map[string]uint64
-}
 
 	info pguInfo
 }
