@@ -128,17 +128,6 @@ type OecConfig struct {
 	maxTxLimitPerPeer uint64
 }
 
-func (c *OecConfig) SetMaxTxLimitPerPeer(maxTxLimitPerPeer int64) {
-	if maxTxLimitPerPeer < 0 {
-		return
-	}
-	c.maxTxLimitPerPeer = uint64(maxTxLimitPerPeer)
-}
-
-func (c *OecConfig) GetMaxTxLimitPerPeer() uint64 {
-	return c.maxTxLimitPerPeer
-}
-
 const (
 	FlagEnableDynamic = "config.enable-dynamic"
 
@@ -1118,4 +1107,15 @@ func (c *OecConfig) SetMaxSubscriptionClients(v int) {
 
 func (c *OecConfig) GetMaxSubscriptionClients() int {
 	return c.maxSubscriptionClients
+}
+
+func (c *OecConfig) SetMaxTxLimitPerPeer(maxTxLimitPerPeer int64) {
+	if maxTxLimitPerPeer < 0 {
+		return
+	}
+	c.maxTxLimitPerPeer = uint64(maxTxLimitPerPeer)
+}
+
+func (c *OecConfig) GetMaxTxLimitPerPeer() uint64 {
+	return c.maxTxLimitPerPeer
 }
