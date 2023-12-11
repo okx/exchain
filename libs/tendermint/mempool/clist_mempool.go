@@ -322,6 +322,9 @@ func (mem *CListMempool) validatePeerCount(txInfo TxInfo) error {
 }
 
 func (mem *CListMempool) resetPeerCount() {
+	if cfg.DynamicConfig.GetMaxTxLimitPerPeer() == 0 {
+		return
+	}
 	mem.peersTxCountMtx.Lock()
 	defer mem.peersTxCountMtx.Unlock()
 	for key := range mem.peersTxCount {
