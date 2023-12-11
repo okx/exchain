@@ -179,7 +179,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint64(
 		"mempool.max_tx_limit_per_peer",
 		config.Mempool.MaxTxLimitPerPeer,
-		"Max tx limit per peer",
+		"Max tx limit per peer. If set 0 ,this flag disable",
 	)
 
 	cmd.Flags().String(
