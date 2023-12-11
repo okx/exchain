@@ -174,7 +174,6 @@ const (
 	FlagEnableHasBlockPartMsg      = "enable-blockpart-ack"
 	FlagDebugGcInterval            = "debug.gc-interval"
 	FlagCommitGapOffset            = "commit-gap-offset"
-	FlagEnableMempoolSimGuFactor   = "enable-mem-sim-gu-factor"
 	FlagMaxSubscriptionClients     = "max-subscription-clients"
 	FlagMaxTxLimitPerPeer          = "mempool.max_tx_limit_per_peer"
 )
