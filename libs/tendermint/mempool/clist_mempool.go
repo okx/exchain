@@ -315,7 +315,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		if !ok {
 			peerTxCount = 0
 		}
-		if peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
+		if cfg.DynamicConfig.GetMaxTxLimitPerPeer() != 0 && peerTxCount >= cfg.DynamicConfig.GetMaxTxLimitPerPeer() {
 			mem.peersTxCountMtx.Unlock()
 			mem.logger.Debug(fmt.Sprintf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer()))
 			return fmt.Errorf("%s has been over %d transaction, please wait a few second", txInfo.SenderP2PID, cfg.DynamicConfig.GetMaxTxLimitPerPeer())
