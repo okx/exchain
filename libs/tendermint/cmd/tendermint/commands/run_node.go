@@ -176,6 +176,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.Mempool.PendingRemoveEvent,
 		"Push event when remove a pending tx",
 	)
+	cmd.Flags().Uint64(
+		"mempool.max_tx_limit_per_peer",
+		config.Mempool.MaxTxLimitPerPeer,
+		"Max tx limit per peer. If set 0 ,this flag disable",
+	)
 
 	cmd.Flags().String(
 		"mempool.node_key_whitelist",
