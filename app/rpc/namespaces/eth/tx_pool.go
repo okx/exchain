@@ -249,8 +249,8 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 				err.Error(), pool.addressTxsPool[address][i].Data, address.String())
 			pool.dropTxs(i+1, address)
 		} else {
-			err = fmt.Errorf("broadcast failed. err:%s; nonce:%d; tx_hash:%s; address:%s\n",
-				err.Error(), pool.addressTxsPool[address][i].Data.AccountNonce, pool.addressTxsPool[address][i].Data.Hash.String(), address.String())
+			err = fmt.Errorf("broadcast failed. err:%s; data:%v; address:%s\n",
+				err.Error(), pool.addressTxsPool[address][i].Data, address.String())
 			pool.dropTxs(i, address)
 		}
 		pool.logger.Error(err.Error())
