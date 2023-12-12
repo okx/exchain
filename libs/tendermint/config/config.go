@@ -689,6 +689,7 @@ type MempoolConfig struct {
 	PendingPoolMaxTxPerAddress int      `mapstructure:"pending_pool_max_tx_per_address"`
 	NodeKeyWhitelist           []string `mapstructure:"node_key_whitelist"`
 	PendingRemoveEvent         bool     `mapstructure:"pending_remove_event"`
+	MaxTxLimitPerPeer          uint64   `mapstructure:"max_tx_limit_per_peer"`
 }
 
 // DefaultMempoolConfig returns a default configuration for the Tendermint mempool
@@ -715,6 +716,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolMaxTxPerAddress: 100,
 		NodeKeyWhitelist:           []string{},
 		PendingRemoveEvent:         false,
+		MaxTxLimitPerPeer:          100,
 	}
 }
 
@@ -953,12 +955,14 @@ func (cfg *ConsensusConfig) ValidateBasic() error {
 	return nil
 }
 
-//-----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // TxIndexConfig
 // Remember that Event has the following structure:
 // type: [
-//  key: value,
-//  ...
+//
+//	key: value,
+//	...
+//
 // ]
 //
 // CompositeKeys are constructed by `type.key`
