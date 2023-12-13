@@ -60,8 +60,6 @@ import (
 	"github.com/okex/exchain/x/vmbridge"
 )
 
-var ErrServerBusy = errors.New("server is too busy")
-
 const (
 	CacheOfEthCallLru = 40960
 
@@ -521,7 +519,7 @@ func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, b
 	defer monitor.OnEnd("address", address, "key", key, "block number", blockNrOrHash)
 	rateLimiter := api.GetRateLimiter("eth_getStorageAt")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
@@ -541,7 +539,7 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
 	rateLimiter := api.GetRateLimiter("eth_getTransactionCount")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
@@ -662,7 +660,7 @@ func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpct
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
 	rateLimiter := api.GetRateLimiter("eth_getCode")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	blockNumber, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
@@ -713,7 +711,7 @@ func (api *PublicEthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtype
 	api.logger.Debug("eth_getTransactionLogs", "hash", txHash)
 	rateLimiter := api.GetRateLimiter("eth_getTransactionLogs")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	return api.backend.GetTransactionLogs(txHash)
 }
@@ -898,7 +896,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
 	rateLimiter := api.GetRateLimiter("eth_call")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	if overrides != nil {
 		if err := overrides.Check(); err != nil {
@@ -1129,7 +1127,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	defer monitor.OnEnd("args", args)
 	rateLimiter := api.GetRateLimiter("eth_estimateGas")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return 0, ErrServerBusy
+		return 0, rpctypes.ErrServerBusy
 	}
 	params, err := api.getEvmParams()
 	if err != nil {
@@ -1176,7 +1174,7 @@ func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*wa
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
 	rateLimiter := api.GetRateLimiter("eth_getBlockByHash")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	blockRes, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
@@ -1239,7 +1237,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
 	rateLimiter := api.GetRateLimiter("eth_getBlockByNumber")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	blockRes, err := api.getBlockByNumber(blockNum, fullTx)
 	return blockRes, err
@@ -1353,7 +1351,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	defer monitor.OnEnd("hash", hash)
 	rateLimiter := api.GetRateLimiter("eth_getTransactionReceipt")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
 	if e == nil {
