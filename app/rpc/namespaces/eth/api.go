@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -90,10 +92,18 @@ type PublicEthereumAPI struct {
 	callCache          *lru.Cache
 	cdc                *codec.Codec
 	fastQueryThreshold uint64
+	rateLimiters       map[string]*rate.Limiter
+}
+
+func (api *PublicEthereumAPI) GetRateLimiter(apiName string) *rate.Limiter {
+	if api.rateLimiters == nil {
+		return nil
+	}
+	return api.rateLimiters[apiName]
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
-func NewAPI(
+func NewAPI(rateLimiters map[string]*rate.Limiter,
 	clientCtx clientcontext.CLIContext, log log.Logger, backend backend.Backend, nonceLock *rpctypes.AddrLocker,
 	keys ...ethsecp256k1.PrivKey,
 ) *PublicEthereumAPI {
@@ -115,6 +125,7 @@ func NewAPI(
 		wrappedBackend:     watcher.NewQuerier(),
 		watcherBackend:     watcher.NewWatcher(log),
 		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
+		rateLimiters:       rateLimiters,
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 	module := evm.AppModuleBasic{}
@@ -506,6 +517,10 @@ func (api *PublicEthereumAPI) getStorageAt(address common.Address, key []byte, b
 func (api *PublicEthereumAPI) GetStorageAt(address common.Address, key string, blockNrOrHash rpctypes.BlockNumberOrHash) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_getStorageAt", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "key", key, "block number", blockNrOrHash)
+	rateLimiter := api.GetRateLimiter("eth_getStorageAt")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
 		return nil, err
@@ -522,7 +537,10 @@ func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key [
 func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (*hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
-
+	rateLimiter := api.GetRateLimiter("eth_getTransactionCount")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
 		return nil, err
@@ -553,6 +571,10 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *hexutil.Uint {
 	monitor := monitor.GetMonitor("eth_getBlockTransactionCountByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
+	rateLimiter := api.GetRateLimiter("eth_getBlockTransactionCountByHash")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil
+	}
 	res, _, err := api.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, hash.Hex()))
 	if err != nil {
 		return nil
@@ -636,6 +658,10 @@ func (api *PublicEthereumAPI) GetUncleCountByBlockNumber(_ rpctypes.BlockNumber)
 func (api *PublicEthereumAPI) GetCode(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_getCode", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("address", address, "block number", blockNrOrHash)
+	rateLimiter := api.GetRateLimiter("eth_getCode")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	blockNumber, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
 		return nil, err
@@ -683,6 +709,10 @@ func (api *PublicEthereumAPI) GetCodeByHash(hash common.Hash) (hexutil.Bytes, er
 // GetTransactionLogs returns the logs given a transaction hash.
 func (api *PublicEthereumAPI) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.Log, error) {
 	api.logger.Debug("eth_getTransactionLogs", "hash", txHash)
+	rateLimiter := api.GetRateLimiter("eth_getTransactionLogs")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	return api.backend.GetTransactionLogs(txHash)
 }
 
@@ -864,7 +894,10 @@ func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, overrides *evmtypes.StateOverrides) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
-
+	rateLimiter := api.GetRateLimiter("eth_call")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	if overrides != nil {
 		if err := overrides.Check(); err != nil {
 			return nil, err
@@ -1092,7 +1125,10 @@ func (api *PublicEthereumAPI) simDoCall(args rpctypes.CallArgs, cap uint64) (uin
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
-
+	rateLimiter := api.GetRateLimiter("eth_estimateGas")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return 0, rpctypes.ErrServerBusy
+	}
 	params, err := api.getEvmParams()
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
@@ -1136,6 +1172,10 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
+	rateLimiter := api.GetRateLimiter("eth_getBlockByHash")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	blockRes, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
@@ -1195,7 +1235,10 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fu
 func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
-
+	rateLimiter := api.GetRateLimiter("eth_getBlockByNumber")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	blockRes, err := api.getBlockByNumber(blockNum, fullTx)
 	return blockRes, err
 }
@@ -1306,6 +1349,10 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.TransactionReceipt, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionReceipt", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash)
+	rateLimiter := api.GetRateLimiter("eth_getTransactionReceipt")
+	if rateLimiter != nil && !rateLimiter.Allow() {
+		return nil, rpctypes.ErrServerBusy
+	}
 	res, e := api.wrappedBackend.GetTransactionReceipt(hash)
 	if e == nil {
 		return res, nil
