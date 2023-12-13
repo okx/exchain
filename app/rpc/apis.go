@@ -50,7 +50,7 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 	rateLimiters := getRateLimiter()
 	disableAPI := getDisableAPI()
 	ethBackend = backend.New(clientCtx, log, rateLimiters, disableAPI)
-	ethAPI := eth.NewAPI(clientCtx, log, ethBackend, nonceLock, keys...)
+	ethAPI := eth.NewAPI(rateLimiters, clientCtx, log, ethBackend, nonceLock, keys...)
 	if evmtypes.GetEnableBloomFilter() {
 		ethBackend.StartBloomHandlers(evmtypes.BloomBitsBlocks, evmtypes.GetIndexer().GetDB())
 	}
