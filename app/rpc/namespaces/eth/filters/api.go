@@ -27,7 +27,6 @@ import (
 )
 
 var (
-	ErrServerBusy       = errors.New("server is too busy")
 	ErrMethodNotAllowed = errors.New("the method is not allowed")
 	NameSpace           = "filters"
 )
@@ -138,7 +137,7 @@ func (api *PublicFilterAPI) NewPendingTransactionFilter() rpc.ID {
 	}
 	rateLimiter := api.backend.GetRateLimiter("eth_newPendingTransactionFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", ErrServerBusy.Error()))
+		return rpc.ID(fmt.Sprintf("error creating pending tx filter: %s", rpctypes.ErrServerBusy.Error()))
 	}
 	pendingTxSub, cancelSubs, err := api.events.SubscribePendingTxs()
 	if err != nil {
@@ -235,7 +234,7 @@ func (api *PublicFilterAPI) NewBlockFilter() rpc.ID {
 	}
 	rateLimiter := api.backend.GetRateLimiter("eth_newBlockFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return rpc.ID(fmt.Sprintf("error creating block filter: %s", ErrServerBusy.Error()))
+		return rpc.ID(fmt.Sprintf("error creating block filter: %s", rpctypes.ErrServerBusy.Error()))
 	}
 	headerSub, cancelSubs, err := api.events.SubscribeNewHeads()
 	if err != nil {
@@ -402,7 +401,7 @@ func (api *PublicFilterAPI) NewFilter(criteria filters.FilterCriteria) (rpc.ID, 
 	}
 	rateLimiter := api.backend.GetRateLimiter("eth_newFilter")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return rpc.ID(""), ErrServerBusy
+		return rpc.ID(""), rpctypes.ErrServerBusy
 	}
 	var (
 		filterID = rpc.ID("")
@@ -468,7 +467,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.Filter
 	}
 	rateLimiter := api.backend.GetRateLimiter("eth_getLogs")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	var filter *Filter
 	if criteria.BlockHash != nil {
@@ -574,7 +573,7 @@ func (api *PublicFilterAPI) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	}
 	rateLimiter := api.backend.GetRateLimiter("eth_getFilterChanges")
 	if rateLimiter != nil && !rateLimiter.Allow() {
-		return nil, ErrServerBusy
+		return nil, rpctypes.ErrServerBusy
 	}
 	api.filtersMu.Lock()
 	defer api.filtersMu.Unlock()
