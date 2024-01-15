@@ -150,6 +150,7 @@ run() {
     --enable-wtx=${WRAPPEDTX} \
     --mempool.node_key_whitelist ${WHITE_LIST} \
     --p2p.pex=false \
+    --mempool.max_tx_limit_per_peer=1 \
     --p2p.addr_book_strict=false \
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
@@ -158,7 +159,7 @@ run() {
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --enable-gid \
-    --consensus.timeout_commit 3800ms \
+    --consensus.timeout_commit 10000ms \
     --enable-blockpart-ack=false \
     --append-pid=true \
     ${LOG_SERVER} \

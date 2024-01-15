@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	ErrServerBusy = errors.New("server is too busy, please try again later")
 	// static gas limit for all blocks
 	defaultGasLimit   = hexutil.Uint64(int64(^uint32(0)))
 	defaultGasUsed    = hexutil.Uint64(0)

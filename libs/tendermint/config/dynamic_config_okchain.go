@@ -40,6 +40,7 @@ type IDynamicConfig interface {
 	GetEnableMempoolSimGuFactor() bool
 	GetMaxSubscriptionClients() int
 	GetPendingPoolBlacklist() string
+	GetMaxTxLimitPerPeer() uint64
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -227,4 +228,8 @@ func (d *MockDynamicConfig) SetMaxSubscriptionClients(value int) {
 
 func (d MockDynamicConfig) GetPendingPoolBlacklist() string {
 	return ""
+}
+
+func (c MockDynamicConfig) GetMaxTxLimitPerPeer() uint64 {
+	return DefaultMempoolConfig().MaxTxLimitPerPeer
 }
