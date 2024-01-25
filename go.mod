@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/99designs/keyring v1.1.6
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
-	github.com/CosmWasm/wasmvm v1.0.1
+	github.com/CosmWasm/wasmvm v1.0.2
 	github.com/VictoriaMetrics/fastcache v1.8.0
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/alicebob/miniredis/v2 v2.17.0
@@ -180,6 +180,7 @@ require (
 )
 
 replace (
+	github.com/CosmWasm/wasmvm => github.com/okx/wasmvm v1.0.2
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/confio/ics23/go => github.com/cosmos/cosmos-sdk/ics23/go v0.8.0
 	github.com/cosmos/gorocksdb => github.com/okex/grocksdb v1.6.45-okc2
