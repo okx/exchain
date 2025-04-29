@@ -237,7 +237,7 @@ func (arz *ABCIResponses) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]

@@ -56,7 +56,7 @@ func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("not enough data for field")
 			}
 			subData = data[:dataLen]

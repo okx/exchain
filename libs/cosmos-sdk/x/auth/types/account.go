@@ -57,7 +57,7 @@ func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 				return err
 			}
 			data = data[n:]
-			if int(dataLen) > len(data) {
+			if dataLen > uint64(len(data)) {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]

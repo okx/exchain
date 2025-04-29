@@ -272,7 +272,7 @@ func (dve *DuplicateVoteEvidence) UnmarshalFromAmino(cdc *amino.Codec, data []by
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data len")
 			}
 			subData = data[:dataLen]

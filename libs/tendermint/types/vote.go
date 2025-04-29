@@ -127,7 +127,7 @@ func (vote *Vote) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data len")
 			}
 			subData = data[:dataLen]
