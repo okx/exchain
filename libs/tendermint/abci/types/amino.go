@@ -148,7 +148,7 @@ func (vu *ValidatorUpdate) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -366,7 +366,7 @@ func (vp *ValidatorParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -595,7 +595,7 @@ func (tx *ResponseDeliverTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) e
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("invalid datalen")
 			}
 			subData = data[:dataLen]

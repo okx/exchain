@@ -158,7 +158,7 @@ func (txResult *TxResult) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data length: %d", dataLen)
 			}
 			subData = data[:dataLen]

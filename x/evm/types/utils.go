@@ -87,7 +87,7 @@ func (k *KV) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -187,7 +187,7 @@ func UnmarshalEthLogFromAmino(data []byte) (*ethtypes.Log, error) {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return nil, fmt.Errorf("invalid data length: %d", dataLen)
 			}
 			subData = data[:dataLen]
@@ -422,7 +422,7 @@ func (rd *ResultData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 		}
 
 		data = data[n:]
-		if len(data) < int(dataLen) {
+		if uint64(len(data)) < dataLen {
 			return errors.New("invalid data len")
 		}
 		subData = data[:dataLen]

@@ -30,7 +30,7 @@ func unmarshalBlockPartBytesTo(data []byte, buf *bytes.Buffer) error {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("not enough data for %s, need %d, have %d", aminoType, dataLen, len(data))
 			}
 			subData = data[:dataLen]

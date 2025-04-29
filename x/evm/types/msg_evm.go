@@ -506,7 +506,7 @@ func (msg *MsgEthereumTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid tx data")
 			}
 			subData = data[:dataLen]

@@ -45,7 +45,7 @@ func (coin *DecCoin) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -717,7 +717,7 @@ func removeZeroDecCoins(coins DecCoins) DecCoins {
 
 var _ sort.Interface = Coins{}
 
-//nolint
+// nolint
 func (coins DecCoins) Len() int           { return len(coins) }
 func (coins DecCoins) Less(i, j int) bool { return coins[i].Denom < coins[j].Denom }
 func (coins DecCoins) Swap(i, j int)      { coins[i], coins[j] = coins[j], coins[i] }

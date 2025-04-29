@@ -66,7 +66,7 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		}
 
 		data = data[n:]
-		if len(data) < int(dataLen) {
+		if uint64(len(data)) < dataLen {
 			return fmt.Errorf("not enough data for field %d", pos)
 		}
 		subData := data[:dataLen]
