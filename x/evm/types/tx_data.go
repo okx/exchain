@@ -329,7 +329,11 @@ func (td *TxData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		if err == nil && int(u64) == (len(data)-n) {
 			return td.unmarshalFromAmino(cdc, data[n:])
 		} else {
-			return err
+			if err != nil {
+				return err
+			} else {
+				return fmt.Errorf("invalid tx data")
+			}
 		}
 	}
 	return nil
