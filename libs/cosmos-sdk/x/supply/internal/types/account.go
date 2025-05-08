@@ -65,7 +65,7 @@ func (acc *ModuleAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 		}
 
 		data = data[n:]
-		if len(data) < int(dataLen) {
+		if uint64(len(data)) < dataLen {
 			return fmt.Errorf("invalid data length: %v", dataLen)
 		}
 		subData := data[:dataLen]

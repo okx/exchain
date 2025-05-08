@@ -53,7 +53,7 @@ func (part *Part) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("not enough data for %s, need %d, have %d", aminoType, dataLen, len(data))
 			}
 			subData = data[:dataLen]
@@ -154,7 +154,7 @@ func (psh *PartSetHeader) UnmarshalFromAmino(_ *amino.Codec, data []byte) error 
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("not enough data for %s, need %d, have %d", aminoType, dataLen, len(data))
 			}
 			subData = data[:dataLen]

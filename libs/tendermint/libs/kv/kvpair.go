@@ -99,7 +99,7 @@ func (pair *Pair) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 		}
 
 		data = data[n:]
-		if len(data) < int(dataLen) {
+		if uint64(len(data)) < dataLen {
 			return errors.New("invalid data length")
 		}
 		subData = data[:dataLen]
