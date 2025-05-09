@@ -143,7 +143,14 @@ func extractTarGz(tarGzFile, destinationDir string) error {
 		if header == nil {
 			continue
 		}
-		target := filepath.Join(destinationDir, header.Name)
+		// Normalize the header name and ensure it does not escape the destination directory
+		cleanName := filepath.Clean(header.Name)
+		target := filepath.Join(destinationDir, cleanName)
+
+		// Ensure the target path is within the destination directory
+		if !strings.HasPrefix(target, filepath.Clean(destinationDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("invalid file path: %s", header.Name)
+		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
