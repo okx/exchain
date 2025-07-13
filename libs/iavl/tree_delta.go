@@ -96,7 +96,7 @@ func (tdm TreeDeltaMap) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -126,7 +126,7 @@ type TreeDeltaMapImp struct {
 	TreeValue *TreeDelta
 }
 
-//MarshalToAmino marshal data to amino bytes
+// MarshalToAmino marshal data to amino bytes
 func (ti *TreeDeltaMapImp) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	if ti == nil {
 		return nil, nil
@@ -195,7 +195,7 @@ func (ti *TreeDeltaMapImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -318,7 +318,7 @@ func (td *TreeDelta) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -436,7 +436,7 @@ func (ni *NodeJsonImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -530,7 +530,7 @@ func (ci *CommitOrphansImp) UnmarshalFromAmino(cdc *amino.Codec, data []byte) er
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]
@@ -729,7 +729,7 @@ func (nj *NodeJson) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			dataLen, n, _ = amino.DecodeUvarint(data)
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("not enough data")
 			}
 			subData = data[:dataLen]

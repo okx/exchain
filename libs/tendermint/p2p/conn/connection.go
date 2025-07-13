@@ -82,6 +82,7 @@ The byte id and the relative priorities of each `Channel` are configured upon
 initialization of the connection.
 
 There are two methods for sending messages:
+
 	func (m MConnection) Send(chID byte, msgBytes []byte) bool {}
 	func (m MConnection) TrySend(chID byte, msgBytes []byte}) bool {}
 
@@ -1183,7 +1184,7 @@ func (mp *PacketMsg) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return errors.New("invalid data len")
 			}
 			subData = data[:dataLen]

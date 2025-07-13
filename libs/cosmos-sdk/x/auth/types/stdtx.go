@@ -69,7 +69,7 @@ func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			return err
 		}
 		data = data[n:]
-		if len(data) < int(dataLen) {
+		if uint64(len(data)) < dataLen {
 			return fmt.Errorf("invalid tx data")
 		}
 		subData = data[:dataLen]
@@ -389,7 +389,7 @@ func (fee *StdFee) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid tx data")
 			}
 			subData = data[:dataLen]
@@ -560,7 +560,7 @@ func (ss *StdSignature) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 			return err
 		}
 		data = data[n:]
-		if len(data) < int(dataLen) {
+		if uint64(len(data)) < dataLen {
 			return fmt.Errorf("invalid tx data")
 		}
 		subData = data[:dataLen]

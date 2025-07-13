@@ -130,7 +130,7 @@ func (b *Block) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("not enough data to read field %d", pos)
 			}
 			subData = data[:dataLen]
@@ -631,7 +631,7 @@ func (h *Header) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("not enough data for field, need %d, have %d", dataLen, len(data))
 			}
 			subData = data[:dataLen]
@@ -1013,7 +1013,7 @@ func (cs *CommitSig) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data len")
 			}
 			subData = data[:dataLen]
@@ -1236,7 +1236,7 @@ func (commit *Commit) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data len")
 			}
 			subData = data[:dataLen]
@@ -1669,7 +1669,7 @@ func (d *Data) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data len")
 			}
 			subData = data[:dataLen]
@@ -1774,7 +1774,7 @@ func (d *EvidenceData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				return err
 			}
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data len")
 			}
 			subData = data[:dataLen]
@@ -1880,7 +1880,7 @@ func (blockID *BlockID) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 			}
 
 			data = data[n:]
-			if len(data) < int(dataLen) {
+			if uint64(len(data)) < dataLen {
 				return fmt.Errorf("invalid data len")
 			}
 			subData = data[:dataLen]
