@@ -3,9 +3,9 @@ package hd
 import (
 	"github.com/pkg/errors"
 
+	"github.com/alexvec/go-bip39"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/hdkeychain"
-	"github.com/tyler-smith/go-bip39"
 
 	ethaccounts "github.com/ethereum/go-ethereum/accounts"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -23,8 +23,8 @@ const (
 )
 
 // SupportedAlgorithms defines the list of signing algorithms used on Ethermint:
-//  - eth_secp256k1 (Ethereum)
-//  - secp256k1 (Tendermint)
+//   - eth_secp256k1 (Ethereum)
+//   - secp256k1 (Tendermint)
 var SupportedAlgorithms = []keys.SigningAlgo{EthSecp256k1, keys.Secp256k1}
 
 // EthSecp256k1Options defines a keys options for the ethereum Secp256k1 curve.
