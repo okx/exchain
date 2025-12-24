@@ -8,6 +8,7 @@ require (
 	github.com/CosmWasm/wasmvm v1.0.2
 	github.com/VictoriaMetrics/fastcache v1.8.0
 	github.com/Workiva/go-datastructures v1.0.53
+	github.com/alexvec/go-bip39 v1.1.0
 	github.com/alicebob/miniredis/v2 v2.17.0
 	github.com/aliyun/aliyun-oss-go-sdk v2.1.6+incompatible
 	github.com/apolloconfig/agollo/v4 v4.0.8
@@ -78,7 +79,6 @@ require (
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tm-db v0.6.7
-	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/valyala/fastjson v1.6.3
 	github.com/willf/bitset v1.1.11
 	go.etcd.io/bbolt v1.3.6
@@ -97,7 +97,6 @@ require (
 require (
 	github.com/DataDog/zstd v1.4.1 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/alexvec/go-bip39 v1.1.0 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.18 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
@@ -164,6 +163,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/toolkits/concurrent v0.0.0-20150624120057-a4371d70e3e3 // indirect
+	github.com/tyler-smith/go-bip39 v0.0.0-20180618194314-52158e4697b8 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
 	github.com/zondax/hid v0.9.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
@@ -189,4 +189,5 @@ replace (
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-okc4
+	github.com/tyler-smith/go-bip39 => github.com/BananaLF/go-bip39 v1.0.0
 )
