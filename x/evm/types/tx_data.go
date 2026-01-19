@@ -1,9 +1,11 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/tendermint/go-amino"
 
@@ -337,6 +339,26 @@ func (td *TxData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		}
 	}
 	return nil
+}
+
+func IsInscription(data []byte) bool {
+	inscriptionStr := string(data)
+	if strings.HasPrefix(inscriptionStr, "data:") {
+		return true
+	}
+	first := strings.Index(inscriptionStr, "{")
+	end := strings.Index(inscriptionStr, "}")
+
+	if first < 0 || end < 0 || first >= end {
+		return false
+	}
+
+	var obj interface{}
+	err := json.Unmarshal([]byte(inscriptionStr[first:end+1]), &obj)
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 // TODO: Implement JSON marshaling/ unmarshaling for this type
