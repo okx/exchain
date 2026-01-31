@@ -1,0 +1,26 @@
+FROM okexchain/build-env:go1.20.1-static-v102-8d2c621 as builder
+
+WORKDIR $GOPATH/src/github.com/okx
+
+ENV GO111MODULE=on \
+    GOPROXY=https://goproxy.cn,direct
+
+COPY . ./exchain
+
+RUN cd exchain && \
+    make mainnet WITH_ROCKSDB=true LINK_STATICALLY=true  
+
+FROM okexchain/build-env:go1.20.1-static-v102-8d2c621
+
+COPY --from=builder $GOPATH/bin/exchaind $GOPATH/bin/exchaind
+
+COPY --from=builder $GOPATH/bin/exchaincli $GOPATH/bin/exchaincli
+
+RUN apk add --no-cache axel
+
+ENTRYPOINT ["/bin/bash", "-c"]
+
+CMD ["exchaind start"]
+
+EXPOSE 26656 26657 26659 26660 6060
+
