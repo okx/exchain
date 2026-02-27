@@ -1,0 +1,20 @@
+ OKTCadena
+La infraestructura del intercambio descentralizado
+
+bandera
+
+versión CírculoCI código cov Ir a la boleta de calificaciones licencia LdC GolangCI
+
+Este repositorio alberga OKTCla implementación de OKTC basada en Cosmos SDK .
+
+Nota : Requiere Go 1.20
+
+Empezando
+Consulte la documentación .
+
+Únete a la red principal
+如何启动主网节点
+Únete a la red de prueba
+如何启动测试网节点
+Cómo construir una cadena privada
+如何搭建私有网络
